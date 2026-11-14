@@ -23,7 +23,17 @@
 
 Документы владельца 008/009/010 остаются PARTIAL с их manual gates; 011 их задним числом не закрывает. Владелец принимает результат отдельно.
 
-## Фактическая проверка011
+## Текущая проверка011 после согласованного продолжения
+
+**G0PASS; G1PASS; G2PASS; G3PASS; G4FAIL; G5PASS; G6PASS; G7PASS; G8 ожидает финальный documentation readback.** Verdict PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET. SCENARIO_ENGINE=READY, NATIVE_PVE_SOLO=PARTIAL, NATIVE_PVE_PARTY=PASS, GAME_ADVANTAGE=INCONCLUSIVE, PVP/RAID=NOT_IMPLEMENTED.
+
+Последний paired headless:2Solo+2Party,8native pre-CUT arms, exact current JAR/source/config. Реальный GS:8CUT,47included paid events,8terminal arms;5COMPLETED/3FAILED. Party2MATCHED_COMPLETED сAB/BA, Solo0сAB/BA. `TRAIN010_EVAL_MATCHED_PAIR_COVERAGE` честно отклонил отсутствие required Solo. FULL011 запрещён.
+
+Budget1/3GS и328635/2700000ms, exact kernel exit0; STOPPED/OFF/owned0/portsfree, final protected preflight0. Frozen SQL183rows unchanged,11cold-export payloads identical, DRAFT14/Adam903/223/apps48/pointer12 preserved. Global farm prior bytes unchanged; Spawn изменение ограничено согласованным sentinel override и проверено ordinary/native lifecycle. Source13GitHub blobs полностью проверены; final receipt — GITHUB-CONTINUATION-READBACK.json.
+
+**Ручная приёмка REQUIRED.** Агент не принимает её сам; исторические008/009/010 gates остаются прежними.011№5/13, после выдачи8. Следующего Goal нет.
+
+## Первоначальная проверка011 до двух разрешённых расширений scope
 
 G0PASS;G1PASS;G2PARTIAL;G3FAIL;G4NOT_RUN;G5PASS;G6PASS;G7PASS;G8PASS. Fresh headless4PartyHEAL proposals/SoloDAMAGE0; HEADLESS_READY0,live0,CUT0,matchedpairs0. GameServer0/3 и0/2700000ms. FULL011 не объявлен. Итог PARTIAL011_LAWFUL_COVERAGE_BLOCKED, game INCONCLUSIVE, PVP/RAID NOT_IMPLEMENTED.
 

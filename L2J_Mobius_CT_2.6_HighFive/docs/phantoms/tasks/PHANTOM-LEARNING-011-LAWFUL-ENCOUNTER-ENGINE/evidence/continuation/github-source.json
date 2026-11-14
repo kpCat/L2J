@@ -1,0 +1,71 @@
+{
+  "head": "0c331f738d082c9476754c6561f9e8ae51d4b464",
+  "proofs": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 331488,
+      "blobSha": "779017d9494bb922e646c02f8477f83c6d03af9d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/spawns/Spawn.java",
+      "bytes": 18934,
+      "blobSha": "acf41411adee34bf60831840e473d81829ce6dfb"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+      "bytes": 73774,
+      "blobSha": "ccfef622674831671c77e3c0ea56fcc9a060892e"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeBuilder.java",
+      "bytes": 22527,
+      "blobSha": "3cf947febeba6ec064a6c99d3470a868d21333a9"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 143353,
+      "blobSha": "fa3aafc418b81199309b260acbfa0afaa55a8996"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSource.java",
+      "bytes": 9719,
+      "blobSha": "65ef5fac769f5b7ae84ed76df9c8c47a4c7a742c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSourceChecks.java",
+      "bytes": 13315,
+      "blobSha": "ea1357752b04a3eb2b655ec7a6219b82f66de210"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "bytes": 101457,
+      "blobSha": "6bf9e6d183f38c9afa504bab24fdc46786e3dbec"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "bytes": 30671,
+      "blobSha": "22703aa9feafb5c1b1caeb428ade69a15e272af5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
+      "bytes": 4934,
+      "blobSha": "46f7c00f905281667fc19c4b3484bbeecb998ae0"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "bytes": 29139,
+      "blobSha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
+      "bytes": 3654,
+      "blobSha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
+      "bytes": 8630,
+      "blobSha": "e976cdcd00ab8dc441cd7704d1332a51591467c7"
+    }
+  ],
+  "chunks": []
+}

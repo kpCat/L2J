@@ -1,4 +1,10 @@
-# PHANTOM-LEARNING-011 — комплект задания для Codex
+# PHANTOM-LEARNING-011 — текущее состояние
+
+PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET, manual gate REQUIRED. Source0c331f73,13paths; headless2Solo+2Party/8pre-CUT arms PASS. Native1/3GS,328635/2700000ms:Party2matched complete AB/BA пары, Solo0(3deaths/1kill). G4FAIL, FULL запрещён; frozen и STOPPED/OFF подтверждены.
+
+Текущие RESULT/EVIDENCE/SCENARIO_COVERAGE/HANDOFF и evidence/continuation описывают продолжение по двум явным решениям владельца. Первоначальные evidence/headless и нижние исторические sections не являются текущими native счётчиками. Final GitHub receipt — GITHUB-CONTINUATION-READBACK.json.011№5/13, осталось8; следующий Goal не начат.
+
+# Первоначальный комплект задания для Codex
 
 Содержимое архива распаковывается **в**:
 

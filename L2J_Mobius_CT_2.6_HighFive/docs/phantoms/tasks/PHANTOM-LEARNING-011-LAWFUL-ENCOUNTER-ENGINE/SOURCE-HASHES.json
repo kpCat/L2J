@@ -1,42 +1,80 @@
 [
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
-    "sha256": "1c1cb62a061f45b99b7ed1ccdfdc38da6165318fbd980b8e49d41f158bd56a91",
-    "bytes": 331057
+    "bytes": 331488,
+    "sha256": "84cb7a960c9d8124b7145dcd47fa83f21de3698523af1f5513f239be8c4a88bf",
+    "publishedGitBlobSha": "779017d9494bb922e646c02f8477f83c6d03af9d"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/spawns/Spawn.java",
+    "bytes": 19590,
+    "sha256": "cd02d6988c1d21537a267fafedbb964a9a533f842560750efa0377bc53eab453",
+    "publishedGitBlobSha": "acf41411adee34bf60831840e473d81829ce6dfb"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+    "bytes": 73774,
+    "sha256": "085154828c0256dc5c65c84a046ad85cecf922aedc12191c491fd9e94cb7d3b0",
+    "publishedGitBlobSha": "ccfef622674831671c77e3c0ea56fcc9a060892e"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeBuilder.java",
+    "bytes": 22973,
+    "sha256": "b0b2ee3f542868e57db0a71789ca6218d7224d1baccf8790cd8e51a3a4b33c9a",
+    "publishedGitBlobSha": "3cf947febeba6ec064a6c99d3470a868d21333a9"
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
+    "bytes": 4934,
     "sha256": "3ebf87fb99dda4afd561dc5f201d6371b87f66a0372f4272f0e35fae349de490",
-    "bytes": 4934
+    "publishedGitBlobSha": "46f7c00f905281667fc19c4b3484bbeecb998ae0"
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+    "bytes": 29441,
     "sha256": "580cf068a7c4f8ed142a54475ec909667f72e613bec3ec8bbffba542bb4748c6",
-    "bytes": 29441
+    "publishedGitBlobSha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd"
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
-    "sha256": "58684b9fec2f146c383527bf11af8699f03250e21c366400c58e2831cbed125f",
-    "bytes": 137670
-  },
-  {
-    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
-    "sha256": "0be8d8f980c524ce8c186ba6c7e418e556349546740861b7c6ace6ed29611891",
-    "bytes": 101515
-  },
-  {
-    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
-    "sha256": "25c70aba5e7823368a21d57602a26aace41442833fb8fd9a719a0d78bd1570da",
-    "bytes": 29516
+    "bytes": 144863,
+    "sha256": "153e986a3d60936efef024b6518936818af2c7c6e9985270cc91856c1e0bec63",
+    "publishedGitBlobSha": "fa3aafc418b81199309b260acbfa0afaa55a8996"
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
+    "bytes": 3654,
     "sha256": "cf3779f40b5fc47174e67b7fb9cece59910c060a4f12b78a4f1b2ecd34deceb9",
-    "bytes": 3654
+    "publishedGitBlobSha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54"
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
+    "bytes": 8630,
     "sha256": "fbd9c2c923648922dc11b6eb396e674c31b9362bee30c624536761dff69b8b15",
-    "bytes": 8630
+    "publishedGitBlobSha": "e976cdcd00ab8dc441cd7704d1332a51591467c7"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSource.java",
+    "bytes": 9719,
+    "sha256": "815d2800cb5e555a3fbc32e5f80e2a5c868876680cd86b12a1c9e9b8e0b01970",
+    "publishedGitBlobSha": "65ef5fac769f5b7ae84ed76df9c8c47a4c7a742c"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSourceChecks.java",
+    "bytes": 13315,
+    "sha256": "fb91d2b315e51baf13dff5870b12e823e8698422771ee9c3ef40996a29bd64bc",
+    "publishedGitBlobSha": "ea1357752b04a3eb2b655ec7a6219b82f66de210"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+    "bytes": 103036,
+    "sha256": "e88f05ce96ae96a7e063cb998f2a021ec5b0b5f21a338e1f87ceb1af7d7d3994",
+    "publishedGitBlobSha": "6bf9e6d183f38c9afa504bab24fdc46786e3dbec"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+    "bytes": 31092,
+    "sha256": "29d7e31bcba52e32a72495a9bb00c55cbadbe49e6fb2b55ef0f390353997b8c2",
+    "publishedGitBlobSha": "22703aa9feafb5c1b1caeb428ade69a15e272af5"
   }
 ]

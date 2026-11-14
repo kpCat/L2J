@@ -1,1 +1,11 @@
-{"status":"PASS_PUBLISHED_ARTIFACTS","filesBeforeFinalReceipt":49,"filesIncludingFinalReceipt":50,"mojibakePatterns":27,"mojibakeMatches":0,"escapedCyrillicPatterns":6,"escapedCyrillicMatches":0,"rawCaptureExceptions":{"files":3,"mojibakeMatches":36,"preservedByteExactlyOutsideCheckout":true,"index":"RAW-LOGS-INDEX.json"}}
+{
+  "files": 74,
+  "mojibakePatterns": 27,
+  "escapedCyrillicPatterns": 6,
+  "mojibake": [],
+  "escapedCyrillic": [],
+  "mojibakeMarkersChecked": true,
+  "escapedCyrillicCheckedSeparately": true,
+  "scope": "Полный exact74paths allowlist, включая13source; runtime raw captures вне checkout не перекодированы.",
+  "externalReaderCorrection": "Первый postflight derivative прочитан PowerShell5 как ANSI. Reader исправлен на явныйUTF8, повторно прочитан canonical state; TEST raw не менялся. Неверный derivative сохранён вне checkout."
+}

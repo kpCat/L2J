@@ -1,4 +1,41 @@
-# Результат011 — PARTIAL
+# Текущий результат011 после согласованного продолжения
+
+**PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET.** Encounter Engine — **READY**, native Party — **PASS**, native Solo — **PARTIAL**. Получены2завершённые Party A/B пары с порядкамиAB/BA; Solo дал0завершённых пар,3смерти и1kill. **G4 FAIL, FULL011 запрещён.** Игровой verdict **INCONCLUSIVE**, PVP/RAID **NOT_IMPLEMENTED**, ручная приёмка владельца **REQUIRED**.011 —№5/13, после выдачи остаётся8; следующий Goal не начинался.
+
+Общий versioned proposal/admission теперь связывает фактически acquired skills/enchant, config/equipment/HP, canonical spawn provenance, точную локальную геометрию и настоящий Combat/Party owner. Headless и live потребляют один sealed catalog; непосредственно перед CUT повторяются проверки World/Geo/LOS/faction/target/owner/readiness и physical parity. Разрешение на admission не обещает победу в бою.
+
+Владелец отдельно согласовал additive local encounter contract в PhantomGameKnowledgeBuilder/PhantomHistoricalBackgroundPlanner и минимальный Spawn sentinel fix. Старые global farm methods, включая exactTerritoryNode(), сохранены побайтово после удаления только новых additive блоков. Generic Location и игровые ограничения не изменены. Новый override Spawn.setHeading сохраняет-1; остальные значения проходят прежний clamp.
+
+**Подтверждённое production-влияние Spawn:** внутренний sentinel-1 теперь сохраняется при territory spawn/RandomSpawns. У territory нет второго случайного сдвига; обычный exact spawn при RandomSpawns=true сохраняет первоначальный штатный offset, а respawn следует существующей cached-source ветви без лишнего random draw. Это общее изменение NPC Spawn, явно разрешённое владельцем. Проверены9heading×2flags и8реальных doSpawn/respawn lifecycle cases, включая true/false, territory/sentinel/zero/fixed; config восстановлен. Непредусмотренного влияния в этих проверках не обнаружено; исчерпывающее покрытие всех игровых scripts не заявляется.
+
+Причины расхождения устранены в контракте: global farm territory ошибочно использовалась для локальной сцены; inherited Location clamp терял native sentinel; статический Party catalog запечатывался до native group admission. Теперь только реальный source witness даёт локальную цель, а ячейка попадает в catalog после двух native pre-CUT admissions. Единственный retryable отказ — чистый штатный WAIT_GROUP_DAMAGE, в пределах прежней12-scene страницы и общего cap12уникальных кандидатов. Geo/faction/source/owner/config/parity отказы фатальны. Новых сеток точек, NPC/skill allowlists или искусственных HP нет.
+
+Финальная headless session `2e8ca933c7b947279e1ffd1f0b96b72c` на source `0c331f738d082c9476754c6561f9e8ae51d4b464`:4законные сцены(2Solo+2Party),8paired pre-CUT arms,4/12кандидатов, native spawn8/8PASS. Source fingerprint `071f21a41e91e4f98cdd2b845cc757e2c6cea346117f3eb256ac93c8b1112002`, JAR `c38f64ba54557cf6a0451bb06a8b657a277af53b9245eff461f55bdbb6915017`. Prepared paths включают configSHA/JAR_SHA;8файлов прежнего успешного каталога сохранили SHA. AB/BA чередуются внутри каждого направления.
+
+GS011 №1: PID60792, attempt `ce5d1ef6826742b2a5786d1c5bd58caa`;8LIVE_ADMITTED/CUT,8paid arms,47included paid events,8terminal receipts.20actor incarnations и8targets уникальны, replay отсутствует. Все8headless/live physical hashes совпали. Party4NATIVE_KILL→2MATCHED_COMPLETED; Solo3NATIVE_ACTOR_DIED+1NATIVE_KILL→2MATCHED_INCOMPLETE. Штатный Director отклонил покрытие: `TRAIN010_EVAL_MATCHED_PAIR_COVERAGE`. `batch.complete`, `evaluation.complete` и exit0GS не подменяют G4.
+
+Бюджет011: **1/3GS,328635/2700000ms (5,47725/45мин)**, exact `OWN_HELD_HANDLE_EXIT_TIME`, kernel exit0. GS2/3 не запускались: новый случайный повтор не устраняет наблюдённую недостаточную выживаемость frozen Solo. Принудительных побед, лечения, смены исходного equipment, перемещения NPC после CUT или ослабления Combat не было. Истории00910/5803240ms и0104/715447ms сохранены.
+
+Frozen SQL после EVAL:183строки/79660байт, прежний SHA `9a9c2d0ee9a2b8f37da5dd6bcf625334b76be96fe9b76e22490ed20b4da70e7d`. DRAFT14/Adam903/223/apps48/gradients16/acceptedTEST2 и pointer12 unchanged. Fresh cold ZIP SHA `a23270868a8c0eaa6afe82ffc7f7ca59f9d9dc50db4356dfdc6aad1c939da0f2`:CRC12entriesPASS,11payloads byte-identical, manifest меняет только createdUtc. **FIT/TRAIN_CREDIT/PROMOTION011=0.**
+
+Native wall328635ms, CPU265,203125s, peak4696219648B. Последний headless worker:116207ms kernel wall, CPU222,390625s, peak4648873984B. Boot35s включён в native charge. Цена assistant inference неизвестна. Новых runtime LLM/provider calls нет.
+
+Canonical Stop и последующий DB-free Preflight exit0: **STOPPED/OFF/owned0**,33357/18001/19301free, Geo203/protected207PASS. Foreign SQL8692/3308 от28.10 сохранён. MAIN/PLAY/client/release057–061 не запускались; основной checkout остался на7e997636… и не изменялся. Полный исторический asset inventory повторно не хешировался; штатные protected guards исполнены.
+
+G0/G1/G2/G3/G5/G6/G7PASS; **G4FAIL**. G8 завершается текущим scoped docs push и независимым readback; receipt — GITHUB-CONTINUATION-READBACK.json. Source13paths опубликованы ordinary feature push и полностью проверены по GitHub blob SHA; SOURCE-HASHES/SCOPE-GUARD содержат exact inventory. Focused behavioral RED→GREEN local/sentinel/order/cache,011/autonomous/007/008 и AntJAR пройдены; первоначальные009/010 regressions сохранены.
+
+Пределы evidence: все47событий имеют timing/settlement/action/HP/MP/hash index, публично даны8полных native witnesses.3linked-lethal HP callback завершились после terminal на3,6754–10,4897ms; каждый связан с тем же native kill target incarnation по существующему timing rule. Legacy native-admission sessions содержит Java Map text: raw сохранён, valid JSON для этого supplemental поля не заявляется. Отдельные versioned encounter-admission/parity/settlement receipts проверены.
+
+Проверка actual selected/baseline всех47receipts выявила6оплаченных перестановок только в первой learned Solo arm. В Party learned mode=ON реально вычислялся, но MARGIN gate оставлял stock action: paid divergences0; во второй learned Solo также0. Поэтому PartyPASS относится к законной native сцене и completed pair contract; различие действий либо преимущество модели в Party не доказано. Safe BUDGET_5MS fallback в отдельных diagnostics сохранён.
+
+- mojibake-маркеры в изменённых файлах проверены полным27-pattern scan;
+- escaped Cyrillic в изменённых файлах проверены отдельным6-pattern scan.
+
+Git использовался по прямому разрешению пользователя/TASK011: scoped add/commit, обычный push только feature/phantom-world, read-only scope audit и TEST fast-forward. Точные команды — COMMANDS.md. Решение владельца о финальной приёмке остаётся REQUIRED; новые сценарии для обязательных Solo побед потребуют отдельного обоснования по настоящим source/gameplay данным. Дополнительное обучение и повтор ради удачного исхода не выполнялись.
+
+Ниже сохранён первоначальный результат до двух согласованных расширений scope. Его счётчики0GS/0lawful относятся только к тому этапу.
+
+# Первоначальный результат011 — PARTIAL
 
 **PARTIAL011_LAWFUL_COVERAGE_BLOCKED. SCENARIO_ENGINE=PARTIAL.** Shared Encounter/Admission contract реализован и проверен focused tests; обязательные законные Solo+Party сцены текущего TEST не подтверждены. **FULL011 не достигнут.** Игровой verdict **INCONCLUSIVE**, native Solo/Party011 **NOT_RUN**, PVP/RAID **NOT_IMPLEMENTED**. Final manual gate владельца **REQUIRED**.
 

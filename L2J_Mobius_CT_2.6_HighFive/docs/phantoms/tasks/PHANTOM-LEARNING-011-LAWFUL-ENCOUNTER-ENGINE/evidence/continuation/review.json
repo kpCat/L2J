@@ -1,0 +1,26 @@
+{
+  "reviewer": "local_contract_review",
+  "readOnly": true,
+  "p0p1p2": [],
+  "verified": {
+    "cutArms": 8,
+    "uniqueActors": 20,
+    "uniqueTargets": 8,
+    "uniquePaidEvents": 47,
+    "replay": false,
+    "physicalAndProposalParity": true,
+    "orderPerDirection": "AB_AND_BA",
+    "partyMatchedCompleted": 2,
+    "soloMatchedCompleted": 0
+  },
+  "timingLimit": {
+    "linkedLethalCallbacksAfterTerminal": 3,
+    "minimumMillis": 3.6754,
+    "maximumMillis": 10.4897
+  },
+  "limits": [
+    "Полный native witness опубликован для восьми событий; все47 имеют timings, settlement IDs, HP/MP/action index и SHA исходного receipt.",
+    "Legacy native-admission sessions содержит Java Map text; raw сохранён без объявления valid JSON.",
+    "Reviewer не перепроверял SQL/ZIP; их отдельно проверил основной агент."
+  ]
+}

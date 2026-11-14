@@ -1,0 +1,48 @@
+{
+  "previousConfigOnlyCatalogFiles": [
+    {
+      "name": "1bf31051bb03d77360c04c60689d26aee663653a8cbb0edf75aaecc6c7943508.physical.sha",
+      "bytes": 64,
+      "sha256": "95F9CC4B65FE7E28418294B897944B3F007F2D9657472E910C6D96F4937A1CFD"
+    },
+    {
+      "name": "2861052c9ed8bbf99749e7e14d71916e5180408a22bd2ada1466589f6f16d4e4.physical.sha",
+      "bytes": 64,
+      "sha256": "3D11084682DF35F8E521DFB320B5197156589CE41B8CD5B5DB26EA1D166004C7"
+    },
+    {
+      "name": "2861052c9ed8bbf99749e7e14d71916e5180408a22bd2ada1466589f6f16d4e4.risk.tsv",
+      "bytes": 334,
+      "sha256": "72C7A543695D919C5ABBF1C874E0EB507F469E16CEEE67389084DEE85998040B"
+    },
+    {
+      "name": "71b936c66a924d51c185416160417dbd0070601746d99e9605717e5377a6d9b9.physical.sha",
+      "bytes": 64,
+      "sha256": "CCAEB18901B4FFE833DD12056A7A1F7D0D6316C653A22489426EED17F7C73A4C"
+    },
+    {
+      "name": "71b936c66a924d51c185416160417dbd0070601746d99e9605717e5377a6d9b9.risk.tsv",
+      "bytes": 333,
+      "sha256": "1AC2CA547DB62627834E39F1A66A85C51B2795E0C1FE847B4FABD610429FAF24"
+    },
+    {
+      "name": "cells.tsv",
+      "bytes": 2504,
+      "sha256": "1860C21E0042679186C8AC8738CF030B5BE2EFB682D845F713D416432A1EFD70"
+    },
+    {
+      "name": "d714b44706d889dbc33b9c6cbd9bdae5f180682e8f13777f7b32561fe4d079c9.physical.sha",
+      "bytes": 64,
+      "sha256": "38E10BC8B4B7E55704EE76D70E60AB1824C7783ED8E311ADEFC22975E4935971"
+    },
+    {
+      "name": "headless.complete",
+      "bytes": 64,
+      "sha256": "0DE40D663A59256EBC2030C52340C6F268E97783B5EAA1B03CAEC6DBDF756CB0"
+    }
+  ],
+  "allEightFilesSha256UnchangedAfterFinalPrepare": true,
+  "freshCatalogSubdirectory": "c38f64ba54557cf6a0451bb06a8b657a277af53b9245eff461f55bdbb6915017",
+  "sourceCacheBinding": "CONFIG_SHA_AND_ACTUAL_JAR_SHA",
+  "oldCatalogUsedForNewJar": false
+}

@@ -1,8 +1,7 @@
 {
   "schemaVersion": 11,
   "goal": "PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE",
-  "date": "2026-11-14",
-  "verdict": "PARTIAL011_LAWFUL_COVERAGE_BLOCKED",
+  "verdict": "PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET",
   "manualGate": "REQUIRED",
   "taskOrdinal": 5,
   "taskBudget": 13,
@@ -11,189 +10,233 @@
   "source": {
     "branch": "feature/phantom-world",
     "baseline": "f153d137a7d666ea0c28586a45a429a94a9d1c44",
-    "commit": "d138611901cb3ef98dbcafa8c046a2143dfbd75c",
-    "parent": "f153d137a7d666ea0c28586a45a429a94a9d1c44",
-    "tree": "dac30e6309da2c1911e27666ec1d860eeb08dd8d",
+    "commit": "0c331f738d082c9476754c6561f9e8ae51d4b464",
+    "sourcePaths": 13,
     "ordinaryPush": true,
-    "newBranches": 0,
     "fullGitHubSourceReadback": [
       {
-        "sha": "270616a2d808694c69b300c21306f973429ea9c1",
         "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
-        "bytes": 331057,
-        "fullBodyRetrieved": true
+        "bytes": 331488,
+        "blobSha": "779017d9494bb922e646c02f8477f83c6d03af9d"
       },
       {
-        "sha": "46f7c00f905281667fc19c4b3484bbeecb998ae0",
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/spawns/Spawn.java",
+        "bytes": 18934,
+        "blobSha": "acf41411adee34bf60831840e473d81829ce6dfb"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+        "bytes": 73774,
+        "blobSha": "ccfef622674831671c77e3c0ea56fcc9a060892e"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeBuilder.java",
+        "bytes": 22527,
+        "blobSha": "3cf947febeba6ec064a6c99d3470a868d21333a9"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "bytes": 143353,
+        "blobSha": "fa3aafc418b81199309b260acbfa0afaa55a8996"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSource.java",
+        "bytes": 9719,
+        "blobSha": "65ef5fac769f5b7ae84ed76df9c8c47a4c7a742c"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSourceChecks.java",
+        "bytes": 13315,
+        "blobSha": "ea1357752b04a3eb2b655ec7a6219b82f66de210"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+        "bytes": 101457,
+        "blobSha": "6bf9e6d183f38c9afa504bab24fdc46786e3dbec"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+        "bytes": 30671,
+        "blobSha": "22703aa9feafb5c1b1caeb428ade69a15e272af5"
+      },
+      {
         "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
         "bytes": 4934,
-        "fullBodyRetrieved": true
+        "blobSha": "46f7c00f905281667fc19c4b3484bbeecb998ae0"
       },
       {
-        "sha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd",
         "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
         "bytes": 29139,
-        "fullBodyRetrieved": true
+        "blobSha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd"
       },
       {
-        "sha": "f2b983baef4d931dffe3b19a01f66e051a6e31be",
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
-        "bytes": 136255,
-        "fullBodyRetrieved": true
-      },
-      {
-        "sha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54",
         "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
         "bytes": 3654,
-        "fullBodyRetrieved": true
+        "blobSha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54"
       },
       {
-        "sha": "e976cdcd00ab8dc441cd7704d1332a51591467c7",
         "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
         "bytes": 8630,
-        "fullBodyRetrieved": true
-      },
-      {
-        "sha": "a73fc0d6686f035968baa356e1984d94a71cbb0b",
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
-        "bytes": 99959,
-        "fullBodyRetrieved": true
-      },
-      {
-        "sha": "0bffd3e5f14380116f9112040e6814860751f214",
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
-        "bytes": 29121,
-        "fullBodyRetrieved": true
+        "blobSha": "e976cdcd00ab8dc441cd7704d1332a51591467c7"
       }
     ]
   },
   "gates": {
     "G0": "PASS",
     "G1": "PASS",
-    "G2": "PARTIAL",
-    "G3": "FAIL",
-    "G4": "NOT_RUN",
+    "G2": "PASS",
+    "G3": "PASS",
+    "G4": "FAIL",
     "G5": "PASS",
     "G6": "PASS",
     "G7": "PASS",
-    "G8": "PASS"
+    "G8": "PENDING_FINAL_READBACK"
   },
   "status": {
-    "scenarioEngine": "PARTIAL",
-    "nativePveSolo": "NOT_RUN",
-    "nativePveParty": "NOT_RUN",
+    "scenarioEngine": "READY",
+    "nativePveSolo": "PARTIAL",
+    "nativePveParty": "PASS",
     "pvpRaid": "NOT_IMPLEMENTED",
-    "gameAdvantage": "INCONCLUSIVE",
-    "bootstrapMatchedParity": "NOT_PROVEN_ON_LAWFUL_SCENE"
+    "gameAdvantage": "INCONCLUSIVE"
   },
   "headless": {
-    "session": "fc019d570f72417a8ae2282ee5a9e66a",
-    "campaign": "autonomous009-goal011-20261114",
-    "wrapperExit": 1,
-    "workerPid": 86644,
-    "workerExit": 2,
-    "kernelExitUtc": "2026-11-14T17:51:10.8036561Z",
-    "reason": "AUTONOMOUS_BLOCKED_EVAL_NO_LAWFUL_SCENE",
-    "sourceRecords": 19,
-    "acquiredSources": 10,
-    "excludedTrainSources": 6,
-    "independentSources": 4,
-    "proposedCells": 4,
-    "soloDamageProposals": 0,
-    "partyHealProposals": 4,
-    "headlessReadyCells": 0,
-    "liveAdmitted": 0,
-    "cut": 0,
-    "paid": 0,
-    "terminal": 0,
-    "matchedSoloPairs": 0,
-    "matchedPartyPairs": 0,
-    "ab": 0,
-    "ba": 0,
-    "admissionComplete": false,
-    "aggregateRefusals": 26998,
-    "sampleLimit": 128,
-    "counts": {
-      "SAFE_TEMPLATE_SEEN": 448838,
-      "LEVEL_REWARD_GEO_ACCEPTED": 35891,
-      "SOURCE_SKILLS_OR_MAGIC_LEVEL": 26998,
-      "CAPABILITY_TARGET_ACCEPTED": 8893,
-      "CANONICAL_ANCHOR_ACCEPTED": 4455,
-      "ANCHOR_AGGRO_REFUSED": 2131,
-      "NO_ISOLATED_TARGET_POINT": 280,
-      "ISOLATED_SCENE_ACCEPTED": 12,
-      "OUT_OF_WORLD_TEMPLATE_REFUSED": 52
+    "session": "2e8ca933c7b947279e1ffd1f0b96b72c",
+    "admittedScenes": 4,
+    "soloScenes": 2,
+    "partyScenes": 2,
+    "pairedPrecutArms": 8,
+    "nativeSpawnLifecycleCasesPassed": 8,
+    "build": {
+      "builtUtc": "2026-11-14T20:40:25.1641309Z",
+      "sourceFingerprint": "071f21a41e91e4f98cdd2b845cc757e2c6cea346117f3eb256ac93c8b1112002",
+      "jarSha": "C38F64BA54557CF6A0451BB06A8B657A277AF53B9245EFF461F55BDBB6915017"
     },
-    "globalPveImpossible": false,
-    "fullPartyReadiness": "NOT_EXECUTED_COVERAGE_STOP"
+    "credits": 0
   },
-  "nativeBudget": {
-    "maximumStarts": 3,
-    "maximumMillis": 2700000,
-    "actualStarts": 0,
-    "actualMillis": 0,
-    "newNativeJournalCreated": false,
-    "proof": "NO_GS_ENTRYPOINT_DISPATCHED; stale historical Native PID absent; process/port postflight",
+  "native": {
+    "cutArms": 8,
+    "paidArms": 8,
+    "paidEvents": 47,
+    "terminalArms": 8,
+    "completedArms": 5,
+    "failedArms": 3,
+    "matchedCompletedSoloPairs": 0,
+    "matchedCompletedPartyPairs": 2,
+    "ordersPerDirection": [
+      "STOCK_LEARNED",
+      "LEARNED_STOCK"
+    ],
+    "uniqueActorIncarnations": 20,
+    "uniqueTargets": 8,
+    "uniquePaidEvents": 47,
+    "replay": false,
+    "strictCoverageFailure": "TRAIN010_EVAL_MATCHED_PAIR_COVERAGE",
+    "paidSelectedBaselineDivergences": {"solo": 6, "party": 0, "allInFirstLearnedSoloArm": true},
+    "partyLearnedLimitation": "Mode ON вычислялся, MARGIN gate сохранил stock action; completed pair не доказывает distinct learned action или преимущество.",
+    "pairs": [
+      {
+        "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+        "direction": "SOLO_DAMAGE",
+        "order": "STOCK_LEARNED",
+        "arms": 2,
+        "status": "MATCHED_INCOMPLETE",
+        "trainingCredit": false
+      },
+      {
+        "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+        "direction": "PARTY_DAMAGE",
+        "order": "STOCK_LEARNED",
+        "arms": 2,
+        "status": "MATCHED_COMPLETED",
+        "trainingCredit": false
+      },
+      {
+        "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+        "direction": "SOLO_DAMAGE",
+        "order": "LEARNED_STOCK",
+        "arms": 2,
+        "status": "MATCHED_INCOMPLETE",
+        "trainingCredit": false
+      },
+      {
+        "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+        "direction": "PARTY_DAMAGE",
+        "order": "LEARNED_STOCK",
+        "arms": 2,
+        "status": "MATCHED_COMPLETED",
+        "trainingCredit": false
+      }
+    ]
+  },
+  "budget": {
+    "goal011": {
+      "starts": 1,
+      "maximumStarts": 3,
+      "nativeMillis": 328635,
+      "maximumNativeMillis": 2700000,
+      "proof": "OWN_HELD_HANDLE_EXIT_TIME",
+      "pid": 60792,
+      "exitCode": 0
+    },
     "historical009": {
       "starts": 10,
-      "chargedMillis": 5803240,
-      "exactOldKernelExit": "UNKNOWN_PRESERVED"
+      "nativeMillis": 5803240
     },
     "historical010": {
       "starts": 4,
-      "chargedMillis": 715447,
-      "exactExitProof": "OWN_HELD_HANDLE_EXIT_TIME"
-    }
+      "nativeMillis": 715447
+    },
+    "historicalBudgetsReset": false
   },
   "frozen": {
-    "draftModel": 14,
-    "workingWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
-    "optimizerSha": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+    "draft": 14,
+    "draftSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
     "adamUpdates": 903,
     "adamEpochs": 223,
     "applications": 48,
     "gradientEpisodes": 16,
-    "acceptedTestModel": 2,
-    "acceptedWeightsSha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "acceptedTest": 2,
     "completedCyclePointer": 12,
-    "pointerSha": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
     "sqlRows": 183,
     "sqlBytes": 79660,
-    "beforeAfterSqlSha": "9a9c2d0ee9a2b8f37da5dd6bcf625334b76be96fe9b76e22490ed20b4da70e7d",
-    "rawSqlBeforeAfterEqual": true,
-    "beforeColdZipSha": "ff503a44e9009e96a48e63f780c2c74ac49c1ecbee35394202075d7c46a495a0",
-    "afterColdZipSha": "f4305126cc2b7d9a933d6bba5eba05a841d7a60586d66bf10981503454ca7be7",
-    "zipEntriesCrcVerified": 12,
-    "workingOptimizerAcceptedApplicationMetricBytesEqual": true,
-    "newCredits": 0,
-    "newFit": 0,
-    "newPromotion": 0
+    "sqlSha": "9a9c2d0ee9a2b8f37da5dd6bcf625334b76be96fe9b76e22490ed20b4da70e7d",
+    "coldExportFrozenPayloadsByteIdentical": 11,
+    "trainCredits": 0,
+    "fits": 0,
+    "promotions": 0
   },
   "resources": {
-    "headlessPrepare": {
-      "wallMillis": 98718,
-      "cpuSeconds": 205.09375,
-      "peakWorkingSetBytes": 4644433920
+    "native": {
+      "pid": 60792,
+      "startedUtc": "2026-11-14T20:45:55.6513003Z",
+      "sampledUtc": "2026-11-14T20:51:24.9664165Z",
+      "elapsedMillis": 328635,
+      "cpuSeconds": 265.203125,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4696219648,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true,
+      "attemptId": "ce5d1ef6826742b2a5786d1c5bd58caa",
+      "observedUtc": "2026-11-14T20:51:24.9734140Z",
+      "finishedUtc": "2026-11-14T20:51:24.2855953Z",
+      "exitCode": 0
     },
-    "coldExport": {
-      "wallMillis": 14113,
-      "cpuSeconds": 25.046875,
-      "peakWorkingSetBytes": 548753408
+    "headless": {
+      "pid": 38708,
+      "startedUtc": "2026-11-14T20:41:00.7506268Z",
+      "sampledUtc": "2026-11-14T20:42:57.4066501Z",
+      "elapsedMillis": 116656,
+      "cpuSeconds": 222.390625,
+      "workingSetBytes": 685416448,
+      "peakWorkingSetBytes": 4648873984,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true
     },
-    "stagedJarSha": "186b71fd5ec4db132fb7b6522dd9566839cca39d658a583dc8828325e8ecf0ec",
-    "buildReceiptSourceFingerprint": "a362e7cf726169ad5f86e4195e07711ee6eabf240183c132b5da2a698b71267a",
-    "buildFingerprintIndependentlyRecomputed": false,
-    "nativePerformance": "NOT_RUN",
-    "assistantBillingCost": "UNKNOWN"
-  },
-  "config": {
-    "prior010Sha": "8fae8c57835f2be551b2162be906fec5c81e7ff579b8411e28c629e0fdcff500",
-    "active011Sha": "ea76441914213f92f881e153633618288d5684616180b4d940a6968cd95a31ae",
-    "off011Sha": "abe72bbcd7e713857c6e8aaa4829000ad1307a2550eed20f9718e4d46365ea9a",
-    "priorConfigByteBackupOutsideCheckout": true
+    "assistantInferenceCostKnown": false
   },
   "postflight": {
     "canonicalStopExit": 0,
+    "canonicalPreflightExit": 0,
     "director": "STOPPED",
     "activeFlags": "OFF",
     "ownedProcesses": 0,
@@ -202,43 +245,16 @@
       18001,
       19301
     ],
-    "foreignSqlPid": 8692,
-    "foreignSqlPort": 3308,
-    "foreignSqlCreatedUtc": "2026-10-28T15:34:43.982701Z",
-    "foreignSqlUntouched": true,
+    "foreignSql8692Untouched": true,
     "mainDirtyHead": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
-    "mainDirtyUntouched": true,
-    "protectedPreflightExit": 0,
-    "fullHistoricalFileInventoryRehashed": false
-  },
-  "verification": {
-    "baselineAntExit": 0,
-    "baselineSeconds": 201,
-    "firstNewSuiteExit": 1,
-    "firstNewSuiteSeconds": 51,
-    "regression007008009010Exit": 0,
-    "regressionSeconds": 231,
-    "final011AutonomousJarExit": 0,
-    "finalBuildSeconds": 162,
-    "finalSourceContractExit": 0,
-    "lifecycleChecks": 4,
-    "behavioralReds": [
-      "DELEGATE_REFUSAL_RETAINED_CLAIM",
-      "STARTED_WORKER_STOP",
-      "NATIVE_REASON_LOST"
-    ],
-    "compileRedsRecordedSeparately": true,
-    "reviewImportantFindings": 3,
-    "reviewImportantFixed": 3,
-    "mojibakePatterns": 27,
-    "escapedCyrillicPatterns": 6,
-    "finalAllFilesEncoding": "PASS_50_PUBLISHED_FILES_INCLUDING_FINAL_READBACK_RECEIPT",
-    "rawConsoleEncodingArtifacts": {"files": 3, "mojibakeMatches": 36, "escapedCyrillicMatches": 0, "preservedByteExactlyOutsideCheckout": true, "publishedIndex": "RAW-LOGS-INDEX.json"}
+    "fullHistoricalAssetInventoryRehashed": false
   },
   "limitations": [
-    "Required Solo DAMAGE absent; four Party HEAL proposals are not lawfully ready encounters",
-    "No actual new native arm or outcome",
-    "Existing topology/source and conservative placement coverage remain bounded",
-    "G2/G3/G4 do not satisfy FULL011"
+    "G4 требует2Solo+2Party completed pairs; Solo0, FULL011 запрещён.",
+    "Законный admission не доказывает выживание или выигрыш; три Solo смерти сохранены.",
+    "3linked-lethal HP callback завершились на3.6754–10.4897ms после terminal в штатном исключении с точным kill linkage.",
+    "Legacy native-admission sessions содержит Java Map text; raw не выдаётся за valid JSON.",
+    "Публично8полных paid witnesses; все47 имеют timing/HP/MP/action индекс и hashes. Полные private raw receipts сохранены.",
+    "Первоначальный PARTIAL011_LAWFUL_COVERAGE_BLOCKED сохранён в историиe9cf75a и внешнем byte archive."
   ]
 }

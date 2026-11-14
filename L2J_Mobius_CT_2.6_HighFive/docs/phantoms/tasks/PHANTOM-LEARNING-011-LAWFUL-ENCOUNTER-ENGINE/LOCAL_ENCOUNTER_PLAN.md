@@ -74,3 +74,13 @@ Sourcee98c94… headless sessiondcbd237…: native8case lifecycle PASS, config �
 Source8ef41d… session7d02ee…: полный paired headless PASS,4сцены Solo/Party/Solo/Party,8успешныхarms,1DPS-refusal,5из12кандидатов, frozen state unchanged. Перед GS выявлен отдельный дефект порядка: global parity списка сцепляла Solo сAB иParty сBA. Focused behavioral RED воспроизведён; порядок теперь чередуется по числу предыдущих ячеек того же направления, receipt использует фактический порядок. Игра не запускалась.
 
 Чтобы не перезаписывать уже успешный immutable prepared catalog при новой source-сборке, prepared path теперь configSHA/JAR_SHA. Обязательная manifest/JAR/source проверка сохранена; старый каталог не переносится/не меняется и не используется как доказательство новой сборки. Отдельный behavioral RED показал прежнюю коллизию cache path; после исправления нужен fresh full preflight новой сборки перед первым GS. Public schema, модель и budget не меняются.
+
+## Фактическое завершение продолжения
+
+Source0c331f73 опубликован; полный source readback13paths PASS. Свежий headless2e8ca933… на JARc38f64ba… дал2Solo+2Party scenes,8matched pre-CUT arms,4/12candidates; native spawn8casePASS. Старые8config-only prepared files SHA неизменны. Только после этого запущен GS1.
+
+GS1exact328635ms:8CUT,47paid events,8terminals. Party2MATCHED_COMPLETED AB/BA, Solo0(3native deaths/1kill); strict coverageFAIL. Ни одна sealed arm не replay, дополнительных GS нет. Global farm prior bytes и Spawn prior bytes кроме согласованного override сохранены; SQL183rows/cold11payloads/pointer12 exact. Native behavior в пределах согласованного sentinel fix, непредусмотренного эффекта в проверенных случаях нет.
+
+Bounded delivery exception: прежние57published paths плюс16safe continuation evidence files и1GitHub receipt, всего74exact allowlisted paths/13source. Это одно Encounter/Admission artifact family. Текущие RESULT/EVIDENCE/COVERAGE/FAILURES/COMMANDS/ACCEPTANCE/HANDOFF/PROGRESS/README/LOCAL_ENCOUNTER_PLAN/report/roadmap, SOURCE-HASHES/SCOPE-GUARD/ENCODING-CHECK/RAW-LOGS-INDEX обновляются в тех же разрешённых местах. Exact список — SCOPE-GUARD.json; до правок44прежних docs body скопированы вне checkout с SHA. TASK/ARCHITECTURE/PLAN/TEST_MATRIX/GIT_AND_PRESERVATION, прошлые009/010 и их бюджеты не меняются.
+
+PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET, G4FAIL, FULL запрещён. TESTSTOPPED/OFF/owned0/portsfree; final protected preflight0. Manual owner gate REQUIRED. Не начинать следующий Goal и не запускать новый GS ради случайного удачного исхода.

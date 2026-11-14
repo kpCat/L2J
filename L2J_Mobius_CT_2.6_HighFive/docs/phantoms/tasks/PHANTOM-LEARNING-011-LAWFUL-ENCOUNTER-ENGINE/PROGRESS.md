@@ -1,4 +1,12 @@
-# Выполнение011
+# Текущее выполнение011 после продолжения
+
+PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET. Два owner-approved scope реализованы: canonical local source contract и Spawn sentinel override.13source paths, source0c331f73 опубликован и полностью прочитан сGitHub. Global farm prior bytes preserved;9heading×2flags и8native spawn/respawn casesPASS.
+
+Final headless2e8ca933…:2Solo+2Party,8paired pre-CUT arms,4/12candidates, exact source/JAR/config. Затем единственный GS1 дал8CUT/47paid/8terminals, Party2completed AB/BA пары/Solo0(3deaths/1kill), no replay. Strict coverage отказал; G4FAIL, FULL запрещён. Budget1/3,328635/2700000ms exact. SQL183/cold11payloads/pointer12 frozen; FIT/CREDIT/PROMOTION0.
+
+Canonical STOPPED/OFF/owned0/portsfree и final Geo203/protected207 preflight0. Истории009/010 и foreignSQL сохранены. Read-only review подтвердил currentPARTIAL; callbacks/legacy-format/public-witness пределы раскрыты. Текущая задача завершается scoped docs/evidence publication и independent readback. Manual gate REQUIRED;011№5/13, осталось8, следующегоGoal нет.
+
+# Первоначальное выполнение011
 
 14.11.2026. Goal011 №5/13; после выдачи останется8. Следующий Goal не запускается.
 

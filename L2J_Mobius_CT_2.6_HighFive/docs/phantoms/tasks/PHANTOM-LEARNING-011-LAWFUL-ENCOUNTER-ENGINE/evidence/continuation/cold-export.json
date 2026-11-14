@@ -1,0 +1,85 @@
+{
+  "previous": "model-2-a8c8a06aabb24a5a8fc9fe0589008c79.zip",
+  "current": "model-2-c048637fd35f4d7298e96e7ebefa7f38.zip",
+  "previousZipSha256": "f4305126cc2b7d9a933d6bba5eba05a841d7a60586d66bf10981503454ca7be7",
+  "currentZipSha256": "a23270868a8c0eaa6afe82ffc7f7ca59f9d9dc50db4356dfdc6aad1c939da0f2",
+  "crcPassed": true,
+  "allFrozenPayloadsEqual": true,
+  "manifestChangedKeys": [
+    "createdUtc"
+  ],
+  "entries": [
+    {
+      "name": "weights.bin",
+      "bytes": 4741580,
+      "equal": true,
+      "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc"
+    },
+    {
+      "name": "manifest.json",
+      "bytes": 2290,
+      "equal": false,
+      "sha256": "1162f0bde78e6260b844a4305a641cd2716f8b982616dbe73f5b6565f34e39d3"
+    },
+    {
+      "name": "events.bin",
+      "bytes": 555348,
+      "equal": true,
+      "sha256": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e"
+    },
+    {
+      "name": "optimizer.bin",
+      "bytes": 14224664,
+      "equal": true,
+      "sha256": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844"
+    },
+    {
+      "name": "replay.bin",
+      "bytes": 1286917,
+      "equal": true,
+      "sha256": "a04ff79daa82e61debcfce46807ae484fffd97af9e7a1e7e4a4a32ed16038947"
+    },
+    {
+      "name": "autonomous-targets.bin",
+      "bytes": 2048395,
+      "equal": true,
+      "sha256": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987"
+    },
+    {
+      "name": "autonomous-applications.jsonl",
+      "bytes": 22649,
+      "equal": true,
+      "sha256": "dd62b00a43e1cb7ff76a1f37c9b693edb3c33f2f123d959cbd79b729b4ba487d"
+    },
+    {
+      "name": "autonomous-labels.jsonl",
+      "bytes": 14549,
+      "equal": true,
+      "sha256": "5eedb7e61036c1df9fc5c64770ca39ce22109ba4ba49c80afffe276e4ef81f71"
+    },
+    {
+      "name": "context-replay.bin",
+      "bytes": 28874,
+      "equal": true,
+      "sha256": "8ff1e3e9fbb36e03cff2575115efaed8f632ffcb2772af95fa9692c3780f7746"
+    },
+    {
+      "name": "working-weights.bin",
+      "bytes": 4741580,
+      "equal": true,
+      "sha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37"
+    },
+    {
+      "name": "working-metrics.json",
+      "bytes": 1560,
+      "equal": true,
+      "sha256": "5179722f41d9afdba3172e974a8f15e0aada360b4e519e804912b4420b304cfe"
+    },
+    {
+      "name": "dataset.jsonl",
+      "bytes": 903822,
+      "equal": true,
+      "sha256": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39"
+    }
+  ]
+}

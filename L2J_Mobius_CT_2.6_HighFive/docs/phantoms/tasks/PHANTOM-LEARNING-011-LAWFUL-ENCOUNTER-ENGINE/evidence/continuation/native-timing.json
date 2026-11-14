@@ -1,0 +1,606 @@
+[
+  {
+    "arm": "47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b",
+    "timings": [
+      {
+        "eventKey": "a79cda1483032d1f3f615e293d49e14f33893e45201a19c3cc18ff4a9782a298",
+        "included": true,
+        "cutNanos": 1487652466242700,
+        "terminalNanos": 1487665069632000,
+        "hpStartedNanos": 1487663307941100,
+        "hpFinishedNanos": 1487663308027300,
+        "mpStartedNanos": 1487661369615100,
+        "mpFinishedNanos": 1487663307614900,
+        "linkedLethal": false,
+        "trainingCredit": false
+      }
+    ]
+  },
+  {
+    "arm": "5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3",
+    "timings": [
+      {
+        "eventKey": "cf54c2d49e72e292c22518c707d3ec7856b217c052b1f48f0d5844c452fa66f4",
+        "included": true,
+        "cutNanos": 1487776717691500,
+        "terminalNanos": 1487794747016800,
+        "hpStartedNanos": 1487793243628400,
+        "hpFinishedNanos": 1487793243689000,
+        "mpStartedNanos": 1487791306785300,
+        "mpFinishedNanos": 1487793243414500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "e1a3c700ad5d2302363651032c9dd03becb65c8e3d0ce9698060d3f1f9a6e49c",
+        "included": true,
+        "cutNanos": 1487776717691500,
+        "terminalNanos": 1487794747016800,
+        "hpStartedNanos": 1487788964912200,
+        "hpFinishedNanos": 1487788964994600,
+        "mpStartedNanos": 1487787027146300,
+        "mpFinishedNanos": 1487788964613900,
+        "linkedLethal": false,
+        "trainingCredit": false
+      }
+    ]
+  },
+  {
+    "arm": "746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0",
+    "timings": [
+      {
+        "eventKey": "07c3c77585fe0eb37ba62d7125bea95765c698491919b1885c5a8491e2c991fd",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487572030900700,
+        "hpFinishedNanos": 1487572030995800,
+        "mpStartedNanos": 1487571079341000,
+        "mpFinishedNanos": 1487572030533100,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "319405b1fecbecb76fc1084e281c08648ff1037fccce5ab6e11718b141930595",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487578538276300,
+        "hpFinishedNanos": 1487578538418100,
+        "mpStartedNanos": 1487576639838900,
+        "mpFinishedNanos": 1487578537906700,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "3b3c7279bbd7057d1f95a6a5250aa653fa44698f83451824603d851050e515ac",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487575054745100,
+        "hpFinishedNanos": 1487575054877500,
+        "mpStartedNanos": 1487574104671000,
+        "mpFinishedNanos": 1487575054392600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "3d38106385578313c9b770529a1af5f2dff7c48d97d760968b1184e5bdcd78b0",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487555604479400,
+        "hpFinishedNanos": 1487555605564700,
+        "mpStartedNanos": 1487553696364800,
+        "mpFinishedNanos": 1487555599233300,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "51284053053829a373f82a6098044dba3822d48a3e3751ea3d440ca571163c23",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487569010801400,
+        "hpFinishedNanos": 1487569010954200,
+        "mpStartedNanos": 1487568057877800,
+        "mpFinishedNanos": 1487569010444800,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "7508d7cc4e8194aba9be1dad5a96549264b973a337c8751818b0a4333008c210",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487557670027500,
+        "hpFinishedNanos": 1487557670117800,
+        "mpStartedNanos": 1487556718229200,
+        "mpFinishedNanos": 1487557669526900,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "8c90af0a3dad7fc44a183c4285cecacbc8c8eafef66532eae212456a337f27ab",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487560436064500,
+        "hpFinishedNanos": 1487560436186000,
+        "mpStartedNanos": 1487559485705100,
+        "mpFinishedNanos": 1487560435633800,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "b2bcea2a7b0d271ef33dd14b73a362605af722a6e6753107a47ec230b21e266a",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487551057181700,
+        "hpFinishedNanos": 1487551057411000,
+        "mpStartedNanos": 1487549153489800,
+        "mpFinishedNanos": 1487551054326400,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "cd914a9b6b436e0e5825db0b85afaf3ec244d87bed03a90d0711c178d2e887eb",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487552130550500,
+        "hpFinishedNanos": 1487552130832400,
+        "mpStartedNanos": 1487551178708700,
+        "mpFinishedNanos": 1487552129820600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "d5e8b42690d1cc2bb99b9dc64e49e1762f189db7de5d548b01ad3b14705196b9",
+        "included": true,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "hpStartedNanos": 1487565976506700,
+        "hpFinishedNanos": 1487565976594900,
+        "mpStartedNanos": 1487565027091600,
+        "mpFinishedNanos": 1487565976024700,
+        "linkedLethal": false,
+        "trainingCredit": false
+      }
+    ]
+  },
+  {
+    "arm": "7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f",
+    "timings": [
+      {
+        "eventKey": "19cdb3c6bc477896d68e9b0e41b053ac2842589856d18d5d97336eb4de1b6248",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487696599760700,
+        "hpFinishedNanos": 1487696599855800,
+        "mpStartedNanos": 1487695650202600,
+        "mpFinishedNanos": 1487696599517800,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "3ffc0a6db1fc3b784a02ff2cf1cb91a45bb641f2e7dca0ad27b2763d65a9a6d2",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487686472289800,
+        "hpFinishedNanos": 1487686472458400,
+        "mpStartedNanos": 1487684572332200,
+        "mpFinishedNanos": 1487686471937000,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "53385be96d4da1209b6997aefbc362648610e031efb0d61c59cb1ae2b1e039d1",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487690567650400,
+        "hpFinishedNanos": 1487690567741500,
+        "mpStartedNanos": 1487689616407100,
+        "mpFinishedNanos": 1487690567426500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "5935c554f784d1ec657e5ff8a592225c27cbf5ecc3dae73f88a5a2c7b666e2fd",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487699621497100,
+        "hpFinishedNanos": 1487699621631300,
+        "mpStartedNanos": 1487698671213800,
+        "mpFinishedNanos": 1487699621238900,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "654070066405c841bf4574a357eca8fae81480378d86c06902f33702cdc33a5c",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487687546841400,
+        "hpFinishedNanos": 1487687546946900,
+        "mpStartedNanos": 1487686595769600,
+        "mpFinishedNanos": 1487687546541900,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "6c63ed26d21dfc82f4b5fc99690ab89094b1dc23e3a010177e6e12affa101835",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487676978054700,
+        "hpFinishedNanos": 1487676978129000,
+        "mpStartedNanos": 1487676026958900,
+        "mpFinishedNanos": 1487676977499500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "6e786c00ead1533509a1269300142e76765f5fc04a4e43049c46756477fbef02",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487679936965500,
+        "hpFinishedNanos": 1487679937047900,
+        "mpStartedNanos": 1487678037829000,
+        "mpFinishedNanos": 1487679936451000,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "d681ca8bdde439c77d8f8885d00301daa6a2ffe556fe0e4fd82a695771e29391",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487693586744800,
+        "hpFinishedNanos": 1487693586813200,
+        "mpStartedNanos": 1487692636042700,
+        "mpFinishedNanos": 1487693586501600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "f60f6126c8fc36dada0d7d112c4ce97b6f375a2a873c7cbad6946692d0f6217f",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487675912779200,
+        "hpFinishedNanos": 1487675912942300,
+        "mpStartedNanos": 1487674009684300,
+        "mpFinishedNanos": 1487675910748800,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "f7723d13dcf1eebdc260ad8f7601bf1d0b8c7686e3b4b1e7be5f7bfb23340f2e",
+        "included": true,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "hpStartedNanos": 1487683011639000,
+        "hpFinishedNanos": 1487683011687800,
+        "mpStartedNanos": 1487682059431100,
+        "mpFinishedNanos": 1487683011422000,
+        "linkedLethal": false,
+        "trainingCredit": false
+      }
+    ]
+  },
+  {
+    "arm": "86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747",
+    "timings": [
+      {
+        "eventKey": "3ecb59541104ef6daf0aedd3bc9ae1bfda0db1a6b547124dc4b47f5d81c02ecd",
+        "included": true,
+        "cutNanos": 1487750096554400,
+        "terminalNanos": 1487764316920800,
+        "hpStartedNanos": 1487764316815300,
+        "hpFinishedNanos": 1487764320596200,
+        "mpStartedNanos": 1487761895643400,
+        "mpFinishedNanos": 1487764316540200,
+        "linkedLethal": true,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "65c56b71a311896f496d2b5c385d2d40eb0abe966da723d5954e1e936e4cc338",
+        "included": true,
+        "cutNanos": 1487750096554400,
+        "terminalNanos": 1487764316920800,
+        "hpStartedNanos": 1487759688966700,
+        "hpFinishedNanos": 1487759689047800,
+        "mpStartedNanos": 1487757750935400,
+        "mpFinishedNanos": 1487759688671900,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "c50b32af16ce6465e01498088dc742993ae21e35718a092036a037b7aecb4425",
+        "included": true,
+        "cutNanos": 1487750096554400,
+        "terminalNanos": 1487764316920800,
+        "hpStartedNanos": 1487761752957000,
+        "hpFinishedNanos": 1487761753026700,
+        "mpStartedNanos": 1487759813677000,
+        "mpFinishedNanos": 1487761752657700,
+        "linkedLethal": false,
+        "trainingCredit": false
+      }
+    ]
+  },
+  {
+    "arm": "c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa",
+    "timings": [
+      {
+        "eventKey": "5c18d54dcb40bbb0ffb1739e44521acc884eb52c721e2a895a8da73391122ad1",
+        "included": true,
+        "cutNanos": 1487629498502000,
+        "terminalNanos": 1487640613650000,
+        "hpStartedNanos": 1487638068017300,
+        "hpFinishedNanos": 1487638068077300,
+        "mpStartedNanos": 1487636130996200,
+        "mpFinishedNanos": 1487638067736300,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "99aedf6b4393b25f25a1b97e1bb1ae4c4e63a57ce922fa3c9e05bbb11b57bef0",
+        "included": true,
+        "cutNanos": 1487629498502000,
+        "terminalNanos": 1487640613650000,
+        "hpStartedNanos": 1487635994962600,
+        "hpFinishedNanos": 1487635995006500,
+        "mpStartedNanos": 1487634057878900,
+        "mpFinishedNanos": 1487635994554500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "d9f8651569e248cd9bc586e3409106f0a4e57ddd0d3cd35bdeef1ab5ed5ea6a3",
+        "included": true,
+        "cutNanos": 1487629498502000,
+        "terminalNanos": 1487640613650000,
+        "hpStartedNanos": 1487640613572800,
+        "hpFinishedNanos": 1487640618154500,
+        "mpStartedNanos": 1487638193024000,
+        "mpFinishedNanos": 1487640613347400,
+        "linkedLethal": true,
+        "trainingCredit": false
+      }
+    ]
+  },
+  {
+    "arm": "cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b",
+    "timings": [
+      {
+        "eventKey": "1dd3d860d6afff1d397ba95afe7e643d99ac8d2e3cb5735346e6c5663d274524",
+        "included": true,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "hpStartedNanos": 1487717157987500,
+        "hpFinishedNanos": 1487717158042800,
+        "mpStartedNanos": 1487715259917700,
+        "mpFinishedNanos": 1487717157749300,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "2503fde5e2fb0ff8ae12e0397360a7bd1040278ee8c9de8bf440a85f003e46d7",
+        "included": true,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "hpStartedNanos": 1487713695245400,
+        "hpFinishedNanos": 1487713695402400,
+        "mpStartedNanos": 1487712745189500,
+        "mpFinishedNanos": 1487713694972400,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "8247e8c0e9f161c409d3a67ac9015fbef33eafb469a9d575f0f1f9abbc36b2c0",
+        "included": true,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "hpStartedNanos": 1487723755120500,
+        "hpFinishedNanos": 1487723755183700,
+        "mpStartedNanos": 1487722806099800,
+        "mpFinishedNanos": 1487723754894600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "b4ce7d7e6f6b5a4072be56485ec586653aac0bfcf9e8b94630b3ff178f2a4bbb",
+        "included": true,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "hpStartedNanos": 1487712629180300,
+        "hpFinishedNanos": 1487712629309500,
+        "mpStartedNanos": 1487710731137300,
+        "mpFinishedNanos": 1487712628696000,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "d8ec7ef1192431e28281ed5ce3d0a41bab6ee677c1c7307eb81e02a67d16157b",
+        "included": true,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "hpStartedNanos": 1487720736798100,
+        "hpFinishedNanos": 1487720736851700,
+        "mpStartedNanos": 1487719786229400,
+        "mpFinishedNanos": 1487720736525800,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "ee6ddac5c5990186ac72659f070efbc27a6b0c9dc8984ba638847a95f75db963",
+        "included": true,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "hpStartedNanos": 1487728784724700,
+        "hpFinishedNanos": 1487728784833600,
+        "mpStartedNanos": 1487727834803700,
+        "mpFinishedNanos": 1487728784479600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "fa7366d47786ae06a9f30bf06fb4d9b721b28ea4947f3349ffcc8d8a4bc0bb3b",
+        "included": true,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "hpStartedNanos": 1487726773616000,
+        "hpFinishedNanos": 1487726773679000,
+        "mpStartedNanos": 1487725823004700,
+        "mpFinishedNanos": 1487726773341500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      }
+    ]
+  },
+  {
+    "arm": "f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95",
+    "timings": [
+      {
+        "eventKey": "10032fbcc5828f9c18f0b33d7038c08c5e3575d06427aa7508acd6fc87aedaed",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487610630581200,
+        "hpFinishedNanos": 1487610630709600,
+        "mpStartedNanos": 1487609680006000,
+        "mpFinishedNanos": 1487610630196500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "21fc1e3ce03a4b9376350fcdf41da8544ae67ef77f2fc01a4586affe296f5ee5",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487618695215400,
+        "hpFinishedNanos": 1487618695883200,
+        "mpStartedNanos": 1487617737209700,
+        "mpFinishedNanos": 1487618689744500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "2dc60999cf4aaf40153a46752d4ac0e6d75cb48184928d076b895175b039cd27",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487596983647800,
+        "hpFinishedNanos": 1487596983821500,
+        "mpStartedNanos": 1487595082534300,
+        "mpFinishedNanos": 1487596982326300,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "50da162f277ca71bb8820922d542a305de417aa78caaa4530b226f08b59bb639",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487598047231200,
+        "hpFinishedNanos": 1487598047285300,
+        "mpStartedNanos": 1487597096662300,
+        "mpFinishedNanos": 1487598046908600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "893b849e709d26c18722076bf1a89d29e1bdbbb38cd2165c67202a550bacb2bf",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487605090710100,
+        "hpFinishedNanos": 1487605090790500,
+        "mpStartedNanos": 1487604139449600,
+        "mpFinishedNanos": 1487605090344500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "89e215288df7ed8737891b82b814cfe43c47c075ea6d05dcab6c5a385a88685b",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487620711063000,
+        "hpFinishedNanos": 1487620721738300,
+        "mpStartedNanos": 1487619760218900,
+        "mpFinishedNanos": 1487620710755900,
+        "linkedLethal": true,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "92afecaccf964c90ab04c20ffa29b339d8128cac64cab65ac1c05f426366585e",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487614656745100,
+        "hpFinishedNanos": 1487614656869600,
+        "mpStartedNanos": 1487613706153400,
+        "mpFinishedNanos": 1487614656446400,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "bd60405924b989ee77a0de8df8e2518609ce794dec1fa75507c53947641a9a15",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487612641757100,
+        "hpFinishedNanos": 1487612641838000,
+        "mpStartedNanos": 1487611691971400,
+        "mpFinishedNanos": 1487612641430500,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "ccf986c96c4c13b647134cb1281d78a8d421e151637e5cee4ac5397402ca3406",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487616672798000,
+        "hpFinishedNanos": 1487616672905700,
+        "mpStartedNanos": 1487615721574300,
+        "mpFinishedNanos": 1487616672401100,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "d33f33e1589c2a1316ba699715c2f7d265981a5773ec4ac7ab5cc761672765a6",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487608111464500,
+        "hpFinishedNanos": 1487608111576800,
+        "mpStartedNanos": 1487607160120600,
+        "mpFinishedNanos": 1487608110881600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      },
+      {
+        "eventKey": "ee7d5187e0a4689312e4f5fcb5de3286ae8dafbd9b381b4060b4272d81546bbc",
+        "included": true,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "hpStartedNanos": 1487601511085500,
+        "hpFinishedNanos": 1487601511251800,
+        "mpStartedNanos": 1487599611636000,
+        "mpFinishedNanos": 1487601510388600,
+        "linkedLethal": false,
+        "trainingCredit": false
+      }
+    ]
+  }
+]

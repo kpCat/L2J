@@ -37,5 +37,123 @@
       "exit": 0,
       "seconds": 162
     }
-  ]
+  ],
+  "continuation": {
+    "archive": "external Goal011 artifacts",
+    "logs": [
+      {
+        "name": "LOCAL-RED.log",
+        "observedExitCode": 1,
+        "bytes": 8173,
+        "sha256": "7c5ecb75ab887fb01a8caae6a9ee44c3247160f230c71452595ea132009bffa9",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "LOCAL-GREEN.log",
+        "observedExitCode": 0,
+        "bytes": 7841,
+        "sha256": "5ee27a546e70191bb7ce45f2fedc21850db8af38f9689593a00fb281ef827857",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "SPAWN-SENTINEL-RED.log",
+        "observedExitCode": 1,
+        "bytes": 413,
+        "sha256": "db001f90fb8dd779650dda80ee1ea9cf34ed64729151f270ef50ce7fc2a333b0",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "SPAWN-SENTINEL-GREEN.log",
+        "observedExitCode": 0,
+        "bytes": 79,
+        "sha256": "00d9edb3da36ad6df0b339662a0d2f63d9232fdda61d70ae30f52989b7e1b02e",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "DIRECTION-ORDER-RED.log",
+        "observedExitCode": 1,
+        "bytes": 369,
+        "sha256": "f50a39864354e87bbd909104f2118c146e214bf5994bf138fd02dc6f47173709",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "PREPARED-CACHE-RED-BEHAVIOR.log",
+        "observedExitCode": 1,
+        "bytes": 360,
+        "sha256": "f7d4b374f1f2f7966a1840c0f39a1b3f8866592d19e78e49fc85aaacd33e9fc4",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "ORDER-CACHE-GREEN.log",
+        "observedExitCode": 0,
+        "bytes": 34,
+        "sha256": "35d7a60501342a14353f2c744c92573d3939a568c9d0ca0567a0db9e50cbbf7c",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "SPAWN-FULL-REGRESSION.log",
+        "observedExitCode": 0,
+        "bytes": 39720,
+        "sha256": "f8ae118581af7e9c0e25d25513448338ae27b7ba6458d9204f42ea16e607e705",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "LOCAL-LEGACY-REGRESSION.log",
+        "observedExitCode": 0,
+        "bytes": 16258,
+        "sha256": "cc0c1a41463d781c4e194689196eccee1068338635a5de9621881cf6f3c1f82e",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "ADMISSION-SEAL-GREEN.log",
+        "observedExitCode": 0,
+        "bytes": 17865,
+        "sha256": "50c92204e43f64a7ace0771d6c492f6e081b58849c27fda6c15158d838f9e515",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "FINAL-HEADLESS-PREFLIGHT.log",
+        "observedExitCode": 0,
+        "bytes": 131,
+        "sha256": "45c123460ca7398dbfbca7af476b482ac6e5f74e483e84f1e3c74d825cbfb552",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "NATIVE-START-1.log",
+        "observedExitCode": 0,
+        "bytes": 294,
+        "sha256": "bdf777f75de97eb744dfa9a242d11a40e4b502270a1c8b4203fb6f33b6f3ae40",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "FINAL-EXPORT.log",
+        "observedExitCode": 0,
+        "bytes": 130,
+        "sha256": "f16eba023c15c9927e0a4c029c2f294d685d323475c75417ef17061e0baae318",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "FINAL-REPORT.log",
+        "observedExitCode": 0,
+        "bytes": 130,
+        "sha256": "bdf0a9c27b816f74f5c36cfa064c3e2e07f23bbb9330ae1f3950d97945c82163",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "FINAL-STOP.log",
+        "observedExitCode": 0,
+        "bytes": 155,
+        "sha256": "ce192770bf567df5c6e95066011bfbebd16483de2c0dc231a3f08473664d9d35",
+        "rawPreservedOutsideCheckout": true
+      },
+      {
+        "name": "FINAL-PREFLIGHT.log",
+        "observedExitCode": 0,
+        "bytes": 215,
+        "sha256": "4ec760942f4e998305f8aa3f762cde6eb93a4442993440296b051be007110d5e",
+        "rawPreservedOutsideCheckout": true
+      }
+    ],
+    "reason": "Raw console captures сохранены побайтово; в Git публикуется проверенный индекс."
+  }
 }

@@ -1,0 +1,982 @@
+{
+  "session": "2e8ca933c7b947279e1ffd1f0b96b72c",
+  "sourceCommit": "0c331f738d082c9476754c6561f9e8ae51d4b464",
+  "build": {
+    "builtUtc": "2026-11-14T20:40:25.1641309Z",
+    "sourceFingerprint": "071f21a41e91e4f98cdd2b845cc757e2c6cea346117f3eb256ac93c8b1112002",
+    "jarSha": "C38F64BA54557CF6A0451BB06A8B657A277AF53B9245EFF461F55BDBB6915017"
+  },
+  "receipts": {
+    "admission.complete.json": {
+      "admittedScenes": 4,
+      "directions": [
+        "SOLO_DAMAGE",
+        "PARTY_DAMAGE",
+        "SOLO_DAMAGE",
+        "PARTY_DAMAGE"
+      ],
+      "modelVersion": 14,
+      "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "trainingStateSha": "e4a2d2c882bc03565eea38901dbccb7c8f73fdcf2284eaefc930790f3b84466d",
+      "precutArms": 8,
+      "matchedPrecutFacts": true,
+      "riskMatched": true,
+      "episodeSeconds": 120,
+      "afterCut": false,
+      "gameServerStarted": false,
+      "trainingStateUnchanged": true,
+      "trainingCredit": false
+    },
+    "headless-candidate-budget.json": {
+      "attempts": 4,
+      "maximum": 12,
+      "uniqueOnly": true,
+      "afterCut": false
+    },
+    "native-spawn-contract.complete.json": {
+      "cases": 8,
+      "passed": true,
+      "configFlagRestored": true,
+      "afterCut": false,
+      "trainingCredit": false
+    },
+    "source-coverage.json": {
+      "classes": [
+        {
+          "classId": 0,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 1,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 2,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 3,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 4,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 5,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 6,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 7,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 8,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 9,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 10,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 11,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 12,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 13,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 14,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 15,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 16,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 17,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 18,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 19,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 20,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 21,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 22,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 23,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 24,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 25,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 26,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 27,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 28,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 29,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 30,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 31,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 32,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 33,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 34,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 35,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 36,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 37,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 38,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 39,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 40,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 41,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 42,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 43,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 44,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 45,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 46,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 47,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 48,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 49,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 50,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 51,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 52,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 53,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 54,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 55,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 56,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 57,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 88,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 89,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 90,
+          "sources": 2,
+          "status": "NATIVE_ADMISSION_REQUIRED"
+        },
+        {
+          "classId": 91,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 92,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 93,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 94,
+          "sources": 2,
+          "status": "NATIVE_ADMISSION_REQUIRED"
+        },
+        {
+          "classId": 95,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 96,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 97,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 98,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 99,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 100,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 101,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 102,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 103,
+          "sources": 2,
+          "status": "NATIVE_ADMISSION_REQUIRED"
+        },
+        {
+          "classId": 104,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 105,
+          "sources": 2,
+          "status": "NATIVE_ADMISSION_REQUIRED"
+        },
+        {
+          "classId": 106,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 107,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 108,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 109,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 110,
+          "sources": 2,
+          "status": "NATIVE_ADMISSION_REQUIRED"
+        },
+        {
+          "classId": 111,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 112,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 113,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 114,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 115,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 116,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 117,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 118,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 123,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 124,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 125,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 126,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 127,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 128,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 129,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 130,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 131,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 132,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 133,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 134,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 135,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        },
+        {
+          "classId": 136,
+          "sources": 0,
+          "status": "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE"
+        }
+      ],
+      "sourceCursor": 0,
+      "records": [
+        {
+          "source": 268574973,
+          "classId": 94,
+          "inventorySha": "4de4374eb697766182f605c76495aee319fe2557ba908171e4cb2f3efd4cfd31",
+          "learned": 60,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268560049,
+          "classId": 94,
+          "inventorySha": "9057c9be073f48573c98183652f58c3853008c2ae919452f2bcd33339a8eeff0",
+          "learned": 62,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268618477,
+          "classId": 90,
+          "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+          "learned": 40,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268502074,
+          "classId": 90,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268576142,
+          "classId": 105,
+          "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+          "learned": 53,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268501533,
+          "classId": 105,
+          "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+          "learned": 53,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268530957,
+          "classId": 103,
+          "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+          "learned": 61,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268676093,
+          "classId": 110,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268506392,
+          "classId": 90,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268564233,
+          "classId": 90,
+          "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+          "learned": 40,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268550789,
+          "classId": 110,
+          "inventorySha": "ca9e541bb190c55734eed2bd8f814b5d7d2dcae8c69b4dd4235ef87018e634e9",
+          "learned": 67,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268583777,
+          "classId": 103,
+          "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+          "learned": 61,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268484271,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268644486,
+          "classId": 110,
+          "inventorySha": "6cc150b64b5cc242940ab8ffd5f84f6b58ebacccda4fb9800d27ec8420eb7c9c",
+          "learned": 64,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268484387,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484293,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484336,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484315,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484366,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        }
+      ]
+    },
+    "independence.json": {
+      "referenceCampaign": "autonomous009-goal009-20261114-f",
+      "referenceDataset": "autonomous009-goal009-20261114-f-c000001",
+      "referenceCellsSha": "6a41998d543796899874267586a2eae69435b5d84193b3e69dbadd19b04b2a00",
+      "referenceModelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "excludedSourceSnapshots": [
+        "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+        "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+        "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+        "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+        "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+        "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041"
+      ],
+      "selectedSourceSnapshots": [
+        "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+        "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+        "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+        "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d"
+      ],
+      "authority": "PRE_CUT_SOURCE_PROVENANCE_ONLY",
+      "trainingCredit": false
+    },
+    "scene-catalog-counts.json": {
+      "ANCHOR_AGGRO_REFUSED": 490,
+      "CANONICAL_ANCHOR_ACCEPTED": 1187,
+      "CAPABILITY_TARGET_ACCEPTED": 1400,
+      "ISOLATED_SCENE_ACCEPTED": 24,
+      "LEVEL_REWARD_GEO_ACCEPTED": 9545,
+      "NO_ISOLATED_TARGET_POINT": 68,
+      "OUT_OF_WORLD_TEMPLATE_REFUSED": 14,
+      "SAFE_TEMPLATE_SEEN": 120372,
+      "SOURCE_SKILLS_OR_MAGIC_LEVEL": 8145
+    },
+    "planning-refusals.json": {
+      "refusals": [
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22607:level=77:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21820:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20973:level=77:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20969:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20973:level=77:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22675:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22674:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21411:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22676:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22259:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21185:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21186:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22219:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22674:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21184:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21320:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21301:level=72:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21408:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22610:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22219:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21206:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21205:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22220:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21184:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22609:level=76:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21206:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22675:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22676:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21186:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21206:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22675:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21205:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21798:level=76:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21207:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20972:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21205:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22257:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21186:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21185:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21207:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21206:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22676:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21185:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21186:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21410:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22674:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22257:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21184:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22257:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22259:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21184:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21185:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22608:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22259:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20968:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22259:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20973:level=77:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22676:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22219:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21186:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21205:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22674:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22674:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22220:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21184:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22611:level=76:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21207:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21651:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21323:level=76:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22260:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21206:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22608:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21408:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22259:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22607:level=77:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21205:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21185:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21185:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21408:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21183:level=72:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20971:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22676:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21431:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22605:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22674:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21819:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21185:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22220:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21414:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22674:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22257:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21408:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21410:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21819:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21410:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21186:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22606:level=76:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21205:level=75:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20972:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20973:level=77:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21205:level=75:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21404:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22673:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20969:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21323:level=76:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21207:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21798:level=76:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21206:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21207:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21323:level=76:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21186:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21422:level=78:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22675:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21320:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22607:level=77:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20971:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=20972:level=75:eligible=1:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=22675:level=80:eligible=0:full=9",
+        "TARGET_BOUND_ALTERNATIVES:d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:npc=21184:level=75:eligible=0:full=9"
+      ],
+      "sampleLimit": 128,
+      "counts": {
+        "TARGET_BOUND_ALTERNATIVES": 8145
+      },
+      "plannedCells": 4
+    }
+  },
+  "cellsTsv": "cell\tsourceShas\tfamily\tmode\tshortlist\tcursor\tscene\tsource\tnpc\tx\ty\tz\ttargetX\ttargetY\ttargetZ\tprotocolSha\n5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577\td0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d\tDAMAGE\tRANGED_MAGIC\t1230:101,1275:14\t2\td0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:3b7abef710da1c5196e6a1f6e9cc7a10c1d66ab0595fec8b30dda5df1e66c3a6\t20966@encounter.local.394ba6be10bd86c2faf790f3ccfa4eb42c2bbf3396b9c16398daf2148cf6dfff\t20966\t174404\t54541\t-6024\t174224\t54541\t-6024\td95459a5f833dc5051133514bcd0c5ce0acd69bfc3dc9ef5c276acd98d2e017a\n78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576\t92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d,667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f,623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e,d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d\tDAMAGE\tRANGED_MAGIC\t1148:13,1234:28,1239:28,1267:14\t4\t92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d:9b9c646b486c096ed6b32e1fb3bf05745fdce26c3364d2cb3b84eb0a02b441cb\t20965@encounter.local.e42848ebad29de6fc82efd5aff144f801377c96b8af72bfcd271b2d441d946f1\t20965\t176460\t57769\t-5848\t176280\t57769\t-5848\td95459a5f833dc5051133514bcd0c5ce0acd69bfc3dc9ef5c276acd98d2e017a\n7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89\td0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d\tDAMAGE\tRANGED_MAGIC\t1230:101,1275:14\t4\td0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:29ffebd3e24b22871b4d5635ef21c9eaea56f3c3a18934d630a55d30af121265\t20966@encounter.local.fbadce8b5df408cc1c07ea065c46727cf77acbbc514b11a3cd21c4d0a62030b5\t20966\t174617\t54589\t-6024\t174437\t54589\t-6024\td95459a5f833dc5051133514bcd0c5ce0acd69bfc3dc9ef5c276acd98d2e017a\nbcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a\t92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d,667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f,623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e,d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d\tDAMAGE\tRANGED_MAGIC\t1148:13,1234:28,1239:28,1267:14\t8\t92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d:49eeb4572362f0cbf2c2480747ed4d52aef1b6d50e6e47db5525599dd4b174f5\t20965@encounter.local.a12ccd1a7344ed163f967b3f7ee1954d1cdc2d666238beb84906a54016ee6f22\t20965\t174374\t55190\t-6008\t174194\t55190\t-6008\td95459a5f833dc5051133514bcd0c5ce0acd69bfc3dc9ef5c276acd98d2e017a\n",
+  "spawnCases": [
+    {
+      "mode": "TERRITORY",
+      "randomSpawns": false,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=174272, y=53752, z=-5960, instanceId=0]",
+      "spawnHeading": -1,
+      "territoryDraw": "[Location] X: 174272 Y: 53752 Z: -5960 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=175671, y=56734, z=-5912, instanceId=0]",
+      "pass": true
+    },
+    {
+      "mode": "SENTINEL",
+      "randomSpawns": false,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "spawnHeading": -1,
+      "cachedSource": "[Location] X: 174224 Y: 54541 Z: -6024 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "pass": true
+    },
+    {
+      "mode": "ZERO",
+      "randomSpawns": false,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "spawnHeading": 0,
+      "cachedSource": "[Location] X: 174224 Y: 54541 Z: -6024 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "pass": true
+    },
+    {
+      "mode": "FIXED",
+      "randomSpawns": false,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "spawnHeading": 32768,
+      "cachedSource": "[Location] X: 174224 Y: 54541 Z: -6024 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "pass": true
+    },
+    {
+      "mode": "TERRITORY",
+      "randomSpawns": true,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=175884, y=57717, z=-5840, instanceId=0]",
+      "spawnHeading": -1,
+      "territoryDraw": "[Location] X: 175884 Y: 57717 Z: -5840 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=175441, y=53836, z=-5992, instanceId=0]",
+      "pass": true
+    },
+    {
+      "mode": "SENTINEL",
+      "randomSpawns": true,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "spawnHeading": -1,
+      "cachedSource": "[Location] X: 174224 Y: 54541 Z: -6024 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "pass": true
+    },
+    {
+      "mode": "ZERO",
+      "randomSpawns": true,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=174223, y=54478, z=-6024, instanceId=0]",
+      "spawnHeading": -1,
+      "cachedSource": "[Location] X: 174224 Y: 54541 Z: -6024 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "pass": true
+    },
+    {
+      "mode": "FIXED",
+      "randomSpawns": true,
+      "afterCut": false,
+      "trainingCredit": false,
+      "initial": "PhantomTopologyPoint[x=174239, y=54623, z=-6024, instanceId=0]",
+      "spawnHeading": -1,
+      "cachedSource": "[Location] X: 174224 Y: 54541 Z: -6024 Heading: 0 InstanceId: 0",
+      "respawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+      "pass": true
+    }
+  ],
+  "workerExit": {
+    "schemaVersion": 1,
+    "proof": "OWN_HELD_HANDLE_EXIT",
+    "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+    "exitCode": 0,
+    "finishedUtc": "2026-11-14T20:42:57.4483644Z",
+    "terminatedUtc": "2026-11-14T20:42:56.9568743Z",
+    "nativeElapsedMillis": 116207,
+    "pid": 38708,
+    "created": 134391624607506268,
+    "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+    "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+    "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+    "nonce": "88c1751b738c44718a474629609792a7",
+    "kind": "Worker",
+    "commandHash": "6XYcb/df1liaIIdq/+1JKfrhTBT+7jjX5rs90qv0CdA=",
+    "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+    "configHash": "90FF81476F8EA87A9A621BC8D8A5E2CE7113C0A9D948D52F36D42DBA60D303FF",
+    "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative"
+  },
+  "workerResources": {
+    "pid": 38708,
+    "startedUtc": "2026-11-14T20:41:00.7506268Z",
+    "sampledUtc": "2026-11-14T20:42:57.4066501Z",
+    "elapsedMillis": 116656,
+    "cpuSeconds": 222.390625,
+    "workingSetBytes": 685416448,
+    "peakWorkingSetBytes": 4648873984,
+    "measurement": "PROCESS_METADATA",
+    "exitObserved": true
+  }
+}

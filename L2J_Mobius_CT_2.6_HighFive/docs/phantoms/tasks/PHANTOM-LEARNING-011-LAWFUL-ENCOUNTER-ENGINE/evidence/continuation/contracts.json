@@ -1,0 +1,23 @@
+{
+  "globalFarm": {
+    "globalContractsUnchanged": true,
+    "files": [
+      {
+        "path": "java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeBuilder.java",
+        "previousSourceSha256": "411c5ca29cf693524e944263adc1d029fbcc245c11b645b8e936eb66c8ecbaed",
+        "allPreviousBytesUnchanged": true
+      },
+      {
+        "path": "java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+        "previousSourceSha256": "93f13a5e6cd28878417424b6600de360084ad8ab675213d6784c2240d0a8d691",
+        "allPreviousBytesUnchanged": true
+      }
+    ]
+  },
+  "spawn": {
+    "scope": "ONLY_SPAWN_SET_HEADING_OVERRIDE",
+    "previousNativeBytesUnchanged": true,
+    "baselineSha256": "019240d684312948c2d3823d7fe9b079be4ba3086dd5a0f18653dd2271c183fa",
+    "currentSha256": "cd02d6988c1d21537a267fafedbb964a9a533f842560750efa0377bc53eab453"
+  }
+}

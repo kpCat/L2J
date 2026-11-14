@@ -1,4 +1,20 @@
-# HANDOFF011 — начальные факты
+# HANDOFF011 — текущее состояние
+
+**PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET; manual gate REQUIRED.** Продолжался тот жеGoal011 по двум явным решениям владельца: additive canonical local encounter contract и единственный общий production Spawn.setHeading(-1) fix. Нового Goal/WIP/обучения нет.
+
+Source HEAD `0c331f738d082c9476754c6561f9e8ae51d4b464`, feature/phantom-world,13source paths; final docs HEAD и independent receipt публикуются отдельно. Global farm/exactTerritoryNode прежняя семантика и bytes сохранены. Generic Location/RandomSpawnsConfig/GeoData не менялись. Spawn ordinary clamp сохранён; sentinel теперь не теряется. Expected production NPC spawn/respawn effects изложены в RESULT,8native lifecycle cases PASS.
+
+Fresh headless session2e8ca933…:4lawful scenes/8paired pre-CUT arms, current JARc38f64ba…, immutable config/JAR catalog. GS1 PID60792, attemptce5d1ef6…:8LIVE_ADMITTED/CUT,47paid events,8terminal arms; Party2complete matched pairs AB/BA; Solo0complete pairs,3deaths+1kill.20unique actors/8unique targets, parity exact, no replay. Director strict coverage отказал сTRAIN010_EVAL_MATCHED_PAIR_COVERAGE; evaluation.complete не считается G4PASS.
+
+G0/G1/G2/G3/G5/G6/G7PASS, G4FAIL; G8 — current final readback receipt. Engine READY, PartyPASS, SoloPARTIAL, gameINCONCLUSIVE. Не объявлятьFULL011, не повторять sealed/reserved arms и не добирать случайные победы. Возможное дальнейшее решение о доказуемо выживающих native Solo сценах должен определить владелец; дополнительный fit или ослабление HP/equipment/rules не является исправлением.
+
+Budget0111/3,328635/2700000ms, exact held-handle exit0. Истории00910/5803240 и0104/715447 preserved. Frozen SQL183/SHA9a9c2d0e…4da70e7d, DRAFT14/Adam903/223/apps48/grad16/acceptedTEST2/pointer12 unchanged; CRC12/11frozen export payloads exact, FIT/CREDIT/PROMOTION0.
+
+Финально TEST006STOPPED/OFF/owned0,33357/18001/19301free; protected207/Geo203preflightPASS; foreign8692/3308 сохранил identity. MAIN checkout7e997636… не менялся. Активный config и прежняя документация побайтово сохранены вне checkout сSHA. Current evidence — evidence/continuation; original evidence/headless относится к раннему отказу и остаётся историей.
+
+Пределы:3linked-lethal callback послеterminal по точному native kill linkage; legacy native-admission sessions raw неvalidJSON; публично8полных paid witnesses,47timings/action/HP/MP/hash rows. Все ограничения раскрыты в RESULT/EVIDENCE. Точные Git/test/runtime команды — COMMANDS.011№5/13, осталось8. Следующий Goal автоматически не начинать.
+
+# Исторический HANDOFF011 — начальные факты
 
 Goal: `PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE`.
 

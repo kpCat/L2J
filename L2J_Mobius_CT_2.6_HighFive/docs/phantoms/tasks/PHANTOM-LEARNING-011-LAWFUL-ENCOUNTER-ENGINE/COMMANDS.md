@@ -1,4 +1,71 @@
-# Команды011 и наблюдённые результаты
+# Команды продолжения011 и наблюдённые результаты
+
+Продолжался тот жеGoal, два явно разрешённых scope: local contract и Spawn sentinel. Текущие факты имеют приоритет над первоначальным журналом ниже. `$Source=D:/Codex/repos/L2J-learning-004`, `$Test=D:/Codex/repos/L2J-learning-006`, `$Root=$Test/.phantom-local/learning002/train`, `$Artifacts=<external visualization session>/goal011`. Это операторские aliases; product code новых абсолютных привязок не получил.
+
+## Git, exact source scope и commits
+
+В существующем source004 выполнялись `git symbolic-ref --short HEAD`, `git rev-parse HEAD`, `git rev-parse origin/feature/phantom-world`, `git status --porcelain`, `git diff --cached --name-only`, `git fetch origin feature/phantom-world`. MAIN проверялся только `git rev-parse HEAD` и `git status --porcelain -uno`; он остался7e997636…, tracked dirt не менялся, полный historical inventory не пересчитывался.
+
+Source publication через bounded Publish-Local-Source.ps1: `$Paths` — фактические modified paths из exact LOCAL-SOURCE-HASHES.json allowlist; index изначально пуст, branch feature и HEAD==origin обязательны. Выполнялись `git add -- $Paths`, `git diff --cached --name-only`, `git diff --cached --check`, затем конкретные `git commit -m <message>` и `git push origin feature/phantom-world` (обычный, exit0):
+
+| Commit | Точный message |
+|---|---|
+|eea088afaa8014171154b678e9dca8510c8a9c0b|phantom(learning011): bind local encounters to canonical spawn geometry|
+|c458637db24d4f7bd04565d679774ac927b34b18|phantom(learning011): keep local encounter bootstrap outside global farm planning|
+|bbe66f2bfd4b86b0d7f56b164e752f9310e5f969|phantom(learning011): preserve native spawn metadata and record realization facts|
+|e98c94bcbce19247584143b6aec423cf2004b9c4|fix(spawn): preserve random heading sentinel for native encounter parity|
+|8ef41d17a10c664f0d09bf5d1072b0b5f20f01a8|phantom(learning011): seal only paired native-admitted headless cells|
+|0c331f738d082c9476754c6561f9e8ae51d4b464|phantom(learning011): balance evaluation orders per direction and preserve source caches|
+
+TEST после tracked-clean guard: `git fetch origin feature/phantom-world`, `git merge --ff-only origin/feature/phantom-world`, `git rev-parse HEAD`. Private `.phantom-local/` сохранён. Для final artifact guard разрешены exact `git diff --check -- $Allowlist`, `git diff --name-only <baseline> HEAD -- $Allowlist`, `git ls-tree -r -l HEAD -- $Allowlist`; final docs staging использует только actual modified allowlisted paths. Ни branch creation, force/reset/clean/stash mutation, rebase, broad restore или StageAll не выполнялись.
+
+GitHub connector независимо получил `git/ref/heads/feature/phantom-world`, comparef153…0c331f73 (57paths,13source) и полные13source bodies вbase64. Git blob SHA1 вычислен по всем bytes, сравнен с API. Ни один base64 payload не публиковался в tool output. Для больших bodies использовались chunks≤59000chars. Полный final docs readback идёт после их push, receipt не содержит собственный hash.
+
+## Дешёвые RED→GREEN и canonical Prepare
+
+JDK25/Ant1.10.17. `ant -f L2J_Mobius_CT_2.6_HighFive/build.xml phantom-learning011-test phantom-autonomous-training-test phantom-learning008-test phantom-learning007-test jar` после Spawn fix — exit0/185s, raw SPAWN-FULL-REGRESSION.log. Local integration011/autonomous/JAR exit0/103s; отдельные007/008 exit0/102s. Последний source-contract order/cache GREEN — exit0. Canonical Prepare final заново выполнил существующие compile-tests/JAR и создал exact build receipt; никаких `verify`/DB-wide suites вместо focused gate не запускалось.
+
+Behavioral RED: canonical SilentValley local rejection; actual Spawn.setHeading(-1)=0; per-direction order confound; config-only cache collision. Затем focused GREEN. Compile-only ошибки интеграции и первоначальный cache typo не выдаются за behavioral proof. Raw logs byte-preserved вне checkout, safe exit/hash index в evidence/continuation/tests.json и RAW-LOGS-INDEX.json.
+
+Все Prepare использовали штатную команду:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Prepare -Autonomous -Root $Root
+```
+
+Ранние continuation sessions4e4c348…/4fdda1d…/7948c3a…/dcbd237… отказали до CUT/GS: global roster binding, native sentinel offset, штатный Party DPS refusal. Session7d02ee… source8ef41d… дала первый полный headlessPASS; после order/cache correction выполнена свежая final session2e8ca933…. Wrapper/worker exit0,4scenes/8paired arms,4/12candidates; native spawn8casesPASS. Worker38708/nonce88c1751b…:116207ms kernel, CPU222.390625s, peak4648873984B. Это headless, не GS-budget.
+
+## Единственный native запуск и shutdown
+
+После final full headlessPASS выполнена ровно одна Start:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Start -Autonomous -Root $Root
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Status -Autonomous -Json -Root $Root
+```
+
+Start exit0, Director86628, GS60792, attemptce5d1ef6826742b2a5786d1c5bd58caa. EVAL_ONLY frozen14, explorationOFF.8CUT/47paid/8terminal; Party2complete/Solo0; strict failureTRAIN010_EVAL_MATCHED_PAIR_COVERAGE. GS kernel exit0, wall328635ms; budget-charge OWN_HELD_HANDLE_EXIT_TIME,1/3starts. Native CPU265.203125s/peak4696219648B. GS2/3 NOT_STARTED.
+
+Обычные read-only post-EVAL команды (каждая exit0, без GS/fit): `Training.ps1 -Action Export -Autonomous -Root $Root`, затем `-Action Report`. В controlled Export ownedSQL window byte-identical Read-Lineage.ps1 выполнил только5SELECT сTagafter;183rows/79660bytes/SHA9a9c2d0e…4da70e7d совпал сTagbefore и010. Fresh ZIP model-2-c048637fd35f4d7298e96e7ebefa7f38.zip SHAa2327086…da0f2, CRC12entriesPASS,11payloads exact; только manifest.createdUtc отличается. Устаревший GUI export-result.json не использован как текущий receipt.
+
+Final-Off.ps1 сохранил active config побайтово/SHA90ff8147…303ff, canonical Read/Write-TrainConfig выключил autonomous009Enabled/outcome006Enabled, phaseOFF; бюджет/journal/model не менял. OFF SHA1e61a46f…77d6d4. Затем:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Stop -Autonomous -Root $Root
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Preflight -Autonomous -Root $Root
+```
+
+Обе exit0:STOPPED/OFF/owned0/33357,18001,19301free/Geo203/protected207PASS. Foreign8692/3308 identity от28.10 preserved. Read-only Final-Safety.ps1 сохранил exact stop receipt, foreign creation, pointer SHAacc21bed…c9b010 и SHA всех прежних budget journals;00910/5803240,0104/715447,0111/328635. Полный historical asset inventory не пересчитывался.
+
+## Delivery scope и проверки
+
+До обновления44прежних docs files побайтово скопированы в external delivery-before сSHA. Exact current allowlist74paths/13source вSCOPE-GUARD;16новых safe evidence files и1readback receipt относятся только кGoal011. Private SQL/model/Geo не публикуются. Original TASK/ARCHITECTURE/PLAN/TEST_MATRIX/GIT_AND_PRESERVATION и history009/010 не меняются.
+
+`python Check-Global-Contract.py` и `python Check-Spawn-Scope.py` — exit0: после удаления только additive local блоков /согласованного Spawn override все прежние bytes совпадают с backupSHA. `python Collect-Continuation.py` читает actual receipts без игровой мутации:20unique actors,8targets,47events, full timing rule;3linked-lethal HP callbacks раскрыты. Внешний reader один раз исправил имя native-resources.json; никаких повторных игровых runs. Native-admission legacy sessions raw неvalidJSON, сохранён verbatim; форматный предел указан в reports.
+
+`python Check-Encoding.py FINAL-ALLOWLIST.json --root $Source` отдельно проверяет27mojibake markers и6escaped Cyrillic regex. Финальный ENCODING-CHECK и exact status/index guard записываются до docs commit. Current G8 становитсяPASS только после полного independent final docs/evidence byte readback. Manual gate всегдаREQUIRED.
+
+# Первоначальный журнал команд011 до согласованного продолжения
 
 Git разрешён текущим поручением владельца, TASK011§1 и GIT_AND_PRESERVATION. Все записи ограничены feature/phantom-world и exact scope. `$Source=D:/Codex/repos/L2J-learning-004`, `$Test=D:/Codex/repos/L2J-learning-006`, `$Module=<checkout>/L2J_Mobius_CT_2.6_HighFive`, `$Root=$Test/.phantom-local/learning002/train`, `$Task=$Source/<module>/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE`, `$Artifacts=<внешний visualization root текущей сессии>/goal011`. Это фактические операторские aliases, не новые привязки product code.
 

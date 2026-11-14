@@ -1,0 +1,3450 @@
+{
+  "pairs": {
+    "completedPairs": 2,
+    "pairs": [
+      {
+        "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+        "direction": "SOLO_DAMAGE",
+        "order": "STOCK_LEARNED",
+        "arms": 2,
+        "status": "MATCHED_INCOMPLETE",
+        "trainingCredit": false
+      },
+      {
+        "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+        "direction": "PARTY_DAMAGE",
+        "order": "STOCK_LEARNED",
+        "arms": 2,
+        "status": "MATCHED_COMPLETED",
+        "trainingCredit": false
+      },
+      {
+        "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+        "direction": "SOLO_DAMAGE",
+        "order": "LEARNED_STOCK",
+        "arms": 2,
+        "status": "MATCHED_INCOMPLETE",
+        "trainingCredit": false
+      },
+      {
+        "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+        "direction": "PARTY_DAMAGE",
+        "order": "LEARNED_STOCK",
+        "arms": 2,
+        "status": "MATCHED_COMPLETED",
+        "trainingCredit": false
+      }
+    ],
+    "trainingCredit": false,
+    "verdict": "INCONCLUSIVE"
+  },
+  "completion": {
+    "verdict": "INCONCLUSIVE",
+    "reason": "BOUNDED_NATIVE_SAMPLE_NO_PROMOTION",
+    "trainingStateUnchanged": true,
+    "productionPromotion": false
+  },
+  "arms": [
+    {
+      "arm": "47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b",
+      "reserved": {
+        "episode": "47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b",
+        "side": "LEARNED",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 5763,
+              "actor": 268513034,
+              "epoch": 1487652022622100,
+              "class": 110,
+              "level": 77,
+              "hp": 4681.0,
+              "maxHp": 4681,
+              "mp": 2736.0,
+              "maxMp": 2736,
+              "exp": 1151275834,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176460,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            },
+            {
+              "profile": 5771,
+              "actor": 268513055,
+              "epoch": 1487652054043200,
+              "class": 105,
+              "level": 76,
+              "hp": 5073.0,
+              "maxHp": 5073,
+              "mp": 2756.0,
+              "maxMp": 2756,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176480,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            },
+            {
+              "profile": 5812,
+              "actor": 268513122,
+              "epoch": 1487652084525600,
+              "class": 90,
+              "level": 76,
+              "hp": 6492.0,
+              "maxHp": 6492,
+              "mp": 1666.0,
+              "maxMp": 1666,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176500,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            },
+            {
+              "profile": 5825,
+              "actor": 268513145,
+              "epoch": 1487652114886200,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176520,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+        "cutNanos": 1487652466242700,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+          "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+          "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/60000",
+          "nativeRiskThresholds": "[85:103, 71:89, 75:93, 77:95]",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+          "npcHpPosition": "8173.0:1759.0:176280:57769:-5848:0:0",
+          "npcTemplateLevel": "20965:73:8173:1759",
+          "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.e42848ebad29de6fc82efd5aff144f801377c96b8af72bfcd271b2d441d946f1",
+          "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+          "positionInstance": "[0:176460:57769:-5843:0:0, 1:176480:57769:-5843:0:0, 2:176500:57769:-5843:0:0, 3:176520:57769:-5843:0:0]",
+          "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+          "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 5763
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+        "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+        "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/60000",
+        "nativeRiskThresholds": "[85:103, 71:89, 75:93, 77:95]",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+        "npcHpPosition": "8173.0:1759.0:176280:57769:-5848:0:0",
+        "npcTemplateLevel": "20965:73:8173:1759",
+        "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.e42848ebad29de6fc82efd5aff144f801377c96b8af72bfcd271b2d441d946f1",
+        "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+        "positionInstance": "[0:176460:57769:-5843:0:0, 1:176480:57769:-5843:0:0, 2:176500:57769:-5843:0:0, 3:176520:57769:-5843:0:0]",
+        "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+        "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "4ae45c31514f088507e90a1e11a9f28cb98e7f7d36e8dead0a5e63a2bf7d6c78",
+        "expectedPhysicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "actualPhysicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "4ae45c31514f088507e90a1e11a9f28cb98e7f7d36e8dead0a5e63a2bf7d6c78",
+        "physicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=176280, y=57769, z=-5848, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=176280, y=57769, z=-5848, instanceId=0]",
+        "source": "20965@encounter.local.e42848ebad29de6fc82efd5aff144f801377c96b8af72bfcd271b2d441d946f1",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=176280, y=57769, z=-5848, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "PARTY_PVE_TARGET",
+        "scope": "PARTY",
+        "outcome": "COMPLETED",
+        "reason": "NATIVE_KILL",
+        "durationNanos": 16735890200,
+        "confirmedKill": true,
+        "actors": [
+          {
+            "profile": 5763,
+            "objectId": 268513034,
+            "epoch": 1487652022622100,
+            "class": 110,
+            "level": 77,
+            "remainingHp": 4681.0,
+            "remainingMp": 2469.6116616,
+            "dead": false,
+            "nativeCreditedExp": 44938,
+            "nativeCreditedSp": 7414
+          },
+          {
+            "profile": 5771,
+            "objectId": 268513055,
+            "epoch": 1487652054043200,
+            "class": 105,
+            "level": 76,
+            "remainingHp": 5073.0,
+            "remainingMp": 2519.47566,
+            "dead": false,
+            "nativeCreditedExp": 43778,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 5812,
+            "objectId": 268513122,
+            "epoch": 1487652084525600,
+            "class": 90,
+            "level": 76,
+            "remainingHp": 4460.500444095601,
+            "remainingMp": 1635.27656,
+            "dead": false,
+            "nativeCreditedExp": 43778,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 5825,
+            "objectId": 268513145,
+            "epoch": 1487652114886200,
+            "class": 94,
+            "level": 76,
+            "remainingHp": 4713.0,
+            "remainingMp": 2463.2747999999997,
+            "dead": false,
+            "nativeCreditedExp": 43778,
+            "nativeCreditedSp": 7222
+          }
+        ],
+        "nativeKills": [
+          {
+            "targetObjectId": 268513166,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268513034,
+            "nativeKillSequence": 1
+          },
+          {
+            "targetObjectId": 268513166,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268513145,
+            "nativeKillSequence": 1
+          }
+        ],
+        "eventKeys": [
+          "a79cda1483032d1f3f615e293d49e14f33893e45201a19c3cc18ff4a9782a298"
+        ],
+        "exactObservedDamage": 509.0,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 50.0,
+        "observedDeathsLowerBound": 0,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b",
+        "classId": 110,
+        "scope": "PARTY",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "COMPLETED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 1,
+        "totalMillis": 22217.9651,
+        "policyDiagnostics": {
+          "counters": {
+            "DAMAGE_STOCK": 5,
+            "HEAL_OFFER_COUNT": 90,
+            "MARGIN": 5
+          },
+          "samples": [
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5812,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5763,
+              "target": 268513166
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5812,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5771,
+              "target": 0
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.0020179078
+        },
+        "policyTiming": "snapshotNanos={n:5,p50:445400,p95:491700,p99:491700,max:491700} encodeNanos={n:5,p50:1418000,p95:1460300,p99:1460300,max:1460300} scoreNanos={n:5,p50:21600,p95:41600,p99:41600,max:41600} totalNanos={n:5,p50:2018400,p95:2092500,p99:2092500,max:2092500} dispatchNanos={n:0} cpuNanos={n:5,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:5,p50:130096,p95:130480,p99:130480,max:130480}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"PARTY\",\"target\":268513166,\"requestTimeoutMillis\":60000,\"admissionStartedNanos\":1487652433138000,\"reservedNanos\":1487652437863800,\"reservationElapsedNanos\":6298800,\"maximumReservationMillis\":1000,\"sessions\":[{target=268513166, generation=1, startedLogicalNanos=1487652437863800, profile=5812, timeoutMillis=60000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\t7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b\ttrue\t268513166:1:0\n268513034:1487652022622100:0,268513055:1487652054043200:0,268513122:1487652084525600:0,268513145:1487652114886200:0\na79cda1483032d1f3f615e293d49e14f33893e45201a19c3cc18ff4a9782a298\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268513034\t1487652022622100\t0\nACTOR\t268513055\t1487652054043200\t0\nACTOR\t268513122\t1487652084525600\t0\nACTOR\t268513145\t1487652114886200\t0\nTARGET\t268513166\t1\t0\n",
+      "includedPaidEvents": 1,
+      "actorIdentities": [
+        "268513034:1487652022622100:0",
+        "268513055:1487652054043200:0",
+        "268513122:1487652084525600:0",
+        "268513145:1487652114886200:0"
+      ],
+      "targetIdentity": "268513166:1:0"
+    },
+    {
+      "arm": "5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3",
+      "reserved": {
+        "episode": "5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3",
+        "side": "STOCK",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 6059,
+              "actor": 268513432,
+              "epoch": 1487776251741800,
+              "class": 110,
+              "level": 77,
+              "hp": 4681.0,
+              "maxHp": 4681,
+              "mp": 2736.0,
+              "maxMp": 2736,
+              "exp": 1151275834,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174374,
+              "y": 55190,
+              "z": -6003,
+              "dead": false
+            },
+            {
+              "profile": 6086,
+              "actor": 268513453,
+              "epoch": 1487776284923200,
+              "class": 105,
+              "level": 76,
+              "hp": 5073.0,
+              "maxHp": 5073,
+              "mp": 2756.0,
+              "maxMp": 2756,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174394,
+              "y": 55190,
+              "z": -5995,
+              "dead": false
+            },
+            {
+              "profile": 6114,
+              "actor": 268513498,
+              "epoch": 1487776318561100,
+              "class": 90,
+              "level": 76,
+              "hp": 6492.0,
+              "maxHp": 6492,
+              "mp": 1666.0,
+              "maxMp": 1666,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174414,
+              "y": 55190,
+              "z": -5995,
+              "dead": false
+            },
+            {
+              "profile": 6144,
+              "actor": 268513542,
+              "epoch": 1487776352370600,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174434,
+              "y": 55190,
+              "z": -5995,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+        "cutNanos": 1487776717691500,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+          "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+          "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/60000",
+          "nativeRiskThresholds": "[77:95, 82:100, 83:101, 79:97]",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+          "npcHpPosition": "8173.0:1759.0:174194:55190:-6008:0:0",
+          "npcTemplateLevel": "20965:73:8173:1759",
+          "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.a12ccd1a7344ed163f967b3f7ee1954d1cdc2d666238beb84906a54016ee6f22",
+          "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+          "positionInstance": "[0:174374:55190:-6003:0:0, 1:174394:55190:-5995:0:0, 2:174414:55190:-5995:0:0, 3:174434:55190:-5995:0:0]",
+          "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+          "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 6059
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+        "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+        "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/60000",
+        "nativeRiskThresholds": "[77:95, 82:100, 83:101, 79:97]",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+        "npcHpPosition": "8173.0:1759.0:174194:55190:-6008:0:0",
+        "npcTemplateLevel": "20965:73:8173:1759",
+        "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.a12ccd1a7344ed163f967b3f7ee1954d1cdc2d666238beb84906a54016ee6f22",
+        "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+        "positionInstance": "[0:174374:55190:-6003:0:0, 1:174394:55190:-5995:0:0, 2:174414:55190:-5995:0:0, 3:174434:55190:-5995:0:0]",
+        "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+        "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "e558487c44f5824e55108340366fbb2e0c4a86c013d8d7cfc0ce380a3263eecf",
+        "expectedPhysicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "actualPhysicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "e558487c44f5824e55108340366fbb2e0c4a86c013d8d7cfc0ce380a3263eecf",
+        "physicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=174194, y=55190, z=-6008, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=174194, y=55190, z=-6008, instanceId=0]",
+        "source": "20965@encounter.local.a12ccd1a7344ed163f967b3f7ee1954d1cdc2d666238beb84906a54016ee6f22",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=174194, y=55190, z=-6008, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "PARTY_PVE_TARGET",
+        "scope": "PARTY",
+        "outcome": "COMPLETED",
+        "reason": "NATIVE_KILL",
+        "durationNanos": 20072759900,
+        "confirmedKill": true,
+        "actors": [
+          {
+            "profile": 6059,
+            "objectId": 268513432,
+            "epoch": 1487776251741800,
+            "class": 110,
+            "level": 77,
+            "remainingHp": 4681.0,
+            "remainingMp": 2388.3163704,
+            "dead": false,
+            "nativeCreditedExp": 44938,
+            "nativeCreditedSp": 7414
+          },
+          {
+            "profile": 6086,
+            "objectId": 268513453,
+            "epoch": 1487776284923200,
+            "class": 105,
+            "level": 76,
+            "remainingHp": 5073.0,
+            "remainingMp": 2691.47566,
+            "dead": false,
+            "nativeCreditedExp": 43778,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 6114,
+            "objectId": 268513498,
+            "epoch": 1487776318561100,
+            "class": 90,
+            "level": 76,
+            "remainingHp": 5070.119044095602,
+            "remainingMp": 1666.0,
+            "dead": false,
+            "nativeCreditedExp": 43778,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 6144,
+            "objectId": 268513542,
+            "epoch": 1487776352370600,
+            "class": 94,
+            "level": 76,
+            "remainingHp": 4713.0,
+            "remainingMp": 2344.0751199999995,
+            "dead": false,
+            "nativeCreditedExp": 43778,
+            "nativeCreditedSp": 7222
+          }
+        ],
+        "nativeKills": [
+          {
+            "targetObjectId": 268513564,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268513432,
+            "nativeKillSequence": 1
+          },
+          {
+            "targetObjectId": 268513564,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268513542,
+            "nativeKillSequence": 1
+          }
+        ],
+        "eventKeys": [
+          "e1a3c700ad5d2302363651032c9dd03becb65c8e3d0ce9698060d3f1f9a6e49c",
+          "cf54c2d49e72e292c22518c707d3ec7856b217c052b1f48f0d5844c452fa66f4"
+        ],
+        "exactObservedDamage": 940.0,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 100.0,
+        "observedDeathsLowerBound": 0,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3",
+        "classId": 110,
+        "scope": "PARTY",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "COMPLETED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 2,
+        "totalMillis": 27779.7217,
+        "policyDiagnostics": {
+          "counters": {
+            "DAMAGE_STOCK": 7,
+            "HEAL_OFFER_COUNT": 25,
+            "SHADOW": 7
+          },
+          "samples": [
+            {
+              "reason": "SHADOW",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6114,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 6086,
+              "target": 0
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 6059,
+              "target": 268513564
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 6059,
+              "target": 268513564
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.0020176992
+        },
+        "policyTiming": "snapshotNanos={n:7,p50:489800,p95:682100,p99:682100,max:682100} encodeNanos={n:7,p50:1389100,p95:1561700,p99:1561700,max:1561700} scoreNanos={n:7,p50:27600,p95:35200,p99:35200,max:35200} totalNanos={n:7,p50:2026000,p95:2291800,p99:2291800,max:2291800} dispatchNanos={n:0} cpuNanos={n:7,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:7,p50:132176,p95:132200,p99:132200,max:132200}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"PARTY\",\"target\":268513564,\"requestTimeoutMillis\":60000,\"admissionStartedNanos\":1487776682859700,\"reservedNanos\":1487776687826700,\"reservationElapsedNanos\":7587000,\"maximumReservationMillis\":1000,\"sessions\":[{target=268513564, generation=1, startedLogicalNanos=1487776687826700, profile=6114, timeoutMillis=60000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\td74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870\ttrue\t268513564:1:0\n268513432:1487776251741800:0,268513453:1487776284923200:0,268513498:1487776318561100:0,268513542:1487776352370600:0\ne1a3c700ad5d2302363651032c9dd03becb65c8e3d0ce9698060d3f1f9a6e49c,cf54c2d49e72e292c22518c707d3ec7856b217c052b1f48f0d5844c452fa66f4\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268513432\t1487776251741800\t0\nACTOR\t268513453\t1487776284923200\t0\nACTOR\t268513498\t1487776318561100\t0\nACTOR\t268513542\t1487776352370600\t0\nTARGET\t268513564\t1\t0\n",
+      "includedPaidEvents": 2,
+      "actorIdentities": [
+        "268513432:1487776251741800:0",
+        "268513453:1487776284923200:0",
+        "268513498:1487776318561100:0",
+        "268513542:1487776352370600:0"
+      ],
+      "targetIdentity": "268513564:1:0"
+    },
+    {
+      "arm": "746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0",
+      "reserved": {
+        "episode": "746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0",
+        "side": "STOCK",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 5656,
+              "actor": 268512747,
+              "epoch": 1487548124459400,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174404,
+              "y": 54541,
+              "z": -6019,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+        "cutNanos": 1487548363416000,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[]]",
+          "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true]",
+          "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/120000",
+          "nativeRiskThresholds": "SOLO",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+          "npcHpPosition": "12476.0:1799.0:174224:54541:-6024:0:0",
+          "npcTemplateLevel": "20966:74:12476:1799",
+          "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.394ba6be10bd86c2faf790f3ccfa4eb42c2bbf3396b9c16398daf2148cf6dfff",
+          "partyRoles": "[0:94:SOLO]",
+          "positionInstance": "[0:174404:54541:-6019:0:0]",
+          "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+          "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 5656
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[]]",
+        "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true]",
+        "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/120000",
+        "nativeRiskThresholds": "SOLO",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+        "npcHpPosition": "12476.0:1799.0:174224:54541:-6024:0:0",
+        "npcTemplateLevel": "20966:74:12476:1799",
+        "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.394ba6be10bd86c2faf790f3ccfa4eb42c2bbf3396b9c16398daf2148cf6dfff",
+        "partyRoles": "[0:94:SOLO]",
+        "positionInstance": "[0:174404:54541:-6019:0:0]",
+        "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+        "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "37f97749c5ffd067104cf5373da29538d8c00dba8c6934f9039ea98a58f91212",
+        "expectedPhysicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "actualPhysicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "37f97749c5ffd067104cf5373da29538d8c00dba8c6934f9039ea98a58f91212",
+        "physicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+        "source": "20966@encounter.local.394ba6be10bd86c2faf790f3ccfa4eb42c2bbf3396b9c16398daf2148cf6dfff",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "SOLO_PVE_TARGET",
+        "scope": "SOLO",
+        "outcome": "FAILED",
+        "reason": "NATIVE_ACTOR_DIED",
+        "durationNanos": 41191288300,
+        "confirmedKill": false,
+        "actors": [
+          {
+            "profile": 5656,
+            "objectId": 268512747,
+            "epoch": 1487548124459400,
+            "class": 94,
+            "level": 75,
+            "remainingHp": 0.0,
+            "remainingMp": 2105.624719999999,
+            "dead": true,
+            "nativeCreditedExp": 0,
+            "nativeCreditedSp": 0
+          }
+        ],
+        "nativeKills": [],
+        "eventKeys": [
+          "b2bcea2a7b0d271ef33dd14b73a362605af722a6e6753107a47ec230b21e266a",
+          "cd914a9b6b436e0e5825db0b85afaf3ec244d87bed03a90d0711c178d2e887eb",
+          "3d38106385578313c9b770529a1af5f2dff7c48d97d760968b1184e5bdcd78b0",
+          "7508d7cc4e8194aba9be1dad5a96549264b973a337c8751818b0a4333008c210",
+          "8c90af0a3dad7fc44a183c4285cecacbc8c8eafef66532eae212456a337f27ab",
+          "d5e8b42690d1cc2bb99b9dc64e49e1762f189db7de5d548b01ad3b14705196b9",
+          "51284053053829a373f82a6098044dba3822d48a3e3751ea3d440ca571163c23",
+          "07c3c77585fe0eb37ba62d7125bea95765c698491919b1885c5a8491e2c991fd",
+          "3b3c7279bbd7057d1f95a6a5250aa653fa44698f83451824603d851050e515ac",
+          "319405b1fecbecb76fc1084e281c08648ff1037fccce5ab6e11718b141930595"
+        ],
+        "exactObservedDamage": 6208.0,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 452.0,
+        "observedDeathsLowerBound": 1,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0",
+        "classId": 94,
+        "scope": "SOLO",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "FAILED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 10,
+        "totalMillis": 46683.1935,
+        "policyDiagnostics": {
+          "counters": {
+            "BUDGET_5MS": 1,
+            "COOLDOWN_OR_ACTOR_CAP": 5,
+            "DAMAGE_STOCK": 12,
+            "SHADOW": 12
+          },
+          "samples": [
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "BUDGET_5MS",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5656,
+              "target": 268512768
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5656,
+              "target": 268512768
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.025361933
+        },
+        "policyTiming": "snapshotNanos={n:12,p50:1039600,p95:12769500,p99:12769500,max:12769500} encodeNanos={n:12,p50:1409900,p95:4462400,p99:4462400,max:4462400} scoreNanos={n:12,p50:20200,p95:49900,p99:49900,max:49900} totalNanos={n:12,p50:2630900,p95:18386100,p99:18386100,max:18386100} dispatchNanos={n:0} cpuNanos={n:12,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:12,p50:100648,p95:354264,p99:354264,max:354264}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"SOLO\",\"target\":268512768,\"requestTimeoutMillis\":120000,\"admissionStartedNanos\":1487548309688800,\"reservedNanos\":1487548309859100,\"reservationElapsedNanos\":20730400,\"maximumReservationMillis\":1000,\"sessions\":[{target=268512768, generation=1, startedLogicalNanos=1487548309859100, profile=5656, timeoutMillis=120000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\te738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47\tfalse\t268512768:1:0\n268512747:1487548124459400:0\nb2bcea2a7b0d271ef33dd14b73a362605af722a6e6753107a47ec230b21e266a,cd914a9b6b436e0e5825db0b85afaf3ec244d87bed03a90d0711c178d2e887eb,3d38106385578313c9b770529a1af5f2dff7c48d97d760968b1184e5bdcd78b0,7508d7cc4e8194aba9be1dad5a96549264b973a337c8751818b0a4333008c210,8c90af0a3dad7fc44a183c4285cecacbc8c8eafef66532eae212456a337f27ab,d5e8b42690d1cc2bb99b9dc64e49e1762f189db7de5d548b01ad3b14705196b9,51284053053829a373f82a6098044dba3822d48a3e3751ea3d440ca571163c23,07c3c77585fe0eb37ba62d7125bea95765c698491919b1885c5a8491e2c991fd,3b3c7279bbd7057d1f95a6a5250aa653fa44698f83451824603d851050e515ac,319405b1fecbecb76fc1084e281c08648ff1037fccce5ab6e11718b141930595\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268512747\t1487548124459400\t0\nTARGET\t268512768\t1\t0\n",
+      "includedPaidEvents": 10,
+      "actorIdentities": [
+        "268512747:1487548124459400:0"
+      ],
+      "targetIdentity": "268512768:1:0"
+    },
+    {
+      "arm": "7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f",
+      "reserved": {
+        "episode": "7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f",
+        "side": "LEARNED",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 5826,
+              "actor": 268513182,
+              "epoch": 1487673131533800,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174617,
+              "y": 54589,
+              "z": -6019,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+        "cutNanos": 1487673242171400,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[]]",
+          "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true]",
+          "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/120000",
+          "nativeRiskThresholds": "SOLO",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+          "npcHpPosition": "12476.0:1799.0:174437:54589:-6024:0:0",
+          "npcTemplateLevel": "20966:74:12476:1799",
+          "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.fbadce8b5df408cc1c07ea065c46727cf77acbbc514b11a3cd21c4d0a62030b5",
+          "partyRoles": "[0:94:SOLO]",
+          "positionInstance": "[0:174617:54589:-6019:0:0]",
+          "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+          "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 5826
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[]]",
+        "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true]",
+        "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/120000",
+        "nativeRiskThresholds": "SOLO",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+        "npcHpPosition": "12476.0:1799.0:174437:54589:-6024:0:0",
+        "npcTemplateLevel": "20966:74:12476:1799",
+        "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.fbadce8b5df408cc1c07ea065c46727cf77acbbc514b11a3cd21c4d0a62030b5",
+        "partyRoles": "[0:94:SOLO]",
+        "positionInstance": "[0:174617:54589:-6019:0:0]",
+        "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+        "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "c8b80b4c51957ba0d5cdb737ecb6da4fbce52b8aa63214a265f4a8c79a1cdff5",
+        "expectedPhysicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "actualPhysicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "c8b80b4c51957ba0d5cdb737ecb6da4fbce52b8aa63214a265f4a8c79a1cdff5",
+        "physicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=174437, y=54589, z=-6024, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=174437, y=54589, z=-6024, instanceId=0]",
+        "source": "20966@encounter.local.fbadce8b5df408cc1c07ea065c46727cf77acbbc514b11a3cd21c4d0a62030b5",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=174437, y=54589, z=-6024, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "SOLO_PVE_TARGET",
+        "scope": "SOLO",
+        "outcome": "FAILED",
+        "reason": "NATIVE_ACTOR_DIED",
+        "durationNanos": 31746174200,
+        "confirmedKill": false,
+        "actors": [
+          {
+            "profile": 5826,
+            "objectId": 268513182,
+            "epoch": 1487673131533800,
+            "class": 94,
+            "level": 75,
+            "remainingHp": 0.0,
+            "remainingMp": 2062.2028799999985,
+            "dead": true,
+            "nativeCreditedExp": 0,
+            "nativeCreditedSp": 0
+          }
+        ],
+        "nativeKills": [],
+        "eventKeys": [
+          "f60f6126c8fc36dada0d7d112c4ce97b6f375a2a873c7cbad6946692d0f6217f",
+          "6c63ed26d21dfc82f4b5fc99690ab89094b1dc23e3a010177e6e12affa101835",
+          "6e786c00ead1533509a1269300142e76765f5fc04a4e43049c46756477fbef02",
+          "f7723d13dcf1eebdc260ad8f7601bf1d0b8c7686e3b4b1e7be5f7bfb23340f2e",
+          "3ffc0a6db1fc3b784a02ff2cf1cb91a45bb641f2e7dca0ad27b2763d65a9a6d2",
+          "654070066405c841bf4574a357eca8fae81480378d86c06902f33702cdc33a5c",
+          "53385be96d4da1209b6997aefbc362648610e031efb0d61c59cb1ae2b1e039d1",
+          "d681ca8bdde439c77d8f8885d00301daa6a2ffe556fe0e4fd82a695771e29391",
+          "19cdb3c6bc477896d68e9b0e41b053ac2842589856d18d5d97336eb4de1b6248",
+          "5935c554f784d1ec657e5ff8a592225c27cbf5ecc3dae73f88a5a2c7b666e2fd"
+        ],
+        "exactObservedDamage": 6807.0,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 470.80031999999983,
+        "observedDeathsLowerBound": 1,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f",
+        "classId": 94,
+        "scope": "SOLO",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "FAILED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 10,
+        "totalMillis": 36029.0835,
+        "policyDiagnostics": {
+          "counters": {
+            "BUDGET_5MS": 1,
+            "COOLDOWN_OR_ACTOR_CAP": 6,
+            "DAMAGE_STOCK": 10,
+            "MARGIN": 9
+          },
+          "samples": [
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "BUDGET_5MS",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5826,
+              "target": 268513226
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5826,
+              "target": 268513226
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.025377251
+        },
+        "policyTiming": "snapshotNanos={n:10,p50:574300,p95:819200,p99:819200,max:819200} encodeNanos={n:10,p50:1402400,p95:6032200,p99:6032200,max:6032200} scoreNanos={n:10,p50:25800,p95:443400,p99:443400,max:443400} totalNanos={n:10,p50:2185100,p95:7480500,p99:7480500,max:7480500} dispatchNanos={n:0} cpuNanos={n:10,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:10,p50:100608,p95:100984,p99:100984,max:100984}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"SOLO\",\"target\":268513226,\"requestTimeoutMillis\":120000,\"admissionStartedNanos\":1487673203419700,\"reservedNanos\":1487673203516300,\"reservationElapsedNanos\":1156100,\"maximumReservationMillis\":1000,\"sessions\":[{target=268513226, generation=1, startedLogicalNanos=1487673203516300, profile=5826, timeoutMillis=120000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\t83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1\tfalse\t268513226:1:0\n268513182:1487673131533800:0\nf60f6126c8fc36dada0d7d112c4ce97b6f375a2a873c7cbad6946692d0f6217f,6c63ed26d21dfc82f4b5fc99690ab89094b1dc23e3a010177e6e12affa101835,6e786c00ead1533509a1269300142e76765f5fc04a4e43049c46756477fbef02,f7723d13dcf1eebdc260ad8f7601bf1d0b8c7686e3b4b1e7be5f7bfb23340f2e,3ffc0a6db1fc3b784a02ff2cf1cb91a45bb641f2e7dca0ad27b2763d65a9a6d2,654070066405c841bf4574a357eca8fae81480378d86c06902f33702cdc33a5c,53385be96d4da1209b6997aefbc362648610e031efb0d61c59cb1ae2b1e039d1,d681ca8bdde439c77d8f8885d00301daa6a2ffe556fe0e4fd82a695771e29391,19cdb3c6bc477896d68e9b0e41b053ac2842589856d18d5d97336eb4de1b6248,5935c554f784d1ec657e5ff8a592225c27cbf5ecc3dae73f88a5a2c7b666e2fd\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268513182\t1487673131533800\t0\nTARGET\t268513226\t1\t0\n",
+      "includedPaidEvents": 10,
+      "actorIdentities": [
+        "268513182:1487673131533800:0"
+      ],
+      "targetIdentity": "268513226:1:0"
+    },
+    {
+      "arm": "86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747",
+      "reserved": {
+        "episode": "86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747",
+        "side": "LEARNED",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 5900,
+              "actor": 268513269,
+              "epoch": 1487749494438600,
+              "class": 110,
+              "level": 77,
+              "hp": 4681.0,
+              "maxHp": 4681,
+              "mp": 2736.0,
+              "maxMp": 2736,
+              "exp": 1151275834,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174374,
+              "y": 55190,
+              "z": -6003,
+              "dead": false
+            },
+            {
+              "profile": 5905,
+              "actor": 268513290,
+              "epoch": 1487749550162800,
+              "class": 105,
+              "level": 76,
+              "hp": 5073.0,
+              "maxHp": 5073,
+              "mp": 2756.0,
+              "maxMp": 2756,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174394,
+              "y": 55190,
+              "z": -5995,
+              "dead": false
+            },
+            {
+              "profile": 5942,
+              "actor": 268513313,
+              "epoch": 1487749616513400,
+              "class": 90,
+              "level": 76,
+              "hp": 6492.0,
+              "maxHp": 6492,
+              "mp": 1666.0,
+              "maxMp": 1666,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174414,
+              "y": 55190,
+              "z": -5995,
+              "dead": false
+            },
+            {
+              "profile": 6027,
+              "actor": 268513336,
+              "epoch": 1487749683622400,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174434,
+              "y": 55190,
+              "z": -5995,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+        "cutNanos": 1487750096554400,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+          "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+          "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/60000",
+          "nativeRiskThresholds": "[77:95, 82:100, 83:101, 79:97]",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+          "npcHpPosition": "8173.0:1759.0:174194:55190:-6008:0:0",
+          "npcTemplateLevel": "20965:73:8173:1759",
+          "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.a12ccd1a7344ed163f967b3f7ee1954d1cdc2d666238beb84906a54016ee6f22",
+          "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+          "positionInstance": "[0:174374:55190:-6003:0:0, 1:174394:55190:-5995:0:0, 2:174414:55190:-5995:0:0, 3:174434:55190:-5995:0:0]",
+          "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+          "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 5900
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+        "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+        "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/60000",
+        "nativeRiskThresholds": "[77:95, 82:100, 83:101, 79:97]",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+        "npcHpPosition": "8173.0:1759.0:174194:55190:-6008:0:0",
+        "npcTemplateLevel": "20965:73:8173:1759",
+        "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.a12ccd1a7344ed163f967b3f7ee1954d1cdc2d666238beb84906a54016ee6f22",
+        "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+        "positionInstance": "[0:174374:55190:-6003:0:0, 1:174394:55190:-5995:0:0, 2:174414:55190:-5995:0:0, 3:174434:55190:-5995:0:0]",
+        "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+        "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "e558487c44f5824e55108340366fbb2e0c4a86c013d8d7cfc0ce380a3263eecf",
+        "expectedPhysicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "actualPhysicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "e558487c44f5824e55108340366fbb2e0c4a86c013d8d7cfc0ce380a3263eecf",
+        "physicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=174194, y=55190, z=-6008, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=174194, y=55190, z=-6008, instanceId=0]",
+        "source": "20965@encounter.local.a12ccd1a7344ed163f967b3f7ee1954d1cdc2d666238beb84906a54016ee6f22",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=174194, y=55190, z=-6008, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "PARTY_PVE_TARGET",
+        "scope": "PARTY",
+        "outcome": "COMPLETED",
+        "reason": "NATIVE_KILL",
+        "durationNanos": 19302011600,
+        "confirmedKill": true,
+        "actors": [
+          {
+            "profile": 5900,
+            "objectId": 268513269,
+            "epoch": 1487749494438600,
+            "class": 110,
+            "level": 77,
+            "remainingHp": 4681.0,
+            "remainingMp": 2428.464016,
+            "dead": false,
+            "nativeCreditedExp": 47192,
+            "nativeCreditedSp": 7414
+          },
+          {
+            "profile": 5905,
+            "objectId": 268513290,
+            "epoch": 1487749550162800,
+            "class": 105,
+            "level": 76,
+            "remainingHp": 5073.0,
+            "remainingMp": 2392.95132,
+            "dead": false,
+            "nativeCreditedExp": 45974,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 5942,
+            "objectId": 268513313,
+            "epoch": 1487749616513400,
+            "class": 90,
+            "level": 76,
+            "remainingHp": 4472.5643068260015,
+            "remainingMp": 1626.55312,
+            "dead": false,
+            "nativeCreditedExp": 45974,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 6027,
+            "objectId": 268513336,
+            "epoch": 1487749683622400,
+            "class": 94,
+            "level": 76,
+            "remainingHp": 4713.0,
+            "remainingMp": 2449.2747999999997,
+            "dead": false,
+            "nativeCreditedExp": 45974,
+            "nativeCreditedSp": 7222
+          }
+        ],
+        "nativeKills": [
+          {
+            "targetObjectId": 268513380,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268513269,
+            "nativeKillSequence": 1
+          },
+          {
+            "targetObjectId": 268513380,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268513336,
+            "nativeKillSequence": 1
+          }
+        ],
+        "eventKeys": [
+          "65c56b71a311896f496d2b5c385d2d40eb0abe966da723d5954e1e936e4cc338",
+          "c50b32af16ce6465e01498088dc742993ae21e35718a092036a037b7aecb4425",
+          "3ecb59541104ef6daf0aedd3bc9ae1bfda0db1a6b547124dc4b47f5d81c02ecd"
+        ],
+        "exactObservedDamage": 1159.0,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 258.0,
+        "observedDeathsLowerBound": 0,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747",
+        "classId": 110,
+        "scope": "PARTY",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "COMPLETED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 3,
+        "totalMillis": 25618.4713,
+        "policyDiagnostics": {
+          "counters": {
+            "BUDGET_5MS": 1,
+            "DAMAGE_STOCK": 5,
+            "HEAL_OFFER_COUNT": 131,
+            "MARGIN": 5
+          },
+          "samples": [
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "BUDGET_5MS",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5942,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5900,
+              "target": 268513380
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5905,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5942,
+              "target": 0
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.0004446134
+        },
+        "policyTiming": "snapshotNanos={n:5,p50:533300,p95:3117700,p99:3117700,max:3117700} encodeNanos={n:5,p50:1441900,p95:1548900,p99:1548900,max:1548900} scoreNanos={n:5,p50:28500,p95:39200,p99:39200,max:39200} totalNanos={n:5,p50:2104100,p95:5033100,p99:5033100,max:5033100} dispatchNanos={n:0} cpuNanos={n:5,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:5,p50:131664,p95:132464,p99:132464,max:132464}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"PARTY\",\"target\":268513380,\"requestTimeoutMillis\":60000,\"admissionStartedNanos\":1487750064438300,\"reservedNanos\":1487750069136900,\"reservationElapsedNanos\":8116700,\"maximumReservationMillis\":1000,\"sessions\":[{target=268513380, generation=1, startedLogicalNanos=1487750069136900, profile=5942, timeoutMillis=60000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\td74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870\ttrue\t268513380:1:0\n268513269:1487749494438600:0,268513290:1487749550162800:0,268513313:1487749616513400:0,268513336:1487749683622400:0\n65c56b71a311896f496d2b5c385d2d40eb0abe966da723d5954e1e936e4cc338,c50b32af16ce6465e01498088dc742993ae21e35718a092036a037b7aecb4425,3ecb59541104ef6daf0aedd3bc9ae1bfda0db1a6b547124dc4b47f5d81c02ecd\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268513269\t1487749494438600\t0\nACTOR\t268513290\t1487749550162800\t0\nACTOR\t268513313\t1487749616513400\t0\nACTOR\t268513336\t1487749683622400\t0\nTARGET\t268513380\t1\t0\n",
+      "includedPaidEvents": 3,
+      "actorIdentities": [
+        "268513269:1487749494438600:0",
+        "268513290:1487749550162800:0",
+        "268513313:1487749616513400:0",
+        "268513336:1487749683622400:0"
+      ],
+      "targetIdentity": "268513380:1:0"
+    },
+    {
+      "arm": "c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa",
+      "reserved": {
+        "episode": "c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa",
+        "side": "STOCK",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 5694,
+              "actor": 268512822,
+              "epoch": 1487628563213200,
+              "class": 110,
+              "level": 77,
+              "hp": 4681.0,
+              "maxHp": 4681,
+              "mp": 2736.0,
+              "maxMp": 2736,
+              "exp": 1151275834,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176460,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            },
+            {
+              "profile": 5726,
+              "actor": 268512885,
+              "epoch": 1487628600360600,
+              "class": 105,
+              "level": 76,
+              "hp": 5073.0,
+              "maxHp": 5073,
+              "mp": 2756.0,
+              "maxMp": 2756,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176480,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            },
+            {
+              "profile": 5749,
+              "actor": 268512908,
+              "epoch": 1487628639054900,
+              "class": 90,
+              "level": 76,
+              "hp": 6492.0,
+              "maxHp": 6492,
+              "mp": 1666.0,
+              "maxMp": 1666,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176500,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            },
+            {
+              "profile": 5752,
+              "actor": 268512952,
+              "epoch": 1487628675369400,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 176520,
+              "y": 57769,
+              "z": -5843,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+        "cutNanos": 1487629498502000,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+          "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+          "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/60000",
+          "nativeRiskThresholds": "[85:103, 71:89, 75:93, 77:95]",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+          "npcHpPosition": "8173.0:1759.0:176280:57769:-5848:0:0",
+          "npcTemplateLevel": "20965:73:8173:1759",
+          "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.e42848ebad29de6fc82efd5aff144f801377c96b8af72bfcd271b2d441d946f1",
+          "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+          "positionInstance": "[0:176460:57769:-5843:0:0, 1:176480:57769:-5843:0:0, 2:176500:57769:-5843:0:0, 3:176520:57769:-5843:0:0]",
+          "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+          "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 5694
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[], 1:buff=[]:debuff=[], 2:buff=[]:debuff=[], 3:buff=[]:debuff=[]]",
+        "classLevel": "[0:110:77:413:387.59227999999996:933.9013138944, 1:105:76:488:561.0102499999999:1134.17896512, 2:90:76:213:93.28980000000001:8.93116125, 3:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:5643:2:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 1:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 2:[1:6378:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:2369:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:1146:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:6377:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6375:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:1147:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6376:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]], 3:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true, 1:true:true:true:true, 2:true:true:true:true, 3:true:true:true:true]",
+        "hpMpCp": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 329:1:false, 331:1:false, 841:1:false, 842:1:false, 925:1:false, 964:1:false, 1012:1:false, 1064:14:false, 1069:42:false, 1074:14:false, 1126:6:false, 1127:12:false, 1128:4:false, 1146:1:false, 1147:6:false, 1148:13:false, 1151:16:false, 1157:5:false, 1159:22:false, 1160:15:false, 1167:6:false, 1168:7:false, 1169:14:false, 1172:8:false, 1176:15:false, 1177:5:false, 1178:8:false, 1181:3:false, 1184:6:false, 1206:5:false, 1216:1:false, 1222:15:false, 1224:17:false, 1228:4:false, 1234:28:false, 1239:28:false, 1266:3:false, 1267:14:false, 1288:1:false, 1291:1:false, 1294:1:false, 1297:6:false, 1320:9:false, 1322:1:false, 1341:1:false, 1343:1:false, 1417:5:false, 3047:2:false], 1:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 235:41:false, 236:41:false, 239:5:false, 244:3:false, 249:42:false, 328:1:false, 329:1:false, 841:1:false, 842:1:false, 926:1:false, 1011:18:false, 1012:3:false, 1013:32:false, 1015:15:false, 1016:7:false, 1020:27:false, 1027:15:false, 1028:19:false, 1031:8:false, 1050:2:false, 1069:42:false, 1164:1:false, 1177:5:false, 1184:4:false, 1201:9:false, 1206:19:false, 1216:1:false, 1217:33:false, 1219:29:false, 1255:2:false, 1273:13:false, 1320:9:false, 1322:1:false, 1394:10:false, 1395:10:false, 1398:10:false, 1400:10:false, 1401:11:false, 1430:5:false, 1521:1:false, 1550:1:false, 1552:1:false, 3047:2:false], 2:[3:9:false, 16:9:false, 18:37:false, 28:49:false, 44:3:false, 45:9:false, 49:26:false, 56:9:false, 70:13:false, 92:52:false, 97:11:false, 141:3:false, 142:5:false, 147:51:false, 153:4:false, 191:6:false, 194:1:false, 196:1:false, 197:2:false, 217:45:false, 226:1:false, 232:52:false, 239:5:false, 291:11:false, 318:1:false, 322:6:false, 328:1:false, 329:1:false, 335:1:false, 400:10:false, 403:10:false, 404:5:false, 405:10:false, 810:1:false, 841:1:false, 842:1:false, 983:1:false, 984:16:false, 1320:9:false, 1322:1:false], 3:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/60000",
+        "nativeRiskThresholds": "[85:103, 71:89, 75:93, 77:95]",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=13;reserve=300",
+        "npcHpPosition": "8173.0:1759.0:176280:57769:-5848:0:0",
+        "npcTemplateLevel": "20965:73:8173:1759",
+        "objectiveTimeout": "NATIVE_KILL/120/20965@encounter.local.e42848ebad29de6fc82efd5aff144f801377c96b8af72bfcd271b2d441d946f1",
+        "partyRoles": "[0:110:0, 1:105:0, 2:90:0, 3:94:0]",
+        "positionInstance": "[0:176460:57769:-5843:0:0, 1:176480:57769:-5843:0:0, 2:176500:57769:-5843:0:0, 3:176520:57769:-5843:0:0]",
+        "shortlist": "[SkillRef[skillId=1148, skillLevel=13], SkillRef[skillId=1234, skillLevel=28], SkillRef[skillId=1239, skillLevel=28], SkillRef[skillId=1267, skillLevel=14]]",
+        "sourcePhysical": "[2a1d65babb0240b651db0266b834233b8b2baba1aa6705d6cdea2af22090e23a, fd83bbef4a8a085fe3ee45fcbe46dfd561c8e2da2daf52c1b5131fc113986f46, ab5ef9698d55238716f706b2d21e0abd3eef65e0ecd6f27cf5666f1ba318e023, dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "4ae45c31514f088507e90a1e11a9f28cb98e7f7d36e8dead0a5e63a2bf7d6c78",
+        "expectedPhysicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "actualPhysicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "4ae45c31514f088507e90a1e11a9f28cb98e7f7d36e8dead0a5e63a2bf7d6c78",
+        "physicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=176280, y=57769, z=-5848, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=176280, y=57769, z=-5848, instanceId=0]",
+        "source": "20965@encounter.local.e42848ebad29de6fc82efd5aff144f801377c96b8af72bfcd271b2d441d946f1",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=176280, y=57769, z=-5848, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "PARTY_PVE_TARGET",
+        "scope": "PARTY",
+        "outcome": "COMPLETED",
+        "reason": "NATIVE_KILL",
+        "durationNanos": 17468049100,
+        "confirmedKill": true,
+        "actors": [
+          {
+            "profile": 5694,
+            "objectId": 268512822,
+            "epoch": 1487628563213200,
+            "class": 110,
+            "level": 77,
+            "remainingHp": 4681.0,
+            "remainingMp": 2459.6116616,
+            "dead": false,
+            "nativeCreditedExp": 49210,
+            "nativeCreditedSp": 7414
+          },
+          {
+            "profile": 5726,
+            "objectId": 268512885,
+            "epoch": 1487628600360600,
+            "class": 105,
+            "level": 76,
+            "remainingHp": 5073.0,
+            "remainingMp": 2740.0,
+            "dead": false,
+            "nativeCreditedExp": 47940,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 5749,
+            "objectId": 268512908,
+            "epoch": 1487628639054900,
+            "class": 90,
+            "level": 76,
+            "remainingHp": 4505.8093,
+            "remainingMp": 1644.0,
+            "dead": false,
+            "nativeCreditedExp": 47940,
+            "nativeCreditedSp": 7222
+          },
+          {
+            "profile": 5752,
+            "objectId": 268512952,
+            "epoch": 1487628675369400,
+            "class": 94,
+            "level": 76,
+            "remainingHp": 4713.0,
+            "remainingMp": 2499.47448,
+            "dead": false,
+            "nativeCreditedExp": 47940,
+            "nativeCreditedSp": 7222
+          }
+        ],
+        "nativeKills": [
+          {
+            "targetObjectId": 268512974,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268512822,
+            "nativeKillSequence": 1
+          },
+          {
+            "targetObjectId": 268512974,
+            "npcId": 20965,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268512952,
+            "nativeKillSequence": 1
+          }
+        ],
+        "eventKeys": [
+          "99aedf6b4393b25f25a1b97e1bb1ae4c4e63a57ce922fa3c9e05bbb11b57bef0",
+          "5c18d54dcb40bbb0ffb1739e44521acc884eb52c721e2a895a8da73391122ad1",
+          "d9f8651569e248cd9bc586e3409106f0a4e57ddd0d3cd35bdeef1ab5ed5ea6a3"
+        ],
+        "exactObservedDamage": 2937.0,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 258.0,
+        "observedDeathsLowerBound": 0,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa",
+        "classId": 110,
+        "scope": "PARTY",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "COMPLETED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 3,
+        "totalMillis": 23534.4801,
+        "policyDiagnostics": {
+          "counters": {
+            "DAMAGE_STOCK": 4,
+            "HEAL_OFFER_COUNT": 2,
+            "SHADOW": 4
+          },
+          "samples": [
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5694,
+              "target": 268512974
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5726,
+              "target": 0
+            },
+            {
+              "reason": "HEAL_OFFER_COUNT",
+              "actorProfile": 5749,
+              "target": 0
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.0025973693
+        },
+        "policyTiming": "snapshotNanos={n:4,p50:440100,p95:582600,p99:582600,max:582600} encodeNanos={n:4,p50:1305600,p95:1493200,p99:1493200,max:1493200} scoreNanos={n:4,p50:19900,p95:68300,p99:68300,max:68300} totalNanos={n:4,p50:2006600,p95:2241000,p99:2241000,max:2241000} dispatchNanos={n:0} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:130096,p95:130480,p99:130480,max:130480}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"PARTY\",\"target\":268512974,\"requestTimeoutMillis\":60000,\"admissionStartedNanos\":1487629407499800,\"reservedNanos\":1487629443324400,\"reservationElapsedNanos\":35626900,\"maximumReservationMillis\":1000,\"sessions\":[{target=268512974, generation=1, startedLogicalNanos=1487629443324400, profile=5749, timeoutMillis=60000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\t7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b\ttrue\t268512974:1:0\n268512822:1487628563213200:0,268512885:1487628600360600:0,268512908:1487628639054900:0,268512952:1487628675369400:0\n99aedf6b4393b25f25a1b97e1bb1ae4c4e63a57ce922fa3c9e05bbb11b57bef0,5c18d54dcb40bbb0ffb1739e44521acc884eb52c721e2a895a8da73391122ad1,d9f8651569e248cd9bc586e3409106f0a4e57ddd0d3cd35bdeef1ab5ed5ea6a3\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268512822\t1487628563213200\t0\nACTOR\t268512885\t1487628600360600\t0\nACTOR\t268512908\t1487628639054900\t0\nACTOR\t268512952\t1487628675369400\t0\nTARGET\t268512974\t1\t0\n",
+      "includedPaidEvents": 3,
+      "actorIdentities": [
+        "268512822:1487628563213200:0",
+        "268512885:1487628600360600:0",
+        "268512908:1487628639054900:0",
+        "268512952:1487628675369400:0"
+      ],
+      "targetIdentity": "268512974:1:0"
+    },
+    {
+      "arm": "cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b",
+      "reserved": {
+        "episode": "cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b",
+        "side": "STOCK",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 5827,
+              "actor": 268513236,
+              "epoch": 1487709885410200,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174617,
+              "y": 54589,
+              "z": -6019,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+        "cutNanos": 1487709968014700,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[]]",
+          "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true]",
+          "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/120000",
+          "nativeRiskThresholds": "SOLO",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+          "npcHpPosition": "12476.0:1799.0:174437:54589:-6024:0:0",
+          "npcTemplateLevel": "20966:74:12476:1799",
+          "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.fbadce8b5df408cc1c07ea065c46727cf77acbbc514b11a3cd21c4d0a62030b5",
+          "partyRoles": "[0:94:SOLO]",
+          "positionInstance": "[0:174617:54589:-6019:0:0]",
+          "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+          "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 5827
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[]]",
+        "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true]",
+        "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/120000",
+        "nativeRiskThresholds": "SOLO",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+        "npcHpPosition": "12476.0:1799.0:174437:54589:-6024:0:0",
+        "npcTemplateLevel": "20966:74:12476:1799",
+        "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.fbadce8b5df408cc1c07ea065c46727cf77acbbc514b11a3cd21c4d0a62030b5",
+        "partyRoles": "[0:94:SOLO]",
+        "positionInstance": "[0:174617:54589:-6019:0:0]",
+        "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+        "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "c8b80b4c51957ba0d5cdb737ecb6da4fbce52b8aa63214a265f4a8c79a1cdff5",
+        "expectedPhysicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "actualPhysicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "c8b80b4c51957ba0d5cdb737ecb6da4fbce52b8aa63214a265f4a8c79a1cdff5",
+        "physicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=174437, y=54589, z=-6024, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=174437, y=54589, z=-6024, instanceId=0]",
+        "source": "20966@encounter.local.fbadce8b5df408cc1c07ea065c46727cf77acbbc514b11a3cd21c4d0a62030b5",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=174437, y=54589, z=-6024, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "SOLO_PVE_TARGET",
+        "scope": "SOLO",
+        "outcome": "FAILED",
+        "reason": "NATIVE_ACTOR_DIED",
+        "durationNanos": 33730573900,
+        "confirmedKill": false,
+        "actors": [
+          {
+            "profile": 5827,
+            "objectId": 268513236,
+            "epoch": 1487709885410200,
+            "class": 94,
+            "level": 75,
+            "remainingHp": 0.0,
+            "remainingMp": 2240.150239999999,
+            "dead": true,
+            "nativeCreditedExp": 0,
+            "nativeCreditedSp": 0
+          }
+        ],
+        "nativeKills": [],
+        "eventKeys": [
+          "b4ce7d7e6f6b5a4072be56485ec586653aac0bfcf9e8b94630b3ff178f2a4bbb",
+          "2503fde5e2fb0ff8ae12e0397360a7bd1040278ee8c9de8bf440a85f003e46d7",
+          "1dd3d860d6afff1d397ba95afe7e643d99ac8d2e3cb5735346e6c5663d274524",
+          "d8ec7ef1192431e28281ed5ce3d0a41bab6ee677c1c7307eb81e02a67d16157b",
+          "8247e8c0e9f161c409d3a67ac9015fbef33eafb469a9d575f0f1f9abbc36b2c0",
+          "fa7366d47786ae06a9f30bf06fb4d9b721b28ea4947f3349ffcc8d8a4bc0bb3b",
+          "ee6ddac5c5990186ac72659f070efbc27a6b0c9dc8984ba638847a95f75db963"
+        ],
+        "exactObservedDamage": 4343.0,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 313.0,
+        "observedDeathsLowerBound": 1,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b",
+        "classId": 94,
+        "scope": "SOLO",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "FAILED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 7,
+        "totalMillis": 38600.2233,
+        "policyDiagnostics": {
+          "counters": {
+            "COOLDOWN_OR_ACTOR_CAP": 6,
+            "DAMAGE_STOCK": 9,
+            "SHADOW": 9
+          },
+          "samples": [
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "SHADOW",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5827,
+              "target": 268513257
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5827,
+              "target": 268513257
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.01882331
+        },
+        "policyTiming": "snapshotNanos={n:9,p50:459800,p95:687400,p99:687400,max:687400} encodeNanos={n:9,p50:1413900,p95:1535900,p99:1535900,max:1535900} scoreNanos={n:9,p50:23500,p95:35700,p99:35700,max:35700} totalNanos={n:9,p50:2034800,p95:2225500,p99:2225500,max:2225500} dispatchNanos={n:0} cpuNanos={n:9,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:9,p50:100416,p95:100584,p99:100584,max:100584}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"SOLO\",\"target\":268513257,\"requestTimeoutMillis\":120000,\"admissionStartedNanos\":1487709949707700,\"reservedNanos\":1487709949771900,\"reservationElapsedNanos\":693500,\"maximumReservationMillis\":1000,\"sessions\":[{target=268513257, generation=1, startedLogicalNanos=1487709949771900, profile=5827, timeoutMillis=120000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\t83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1\tfalse\t268513257:1:0\n268513236:1487709885410200:0\nb4ce7d7e6f6b5a4072be56485ec586653aac0bfcf9e8b94630b3ff178f2a4bbb,2503fde5e2fb0ff8ae12e0397360a7bd1040278ee8c9de8bf440a85f003e46d7,1dd3d860d6afff1d397ba95afe7e643d99ac8d2e3cb5735346e6c5663d274524,d8ec7ef1192431e28281ed5ce3d0a41bab6ee677c1c7307eb81e02a67d16157b,8247e8c0e9f161c409d3a67ac9015fbef33eafb469a9d575f0f1f9abbc36b2c0,fa7366d47786ae06a9f30bf06fb4d9b721b28ea4947f3349ffcc8d8a4bc0bb3b,ee6ddac5c5990186ac72659f070efbc27a6b0c9dc8984ba638847a95f75db963\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268513236\t1487709885410200\t0\nTARGET\t268513257\t1\t0\n",
+      "includedPaidEvents": 7,
+      "actorIdentities": [
+        "268513236:1487709885410200:0"
+      ],
+      "targetIdentity": "268513257:1:0"
+    },
+    {
+      "arm": "f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95",
+      "reserved": {
+        "episode": "f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95",
+        "side": "LEARNED",
+        "split": "EVAL",
+        "trainingCredit": false
+      },
+      "cut": {
+        "comparisonCellSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "runtime": {
+          "schema": 1,
+          "actors": [
+            {
+              "profile": 5657,
+              "actor": 268512781,
+              "epoch": 1487594189520100,
+              "class": 94,
+              "level": 76,
+              "hp": 4713.0,
+              "maxHp": 4713,
+              "mp": 2739.0,
+              "maxMp": 2739,
+              "exp": 931275828,
+              "sp": 0,
+              "adena": 5000,
+              "x": 174404,
+              "y": 54541,
+              "z": -6019,
+              "dead": false
+            }
+          ],
+          "rewardAttribution": "UNKNOWN",
+          "spoil": "UNKNOWN"
+        },
+        "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+        "cutNanos": 1487594311485100,
+        "trainingCredit": false
+      },
+      "precut": {
+        "comparisonCellSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "facts": {
+          "buffs": "[0:buff=[]:debuff=[]]",
+          "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+          "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+          "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+          "encounterContract": "ENCOUNTER_ADMISSION_V1",
+          "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+          "geoLos": "[0:true:true:true:true]",
+          "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+          "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+          "nativeOpeningAdmission": "ACCEPTED/120000",
+          "nativeRiskThresholds": "SOLO",
+          "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+          "npcHpPosition": "12476.0:1799.0:174224:54541:-6024:0:0",
+          "npcTemplateLevel": "20966:74:12476:1799",
+          "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.394ba6be10bd86c2faf790f3ccfa4eb42c2bbf3396b9c16398daf2148cf6dfff",
+          "partyRoles": "[0:94:SOLO]",
+          "positionInstance": "[0:174404:54541:-6019:0:0]",
+          "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+          "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+        },
+        "actorProfile": 5657
+      },
+      "admission-facts": {
+        "buffs": "[0:buff=[]:debuff=[]]",
+        "classLevel": "[0:94:76:421:576.80075:1307.1812921174997]",
+        "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+        "configRates": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9",
+        "encounterContract": "ENCOUNTER_ADMISSION_V1",
+        "equipment": "[0:[1:6386:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 4:920:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 5:6608:12:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 6:425:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 7:641:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 8:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 9:858:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 10:6384:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 11:461:0:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 12:6385:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 13:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0], 14:889:10:0:-2:0:[0, 0, 0, 0, 0, 0]:[0, 0, 0]]]",
+        "geoLos": "[0:true:true:true:true]",
+        "hpMpCp": "[0:4713.0/4713:2739.0/2739:1693.0/1693]",
+        "learnedSkills": "[0:[118:1:false, 146:45:false, 163:1:false, 164:3:false, 194:1:false, 212:6:false, 213:8:false, 214:1:false, 228:3:false, 229:7:false, 234:41:false, 239:5:false, 244:3:false, 249:42:false, 285:27:false, 328:1:false, 841:1:false, 842:1:false, 925:1:false, 1012:1:false, 1056:12:false, 1069:42:false, 1072:5:false, 1074:14:false, 1083:17:false, 1111:4:false, 1126:6:false, 1127:12:false, 1144:1:false, 1147:6:false, 1151:2:false, 1157:1:false, 1160:15:false, 1164:5:false, 1167:2:false, 1168:3:false, 1169:14:false, 1171:19:false, 1172:8:false, 1177:5:false, 1181:3:false, 1184:6:false, 1216:1:false, 1220:8:false, 1222:1:false, 1225:4:false, 1230:101:false, 1231:28:false, 1233:4:false, 1274:4:false, 1275:14:false, 1288:1:false, 1289:1:false, 1292:1:false, 1296:9:false, 1297:6:false, 1320:9:false, 1322:1:false, 1417:5:false, 3047:2:false]]",
+        "nativeOpeningAdmission": "ACCEPTED/120000",
+        "nativeRiskThresholds": "SOLO",
+        "npcFactionIsolation": "clear=true;helpRange=300;collision=15;reserve=300",
+        "npcHpPosition": "12476.0:1799.0:174224:54541:-6024:0:0",
+        "npcTemplateLevel": "20966:74:12476:1799",
+        "objectiveTimeout": "NATIVE_KILL/120/20966@encounter.local.394ba6be10bd86c2faf790f3ccfa4eb42c2bbf3396b9c16398daf2148cf6dfff",
+        "partyRoles": "[0:94:SOLO]",
+        "positionInstance": "[0:174404:54541:-6019:0:0]",
+        "shortlist": "[SkillRef[skillId=1230, skillLevel=101], SkillRef[skillId=1275, skillLevel=14]]",
+        "sourcePhysical": "[dd39df0328a729673716ea056ba7d4e9678fd0c722e1db8e9e9cce680e2f3134]"
+      },
+      "headless-live-parity": {
+        "proposalSha": "37f97749c5ffd067104cf5373da29538d8c00dba8c6934f9039ea98a58f91212",
+        "expectedPhysicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "actualPhysicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "diff": "[]"
+      },
+      "encounter-admission": {
+        "schema": "ENCOUNTER_ADMISSION_V1",
+        "stage": "LIVE_ADMITTED",
+        "proposalSha": "37f97749c5ffd067104cf5373da29538d8c00dba8c6934f9039ea98a58f91212",
+        "physicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+        "sealable": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "local-source-binding": {
+        "liveOriginBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "afterCut": false,
+        "actualSpawn": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+        "realizedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]",
+        "sourceGeometry": "2ef799c8f14ce21868ed72fe0dee2022e8c09b38b15efc21ba321c210ce64b0d",
+        "actualTarget": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+        "source": "20966@encounter.local.394ba6be10bd86c2faf790f3ccfa4eb42c2bbf3396b9c16398daf2148cf6dfff",
+        "randomSpawnsEnabled": true,
+        "plannedTarget": "PhantomTopologyPoint[x=174224, y=54541, z=-6024, instanceId=0]",
+        "pinnedBehavior": "SpawnBehavior[heading=-1, randomWalking=false, chaseRange=0]"
+      },
+      "settlement": {
+        "schemaVersion": 4,
+        "episode": "f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95",
+        "ownerNonce": "ce5d1ef6826742b2a5786d1c5bd58caa",
+        "goal": "SOLO_PVE_TARGET",
+        "scope": "SOLO",
+        "outcome": "COMPLETED",
+        "reason": "NATIVE_KILL",
+        "durationNanos": 29050880500,
+        "confirmedKill": true,
+        "actors": [
+          {
+            "profile": 5657,
+            "objectId": 268512781,
+            "epoch": 1487594189520100,
+            "class": 94,
+            "level": 76,
+            "remainingHp": 1187.148109012223,
+            "remainingMp": 2143.4025599999986,
+            "dead": false,
+            "nativeCreditedExp": 93480,
+            "nativeCreditedSp": 15570
+          }
+        ],
+        "nativeKills": [
+          {
+            "targetObjectId": 268512802,
+            "npcId": 20966,
+            "spawnGeneration": 1,
+            "instanceId": 0,
+            "creditedActorId": 268512781,
+            "nativeKillSequence": 1
+          }
+        ],
+        "eventKeys": [
+          "2dc60999cf4aaf40153a46752d4ac0e6d75cb48184928d076b895175b039cd27",
+          "50da162f277ca71bb8820922d542a305de417aa78caaa4530b226f08b59bb639",
+          "ee7d5187e0a4689312e4f5fcb5de3286ae8dafbd9b381b4060b4272d81546bbc",
+          "893b849e709d26c18722076bf1a89d29e1bdbbb38cd2165c67202a550bacb2bf",
+          "d33f33e1589c2a1316ba699715c2f7d265981a5773ec4ac7ab5cc761672765a6",
+          "10032fbcc5828f9c18f0b33d7038c08c5e3575d06427aa7508acd6fc87aedaed",
+          "bd60405924b989ee77a0de8df8e2518609ce794dec1fa75507c53947641a9a15",
+          "92afecaccf964c90ab04c20ffa29b339d8128cac64cab65ac1c05f426366585e",
+          "ccf986c96c4c13b647134cb1281d78a8d421e151637e5cee4ac5397402ca3406",
+          "21fc1e3ce03a4b9376350fcdf41da8544ae67ef77f2fc01a4586affe296f5ee5",
+          "89e215288df7ed8737891b82b814cfe43c47c075ea6d05dcab6c5a385a88685b"
+        ],
+        "exactObservedDamage": 7309.5,
+        "usefulObservedHeal": 0.0,
+        "exactObservedMp": 453.0,
+        "observedDeathsLowerBound": 0,
+        "completeDeathCount": null,
+        "wholePartyDamage": null,
+        "consumables": null,
+        "loot": null,
+        "adenaNet": null,
+        "terminalRewardUsedForTraining": false,
+        "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+      },
+      "result": {
+        "episode": "f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95",
+        "classId": 94,
+        "scope": "SOLO",
+        "family": "DAMAGE",
+        "split": "EVAL",
+        "experimental": false,
+        "afterCut": true,
+        "outcome": "COMPLETED",
+        "exclusion": "",
+        "opportunities": 0,
+        "paidRawEffects": 11,
+        "totalMillis": 33496.1197,
+        "policyDiagnostics": {
+          "counters": {
+            "COOLDOWN_OR_ACTOR_CAP": 7,
+            "DAMAGE_REORDER": 6,
+            "DAMAGE_STOCK": 5,
+            "MARGIN": 5
+          },
+          "samples": [
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "MARGIN",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_STOCK",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_REORDER",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_REORDER",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_REORDER",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_REORDER",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_REORDER",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "COOLDOWN_OR_ACTOR_CAP",
+              "actorProfile": 5657,
+              "target": 268512802
+            },
+            {
+              "reason": "DAMAGE_REORDER",
+              "actorProfile": 5657,
+              "target": 268512802
+            }
+          ],
+          "sampleLimit": 64,
+          "lastMargin": 0.025350355
+        },
+        "policyTiming": "snapshotNanos={n:11,p50:706400,p95:2180900,p99:2180900,max:2180900} encodeNanos={n:11,p50:1394600,p95:1700100,p99:1700100,max:1700100} scoreNanos={n:11,p50:21000,p95:96600,p99:96600,max:96600} totalNanos={n:11,p50:2273700,p95:3805900,p99:3805900,max:3805900} dispatchNanos={n:0} cpuNanos={n:11,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:11,p50:100416,p95:100632,p99:100632,max:100632}"
+      },
+      "nativeAdmissionRaw": "{\"admitted\":true,\"scope\":\"SOLO\",\"target\":268512802,\"requestTimeoutMillis\":120000,\"admissionStartedNanos\":1487594268509700,\"reservedNanos\":1487594268588900,\"reservationElapsedNanos\":1176800,\"maximumReservationMillis\":1000,\"sessions\":[{target=268512802, generation=1, startedLogicalNanos=1487594268588900, profile=5657, timeoutMillis=120000, mode=RANGED_MAGIC}],\"combatRequestValidated\":true,\"nativeActionsReleased\":false}",
+      "evaluationArmTsv": "EVAL_ARM_V1\te738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47\ttrue\t268512802:1:0\n268512781:1487594189520100:0\n2dc60999cf4aaf40153a46752d4ac0e6d75cb48184928d076b895175b039cd27,50da162f277ca71bb8820922d542a305de417aa78caaa4530b226f08b59bb639,ee7d5187e0a4689312e4f5fcb5de3286ae8dafbd9b381b4060b4272d81546bbc,893b849e709d26c18722076bf1a89d29e1bdbbb38cd2165c67202a550bacb2bf,d33f33e1589c2a1316ba699715c2f7d265981a5773ec4ac7ab5cc761672765a6,10032fbcc5828f9c18f0b33d7038c08c5e3575d06427aa7508acd6fc87aedaed,bd60405924b989ee77a0de8df8e2518609ce794dec1fa75507c53947641a9a15,92afecaccf964c90ab04c20ffa29b339d8128cac64cab65ac1c05f426366585e,ccf986c96c4c13b647134cb1281d78a8d421e151637e5cee4ac5397402ca3406,21fc1e3ce03a4b9376350fcdf41da8544ae67ef77f2fc01a4586affe296f5ee5,89e215288df7ed8737891b82b814cfe43c47c075ea6d05dcab6c5a385a88685b\n",
+      "incarnationsTsv": "role\tobjectId\tepoch\tinstance\nACTOR\t268512781\t1487594189520100\t0\nTARGET\t268512802\t1\t0\n",
+      "includedPaidEvents": 11,
+      "actorIdentities": [
+        "268512781:1487594189520100:0"
+      ],
+      "targetIdentity": "268512802:1:0"
+    }
+  ],
+  "uniqueActors": 20,
+  "uniqueTargets": 8,
+  "uniquePaidEvents": 47,
+  "noActorTargetOrEventReplay": true,
+  "nativeAdmissionFormatLimit": "Legacy sessions array contains Java Map text; preserved verbatim, not claimed to be valid JSON."
+}

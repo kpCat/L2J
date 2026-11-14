@@ -1,0 +1,159 @@
+{
+  "canonicalStopExit": 0,
+  "canonicalPostflightExit": 0,
+  "state": {
+    "primaryFailureCode": "System.Management.Automation.RuntimeException",
+    "generation": 59,
+    "primaryFailureId": "dcfb5a2cd6d04924abbf9815200f6209",
+    "stopNonce": "7b4f87ed43a5416ebb9a4a9895a10c42",
+    "autonomousCheckpoint": "",
+    "reason": "Собственные процессы остановлены и порты свободны.",
+    "schemaVersion": 1,
+    "autonomousFits": 0,
+    "workingSetBytes": 131543040,
+    "cpuSeconds": 49.859,
+    "cleanupFailureId": "",
+    "autonomousNativeMillis": 0,
+    "autonomousNativeStarts": 0,
+    "freeDiskBytes": 427511152640,
+    "nativeFailures": 0,
+    "attemptId": "ce5d1ef6826742b2a5786d1c5bd58caa",
+    "runId": "753dfebef8664cb2b3b490bcbb9031dc",
+    "heartbeatUtc": "2026-11-14T20:55:31.0026730Z",
+    "batchesCompleted": 25,
+    "autonomousImproved": false,
+    "phase": "STOPPED",
+    "autonomousCycle": 1,
+    "primaryFailurePhase": "NATIVE",
+    "nonce": "107a71fa339d4e2b99c72fb1383ef348",
+    "autonomousCampaign": "autonomous009-goal011-20261114",
+    "ownedWorkingSetBytes": 1244876800,
+    "stopConfirmedUtc": "2026-11-14T20:55:31.0026730Z"
+  },
+  "stopReceipt": {
+    "processes": [
+      {
+        "created": 134391627289948191,
+        "pid": 86628,
+        "absent": true,
+        "kind": "Director"
+      },
+      {
+        "created": 134391627556513003,
+        "pid": 60792,
+        "absent": true,
+        "kind": "Native"
+      },
+      {
+        "created": 134391632834743515,
+        "pid": 94564,
+        "absent": true,
+        "kind": "Worker"
+      },
+      {
+        "created": 134391632774449026,
+        "pid": 15488,
+        "absent": true,
+        "kind": "Sql"
+      }
+    ],
+    "stopNonce": "7b4f87ed43a5416ebb9a4a9895a10c42",
+    "confirmedUtc": "2026-11-14T20:55:31.0026730Z",
+    "ownerNonce": "107a71fa339d4e2b99c72fb1383ef348",
+    "ports": [
+      33357,
+      18001,
+      19301
+    ]
+  },
+  "ownedProcesses": 0,
+  "portsFree": [
+    33357,
+    18001,
+    19301
+  ],
+  "foreignSql": {
+    "pid": 8692,
+    "port": 3308,
+    "createdUtc": "2026-10-28T15:34:43.9827010Z",
+    "untouched": true
+  },
+  "coldPointerSha256": "ACC21BED707B518FB58E23FEC006E7D658723763C73C237A039D950E14C9B010",
+  "journals": [
+    {
+      "campaign": "autonomous009-goal009-20261113",
+      "starts": 2,
+      "nativeMillis": 478022,
+      "sha256": "18AB1ACA2B01290BD5352DC5C82472767E8EAC8FEC2D7E2EA1524412746C9DB3"
+    },
+    {
+      "campaign": "autonomous009-goal009-20261113-b",
+      "starts": 4,
+      "nativeMillis": 1008655,
+      "sha256": "61931738DB1BC10CB494CF185C0EF37C8C76A766A02225A2E97D4D06834E85F6"
+    },
+    {
+      "campaign": "autonomous009-goal009-20261113-c",
+      "starts": 5,
+      "nativeMillis": 2136280,
+      "sha256": "FC32AC2C69AA4AE4944F8BDD78148D161F5781CE1318B11B240B3682A897F9B8"
+    },
+    {
+      "campaign": "autonomous009-goal009-20261113-d",
+      "starts": 6,
+      "nativeMillis": 2231818,
+      "sha256": "D42EA834555B9E44D4DBC3FC62743AAB2347C57ADE726BEB9BF848632FCF8A10"
+    },
+    {
+      "campaign": "autonomous009-goal009-20261114-e",
+      "starts": 8,
+      "nativeMillis": 3773996,
+      "sha256": "8AA2F13469CF0E98BAC1294973FDE4A3CCC395A79F4B2C6556310A8C488F986A"
+    },
+    {
+      "campaign": "autonomous009-goal009-20261114-f",
+      "starts": 10,
+      "nativeMillis": 5803240,
+      "sha256": "235E5CB30422C09DC9FB2F4AE7F7AF627FE75074416C71B09CB4709EF14A04ED"
+    },
+    {
+      "campaign": "autonomous009-goal010-20261114",
+      "starts": 1,
+      "nativeMillis": 265981,
+      "sha256": "CA3BF09DE604205B136C99CE2256680ED6C808D686F3585E1CE701D7E143684F"
+    },
+    {
+      "campaign": "autonomous009-goal010-20261114-b",
+      "starts": 2,
+      "nativeMillis": 487025,
+      "sha256": "F03984FEF6B0D8BC603167D353D27DB0742DB416AF6992FDC8B473A01D5E65C0"
+    },
+    {
+      "campaign": "autonomous009-goal010-20261114-c",
+      "starts": 3,
+      "nativeMillis": 601015,
+      "sha256": "F7F3A2E6F4E6928D286E45567B6E9A71BA4A3D0AD39E9386A6217248073A3172"
+    },
+    {
+      "campaign": "autonomous009-goal010-20261114-d",
+      "starts": 4,
+      "nativeMillis": 715447,
+      "sha256": "5A779A4102B1D6F64082F09C98534E3F3E2D10812D71A7D57AAA1F484FD79228"
+    },
+    {
+      "campaign": "autonomous009-goal011-20261114",
+      "starts": 1,
+      "nativeMillis": 328635,
+      "sha256": "4059C8A16DC410999161AFA5AA57BCA44F654F3318E72713218D17CB51363EAA"
+    }
+  ],
+  "off": {
+    "modelChanged": false,
+    "budgetReset": false,
+    "off": true,
+    "activeSha256": "90FF81476F8EA87A9A621BC8D8A5E2CE7113C0A9D948D52F36D42DBA60D303FF",
+    "offSha256": "1E61A46FB7A2568A8E7DCB2C62EDFA9E643AF20BAA5D3F48BBA2A56D4277D6D4",
+    "campaign": "autonomous009-goal011-20261114"
+  },
+  "fullHistoricalAssetInventoryRehashed": false
+}

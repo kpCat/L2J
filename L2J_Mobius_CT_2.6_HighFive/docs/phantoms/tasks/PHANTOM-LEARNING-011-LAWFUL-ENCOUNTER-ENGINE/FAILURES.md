@@ -1,4 +1,26 @@
-# Отказы и пределы011
+# Текущие отказы и пределы011
+
+После явно согласованных local contract и Spawn sentinel scopes исходный PRE_CUT coverage blocker устранён. Ниже сохранены первоначальные отказы010/011; они не пересчитаны задним числом.
+
+| Проверенная причина | RED /наблюдение | Исправление /предел |
+|---|---|---|
+|Global territory envelope применялся к локальному бою|Canonical SilentValley source не проходил exactTerritoryNode; behavioral local RED|Отдельный точный canonical source→local encounter validator; все прежние global bytes сохранены|
+|Local roster попадал в global background planner|Session4e4c348…:2Solo+2Party proposals, exactAnchor отказ до CUT|Local Party intent из проверенного witness, обычный native owner отдельно; global planner не менялся|
+|Native Spawn терял heading-1|Session7948c3…:target174837,56728,-5936→174868,56860,-5928; actual setHeading(-1)=0|Разрешённый override только Spawn; другие значения прежний clamp;9×2unit и8native lifecycle PASS|
+|Catalog seal раньше штатного groupViable|Sessiondcbd237…:6pre-CUT arms PASS, Party WAIT_GROUP_DAMAGE|Два canonical native admissions до включения ячейки; только singleton WAIT_GROUP_DAMAGE retryable, cap12|
+|Global ordinal смешивал направление и порядок|Behavioral DIRECTION-ORDER-RED|AB/BA отдельно внутри каждого направления, actual order и pair receipt совпадают|
+|Config-only prepared path конфликтовал после rebuild|Behavioral PREPARED-CACHE-RED-BEHAVIOR|ConfigSHA/JAR_SHA path с прежним полным pin;8старых файлов SHA unchanged|
+|Законный Solo admission не гарантирует победу|GS1:3NATIVE_ACTOR_DIED и1NATIVE_KILL в4Solo arms|Никакой нормализации результата;0completed Solo pairs, G4FAIL|
+
+Последний отказ Director — `TRAIN010_EVAL_MATCHED_PAIR_COVERAGE`, Training.ps1:706. GameServer exit0 и наличие evaluation.complete не означают required coverage.2Party completed pairs не заменяют2Solo. Verdict PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET; FULL не объявляется. GS2/3 не запускались;1/3 и328635/2700000ms.
+
+Supplemental native-admission raw sessions содержит Java Map text, поэтому этот body не valid JSON. Сохранён verbatim с явным ограничением; versioned encounter-admission, admission facts, CUT, physical parity и settlement JSON доступны отдельно. Это не скрытая игровая победа и не основание повторять уже reserved arms.
+
+В3linked-lethal events HP callback завершился через3,6754–10,4897ms после terminal; тот же target incarnation имеет canonical kill. Все47проходят существующий timing rule. Полных public raw witnesses8; остальные47IDs/HP/MP/actions/timings/hashes доступны в index, исходные private receipts сохранены.
+
+Операционные ошибки continuation сохранены отдельно: первая integration compile исправила namespace/variable typo; PREPARED-CACHE-RED.log был compile-only и не засчитывается behavioral RED; behavioral cache refusal записан отдельно. Сборщик внешнего evidence сначала искал resources.json вместо существующего native-resources.json; исправлен только внешний reader, никакой игры/SQL повторно не запускалось. Доступ к private TEST и CIM потребовал штатного sandbox escalation; auto-review rejection не было.
+
+# Исторические отказы011 до продолжения
 
 ## Наследованные факты010, сохранённые без переоценки
 
