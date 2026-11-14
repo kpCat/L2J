@@ -53,3 +53,9 @@
 Если цель достигнута после4-гоGS — немедленно завершить, пятый не расходовать. Если после двух дополнительных GS критерии не выполнены — итогPARTIAL с точной причиной; расширение бюджета автоматически не запрашивать. Затем STOP/SQL/ports/models/GitHub/finalacceptance. Это по-прежнему задача№4/13; после её выдачи9до пересмотра.
 
 Bounded scope продолжения: шесть existing source paths (TrainingConfig,AutonomousTrainingChecks,TrainingOwner,Test-Training,AutonomousTrainingNative и ближайший ShadowNative test-adapter для passive constructor proof). Суммарный product scopeGoal0109paths, плюс16ранее запрошенных docs. CoreCombat/Party/Player, UI, models/schema не меняются. Native результат продолжения до запусков NOT_RUN, G4FAIL исходного этапа сохраняется как история.
+
+## Выполнение продолжения — итог
+
+Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.
+
+Бюджет4/5GS,715447/2700000мс, безобнуления. GS4 отрицательный сохранён; full passive preflight E дважды остановилGS5 до старта. SQL183before/after byte-identical, STOP/OFF/assets PASS. Scope26 exact paths (10product/16docs), один EVAL artifact family. Publication/readback текущего пакета — последний шаг, G8 PENDING_READBACK.

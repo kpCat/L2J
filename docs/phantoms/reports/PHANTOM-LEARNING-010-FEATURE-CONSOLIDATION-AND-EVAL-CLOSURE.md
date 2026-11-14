@@ -1,3 +1,60 @@
+# Goal010 — итог ограниченного продолжения
+
+**CONSOLIDATION=VERIFIED. EVAL_CLOSURE=PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED.** Игровой verdict **INCONCLUSIVE**: малое n, улучшение DRAFT14 не доказано. При G4 FAIL технический FULL010 запрещён. Итоговый manual review владельца REQUIRED; старые008/009 PARTIAL и их manual gates не изменены.
+
+Владелец расширил тот же Goal010 до **5 GS / прежних45мин суммарно**, сохранив первые3старта/601015мс. Новая задача и новый Goal не создавались: №4/13, после выдачи9до пересмотра. Текущий итог **4/5GS, 715447/2700000мс = 11.924117/45мин**. Повторного автоматического запроса бюджета нет; следующий Goal не запущен.
+
+| Gate | Итог |
+|---|---|
+| G0 | PASS |
+| G1 | PASS |
+| G2 | PASS |
+| G3 | FAIL |
+| G4 | FAIL |
+| G5 | PASS |
+| G6 | PASS |
+| G7 | PASS |
+| G8 | PENDING_READBACK |
+
+| Кампания | Lawful cells | Settled arms | Completed pairs |
+|---|---:|---:|---:|
+| `autonomous009-goal010-20261114` | 4 | 8 | 1 |
+| `autonomous009-goal010-20261114-b` | 0 | 0 | 0 |
+| `autonomous009-goal010-20261114-c` | 4 | 0 | 0 |
+| `autonomous009-goal010-20261114-d` | 4 | 8 | 0 |
+| `autonomous009-goal010-20261114-e` | 0 | 0 | 0 |
+
+Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.
+
+Последняя кампания: completed matched pairs=0, AB=0, BA=0, направления=нет. Все A–D ошибки, отказы и незавершённые arms сохранены. Headless receipts не считаются native pairs. Control010 NOT_RUN; UNKNOWN метрики не заменены нулями.
+
+GS4/D расход114432мс, cumulative4/715447:8arms отказали доCUT,0completed. Причины NPC_FACTION_NOT_ISOLATED и MATCHED_PHYSICAL_FACTS_DIFFER. Полный diff установил различие HP из-за отсутствия canonical EnchantItemHPBonusData в headless и config fingerprint OFF/active. Shared phaseConfiguration и канонический loader добавлены в afd37. В E preflight226988a32dcd4384ab4153d0df75aea2 затем получены0cells/126target refusals/1416NO_ISOLATED_TARGET_POINT; этот отрицательный результат сохранён, GS не потрачен.
+
+Planning273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe использует штатный2D random-walk envelope отspawn только для known stationary native AI; followers/walkers/FakePlayer/moving/combat/unknown AI сохраняют current+2drift. Это planning forecast, не гарантия любого будущего движения. Live factionIsolated/factionClear, safety/risk, Geo/LOS и Party admission не ослаблены. CombatRequest проверяется тем же конструктором: Solo≤120000мс, Party60000мс; remaining<1000 не создаёт новую сессию. Все4cells/8arms полного preflight требуют actual acquired abilities и constructor proofs. Новые class/skill IDs не заданы вручную.
+
+| Старт | Attempt | PID | Kernel native мс | CPUс | Peak working set bytes |
+|---|---|---:|---:|---:|---:|
+| 1 | `e74666622ddc4a9f9bf5069f34e46871` | 70208 | 265981 | 247.3125 | 4724805632 |
+| 2 | `157f05adcad04acfb4f337a2cb4fc8bc` | 65488 | 221044 | 349.84375 | 4711239680 |
+| 3 | `d2beb2ea4af14e0baa8b634ab5755b48` | 38568 | 113990 | 235.21875 | 4699721728 |
+| 4 | `98ec96307d304164a86f799b0289fd43` | 14644 | 114432 | 235.40625 | 4698783744 |
+
+Время берётся от kernel boot до kernel exit original held process handle; observation time отдельно. Исторический009 остаётся10starts/5803240мс=96.720667мин против90, старый exact exit UNKNOWN. Все бюджеты/отрицательные кампании сохранены. Стоимость headless/SQL/export workers записана отдельно в EVIDENCE, не выдана за GS charge.
+
+После продолжения183SQL lineage rows побайтово равны before, SHA `9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D`. DRAFT14 weights7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37, Adam903/223,48applications/16gradients, acceptedTEST2 и completed-cycle pointer12 сохранены. FIT010=0, weights/reward/safety/training credits не изменялись. ZIP cold exports проверены с CRC; приватные SQL/модели не публикуются.
+
+Финально STOPPED/OFF, owned Director/GS/Worker/SQL=0, порты33357/18001/19301free; Geo203/protected207 PASS. MAIN/PLAY и dirty main7e997636 сохранены, foreign mysqld8692 от28октября не затронут. Immutable histories4096/4417файлов и исходные3716 проверены по SHA, changed0; изменяемый TRAIN_CONFIG исключён и его версии сохранены отдельно.
+
+Scope bounded exception: **10 product +16 documentation =26 exact paths**, один artifact family EVAL/preflight/closure. Переиспользованы native fixture, planner, ordinary admission, canonical config/bootstrap и held-process receipts. Runtime Combat/Party/Player, UI/schema/optimizer не менялись. Ant RED1→GREEN0/JAR98с для последнего planning fix; ранее targeted009/008/007/JAR и config/Party/remaining-window checks PASS. Независимый review последних2файлов PASS. Полные10исходников273b2d8 независимо прочитаны через GitHub и совпали SHA256/blobSHA1. Публикация текущих доков ожидает readback; source baseline `273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe`.
+
+- mojibake-маркеры в изменённых файлах проверены отдельно,27patterns/0matches.
+- escaped Cyrillic в изменённых файлах проверены отдельно,6regex/0matches.
+
+Git использован по явному разрешению TASK010 и продолжения владельца: audit/merge, scoped diff/add/commit, обычный push feature, TEST fetch/FF и независимый readback. Точные команды и exit codes — COMMANDS. Новые WIP/worktree, squash/rebase/reset/clean/force и удаления refs/stash не выполнялись.
+
+<details>
+<summary>История первичного закрытия при прежнем лимите3GS</summary>
+
 # PHANTOM-LEARNING-010 — консолидация и EVAL
 
 **CONSOLIDATION — VERIFIED. EVAL_CLOSURE — PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED.** Игровой verdict: **INCONCLUSIVE**, малое n; превосходство DRAFT14 не доказано.
@@ -66,3 +123,5 @@ JDK25.0.4.1/Ant1.10.17: A197с, B145с, C166с, targeted009/008/007 и JAR exit0
 Git-команды использовались: явно разрешены TASK010/GIT-POLICY и владельцем для аудита, merge, exact scope, commit/push/readback. Точные команды и исключения находятся в COMMANDS. Branch/stash/worktree не удалялись. Эта задача№4/13; после её выдачи9до пересмотра бюджета. Следующий Goal не запущен. Итоговый review владельца не объявлен принятым автоматически.
 
 [Task evidence](../tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json), [приёмка](../tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md), [команды](../tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md).
+
+</details>

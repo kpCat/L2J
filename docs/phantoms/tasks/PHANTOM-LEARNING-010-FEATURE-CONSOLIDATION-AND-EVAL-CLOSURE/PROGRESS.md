@@ -47,3 +47,19 @@ Baseline before010: штатный coldExport exit0, DRAFT14/Adam903/223/48appli
 Если цель достигнута после4-гоGS — немедленно завершить, пятый не расходовать. Если после двух дополнительных GS критерии не выполнены — итогPARTIAL с точной причиной; расширение бюджета автоматически не запрашивать. Затем STOP/SQL/ports/models/GitHub/finalacceptance. Это по-прежнему задача№4/13; после её выдачи9до пересмотра.
 
 Bounded scope продолжения: шесть existing source paths (TrainingConfig,AutonomousTrainingChecks,TrainingOwner,Test-Training,AutonomousTrainingNative и ближайший ShadowNative test-adapter для passive constructor proof). Суммарный product scopeGoal0109paths, плюс16ранее запрошенных docs. CoreCombat/Party/Player, UI, models/schema не меняются. Native результат продолжения до запусков NOT_RUN, G4FAIL исходного этапа сохраняется как история.
+
+## Продолжение по разрешению владельца — итог
+
+Продолжение того жеGoal010 по явному разрешению:5GS/45мин суммарно, prior3/601015. Source7677d52b5a2a036e0bbc86721306ee9458b03753 опубликован напрямуюfeature и GitHub metadata прочитан.
+RED config5 oldJava/PS exit1→GREEN0; reviewParty180/Solo120 regression RED2→GREEN0. Full canonicalAnt beforefix181s,afterfix178s exit0.
+Ruling: exact preflight catalog+physical+risk pins переиспользуются native через уже существующий sealed-cells loader; свежие liveguards передCUT сохраняются.
+Baseline immutable4097files SHA1901c715b265359c59881273f58df045784f3b1866b30e5cc3221c6175495e8b. RawA–C/009 сохраняются. НоваякампанияD ещёнеGS.
+PrepareD запущен: fullpaired passive всехcells, STOPPEDrequired, noCUT/noaction. ПередGS4 обязательны Bind-Preflight,modelSQLbaseline и успешныеconstructors. Последующий max5GS не более45мин, noFIT/models/Adam/reward/safety/credits. Никакого новогоGoal/#task.
+GS4/D: attempt98ec96307d304164a86f799b0289fd43, exact114432ms, cumulative4/715447.0completed/4pairs,8pre-CUTrefused; NPC_FACTION_NOT_ISOLATED и MATCHED_PHYSICAL_FACTS_DIFFER. STOP4 PASS. Полный physicaldiff нашёлmissing EnchantItemHPBonusData и OFF/active config fingerprint divergence.
+AFD37 опубликован: sharedphaseConfiguration+canonicalEnchantloader headless, startupmasterOFF иglobalownerabsent, freshfactionguardunchanged. E preflight226988a32dcd4384ab4153d0df75aea2 дал0cells/126targetrefusals/1416noisolated; GSнепотрачен.
+273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe: точный planning random-walk envelope отspawn дляknownstationarynativeAI; прочиеcurrent+2drift, liveguardunchanged. Focused AntRED1→GREEN0/JAR98s. Independentreview PASS. GitHubfull10source SHA256/blobSHA1 readback PASS.
+E paired preflight f8de7b555b1a489dbbb3e2f93d2c3954 running. Старые4096/4417immutablefiles проверены,changed0. Не начинатьGS5доfullpreflight/binding.
+
+Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.
+
+Read-only SQL after183rows SHA9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D =before. Cold CRC PASS, Adam903/223/48apps preserved. Postflight STOPPED/OFF owned0 portsfree assetsPASS;4/715447. G4 FAIL, никакой compile PASS не заменяет EVAL closure.

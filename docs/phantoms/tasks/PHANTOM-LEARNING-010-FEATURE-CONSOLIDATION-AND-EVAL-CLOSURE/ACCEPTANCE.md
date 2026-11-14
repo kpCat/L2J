@@ -1,3 +1,26 @@
+# ACCEPTANCE010 — актуальное закрытие продолжения
+
+CONSOLIDATION=VERIFIED; EVAL_CLOSURE=PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED; GAME=INCONCLUSIVE.
+
+| Gate | Итог |
+|---|---|
+| G0 | PASS |
+| G1 | PASS |
+| G2 | PASS |
+| G3 | FAIL |
+| G4 | FAIL |
+| G5 | PASS |
+| G6 | PASS |
+| G7 | PASS |
+| G8 | PENDING_READBACK |
+
+Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.
+
+Владелец разрешил5GS/45мин суммарно в том же Goal010; фактически4/5 и715447/2700000мс. Предыдущие3/601015 сохранены. STOPPED/OFF, owned0, SQL/ports33357/18001/19301free, protected207/Geo203 PASS; frozen183SQL rows SHA9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D, DRAFT14/Adam903/223/48applications unchanged. НовыхFIT/credits/promotion нет. Основной dirty checkout7e997636 не обновлять; source004/TEST006 на feature, без новойWIP. Следующий Goal не запущен. Manual review владельца REQUIRED. Исторические008/009 PARTIAL/manual REQUIRED сохранены. №4/13,9remaining after issue. RESULT/EVIDENCE/COMMANDS содержат детали.
+
+<details>
+<summary>Первичная приёмка/передача до разрешённого продолжения</summary>
+
 # ACCEPTANCE010 — Definition of Done
 
 Исходный статус всех гейтов: `NOT_RUN`. Итог Codex обязан указать результаты отдельно, без искусственного FULL.
@@ -35,3 +58,5 @@
 | G8 | PASS | Независимый readback source и опубликованного пакета 009066e51d88725fa568bb86b41602f1550f6ebf. Финальный receipt commit повторно проверяется после обычного push. |
 
 CONSOLIDATION=VERIFIED; EVAL_CLOSURE=PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED. Игровой verdict INCONCLUSIVE; малое n, улучшение модели не доказано. Исторические008/009 PARTIAL и manual gates REQUIRED не изменяются. Итоговый review010 принадлежит владельцу.
+
+</details>

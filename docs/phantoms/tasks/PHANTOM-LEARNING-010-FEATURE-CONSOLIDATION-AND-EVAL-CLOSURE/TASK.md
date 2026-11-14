@@ -108,3 +108,9 @@ GitHub: `https://github.com/kpCat/L2J`
 Если цель достигнута после4-гоGS — немедленно завершить, пятый не расходовать. Если после двух дополнительных GS критерии не выполнены — итогPARTIAL с точной причиной; расширение бюджета автоматически не запрашивать. Затем STOP/SQL/ports/models/GitHub/finalacceptance. Это по-прежнему задача№4/13; после её выдачи9до пересмотра.
 
 Bounded scope продолжения: шесть existing source paths (TrainingConfig,AutonomousTrainingChecks,TrainingOwner,Test-Training,AutonomousTrainingNative и ближайший ShadowNative test-adapter для passive constructor proof). Суммарный product scopeGoal0109paths, плюс16ранее запрошенных docs. CoreCombat/Party/Player, UI, models/schema не меняются. Native результат продолжения до запусков NOT_RUN, G4FAIL исходного этапа сохраняется как история.
+
+## Итог разрешённого продолжения
+
+Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.
+
+Bounded scope exception окончательно26paths:10product и16documentation. Девятый product PhantomLearning001ShadowNative использует общий CombatRequest factory; десятый PhantomTrainingNative даёт общий phaseConfiguration. Runtime Combat/Party/Player и safety не менялись. Разрешение владельца5GS/45мин не создаёт новую задачу. Фактический расход4/715447; итогPARTIAL, manual review REQUIRED.

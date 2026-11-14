@@ -14,12 +14,12 @@
     "G0": "PASS",
     "G1": "PASS",
     "G2": "PASS",
-    "G3": "PASS",
+    "G3": "FAIL",
     "G4": "FAIL",
     "G5": "PASS",
     "G6": "PASS",
     "G7": "PASS",
-    "G8": "PASS"
+    "G8": "PENDING_READBACK"
   },
   "git": {
     "branch": "feature/phantom-world",
@@ -32,7 +32,11 @@
     "sourceCommits": [
       "6c97ee43d25acc37b42599b4e5ef138ea0980f4a",
       "ccd93cb61dae106aaf596cd41dd2e0b5dc6302ee",
-      "add152c6a114166a98bf41416ed6b09ff8b6e2b9"
+      "add152c6a114166a98bf41416ed6b09ff8b6e2b9",
+      "7677d52b5a2a036e0bbc86721306ee9458b03753",
+      "6b9f902644f8d34187ccedff7d65f1a88fc88f83",
+      "afd37fdeec72469a6c680f0a1bd19ea2a8782a46",
+      "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe"
     ],
     "verifiedPublication": "009066e51d88725fa568bb86b41602f1550f6ebf",
     "ordinaryPushOnly": true,
@@ -126,9 +130,9 @@
     "newFit010": false
   },
   "native010": {
-    "starts": 3,
-    "limitStarts": 3,
-    "chargedMillis": 601015,
+    "starts": 4,
+    "limitStarts": 5,
+    "chargedMillis": 715447,
     "limitMillis": 2700000,
     "attempts": [
       {
@@ -351,17 +355,94 @@
             "sha256": "20d5f9f72e57e72cf667809a8f0ff1b7929912e51472810228e13ff030fe7414"
           }
         ]
+      },
+      {
+        "attempt": "98ec96307d304164a86f799b0289fd43",
+        "reservation": {
+          "pid": 14644,
+          "startOrdinal": 4,
+          "attemptId": "98ec96307d304164a86f799b0289fd43",
+          "bootUtc": "2026-11-14T14:30:08.0692302Z",
+          "reservedUtc": "2026-11-14T14:30:06.6624454Z",
+          "priorNativeMillis": 601015,
+          "created": 134391402080692302,
+          "campaign": "autonomous009-goal010-20261114-d"
+        },
+        "charge": {
+          "chargedMillis": 114432,
+          "attemptId": "98ec96307d304164a86f799b0289fd43",
+          "maximumNativeMillis": 2700000,
+          "campaign": "autonomous009-goal010-20261114-d",
+          "created": 134391402080692302,
+          "priorNativeMillis": 601015,
+          "pid": 14644,
+          "monotonicUpperMillis": 116549,
+          "proof": "OWN_HELD_HANDLE_EXIT_TIME"
+        },
+        "resources": {
+          "pid": 14644,
+          "startedUtc": "2026-11-14T14:30:08.0692302Z",
+          "sampledUtc": "2026-11-14T14:32:03.1784344Z",
+          "elapsedMillis": 114432,
+          "cpuSeconds": 235.40625,
+          "workingSetBytes": null,
+          "peakWorkingSetBytes": 4698783744,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true,
+          "attemptId": "98ec96307d304164a86f799b0289fd43",
+          "observedUtc": "2026-11-14T14:32:03.1864335Z",
+          "finishedUtc": "2026-11-14T14:32:02.5009662Z",
+          "exitCode": 0
+        },
+        "batchComplete": "schemaVersion=9\nevaluationOnly=true\ntrainingStateUnchanged=true\n",
+        "proofs": [
+          {
+            "path": "attempts/98ec96307d304164a86f799b0289fd43/batch.complete",
+            "bytes": 64,
+            "sha256": "842cd6605dc14f7ded50fd337cd6ebe38ae73313c3b3d96909512a51e3e3439c"
+          },
+          {
+            "path": "attempts/98ec96307d304164a86f799b0289fd43/budget-charge.json",
+            "bytes": 355,
+            "sha256": "4bdaae56bbe868490128b74bfbb3617c21a0a7277510fdfc8440ed0effdd8ba2"
+          },
+          {
+            "path": "attempts/98ec96307d304164a86f799b0289fd43/budget-reservation.json",
+            "bytes": 331,
+            "sha256": "cbf8cc9ddbd16de8b1d5475f5c65c649ecf3f0679e41034800d589a829cf71b0"
+          },
+          {
+            "path": "attempts/98ec96307d304164a86f799b0289fd43/exit.json",
+            "bytes": 1006,
+            "sha256": "d4ecb3721a7a7c0aa6ae65d1e15ca1f0ccf755727e205c1fb476ae7a2fab119d"
+          },
+          {
+            "path": "attempts/98ec96307d304164a86f799b0289fd43/native-resources.json",
+            "bytes": 512,
+            "sha256": "8e66246e1fbc9bdb18e85e492f9505d15d74fa2b520e7facb96efea8325d0cfb"
+          },
+          {
+            "path": "attempts/98ec96307d304164a86f799b0289fd43/native.err",
+            "bytes": 25545,
+            "sha256": "51c6896ab0ec83d854d71d47157c54cbf6d3e9d13e61737064e3f8c290304520"
+          },
+          {
+            "path": "attempts/98ec96307d304164a86f799b0289fd43/native.out",
+            "bytes": 1980,
+            "sha256": "58053ddb37bb3e3aa72f42269073d86f7acbf8cec3a777fafaaee2f59cc64712"
+          }
+        ]
       }
     ],
-    "primaryCampaign": "autonomous009-goal010-20261114-c",
+    "primaryCampaign": "autonomous009-goal010-20261114-e",
     "matchedCompletedPairs": 0,
     "AB": 0,
     "BA": 0,
     "directions": [],
     "controls": "NOT_RUN",
-    "lastWindowGuardNative": "NOT_RUN_AFTER_START_BUDGET",
+    "lastWindowGuardNative": "GS4 preCUT constructor proof only; latest bootstrap/parity GS5 NOT_STARTED",
     "allCampaignMatchedCompletedPairs": 1,
-    "lastFailure": "INVALID_COMBAT_REQUEST: declared180s exceeded unchanged120s maximum; reserved1/settled0"
+    "lastFailure": "E_PREFLIGHT_ZERO_LAWFUL_CELLS_GS5_NOT_STARTED"
   },
   "headless": {
     "workers": [
@@ -539,32 +620,207 @@
           "bytes": 1029,
           "sha256": "71504fa9a7d6181d12839600e4c53db48485e28003a1b25bfaf5daa50049a8c6"
         }
+      },
+      {
+        "worker": "86d5a60cda6e4f3e9b5c47ab0d1ff508",
+        "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative",
+        "pid": 50612,
+        "created": 134391392552052326,
+        "exitCode": 0,
+        "terminatedUtc": "2026-11-14T14:16:27.9475547Z",
+        "elapsedMillis": 132743,
+        "resources": {
+          "pid": 50612,
+          "startedUtc": "2026-11-14T14:14:15.2052326Z",
+          "sampledUtc": "2026-11-14T14:16:28.4078966Z",
+          "elapsedMillis": 133203,
+          "cpuSeconds": 259.703125,
+          "workingSetBytes": 498573312,
+          "peakWorkingSetBytes": 4659773440,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true
+        },
+        "exitProof": {
+          "path": "workers/86d5a60cda6e4f3e9b5c47ab0d1ff508/exit.json",
+          "bytes": 1030,
+          "sha256": "50580b30018eb362a1489472162278e803796cd75351e5195baf972777afd8b3"
+        }
+      },
+      {
+        "worker": "f4291252a9644f06a3b4f2430b567ab3",
+        "class": "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator",
+        "pid": 19512,
+        "created": 134391395795945885,
+        "exitCode": 0,
+        "terminatedUtc": "2026-11-14T14:20:01.6652990Z",
+        "elapsedMillis": 22071,
+        "resources": {
+          "pid": 19512,
+          "startedUtc": "2026-11-14T14:19:39.5945885Z",
+          "sampledUtc": "2026-11-14T14:20:01.8122221Z",
+          "elapsedMillis": 22218,
+          "cpuSeconds": 41.703125,
+          "workingSetBytes": null,
+          "peakWorkingSetBytes": 578105344,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true
+        },
+        "exitProof": {
+          "path": "workers/f4291252a9644f06a3b4f2430b567ab3/exit.json",
+          "bytes": 1029,
+          "sha256": "683297e237c332c64bc8dab9dc4f8fb16141b1c11f42293e2570ed674b85dfe3"
+        }
+      },
+      {
+        "worker": "5e40b165e9be4d618f9d2215299ccb85",
+        "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative",
+        "pid": 79308,
+        "created": 134391398880664048,
+        "exitCode": 0,
+        "terminatedUtc": "2026-11-14T14:27:09.2128981Z",
+        "elapsedMillis": 141147,
+        "resources": {
+          "pid": 79308,
+          "startedUtc": "2026-11-14T14:24:48.0664048Z",
+          "sampledUtc": "2026-11-14T14:27:09.7262409Z",
+          "elapsedMillis": 141660,
+          "cpuSeconds": 275.4375,
+          "workingSetBytes": null,
+          "peakWorkingSetBytes": 4646039552,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true
+        },
+        "exitProof": {
+          "path": "workers/5e40b165e9be4d618f9d2215299ccb85/exit.json",
+          "bytes": 1030,
+          "sha256": "74e31031a345c209e9984b19ad1ed78d52422184648e30a76cf3476ba3fb16d8"
+        }
+      },
+      {
+        "worker": "66c4f28b533445a986122ce1089795fb",
+        "class": "org.l2jmobius.tests.phantoms.PhantomTrainingSql",
+        "pid": 2936,
+        "created": 134391402053117843,
+        "exitCode": 0,
+        "terminatedUtc": "2026-11-14T14:30:06.3363142Z",
+        "elapsedMillis": 1025,
+        "resources": {
+          "pid": 2936,
+          "startedUtc": "2026-11-14T14:30:05.3117843Z",
+          "sampledUtc": "2026-11-14T14:30:06.3734037Z",
+          "elapsedMillis": 1062,
+          "cpuSeconds": 2.296875,
+          "workingSetBytes": null,
+          "peakWorkingSetBytes": 2609152,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true
+        },
+        "exitProof": {
+          "path": "workers/66c4f28b533445a986122ce1089795fb/exit.json",
+          "bytes": 1014,
+          "sha256": "92f6e6446abad6965c06f1a17c9d012d1d0dcf97ba5b3f39a60584079e0f9f01"
+        }
+      },
+      {
+        "worker": "135c02f5a4ea402ca8fc6087d477ea47",
+        "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative",
+        "pid": 77324,
+        "created": 134391414891722375,
+        "exitCode": 2,
+        "terminatedUtc": "2026-11-14T14:55:18.5540709Z",
+        "elapsedMillis": 229382,
+        "resources": {
+          "pid": 77324,
+          "startedUtc": "2026-11-14T14:51:29.1722375Z",
+          "sampledUtc": "2026-11-14T14:55:19.1563112Z",
+          "elapsedMillis": 229984,
+          "cpuSeconds": 373.40625,
+          "workingSetBytes": null,
+          "peakWorkingSetBytes": 4640997376,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true
+        },
+        "exitProof": {
+          "path": "workers/135c02f5a4ea402ca8fc6087d477ea47/exit.json",
+          "bytes": 1030,
+          "sha256": "39c723313e073f8ced57f11c88605acebf140ec50c3170574fd884b0b84dc552"
+        }
+      },
+      {
+        "worker": "0f03c4f6904e46a9ba2294f808f17843",
+        "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative",
+        "pid": 18264,
+        "created": 134391424109689095,
+        "exitCode": 2,
+        "terminatedUtc": "2026-11-14T15:10:48.3657515Z",
+        "elapsedMillis": 237397,
+        "resources": {
+          "pid": 18264,
+          "startedUtc": "2026-11-14T15:06:50.9689095Z",
+          "sampledUtc": "2026-11-14T15:10:48.9761121Z",
+          "elapsedMillis": 238007,
+          "cpuSeconds": 389.984375,
+          "workingSetBytes": null,
+          "peakWorkingSetBytes": 4643979264,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true
+        },
+        "exitProof": {
+          "path": "workers/0f03c4f6904e46a9ba2294f808f17843/exit.json",
+          "bytes": 976,
+          "sha256": "2bd940748ddedc923d5fcba735c31aa07004e6d05eae8422e90d269c80e5b9de"
+        }
+      },
+      {
+        "worker": "08babe40f2694474b76fa90722c6f569",
+        "class": "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator",
+        "pid": 51840,
+        "created": 134391428297071654,
+        "exitCode": 0,
+        "terminatedUtc": "2026-11-14T15:14:02.7862643Z",
+        "elapsedMillis": 13080,
+        "resources": {
+          "pid": 51840,
+          "startedUtc": "2026-11-14T15:13:49.7071654Z",
+          "sampledUtc": "2026-11-14T15:14:02.8668425Z",
+          "elapsedMillis": 13160,
+          "cpuSeconds": 23.984375,
+          "workingSetBytes": null,
+          "peakWorkingSetBytes": 614420480,
+          "measurement": "PROCESS_METADATA",
+          "exitObserved": true
+        },
+        "exitProof": {
+          "path": "workers/08babe40f2694474b76fa90722c6f569/exit.json",
+          "bytes": 975,
+          "sha256": "df8258143fbf6a0a0b7afcc5084699306783d75a7bf9420a1acc82e39e038d8b"
+        }
       }
     ],
-    "sumProcessMillis": 377486,
-    "sumCpuSeconds": 770.71875,
-    "peakWorkingSetBytes": 4651352064
+    "sumProcessMillis": 1154331,
+    "sumCpuSeconds": 2137.234375,
+    "peakWorkingSetBytes": 4659773440
   },
   "frozenState": {
     "before": {
-      "sqlPid": 73072,
+      "sqlPid": 66792,
       "readOnly": true,
       "equalBefore": false,
-      "observedUtc": "2026-11-14T11:33:11.3412419Z",
+      "observedUtc": "2026-11-14T14:19:37.8861980Z",
       "rows": 183,
       "tag": "before",
-      "sqlCreated": 134391295558432582,
+      "sqlCreated": 134391395721842500,
       "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D"
     },
     "after": {
-      "sqlPid": 86292,
+      "observedUtc": "2026-11-14T15:13:48.5187006Z",
       "readOnly": true,
-      "equalBefore": true,
-      "observedUtc": "2026-11-14T12:27:21.4250993Z",
+      "sqlCreated": 134391428241630168,
       "rows": 183,
       "tag": "after",
-      "sqlCreated": 134391328369808181,
-      "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D"
+      "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+      "sqlPid": 81216,
+      "equalBefore": true
     },
     "equalByteRows": true,
     "workingModelVersion": 14,
@@ -575,8 +831,8 @@
     "applications": 48,
     "completedCyclePointerVersion": 12,
     "acceptedTestVersion": 2,
-    "coldBeforeSha": "99b0c7dc576e5acb2dc5652f502f09284e6ff3948da1c2eb40ea86a51b188bb7",
-    "coldAfterSha": "147e817ec90e8a0afc13421074916b7f904179402bb17324657cc6ec23dd5831",
+    "coldBeforeSha": "0990f89c80be218cf9b837069e214fa0d906a77fadc4f2cb0206e96e14b85487",
+    "coldAfterSha": "ff503a44e9009e96a48e63f780c2c74ac49c1ecbee35394202075d7c46a495a0",
     "newCredits": 0,
     "fitCount": 0
   },
@@ -604,7 +860,7 @@
         "fits": 0,
         "noData": 0,
         "stagnation": 0,
-        "lastCheckpoint": "20261114T1141343192970Z.json",
+        "lastCheckpoint": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\autonomous\\v1\\campaigns\\autonomous009-goal010-20261114\\progress-checkpoints\\20261114T1141343192970Z.json",
         "lastEvaluation": {
           "candidateVersion": 14,
           "candidateSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
@@ -736,7 +992,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 1,
-                "totalMillis": 27278.3878
+                "totalMillis": 27278.3878,
+                "policyTiming": "snapshotNanos={n:1,p50:381700,p95:381700,p99:381700,max:381700} encodeNanos={n:1,p50:1221600,p95:1221600,p99:1221600,max:1221600} scoreNanos={n:1,p50:17700,p95:17700,p99:17700,max:17700} totalNanos={n:2,p50:19100,p95:2263700,p99:2263700,max:2263700} dispatchNanos={n:1,p50:6329600,p95:6329600,p99:6329600,max:6329600} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:123176,p99:123176,max:123176}"
               },
               "diagnosticCounters": {
                 "COOLDOWN_OR_ACTOR_CAP": 57,
@@ -915,7 +1172,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 2,
-                "totalMillis": 22367.9708
+                "totalMillis": 22367.9708,
+                "policyTiming": "snapshotNanos={n:2,p50:390000,p95:390500,p99:390500,max:390500} encodeNanos={n:2,p50:1165000,p95:1224200,p99:1224200,max:1224200} scoreNanos={n:2,p50:12900,p95:24700,p99:24700,max:24700} totalNanos={n:2,p50:1638300,p95:1803000,p99:1803000,max:1803000} dispatchNanos={n:0} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:122464,p95:122944,p99:122944,max:122944}"
               },
               "diagnosticCounters": {
                 "DAMAGE_STOCK": 2,
@@ -1109,7 +1367,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 1,
-                "totalMillis": 28049.774
+                "totalMillis": 28049.774,
+                "policyTiming": "snapshotNanos={n:2,p50:1787700,p95:2101300,p99:2101300,max:2101300} encodeNanos={n:2,p50:1353200,p95:1391300,p99:1391300,max:1391300} scoreNanos={n:2,p50:24600,p95:37400,p99:37400,max:37400} totalNanos={n:2,p50:3338000,p95:3654200,p99:3654200,max:3654200} dispatchNanos={n:0} cpuNanos={n:2,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:2,p50:129712,p95:130088,p99:130088,max:130088}"
               },
               "diagnosticCounters": {
                 "DAMAGE_STOCK": 2,
@@ -1292,7 +1551,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 1,
-                "totalMillis": 22114.8714
+                "totalMillis": 22114.8714,
+                "policyTiming": "snapshotNanos={n:1,p50:308200,p95:308200,p99:308200,max:308200} encodeNanos={n:1,p50:1164100,p95:1164100,p99:1164100,max:1164100} scoreNanos={n:1,p50:19600,p95:19600,p99:19600,max:19600} totalNanos={n:1,p50:1588100,p95:1588100,p99:1588100,max:1588100} dispatchNanos={n:0} cpuNanos={n:1,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:1,p50:122944,p95:122944,p99:122944,max:122944}"
               },
               "diagnosticCounters": {
                 "DAMAGE_STOCK": 1,
@@ -1475,7 +1735,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 1,
-                "totalMillis": 21107.8084
+                "totalMillis": 21107.8084,
+                "policyTiming": "snapshotNanos={n:1,p50:415100,p95:415100,p99:415100,max:415100} encodeNanos={n:1,p50:1224400,p95:1224400,p99:1224400,max:1224400} scoreNanos={n:1,p50:29800,p95:29800,p99:29800,max:29800} totalNanos={n:2,p50:27900,p95:3115700,p99:3115700,max:3115700} dispatchNanos={n:1,p50:8104300,p95:8104300,p99:8104300,max:8104300} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:157424,p99:157424,max:157424}"
               },
               "diagnosticCounters": {
                 "COOLDOWN_OR_ACTOR_CAP": 52,
@@ -1655,7 +1916,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 4,
-                "totalMillis": 18116.9864
+                "totalMillis": 18116.9864,
+                "policyTiming": "snapshotNanos={n:4,p50:639500,p95:1701600,p99:1701600,max:1701600} encodeNanos={n:4,p50:1172800,p95:2598000,p99:2598000,max:2598000} scoreNanos={n:4,p50:17200,p95:32000,p99:32000,max:32000} totalNanos={n:4,p50:2034100,p95:4527900,p99:4527900,max:4527900} dispatchNanos={n:0} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:98712,p95:351000,p99:351000,max:351000}"
               },
               "diagnosticCounters": {
                 "DAMAGE_STOCK": 4,
@@ -1839,7 +2101,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 2,
-                "totalMillis": 24594.9944
+                "totalMillis": 24594.9944,
+                "policyTiming": "snapshotNanos={n:2,p50:495100,p95:620800,p99:620800,max:620800} encodeNanos={n:2,p50:1413400,p95:1454800,p99:1454800,max:1454800} scoreNanos={n:2,p50:24500,p95:36100,p99:36100,max:36100} totalNanos={n:2,p50:2137400,p95:2139800,p99:2139800,max:2139800} dispatchNanos={n:0} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:129688,p95:130048,p99:130048,max:130048}"
               },
               "diagnosticCounters": {
                 "DAMAGE_STOCK": 2,
@@ -2033,7 +2296,8 @@
                 "exclusion": "",
                 "opportunities": 0,
                 "paidRawEffects": 4,
-                "totalMillis": 21737.3722
+                "totalMillis": 21737.3722,
+                "policyTiming": "snapshotNanos={n:4,p50:458600,p95:807100,p99:807100,max:807100} encodeNanos={n:4,p50:1207700,p95:1546900,p99:1546900,max:1546900} scoreNanos={n:4,p50:15300,p95:40200,p99:40200,max:40200} totalNanos={n:4,p50:1826000,p95:2586200,p99:2586200,max:2586200} dispatchNanos={n:0} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:98264,p95:98648,p99:98648,max:98648}"
               },
               "diagnosticCounters": {
                 "COOLDOWN_OR_ACTOR_CAP": 1,
@@ -2494,7 +2758,7 @@
         "fits": 0,
         "noData": 0,
         "stagnation": 0,
-        "lastCheckpoint": "20261114T1159252383401Z.json",
+        "lastCheckpoint": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\autonomous\\v1\\campaigns\\autonomous009-goal010-20261114-b\\progress-checkpoints\\20261114T1159252383401Z.json",
         "lastEvaluation": {
           "candidateVersion": 14,
           "candidateSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
@@ -2708,7 +2972,7 @@
         "fits": 0,
         "noData": 0,
         "stagnation": 0,
-        "lastCheckpoint": "20261114T1218533996545Z.json",
+        "lastCheckpoint": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\autonomous\\v1\\campaigns\\autonomous009-goal010-20261114-c\\progress-checkpoints\\20261114T1218533996545Z.json",
         "lastEvaluation": {
           "candidateVersion": 14,
           "candidateSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
@@ -3051,6 +3315,1061 @@
           ]
         }
       ]
+    },
+    {
+      "campaign": "autonomous009-goal010-20261114-d",
+      "journal": {
+        "schemaVersion": 9,
+        "campaign": "autonomous009-goal010-20261114-d",
+        "jarSha": "fc0db4459d8fb5c8ed0a0e28bc7b115b245f3c4afa78be628f6bdf475007468c",
+        "ownerSha": "0E1745D3567030C59D6A756796FB90C5F49E435A2267328FF00A0183A4063AE5",
+        "cycle": 1,
+        "phase": "EVAL",
+        "dataset": "autonomous009-goal010-20261114-d-eval",
+        "teacherVersion": 14,
+        "teacherSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+        "starts": 4,
+        "nativeMillis": 715447,
+        "pending": false,
+        "pendingStartedUtc": "2026-11-14T14:30:06.6624454Z",
+        "lastAttempt": "98ec96307d304164a86f799b0289fd43",
+        "conservativeRecovery": false,
+        "sessionStartedUtc": "2026-11-14T14:30:06.4664039Z",
+        "completedCycles": 0,
+        "fits": 0,
+        "noData": 0,
+        "stagnation": 0,
+        "lastCheckpoint": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\autonomous\\v1\\campaigns\\autonomous009-goal010-20261114-d\\progress-checkpoints\\20261114T1431070460919Z.json",
+        "lastEvaluation": {
+          "candidateVersion": 14,
+          "candidateSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+          "kind": "FROZEN_EVALUATION_ONLY"
+        },
+        "improved": false
+      },
+      "admissions": [
+        {
+          "receipt": {
+            "admittedScenes": 4,
+            "directions": [
+              "SOLO_DAMAGE",
+              "PARTY_DAMAGE",
+              "SOLO_DAMAGE",
+              "PARTY_DAMAGE"
+            ],
+            "modelVersion": 14,
+            "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+            "trainingStateSha": "e4a2d2c882bc03565eea38901dbccb7c8f73fdcf2284eaefc930790f3b84466d",
+            "precutArms": 8,
+            "matchedPrecutFacts": true,
+            "riskMatched": true,
+            "episodeSeconds": 120,
+            "afterCut": false,
+            "gameServerStarted": false,
+            "trainingStateUnchanged": true,
+            "trainingCredit": false
+          },
+          "proof": {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/admission.complete.json",
+            "bytes": 452,
+            "sha256": "1fbb7b2a716baae54125f5c44dc3a982977d79ab573138dc084ff36f195d844b"
+          }
+        },
+        {
+          "receipt": {
+            "admittedScenes": 4,
+            "directions": [
+              "SOLO_DAMAGE",
+              "PARTY_DAMAGE",
+              "SOLO_DAMAGE",
+              "PARTY_DAMAGE"
+            ],
+            "modelVersion": 14,
+            "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+            "trainingStateSha": "e4a2d2c882bc03565eea38901dbccb7c8f73fdcf2284eaefc930790f3b84466d",
+            "precutArms": 8,
+            "matchedPrecutFacts": true,
+            "riskMatched": true,
+            "episodeSeconds": 120,
+            "afterCut": false,
+            "gameServerStarted": false,
+            "trainingStateUnchanged": true,
+            "trainingCredit": false
+          },
+          "proof": {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/admission.complete.json",
+            "bytes": 452,
+            "sha256": "1fbb7b2a716baae54125f5c44dc3a982977d79ab573138dc084ff36f195d844b"
+          }
+        }
+      ],
+      "evaluations": [
+        {
+          "dataset": "autonomous009-goal010-20261114-d-eval-14",
+          "pairs": {
+            "completedPairs": 0,
+            "pairs": [
+              {
+                "cell": "c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0",
+                "direction": "SOLO_DAMAGE",
+                "order": "STOCK_LEARNED",
+                "arms": 2,
+                "status": "REUSED_OR_MISSING_INCARNATION",
+                "trainingCredit": false
+              },
+              {
+                "cell": "f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc",
+                "direction": "PARTY_DAMAGE",
+                "order": "LEARNED_STOCK",
+                "arms": 2,
+                "status": "PRE_CUT_FACTS_DIFFER",
+                "trainingCredit": false
+              },
+              {
+                "cell": "6f4c013db5d61186dbc4d960532881ad3225c87d0604a4831d9708530fdf8a11",
+                "direction": "SOLO_DAMAGE",
+                "order": "STOCK_LEARNED",
+                "arms": 2,
+                "status": "PRE_CUT_FACTS_DIFFER",
+                "trainingCredit": false
+              },
+              {
+                "cell": "31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a",
+                "direction": "PARTY_DAMAGE",
+                "order": "LEARNED_STOCK",
+                "arms": 2,
+                "status": "REUSED_OR_MISSING_INCARNATION",
+                "trainingCredit": false
+              }
+            ],
+            "trainingCredit": false,
+            "verdict": "INCONCLUSIVE"
+          },
+          "complete": {
+            "verdict": "INCONCLUSIVE",
+            "reason": "BOUNDED_NATIVE_SAMPLE_NO_PROMOTION",
+            "trainingStateUnchanged": true,
+            "productionPromotion": false
+          },
+          "protocol": {
+            "modelVersion": 14,
+            "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+            "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+            "trainingStateSha": "e4a2d2c882bc03565eea38901dbccb7c8f73fdcf2284eaefc930790f3b84466d",
+            "verdict": "INCONCLUSIVE_UNTIL_NATIVE_PAIRS",
+            "trainingCredit": false
+          },
+          "independence": {
+            "referenceCampaign": "autonomous009-goal009-20261114-f",
+            "referenceDataset": "autonomous009-goal009-20261114-f-c000001",
+            "referenceCellsSha": "6a41998d543796899874267586a2eae69435b5d84193b3e69dbadd19b04b2a00",
+            "referenceModelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+            "excludedSourceSnapshots": [
+              "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+              "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+              "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+              "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+              "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+              "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041"
+            ],
+            "selectedSourceSnapshots": [
+              "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+              "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+              "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+              "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d"
+            ],
+            "authority": "PRE_CUT_SOURCE_PROVENANCE_ONLY",
+            "trainingCredit": false
+          },
+          "arms": [
+            {
+              "episode": "231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222",
+              "reserved": {
+                "episode": "231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222",
+                "side": "STOCK",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222",
+                "classId": 94,
+                "scope": "SOLO",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_NPC_FACTION_NOT_ISOLATED",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 5192.7099,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\t\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/admissions.jsonl",
+                  "bytes": 107,
+                  "sha256": "b4d2b32051d5b50fd6a3812ec71f395b77abba76bee849b4e0519eb28980421b"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/combat-request.json",
+                  "bytes": 146,
+                  "sha256": "c6b5eaa81aa3cc7313665b2a43eb4f135c3b67d072532f3211668ba9287b934c"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/evaluation-arm.tsv",
+                  "bytes": 22,
+                  "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/precut-refused.json",
+                  "bytes": 56,
+                  "sha256": "86ec0ee6be76c71a8e33231850fa85967e170221d26a26fe8148d69bcbc172f1"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/readiness.txt",
+                  "bytes": 85,
+                  "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/reserved.json",
+                  "bytes": 131,
+                  "sha256": "ec1c7dd8dc51db6638f3412d13b33ea5483b21bedc46eb112b17e4b87b967cb2"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/result.json",
+                  "bytes": 540,
+                  "sha256": "de3ab022ef228fca0a7b5af74c1d7d45ae9022df677c063a77eeccb95d05e307"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/roster.tsv",
+                  "bytes": 126,
+                  "sha256": "282e6316bbab17553fa2e9795f2234839a739f254be9fcf00eef69a06f833806"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/231fe2e7166e291224b7091f59af6e999c0746d8d1e00ffc6e9b5b1da98eb222/shared-source.txt",
+                  "bytes": 79,
+                  "sha256": "3adad71763567444408cab35786085fc79534dc8855a1a60d7c273198b9f0cef"
+                }
+              ]
+            },
+            {
+              "episode": "4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c",
+              "reserved": {
+                "episode": "4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c",
+                "side": "STOCK",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c",
+                "classId": 110,
+                "scope": "PARTY",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_NPC_FACTION_NOT_ISOLATED",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 5895.181,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\t\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/admissions.jsonl",
+                  "bytes": 53,
+                  "sha256": "c4eb41019ecce1d9d4d20dadd124acf85640123aa7b8bc3d865a0dd2023f0a0a"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/evaluation-arm.tsv",
+                  "bytes": 22,
+                  "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/precut-refused.json",
+                  "bytes": 56,
+                  "sha256": "86ec0ee6be76c71a8e33231850fa85967e170221d26a26fe8148d69bcbc172f1"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/readiness.txt",
+                  "bytes": 168,
+                  "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/reserved.json",
+                  "bytes": 131,
+                  "sha256": "db5fa426439ed4b1f2f566ed77f05b6197b7a777c47707262142f24b49be4f81"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/result.json",
+                  "bytes": 541,
+                  "sha256": "8569cad5f54b8cf2c9288db1f19ad34c8a0fffb0d899e192308ae722c35de65d"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/roster.tsv",
+                  "bytes": 510,
+                  "sha256": "b555c075c9356063fe19cbdc3f7f5af9065a4e5e939edd814e2b2e7190e8a247"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/4cf2b460d8b094245b930caf4897337b239b69453bfef004f04482eb874f2a2c/shared-source.txt",
+                  "bytes": 345,
+                  "sha256": "b681efbb1dd570210b331e4a6398e7cba1d51cfd61cd105a7816903a10a28fef"
+                }
+              ]
+            },
+            {
+              "episode": "53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875",
+              "reserved": {
+                "episode": "53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875",
+                "side": "LEARNED",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875",
+                "classId": 94,
+                "scope": "SOLO",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_NPC_FACTION_NOT_ISOLATED",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 4325.4195,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\t\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/admissions.jsonl",
+                  "bytes": 53,
+                  "sha256": "ec2c8b29ac2719a7bccac91389bf1e62379379d8ca82d5805b1eb0e517f7d1b3"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/combat-request.json",
+                  "bytes": 146,
+                  "sha256": "78efd9f9f50f6cd554c7b973e712efc1ac1954d117c17a7bca8419622a902533"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/evaluation-arm.tsv",
+                  "bytes": 22,
+                  "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/precut-refused.json",
+                  "bytes": 56,
+                  "sha256": "86ec0ee6be76c71a8e33231850fa85967e170221d26a26fe8148d69bcbc172f1"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/readiness.txt",
+                  "bytes": 85,
+                  "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/reserved.json",
+                  "bytes": 133,
+                  "sha256": "e6a3f5b49a4a840bb841ac3dd142efd8d2f9079272e398d1a28884422ecfef11"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/result.json",
+                  "bytes": 540,
+                  "sha256": "daa0115c06fbcc7958728f220270885479e3754ceefb69cab1d34911e01e173b"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/roster.tsv",
+                  "bytes": 126,
+                  "sha256": "132e2539ac0d1de244d6dfd6244465d0c8f2f185cbe4bd22aef5242cc1af36db"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/53fac635ed2b55c5993f64f713df33592954ddb81b31c3a79392b5de33f4d875/shared-source.txt",
+                  "bytes": 79,
+                  "sha256": "3adad71763567444408cab35786085fc79534dc8855a1a60d7c273198b9f0cef"
+                }
+              ]
+            },
+            {
+              "episode": "5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548",
+              "reserved": {
+                "episode": "5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548",
+                "side": "STOCK",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548",
+                "classId": 110,
+                "scope": "PARTY",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_MATCHED_PHYSICAL_FACTS_DIFFER",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 5491.6983,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\t7caff5b2ee9df95cebfb32784eace9632d3112a6d52991b2b4a51223efe46579\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/admission-facts.json",
+                  "bytes": 6942,
+                  "sha256": "7caff5b2ee9df95cebfb32784eace9632d3112a6d52991b2b4a51223efe46579"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/admissions.jsonl",
+                  "bytes": 53,
+                  "sha256": "8c2f5d8704c50baa459a7179c516865d168f253d196cd753a270ab8a0fa956a8"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/evaluation-arm.tsv",
+                  "bytes": 86,
+                  "sha256": "109a0eecb569735b30cf85c71dc43c12643d1ce0b602262e0eda3fed328a75f9"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/party-admission.json",
+                  "bytes": 301,
+                  "sha256": "a4708fa3b9f2a1a263436e013fe4b0aebfc5178e0a2e8741b9dda547a456b89b"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/precut-refused.json",
+                  "bytes": 61,
+                  "sha256": "9be5fc6c187597397df0c2641b44561c59c55c0a19d679e2a52fbc985ddfb965"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/readiness.txt",
+                  "bytes": 168,
+                  "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/reserved.json",
+                  "bytes": 131,
+                  "sha256": "fa954a9534517cf2a2a8f0a8859e36f401f6684e943d82a5f7170cf07431b26a"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/result.json",
+                  "bytes": 547,
+                  "sha256": "9b50bae9ed361d2d7fa4a6e71dcaaa783b8036c6e92535fe846fbda54a45d241"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/roster.tsv",
+                  "bytes": 510,
+                  "sha256": "f97c10ba6595319c378e65447f448510e125f44b615ab740fd504180606abb0b"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/5957f1ad5b4c9453630d32e6b01ab579dd81958ea83893f13c8f8e3a3ad23548/shared-source.txt",
+                  "bytes": 345,
+                  "sha256": "b681efbb1dd570210b331e4a6398e7cba1d51cfd61cd105a7816903a10a28fef"
+                }
+              ]
+            },
+            {
+              "episode": "75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1",
+              "reserved": {
+                "episode": "75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1",
+                "side": "LEARNED",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1",
+                "classId": 94,
+                "scope": "SOLO",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_MATCHED_PHYSICAL_FACTS_DIFFER",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 5401.5168,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\tca9b0d1be34d58f219047b5e7812d4ab51846aaac48a70422d9021cdf7b66398\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/admission-facts.json",
+                  "bytes": 2288,
+                  "sha256": "ca9b0d1be34d58f219047b5e7812d4ab51846aaac48a70422d9021cdf7b66398"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/admissions.jsonl",
+                  "bytes": 107,
+                  "sha256": "53f5090c9b4159bacc0253b582163cdad3c393d4fa63e2cbd2c3f75cc2fd0e61"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/combat-request.json",
+                  "bytes": 146,
+                  "sha256": "c98d74d825ffc827fa913ba0cddde5a776c8881575ca9b2f13968dfebadbbc19"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/evaluation-arm.tsv",
+                  "bytes": 86,
+                  "sha256": "ad9f431e3a1ce80910fbf6ead6ecb9aec17c295f99e317f6ab559160367a02b6"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/precut-refused.json",
+                  "bytes": 61,
+                  "sha256": "9be5fc6c187597397df0c2641b44561c59c55c0a19d679e2a52fbc985ddfb965"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/readiness.txt",
+                  "bytes": 85,
+                  "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/reserved.json",
+                  "bytes": 133,
+                  "sha256": "85fbd5565b95abfbda286b04e2173a5b57f4bc4710a83a6135d268677b99934a"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/result.json",
+                  "bytes": 545,
+                  "sha256": "5e71a151e79e4896c453d8a15380c3f973869aec6eedccce45e4e0a66605c63c"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/roster.tsv",
+                  "bytes": 126,
+                  "sha256": "c03343ca51bf8fb879b15b88bf0ac20ec69bfab19c9f8a1580642994d58134e5"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/75e111e1bfe520dfb836249e02b380d52c95adf6178b3ceabc42de4e30831bd1/shared-source.txt",
+                  "bytes": 79,
+                  "sha256": "3adad71763567444408cab35786085fc79534dc8855a1a60d7c273198b9f0cef"
+                }
+              ]
+            },
+            {
+              "episode": "bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6",
+              "reserved": {
+                "episode": "bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6",
+                "side": "STOCK",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6",
+                "classId": 94,
+                "scope": "SOLO",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_MATCHED_PHYSICAL_FACTS_DIFFER",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 5704.1608,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\tca9b0d1be34d58f219047b5e7812d4ab51846aaac48a70422d9021cdf7b66398\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/admission-facts.json",
+                  "bytes": 2288,
+                  "sha256": "ca9b0d1be34d58f219047b5e7812d4ab51846aaac48a70422d9021cdf7b66398"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/admissions.jsonl",
+                  "bytes": 53,
+                  "sha256": "ea43d88f735b476a768b3948d98e16a414ee67b19013cfbe1180bfcfa4a19e22"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/combat-request.json",
+                  "bytes": 146,
+                  "sha256": "53c0d9080714d005797a95d0b2737671b544dd1d1000195dbb3f239c95d46828"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/evaluation-arm.tsv",
+                  "bytes": 86,
+                  "sha256": "ad9f431e3a1ce80910fbf6ead6ecb9aec17c295f99e317f6ab559160367a02b6"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/precut-refused.json",
+                  "bytes": 61,
+                  "sha256": "9be5fc6c187597397df0c2641b44561c59c55c0a19d679e2a52fbc985ddfb965"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/readiness.txt",
+                  "bytes": 85,
+                  "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/reserved.json",
+                  "bytes": 131,
+                  "sha256": "aba5d5e7d7cd42e2506ac00a5532f41afe02db28888c16f14075b27a2fe9d8cb"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/result.json",
+                  "bytes": 545,
+                  "sha256": "78c85998be2992ba6fa9111e93f343f7c688e21e3c079461836fb808f17d2709"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/roster.tsv",
+                  "bytes": 126,
+                  "sha256": "0927562a86815bc4a2b146b3a4c0bfb15101e9b976e83044960d00d96e9ca758"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bb239b7a879e9374f57911f957d63cde39378978f9ff7fc60fffe270fb8c71f6/shared-source.txt",
+                  "bytes": 79,
+                  "sha256": "3adad71763567444408cab35786085fc79534dc8855a1a60d7c273198b9f0cef"
+                }
+              ]
+            },
+            {
+              "episode": "da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648",
+              "reserved": {
+                "episode": "da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648",
+                "side": "LEARNED",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648",
+                "classId": 110,
+                "scope": "PARTY",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_NPC_FACTION_NOT_ISOLATED",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 6382.6335,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\t\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/admissions.jsonl",
+                  "bytes": 53,
+                  "sha256": "1a1f1d03f82eb98d82146867fb5de7667e59232db03304e2376eb80e7f700c31"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/evaluation-arm.tsv",
+                  "bytes": 22,
+                  "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/precut-refused.json",
+                  "bytes": 56,
+                  "sha256": "86ec0ee6be76c71a8e33231850fa85967e170221d26a26fe8148d69bcbc172f1"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/readiness.txt",
+                  "bytes": 168,
+                  "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/reserved.json",
+                  "bytes": 133,
+                  "sha256": "6047c4998f35cf015927e7c1d1a4df3cdfb28fc7aae219f777be1062ed753d4c"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/result.json",
+                  "bytes": 542,
+                  "sha256": "dd035b88647c7ea0f9c73a2f630993a3414a73f6302d2b87a5322d0f0ce653a4"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/roster.tsv",
+                  "bytes": 510,
+                  "sha256": "e9740f2349a200399dab3516258c48e36651bc206a1f648e81e8f495369ee888"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/da23bb792147abb5c3083aac64e1d085ee0ef6244d9a83e44a5279683865a648/shared-source.txt",
+                  "bytes": 345,
+                  "sha256": "b681efbb1dd570210b331e4a6398e7cba1d51cfd61cd105a7816903a10a28fef"
+                }
+              ]
+            },
+            {
+              "episode": "f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f",
+              "reserved": {
+                "episode": "f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f",
+                "side": "LEARNED",
+                "split": "EVAL",
+                "trainingCredit": false
+              },
+              "settled": true,
+              "cutPresent": false,
+              "result": {
+                "episode": "f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f",
+                "classId": 110,
+                "scope": "PARTY",
+                "family": "DAMAGE",
+                "split": "EVAL",
+                "experimental": false,
+                "afterCut": false,
+                "outcome": null,
+                "exclusion": "AUTONOMOUS_PRE_CUT_MATCHED_PHYSICAL_FACTS_DIFFER",
+                "opportunities": 0,
+                "paidRawEffects": 0,
+                "totalMillis": 6261.6569,
+                "policyTiming": "snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}"
+              },
+              "diagnosticCounters": {},
+              "settlement": null,
+              "armLedger": "EVAL_ARM_V1\t7caff5b2ee9df95cebfb32784eace9632d3112a6d52991b2b4a51223efe46579\tfalse\t\n\n\n",
+              "proofs": [
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/admission-facts.json",
+                  "bytes": 6942,
+                  "sha256": "7caff5b2ee9df95cebfb32784eace9632d3112a6d52991b2b4a51223efe46579"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/admissions.jsonl",
+                  "bytes": 53,
+                  "sha256": "a378e9e21e10e9e5ad9ded85c5b7f812364a6113a8f2023b50cee989b26f3475"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/evaluation-arm.tsv",
+                  "bytes": 86,
+                  "sha256": "109a0eecb569735b30cf85c71dc43c12643d1ce0b602262e0eda3fed328a75f9"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/party-admission.json",
+                  "bytes": 301,
+                  "sha256": "7c1862a280db256fc6e3e1ebe4fa692117c2d6b2c81b1a3135a75427fe462273"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/precut-refused.json",
+                  "bytes": 61,
+                  "sha256": "9be5fc6c187597397df0c2641b44561c59c55c0a19d679e2a52fbc985ddfb965"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/readiness.txt",
+                  "bytes": 168,
+                  "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/reserved.json",
+                  "bytes": 133,
+                  "sha256": "9ea0aae0aff785e8b8243014217f0de4d26ed8b47dcd48f0e1fca082c6386634"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/result.json",
+                  "bytes": 547,
+                  "sha256": "bd66a3c52c7126e1bdb0ea888f652fc179b2ce3dfbc94b0dd8e3f49ade7ff59d"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/roster.tsv",
+                  "bytes": 510,
+                  "sha256": "bc78e1f90d9da7d5e8260e0c5542f7aaa8189cc27aa107d86fa64c5463fe52fa"
+                },
+                {
+                  "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f45fea27375132656101a6cdbed162ab8af3e12b70c7219b153a3b14256c2e0f/shared-source.txt",
+                  "bytes": 345,
+                  "sha256": "b681efbb1dd570210b331e4a6398e7cba1d51cfd61cd105a7816903a10a28fef"
+                }
+              ]
+            }
+          ],
+          "cells": [
+            {
+              "cell": "c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0",
+              "sourceShas": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+              "family": "DAMAGE",
+              "mode": "RANGED_MAGIC",
+              "shortlist": "1230:101,1275:14",
+              "cursor": "2",
+              "scene": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:96baa35badc6a425d20f397a68a88cf63fc755c6bfe18cdee191c8a33c1ea5d4",
+              "source": "21315@generated.farm.5503deaff7039892e29f17da.anchor",
+              "npc": "21315",
+              "x": "149374",
+              "y": "-113643",
+              "z": "-2040",
+              "targetX": "148974",
+              "targetY": "-113043",
+              "targetZ": "-2064",
+              "protocolSha": "910a5f8fad770b4c790ad6d555520f25effcfa0ed53aa3d7693534488dff398d"
+            },
+            {
+              "cell": "f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc",
+              "sourceShas": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d,667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f,623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e,d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+              "family": "DAMAGE",
+              "mode": "RANGED_MAGIC",
+              "shortlist": "1148:13,1234:28,1239:28,1267:14",
+              "cursor": "4",
+              "scene": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d:b828ff012801878e44aba9df59de7dd210c0c9d988261fd6bff652274a96d5c6",
+              "source": "21315@generated.farm.c34d4845871d5a78bc5d3cd1.anchor",
+              "npc": "21315",
+              "x": "149010",
+              "y": "-111922",
+              "z": "-2160",
+              "targetX": "148410",
+              "targetY": "-111522",
+              "targetZ": "-2144",
+              "protocolSha": "910a5f8fad770b4c790ad6d555520f25effcfa0ed53aa3d7693534488dff398d"
+            },
+            {
+              "cell": "6f4c013db5d61186dbc4d960532881ad3225c87d0604a4831d9708530fdf8a11",
+              "sourceShas": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+              "family": "DAMAGE",
+              "mode": "RANGED_MAGIC",
+              "shortlist": "1230:101,1275:14",
+              "cursor": "4",
+              "scene": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d:5ff5d059d1f1a953c25395dbe35ad3e9b624868c6b2408f1b41f2657832f3dcb",
+              "source": "21315@generated.farm.c34d4845871d5a78bc5d3cd1.anchor",
+              "npc": "21315",
+              "x": "149010",
+              "y": "-111922",
+              "z": "-2160",
+              "targetX": "148010",
+              "targetY": "-112122",
+              "targetZ": "-2208",
+              "protocolSha": "910a5f8fad770b4c790ad6d555520f25effcfa0ed53aa3d7693534488dff398d"
+            },
+            {
+              "cell": "31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a",
+              "sourceShas": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d,667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f,623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e,d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+              "family": "DAMAGE",
+              "mode": "RANGED_MAGIC",
+              "shortlist": "1148:13,1234:28,1239:28,1267:14",
+              "cursor": "8",
+              "scene": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d:ef21125c4aaa94be08448846f8779cff9d2f92985ddd014d7a21aea5684c9276",
+              "source": "21318@generated.farm.5503deaff7039892e29f17da.anchor",
+              "npc": "21318",
+              "x": "149374",
+              "y": "-113643",
+              "z": "-2040",
+              "targetX": "148974",
+              "targetY": "-113043",
+              "targetZ": "-2064",
+              "protocolSha": "910a5f8fad770b4c790ad6d555520f25effcfa0ed53aa3d7693534488dff398d"
+            }
+          ],
+          "proofs": [
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a.pair.json",
+              "bytes": 199,
+              "sha256": "7c46b20e99aa0aba57c0ca61594e769940f7759521a381ba54c6dcbce8265971"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a.physical.sha",
+              "bytes": 64,
+              "sha256": "fb7c35d6a4c3e36abf6bfa0f028651896827d3a198ac9077b688cb0f403a89e1"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a.risk.tsv",
+              "bytes": 335,
+              "sha256": "82892df7f7cd88e13b5d976ac6c7ddc1059a67e94be1133a23401c0932b7fe2f"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json",
+              "bytes": 40627,
+              "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json",
+              "bytes": 6597,
+              "sha256": "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json",
+              "bytes": 35067,
+              "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json",
+              "bytes": 6573,
+              "sha256": "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.inventory.json",
+              "bytes": 26456,
+              "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.source.json",
+              "bytes": 6146,
+              "sha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.inventory.json",
+              "bytes": 35067,
+              "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.source.json",
+              "bytes": 6570,
+              "sha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/6f4c013db5d61186dbc4d960532881ad3225c87d0604a4831d9708530fdf8a11.pair.json",
+              "bytes": 189,
+              "sha256": "078a77ec4078bca486576701cf8f38d59aed3ef3dbeb3bd076d0c7effb84ec48"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/6f4c013db5d61186dbc4d960532881ad3225c87d0604a4831d9708530fdf8a11.physical.sha",
+              "bytes": 64,
+              "sha256": "1dc3d1b80a742d2954af04c77f1a7930d0d9cd3b14d247b11f61d53db5c86e05"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json",
+              "bytes": 26456,
+              "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json",
+              "bytes": 6317,
+              "sha256": "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json",
+              "bytes": 40627,
+              "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json",
+              "bytes": 6687,
+              "sha256": "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.inventory.json",
+              "bytes": 42343,
+              "sha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.source.json",
+              "bytes": 6683,
+              "sha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json",
+              "bytes": 44254,
+              "sha256": "29dbbcc6b5470c4820ba4d207058bc35c648d3306782e7a14e2e64f720ea31d9"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json",
+              "bytes": 6768,
+              "sha256": "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json",
+              "bytes": 40982,
+              "sha256": "677a2528ba64949138812aeb2d4ae1eeac90e416814f8c2d671d469306d9d401"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json",
+              "bytes": 6711,
+              "sha256": "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0.pair.json",
+              "bytes": 198,
+              "sha256": "25cd9723f2a371b54fe33e0b07583584dbc4eff3661bb3ff3ee6e2bcae579163"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0.physical.sha",
+              "bytes": 64,
+              "sha256": "70b7db2a9e327270f3bc4d5058ff25c41cd9790f9976b155b4d111a6cd100ab6"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/cells.tsv",
+              "bytes": 2384,
+              "sha256": "4590e44db1c8375f7e4588a763c7577b439df0bc422369a4cfa39ba839c63f69"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.inventory.json",
+              "bytes": 39625,
+              "sha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.source.json",
+              "bytes": 6565,
+              "sha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/evaluation-pairs.json",
+              "bytes": 858,
+              "sha256": "53f8c22bebc67cf91768bb9b6ef37e98342295662c6267b4104395a047fe0277"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/evaluation.complete",
+              "bytes": 130,
+              "sha256": "afdbf4c504d5e446504876d2307f97ca1e6ab133c82d211f8ab158d2405b7584"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc.pair.json",
+              "bytes": 190,
+              "sha256": "543b3b4ba04ddc0b0387866d48f912c737c932840c33b4d38a6ad4d6525a25f4"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc.physical.sha",
+              "bytes": 64,
+              "sha256": "3aeea350514fa49135ac9a04824eae02a2010c8c744a7bffc98c707bd0fbf1ab"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc.risk.tsv",
+              "bytes": 334,
+              "sha256": "23a25c5e46290a21dc7ffb6443d77063573b8aee7ef3c666e6ecf944e1175165"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/independence.json",
+              "bytes": 1086,
+              "sha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/preflight-binding.json",
+              "bytes": 3478,
+              "sha256": "82d84a5263a4a2a442527dfd5897b604022961f5d3386d20e450ea66da2aaf0b"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/protocol.json",
+              "bytes": 294,
+              "sha256": "d4443014d6d0f754fa0ae52c72ff1d0e46c4ab9ceb556030ef363fb0ee159023"
+            },
+            {
+              "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/evaluations/autonomous009-goal010-20261114-d-eval-14/source-coverage.json",
+              "bytes": 9996,
+              "sha256": "df35993aabbd2ff714b4ad7da96df35f241497d2f3dcef3d9cf090381616cfa5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "campaign": "autonomous009-goal010-20261114-e",
+      "journal": null,
+      "admissions": [],
+      "evaluations": []
     }
   ],
   "historicalHashes": {
@@ -3059,70 +4378,70 @@
     "baselineManifestSha": "f045a58b064b14f7c8b17c64bac588fb5a2e5b9cf3059e05e8fa57cacd88bd5f"
   },
   "postflight": {
+    "gameEvidence": false,
     "portsFree": [
       33357,
       18001,
       19301
     ],
-    "phase": "STOPPED",
-    "episodeSeconds": 120,
-    "gameEvidence": false,
-    "starts": 3,
-    "gameLearningMode": "OFF",
     "processes": [
       {
-        "created": 134391322237175020,
-        "pid": 44228,
+        "pid": 86368,
         "absent": true,
-        "kind": "Director"
+        "kind": "Director",
+        "created": 134391401820383454
       },
       {
-        "created": 134391322745798018,
-        "pid": 38568,
+        "pid": 14644,
         "absent": true,
-        "kind": "Native"
+        "kind": "Native",
+        "created": 134391402080692302
       },
       {
-        "created": 134391328424412986,
-        "pid": 81640,
+        "pid": 51840,
         "absent": true,
-        "kind": "Worker"
+        "kind": "Worker",
+        "created": 134391428297071654
       },
       {
-        "created": 134391328369808181,
-        "pid": 86292,
+        "pid": 81216,
         "absent": true,
-        "kind": "Sql"
+        "kind": "Sql",
+        "created": 134391428241630168
       }
     ],
-    "gameModelVersion": 0,
-    "budgetSafetyFlagsRetained": true,
-    "configSha": "51097C67CF8E36471769EC6DA1B397EE8DEF3698C56C00769793BFA4BE10F966",
-    "nativeMillis": 601015,
-    "geo203": "PASS",
-    "observedUtc": "2026-11-14T12:30:54.0454648Z",
+    "freeDiskBytes": 427661750272,
     "historical009Unchanged": true,
-    "activeFlags": {
-      "exploration008Phase": "OFF",
-      "exploration007Phase": "OFF",
-      "autonomous009Exploration": "false",
-      "autonomous009Enabled": "false",
-      "autonomous009AfterCommitFaultOnce": "false",
-      "exploration008Enabled": "false",
-      "autonomous009FaultOnce": "false",
-      "evaluation005Enabled": "false",
-      "autonomous009Phase": "OFF",
-      "autonomous009GuiHoldBeforeNative": "false",
-      "exploration007Enabled": "false",
-      "outcome006Enabled": "false"
-    },
-    "protected207": "PASS",
     "foreignSql": {
-      "untouched": true,
+      "createdUtc": "2026-10-28T15:34:43.9827010Z",
       "pid": 8692,
-      "createdUtc": "2026-10-28T15:34:43.9827010Z"
+      "untouched": true
     },
-    "freeDiskBytes": 427770085376
+    "episodeSeconds": 120,
+    "phase": "STOPPED",
+    "budgetSafetyFlagsRetained": true,
+    "gameModelVersion": 0,
+    "geo203": "PASS",
+    "gameLearningMode": "OFF",
+    "starts": 4,
+    "protected207": "PASS",
+    "nativeMillis": 715447,
+    "configSha": "8FAE8C57835F2BE551B2162BE906FEC5C81E7FF579B8411E28C629E0FDCFF500",
+    "activeFlags": {
+      "exploration008Enabled": "false",
+      "exploration007Enabled": "false",
+      "evaluation005Enabled": "false",
+      "autonomous009Enabled": "false",
+      "outcome006Enabled": "false",
+      "autonomous009AfterCommitFaultOnce": "false",
+      "exploration008Phase": "OFF",
+      "autonomous009GuiHoldBeforeNative": "false",
+      "exploration007Phase": "OFF",
+      "autonomous009FaultOnce": "false",
+      "autonomous009Phase": "OFF",
+      "autonomous009Exploration": "false"
+    },
+    "observedUtc": "2026-11-14T15:14:36.6631261Z"
   },
   "checks": {
     "antASeconds": 197,
@@ -3133,84 +4452,9 @@
     "mojibake": "27patterns/0matches",
     "escapedCyrillic": "6regex/0matches",
     "scopeGuard": {
-      "status": "PASS",
-      "baseline": "8752d88a8a963b5e283e0ecd0f69c6c319ac5e62",
-      "head": "009066e51d88725fa568bb86b41602f1550f6ebf",
-      "branch": "feature/phantom-world",
-      "exactAllowlist": [
-        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
-        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
-        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
-        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
-        "AGENTS.md",
-        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
-        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
-        "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/GIT-POLICY.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/MERGE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md"
-      ],
-      "actualChanged": [
-        "AGENTS.md",
-        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
-        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
-        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
-        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
-        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
-        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
-        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
-        "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/GIT-POLICY.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/MERGE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md"
-      ],
-      "unexpected": [],
-      "missing": [],
-      "stagedFiles": [
-        "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
-        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md"
-      ],
-      "productPaths": 8,
-      "documentationPaths": 16,
-      "diffCheckExit": 0,
-      "commands": [
-        "git diff --name-only 8752d88a8a963b5e283e0ecd0f69c6c319ac5e62",
-        "git diff --cached --name-only",
-        "git ls-files --others --exclude-standard",
-        "git add -- <24 exact paths>",
-        "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check"
-      ]
+      "status": "PENDING_DOCUMENTATION_STAGE",
+      "productPaths": 10,
+      "documentationPaths": 16
     },
     "antDSeconds": 80,
     "regressions004005006": [
@@ -3281,136 +4525,30 @@
         ],
         "class": "org.l2jmobius.tests.phantoms.PhantomLearning006Checks"
       }
-    ]
+    ],
+    "extensionAntSpawn": {
+      "RED": 1,
+      "GREEN": 0,
+      "seconds": 98,
+      "review": "PASS",
+      "liveFactionGuardUnchanged": true
+    }
   },
   "limitations": [
     "Малое n; superiority не доказана",
     "Party HEAL pair010 не завершена",
     "Stock/stock control010 NOT_RUN",
     "Live census может отклонить headless scene",
-    "Whole-party damage/consumables/loot/adena/full deaths без writer proof UNKNOWN"
+    "Whole-party damage/consumables/loot/adena/full deaths без writer proof UNKNOWN",
+    "Current E preflight failed twice, latest0cells/84targetRefusals/1656NO_ISOLATED_TARGET_POINT; G3 FAIL. GS5 not started.",
+    "Latest native bootstrap/config HP parity fix not confirmed by GS; no paired preflight success at latest source.",
+    "Budget is a ceiling: stopped at4/5 after mandatory preflight refusal; no sixth start or automatic budget extension requested."
   ],
   "githubReadback": {
-    "head": "009066e51d88725fa568bb86b41602f1550f6ebf",
-    "parents": [
-      "add152c6a114166a98bf41416ed6b09ff8b6e2b9"
-    ],
-    "tree": "8ef1975362daa546ca36e5d9cad413c9023780fe",
-    "changedPaths": [
-      "AGENTS.md",
-      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
-      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
-      "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/GIT-POLICY.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/MERGE.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
-      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md"
-    ],
-    "files": [
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
-        "bytes": 16755,
-        "gitBlobSha1": "3f2ecdf16c32dc5e503305f30e49b9727f88554b",
-        "sha256": "78f791f0bf5591c6e3d59df6a73fafa426d34f520ee030240889d1bf78e2bdea",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
-        "bytes": 26166,
-        "gitBlobSha1": "706edbac0716358a218242578b96cf9ec40b502c",
-        "sha256": "c7d2cf9e4618b4b044833f3c3a1dc7dd30e851dff249c4e23d9c7394abf56e1e",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
-        "bytes": 114041,
-        "gitBlobSha1": "62c799152acc914653e975c6a524d9eed978b662",
-        "sha256": "c81826d09ee3c5869d0fdcc10099a35c0325ce6e041b7de940d5d96c9ac744cf",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
-        "bytes": 26963,
-        "gitBlobSha1": "35fb4868ae3189b40b6f047259158285692b2dd4",
-        "sha256": "4fce0c7fa64b7fd9e0586fffa2f6f284954d03cf8dedcbd16a97a0742613952c",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
-        "bytes": 2574,
-        "gitBlobSha1": "8dc2dfe26fd313c321351241382bd8d1f42bba5c",
-        "sha256": "4e102e3ee33884922dea5a4edba77b3dba4c2740b4b7e4b7817602ace0bfba9c",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
-        "bytes": 63310,
-        "gitBlobSha1": "df4ede9f6407ffc23bd61a4206b31b3cd7b113af",
-        "sha256": "ae939eff90967fa75b5db366091bbb28872eded1ff20734c713503bb2da50fcc",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
-        "bytes": 107074,
-        "gitBlobSha1": "8e372c64bb5f484bccb101d82dc29ca9c5c55427",
-        "sha256": "befbeab4bff547f9f981bb6db26351ec51e0ffdacd395ca5e78675f3726753f0",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
-        "bytes": 43777,
-        "gitBlobSha1": "7f3167eace3d6a566c157be9231a42a0b2c0bd7d",
-        "sha256": "468b353ef7af2831d46c1bc0f96eff59412a42602b9ba06915c14a8854d64024",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
-        "bytes": 180541,
-        "gitBlobSha1": "c4cbf23da1786b2d6e7171ac4150951228d92ba8",
-        "sha256": "008f4d96f8199bae7d85fa6077c3bb7c6661e59d0b9d12cc1ca18635d839f743",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
-        "bytes": 11248,
-        "gitBlobSha1": "451914205bcabf9dff028edafa63f64c7dd676f2",
-        "sha256": "23b5d2162830228c29ebc07ceec2c0256193caf501b4619a9b24c44e041c2891",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "AGENTS.md",
-        "bytes": 7372,
-        "gitBlobSha1": "502e6f8a61b8dc6c13e04346ee38fe838e444950",
-        "sha256": "08a9dcaa38fe480767161c17d35195a6255bf0aa193a309078115d586f1e881b",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
-        "bytes": 6954,
-        "gitBlobSha1": "2ac883b669f47b2a6cda15e4fc120099348500f2",
-        "sha256": "af56dcb2b08225ea94b64a135fe39bd036fc5925c54aa733a783481d2f561518",
-        "fullRemoteBodyVerified": true
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
-        "bytes": 7145,
-        "gitBlobSha1": "eb0071d95314715d23497d0a968364d774621039",
-        "sha256": "9a34c948cdbf08cff017d176c12da73d0bbae6faceb696bf98de1d1bf46a9e8f",
-        "fullRemoteBodyVerified": true
-      }
-    ],
-    "sourceFilesVerified": 8,
-    "fullBodyFilesVerified": 13,
-    "scopeGuard": "24_EXACT_PATHS",
-    "verdict": "VERIFIED_INDEPENDENT_GITHUB_READBACK"
+    "status": "PENDING_CURRENT_DOCS_READBACK",
+    "sourceHead": "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe",
+    "sourceFilesVerified": 10,
+    "sourceFullBodiesVerified": 10
   },
   "exactAllowlist": [
     "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
@@ -3436,6 +4574,1664 @@
     "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
     "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
     "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
-    "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md"
-  ]
+    "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java"
+  ],
+  "initialClosureBeforeExtension": {
+    "verdicts": {
+      "CONSOLIDATION": "VERIFIED",
+      "EVAL_CLOSURE": "PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED",
+      "GAME": "INCONCLUSIVE"
+    },
+    "gates": {
+      "G0": "PASS",
+      "G1": "PASS",
+      "G2": "PASS",
+      "G3": "PASS",
+      "G4": "FAIL",
+      "G5": "PASS",
+      "G6": "PASS",
+      "G7": "PASS",
+      "G8": "PASS"
+    },
+    "native010": {
+      "starts": 4,
+      "limitStarts": 5,
+      "chargedMillis": 715447,
+      "limitMillis": 2700000,
+      "attempts": [
+        {
+          "attempt": "e74666622ddc4a9f9bf5069f34e46871",
+          "reservation": {
+            "pid": 70208,
+            "startOrdinal": 1,
+            "attemptId": "e74666622ddc4a9f9bf5069f34e46871",
+            "bootUtc": "2026-11-14T11:37:33.2631744Z",
+            "reservedUtc": "2026-11-14T11:37:32.1404640Z",
+            "priorNativeMillis": 0,
+            "created": 134391298532631744,
+            "campaign": "autonomous009-goal010-20261114"
+          },
+          "charge": {
+            "chargedMillis": 265981,
+            "attemptId": "e74666622ddc4a9f9bf5069f34e46871",
+            "maximumNativeMillis": 2700000,
+            "campaign": "autonomous009-goal010-20261114",
+            "created": 134391298532631744,
+            "priorNativeMillis": 0,
+            "pid": 70208,
+            "monotonicUpperMillis": 268054,
+            "proof": "OWN_HELD_HANDLE_EXIT_TIME"
+          },
+          "resources": {
+            "pid": 70208,
+            "startedUtc": "2026-11-14T11:37:33.2631744Z",
+            "sampledUtc": "2026-11-14T11:41:59.8094259Z",
+            "elapsedMillis": 265981,
+            "cpuSeconds": 247.3125,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 4724805632,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true,
+            "attemptId": "e74666622ddc4a9f9bf5069f34e46871",
+            "observedUtc": "2026-11-14T11:41:59.8166585Z",
+            "finishedUtc": "2026-11-14T11:41:59.2435139Z",
+            "exitCode": 0
+          },
+          "batchComplete": "schemaVersion=9\nevaluationOnly=true\ntrainingStateUnchanged=true\n",
+          "proofs": [
+            {
+              "path": "attempts/e74666622ddc4a9f9bf5069f34e46871/batch.complete",
+              "bytes": 64,
+              "sha256": "842cd6605dc14f7ded50fd337cd6ebe38ae73313c3b3d96909512a51e3e3439c"
+            },
+            {
+              "path": "attempts/e74666622ddc4a9f9bf5069f34e46871/budget-charge.json",
+              "bytes": 348,
+              "sha256": "533d640e6593f1fcd22acd85144e31bec3e51e0408ca41999973a7590c5e62a2"
+            },
+            {
+              "path": "attempts/e74666622ddc4a9f9bf5069f34e46871/budget-reservation.json",
+              "bytes": 324,
+              "sha256": "21e6f1df2f7563c1bccb38ee3e1c6b1c3dee770d944d632919ff3e2ed73e0606"
+            },
+            {
+              "path": "attempts/e74666622ddc4a9f9bf5069f34e46871/exit.json",
+              "bytes": 1006,
+              "sha256": "f98f57f126d374565b33564d56c5c4479561a42923a8b76002321d28c45be4ff"
+            },
+            {
+              "path": "attempts/e74666622ddc4a9f9bf5069f34e46871/native-resources.json",
+              "bytes": 511,
+              "sha256": "cee5566760364c52289a375189c4a0f2ffaaff868c9fc6a9114ee9201b1cdc5f"
+            },
+            {
+              "path": "attempts/e74666622ddc4a9f9bf5069f34e46871/native.err",
+              "bytes": 36161,
+              "sha256": "d5450b99a00a0c92d5f5f3f014ab4b76ec2d566c86462d8e70e77cd51741e302"
+            },
+            {
+              "path": "attempts/e74666622ddc4a9f9bf5069f34e46871/native.out",
+              "bytes": 1610,
+              "sha256": "f118bc2e538844bc5cbea46d54724b825e05cbc75006e9aa0110a4fe24e65cff"
+            }
+          ]
+        },
+        {
+          "attempt": "157f05adcad04acfb4f337a2cb4fc8bc",
+          "reservation": {
+            "pid": 65488,
+            "startOrdinal": 2,
+            "attemptId": "157f05adcad04acfb4f337a2cb4fc8bc",
+            "bootUtc": "2026-11-14T11:56:25.2059079Z",
+            "reservedUtc": "2026-11-14T11:56:24.0988218Z",
+            "priorNativeMillis": 265981,
+            "created": 134391309852059079,
+            "campaign": "autonomous009-goal010-20261114-b"
+          },
+          "charge": {
+            "chargedMillis": 221044,
+            "attemptId": "157f05adcad04acfb4f337a2cb4fc8bc",
+            "maximumNativeMillis": 2700000,
+            "campaign": "autonomous009-goal010-20261114-b",
+            "created": 134391309852059079,
+            "priorNativeMillis": 265981,
+            "pid": 65488,
+            "monotonicUpperMillis": 222652,
+            "proof": "OWN_HELD_HANDLE_EXIT_TIME"
+          },
+          "resources": {
+            "pid": 65488,
+            "startedUtc": "2026-11-14T11:56:25.2059079Z",
+            "sampledUtc": "2026-11-14T12:00:06.7274535Z",
+            "elapsedMillis": 221044,
+            "cpuSeconds": 349.84375,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 4711239680,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true,
+            "attemptId": "157f05adcad04acfb4f337a2cb4fc8bc",
+            "observedUtc": "2026-11-14T12:00:06.7353909Z",
+            "finishedUtc": "2026-11-14T12:00:06.2492418Z",
+            "exitCode": 0
+          },
+          "batchComplete": null,
+          "proofs": [
+            {
+              "path": "attempts/157f05adcad04acfb4f337a2cb4fc8bc/budget-charge.json",
+              "bytes": 355,
+              "sha256": "940037a7cc5755b4cddc463cbc0a1f68e102f714484dec582537194bd655e1d0"
+            },
+            {
+              "path": "attempts/157f05adcad04acfb4f337a2cb4fc8bc/budget-reservation.json",
+              "bytes": 331,
+              "sha256": "47685e9487afaa63f167c7f27693a0c55f69f7e1e65fafcc66778c333b967f51"
+            },
+            {
+              "path": "attempts/157f05adcad04acfb4f337a2cb4fc8bc/exit.json",
+              "bytes": 1006,
+              "sha256": "fed349369fb1e56c8858b535163fb06bcff0610d614606887603147941861b0a"
+            },
+            {
+              "path": "attempts/157f05adcad04acfb4f337a2cb4fc8bc/native-resources.json",
+              "bytes": 512,
+              "sha256": "1c732738bc8ab16accf20aeed2feabbd7173533dc0681f6430bc0e7dee9494f2"
+            },
+            {
+              "path": "attempts/157f05adcad04acfb4f337a2cb4fc8bc/native.err",
+              "bytes": 27430,
+              "sha256": "caab91f3e277c4e6906106b52f03a7077ce7ec2d8b1698cc05ae7d4e964bb061"
+            },
+            {
+              "path": "attempts/157f05adcad04acfb4f337a2cb4fc8bc/native.out",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        {
+          "attempt": "d2beb2ea4af14e0baa8b634ab5755b48",
+          "reservation": {
+            "pid": 38568,
+            "startOrdinal": 3,
+            "attemptId": "d2beb2ea4af14e0baa8b634ab5755b48",
+            "bootUtc": "2026-11-14T12:17:54.5798018Z",
+            "reservedUtc": "2026-11-14T12:17:52.7709446Z",
+            "priorNativeMillis": 487025,
+            "created": 134391322745798018,
+            "campaign": "autonomous009-goal010-20261114-c"
+          },
+          "charge": {
+            "chargedMillis": 113990,
+            "attemptId": "d2beb2ea4af14e0baa8b634ab5755b48",
+            "maximumNativeMillis": 2700000,
+            "campaign": "autonomous009-goal010-20261114-c",
+            "created": 134391322745798018,
+            "priorNativeMillis": 487025,
+            "pid": 38568,
+            "monotonicUpperMillis": 116619,
+            "proof": "OWN_HELD_HANDLE_EXIT_TIME"
+          },
+          "resources": {
+            "pid": 38568,
+            "startedUtc": "2026-11-14T12:17:54.5798018Z",
+            "sampledUtc": "2026-11-14T12:19:49.3602087Z",
+            "elapsedMillis": 113990,
+            "cpuSeconds": 235.21875,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 4699721728,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true,
+            "attemptId": "d2beb2ea4af14e0baa8b634ab5755b48",
+            "observedUtc": "2026-11-14T12:19:49.3692118Z",
+            "finishedUtc": "2026-11-14T12:19:48.5689462Z",
+            "exitCode": 0
+          },
+          "batchComplete": null,
+          "proofs": [
+            {
+              "path": "attempts/d2beb2ea4af14e0baa8b634ab5755b48/budget-charge.json",
+              "bytes": 355,
+              "sha256": "fc993d5537f5e461041bf653f4303227fc3111220f45e9629515ddc37d305819"
+            },
+            {
+              "path": "attempts/d2beb2ea4af14e0baa8b634ab5755b48/budget-reservation.json",
+              "bytes": 331,
+              "sha256": "2650045ede855623c5c3d990f050851d360bea3ce81f47be2d0a6799bc73676a"
+            },
+            {
+              "path": "attempts/d2beb2ea4af14e0baa8b634ab5755b48/exit.json",
+              "bytes": 1006,
+              "sha256": "d5985e236a00f2001ba76825af18fd9974761255c8c5b624bc3f6b23bdcfc5a0"
+            },
+            {
+              "path": "attempts/d2beb2ea4af14e0baa8b634ab5755b48/native-resources.json",
+              "bytes": 512,
+              "sha256": "a693e49c8134d31cf4a7433ae4c65ded109078766a235cb4c0ad924906e71f43"
+            },
+            {
+              "path": "attempts/d2beb2ea4af14e0baa8b634ab5755b48/native.err",
+              "bytes": 23872,
+              "sha256": "7a759b5224040bde0dfcc54b7b2e073123054ffb0d8ee545029ae24b1052ad93"
+            },
+            {
+              "path": "attempts/d2beb2ea4af14e0baa8b634ab5755b48/native.out",
+              "bytes": 112,
+              "sha256": "20d5f9f72e57e72cf667809a8f0ff1b7929912e51472810228e13ff030fe7414"
+            }
+          ]
+        },
+        {
+          "attempt": "98ec96307d304164a86f799b0289fd43",
+          "reservation": {
+            "pid": 14644,
+            "startOrdinal": 4,
+            "attemptId": "98ec96307d304164a86f799b0289fd43",
+            "bootUtc": "2026-11-14T14:30:08.0692302Z",
+            "reservedUtc": "2026-11-14T14:30:06.6624454Z",
+            "priorNativeMillis": 601015,
+            "created": 134391402080692302,
+            "campaign": "autonomous009-goal010-20261114-d"
+          },
+          "charge": {
+            "chargedMillis": 114432,
+            "attemptId": "98ec96307d304164a86f799b0289fd43",
+            "maximumNativeMillis": 2700000,
+            "campaign": "autonomous009-goal010-20261114-d",
+            "created": 134391402080692302,
+            "priorNativeMillis": 601015,
+            "pid": 14644,
+            "monotonicUpperMillis": 116549,
+            "proof": "OWN_HELD_HANDLE_EXIT_TIME"
+          },
+          "resources": {
+            "pid": 14644,
+            "startedUtc": "2026-11-14T14:30:08.0692302Z",
+            "sampledUtc": "2026-11-14T14:32:03.1784344Z",
+            "elapsedMillis": 114432,
+            "cpuSeconds": 235.40625,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 4698783744,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true,
+            "attemptId": "98ec96307d304164a86f799b0289fd43",
+            "observedUtc": "2026-11-14T14:32:03.1864335Z",
+            "finishedUtc": "2026-11-14T14:32:02.5009662Z",
+            "exitCode": 0
+          },
+          "batchComplete": "schemaVersion=9\nevaluationOnly=true\ntrainingStateUnchanged=true\n",
+          "proofs": [
+            {
+              "path": "attempts/98ec96307d304164a86f799b0289fd43/batch.complete",
+              "bytes": 64,
+              "sha256": "842cd6605dc14f7ded50fd337cd6ebe38ae73313c3b3d96909512a51e3e3439c"
+            },
+            {
+              "path": "attempts/98ec96307d304164a86f799b0289fd43/budget-charge.json",
+              "bytes": 355,
+              "sha256": "4bdaae56bbe868490128b74bfbb3617c21a0a7277510fdfc8440ed0effdd8ba2"
+            },
+            {
+              "path": "attempts/98ec96307d304164a86f799b0289fd43/budget-reservation.json",
+              "bytes": 331,
+              "sha256": "cbf8cc9ddbd16de8b1d5475f5c65c649ecf3f0679e41034800d589a829cf71b0"
+            },
+            {
+              "path": "attempts/98ec96307d304164a86f799b0289fd43/exit.json",
+              "bytes": 1006,
+              "sha256": "d4ecb3721a7a7c0aa6ae65d1e15ca1f0ccf755727e205c1fb476ae7a2fab119d"
+            },
+            {
+              "path": "attempts/98ec96307d304164a86f799b0289fd43/native-resources.json",
+              "bytes": 512,
+              "sha256": "8e66246e1fbc9bdb18e85e492f9505d15d74fa2b520e7facb96efea8325d0cfb"
+            },
+            {
+              "path": "attempts/98ec96307d304164a86f799b0289fd43/native.err",
+              "bytes": 25545,
+              "sha256": "51c6896ab0ec83d854d71d47157c54cbf6d3e9d13e61737064e3f8c290304520"
+            },
+            {
+              "path": "attempts/98ec96307d304164a86f799b0289fd43/native.out",
+              "bytes": 1980,
+              "sha256": "58053ddb37bb3e3aa72f42269073d86f7acbf8cec3a777fafaaee2f59cc64712"
+            }
+          ]
+        }
+      ],
+      "primaryCampaign": "autonomous009-goal010-20261114-e",
+      "matchedCompletedPairs": 0,
+      "AB": 0,
+      "BA": 0,
+      "directions": [],
+      "controls": "NOT_RUN",
+      "lastWindowGuardNative": "GS4 preCUT constructor proof only; latest bootstrap/parity GS5 NOT_STARTED",
+      "allCampaignMatchedCompletedPairs": 1,
+      "lastFailure": "E_PREFLIGHT_ZERO_LAWFUL_CELLS_GS5_NOT_STARTED"
+    },
+    "headless": {
+      "workers": [
+        {
+          "worker": "86224689fea1446e9e3ac586f86c22fa",
+          "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative",
+          "pid": 22464,
+          "created": 134391295600296405,
+          "exitCode": 0,
+          "terminatedUtc": "2026-11-14T11:34:20.1459068Z",
+          "elapsedMillis": 100117,
+          "resources": {
+            "pid": 22464,
+            "startedUtc": "2026-11-14T11:32:40.0296405Z",
+            "sampledUtc": "2026-11-14T11:34:20.5897943Z",
+            "elapsedMillis": 100560,
+            "cpuSeconds": 217.71875,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 4631535616,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true
+          },
+          "exitProof": {
+            "path": "workers/86224689fea1446e9e3ac586f86c22fa/exit.json",
+            "bytes": 1030,
+            "sha256": "6b29171e79424b2ba0b7a6869c4f95f03e2e598f9b0c7c362b9253e6eb37b07e"
+          }
+        },
+        {
+          "worker": "c604f4d98db74cf08f8304a7c694fd34",
+          "class": "org.l2jmobius.tests.phantoms.PhantomTrainingSql",
+          "pid": 12716,
+          "created": 134391298511438300,
+          "exitCode": 0,
+          "terminatedUtc": "2026-11-14T11:37:31.8816468Z",
+          "elapsedMillis": 738,
+          "resources": {
+            "pid": 12716,
+            "startedUtc": "2026-11-14T11:37:31.1438300Z",
+            "sampledUtc": "2026-11-14T11:37:31.9072593Z",
+            "elapsedMillis": 763,
+            "cpuSeconds": 1.546875,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 2609152,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true
+          },
+          "exitProof": {
+            "path": "workers/c604f4d98db74cf08f8304a7c694fd34/exit.json",
+            "bytes": 1014,
+            "sha256": "83e9a7880fa6f8f475f3464f1a7c9a579e0ab556ec608acb9cdd18b86a15df52"
+          }
+        },
+        {
+          "worker": "1e826fa02f97403cbb93325666f8f3d9",
+          "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative",
+          "pid": 32820,
+          "created": 134391308371962899,
+          "exitCode": 0,
+          "terminatedUtc": "2026-11-14T11:55:27.2203916Z",
+          "elapsedMillis": 90025,
+          "resources": {
+            "pid": 32820,
+            "startedUtc": "2026-11-14T11:53:57.1962899Z",
+            "sampledUtc": "2026-11-14T11:55:27.6115254Z",
+            "elapsedMillis": 90415,
+            "cpuSeconds": 188.828125,
+            "workingSetBytes": 187932672,
+            "peakWorkingSetBytes": 4645666816,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true
+          },
+          "exitProof": {
+            "path": "workers/1e826fa02f97403cbb93325666f8f3d9/exit.json",
+            "bytes": 1029,
+            "sha256": "de4ac9cceae9c82f85d04e4375c23116ee8d2d308afa87d4f6f15080779e76ae"
+          }
+        },
+        {
+          "worker": "76a721fa16454429b38444171c3f9266",
+          "class": "org.l2jmobius.tests.phantoms.PhantomTrainingSql",
+          "pid": 85048,
+          "created": 134391309831383220,
+          "exitCode": 0,
+          "terminatedUtc": "2026-11-14T11:56:23.8451526Z",
+          "elapsedMillis": 707,
+          "resources": {
+            "pid": 85048,
+            "startedUtc": "2026-11-14T11:56:23.1383220Z",
+            "sampledUtc": "2026-11-14T11:56:23.8698865Z",
+            "elapsedMillis": 732,
+            "cpuSeconds": 1.46875,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 2609152,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true
+          },
+          "exitProof": {
+            "path": "workers/76a721fa16454429b38444171c3f9266/exit.json",
+            "bytes": 1014,
+            "sha256": "19bbe624226c91c1fba3a666066837df38dada9967b7e47363f0fccc4a4e3604"
+          }
+        },
+        {
+          "worker": "bfb61a1bc2a942018b7f4a8897baee36",
+          "class": "org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative",
+          "pid": 71192,
+          "created": 134391319944837662,
+          "exitCode": 0,
+          "terminatedUtc": "2026-11-14T12:16:06.1352062Z",
+          "elapsedMillis": 171652,
+          "resources": {
+            "pid": 71192,
+            "startedUtc": "2026-11-14T12:13:14.4837662Z",
+            "sampledUtc": "2026-11-14T12:16:07.2180275Z",
+            "elapsedMillis": 172735,
+            "cpuSeconds": 335.09375,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 4651352064,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true
+          },
+          "exitProof": {
+            "path": "workers/bfb61a1bc2a942018b7f4a8897baee36/exit.json",
+            "bytes": 1030,
+            "sha256": "47a7c0a531be22d07854ec48de81da20c47e077a6846701227600dff3b74696c"
+          }
+        },
+        {
+          "worker": "2514409ebb084827a48c14d6b719ec74",
+          "class": "org.l2jmobius.tests.phantoms.PhantomTrainingSql",
+          "pid": 85772,
+          "created": 134391322711481253,
+          "exitCode": 0,
+          "terminatedUtc": "2026-11-14T12:17:52.3683108Z",
+          "elapsedMillis": 1221,
+          "resources": {
+            "pid": 85772,
+            "startedUtc": "2026-11-14T12:17:51.1481253Z",
+            "sampledUtc": "2026-11-14T12:17:52.4074147Z",
+            "elapsedMillis": 1259,
+            "cpuSeconds": 2.640625,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 2609152,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true
+          },
+          "exitProof": {
+            "path": "workers/2514409ebb084827a48c14d6b719ec74/exit.json",
+            "bytes": 1015,
+            "sha256": "7734a327e7ea3774336a99f49d2d934e5c7acbaec124f96ea560de7cbb590bb3"
+          }
+        },
+        {
+          "worker": "34b05d7c62c34a32a0fd73dd1eca1651",
+          "class": "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator",
+          "pid": 81640,
+          "created": 134391328424412986,
+          "exitCode": 0,
+          "terminatedUtc": "2026-11-14T12:27:35.4670398Z",
+          "elapsedMillis": 13026,
+          "resources": {
+            "pid": 81640,
+            "startedUtc": "2026-11-14T12:27:22.4412986Z",
+            "sampledUtc": "2026-11-14T12:27:35.5502007Z",
+            "elapsedMillis": 13109,
+            "cpuSeconds": 23.421875,
+            "workingSetBytes": null,
+            "peakWorkingSetBytes": 631091200,
+            "measurement": "PROCESS_METADATA",
+            "exitObserved": true
+          },
+          "exitProof": {
+            "path": "workers/34b05d7c62c34a32a0fd73dd1eca1651/exit.json",
+            "bytes": 1029,
+            "sha256": "71504fa9a7d6181d12839600e4c53db48485e28003a1b25bfaf5daa50049a8c6"
+          }
+        }
+      ],
+      "sumProcessMillis": 377486,
+      "sumCpuSeconds": 770.71875,
+      "peakWorkingSetBytes": 4651352064
+    },
+    "postflight": {
+      "portsFree": [
+        33357,
+        18001,
+        19301
+      ],
+      "phase": "STOPPED",
+      "episodeSeconds": 120,
+      "gameEvidence": false,
+      "starts": 3,
+      "gameLearningMode": "OFF",
+      "processes": [
+        {
+          "created": 134391322237175020,
+          "pid": 44228,
+          "absent": true,
+          "kind": "Director"
+        },
+        {
+          "created": 134391322745798018,
+          "pid": 38568,
+          "absent": true,
+          "kind": "Native"
+        },
+        {
+          "created": 134391328424412986,
+          "pid": 81640,
+          "absent": true,
+          "kind": "Worker"
+        },
+        {
+          "created": 134391328369808181,
+          "pid": 86292,
+          "absent": true,
+          "kind": "Sql"
+        }
+      ],
+      "gameModelVersion": 0,
+      "budgetSafetyFlagsRetained": true,
+      "configSha": "51097C67CF8E36471769EC6DA1B397EE8DEF3698C56C00769793BFA4BE10F966",
+      "nativeMillis": 601015,
+      "geo203": "PASS",
+      "observedUtc": "2026-11-14T12:30:54.0454648Z",
+      "historical009Unchanged": true,
+      "activeFlags": {
+        "exploration008Phase": "OFF",
+        "exploration007Phase": "OFF",
+        "autonomous009Exploration": "false",
+        "autonomous009Enabled": "false",
+        "autonomous009AfterCommitFaultOnce": "false",
+        "exploration008Enabled": "false",
+        "autonomous009FaultOnce": "false",
+        "evaluation005Enabled": "false",
+        "autonomous009Phase": "OFF",
+        "autonomous009GuiHoldBeforeNative": "false",
+        "exploration007Enabled": "false",
+        "outcome006Enabled": "false"
+      },
+      "protected207": "PASS",
+      "foreignSql": {
+        "untouched": true,
+        "pid": 8692,
+        "createdUtc": "2026-10-28T15:34:43.9827010Z"
+      },
+      "freeDiskBytes": 427770085376
+    },
+    "githubReadback": {
+      "head": "009066e51d88725fa568bb86b41602f1550f6ebf",
+      "parents": [
+        "add152c6a114166a98bf41416ed6b09ff8b6e2b9"
+      ],
+      "tree": "8ef1975362daa546ca36e5d9cad413c9023780fe",
+      "changedPaths": [
+        "AGENTS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/GIT-POLICY.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/MERGE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md"
+      ],
+      "files": [
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+          "bytes": 16755,
+          "gitBlobSha1": "3f2ecdf16c32dc5e503305f30e49b9727f88554b",
+          "sha256": "78f791f0bf5591c6e3d59df6a73fafa426d34f520ee030240889d1bf78e2bdea",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+          "bytes": 26166,
+          "gitBlobSha1": "706edbac0716358a218242578b96cf9ec40b502c",
+          "sha256": "c7d2cf9e4618b4b044833f3c3a1dc7dd30e851dff249c4e23d9c7394abf56e1e",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+          "bytes": 114041,
+          "gitBlobSha1": "62c799152acc914653e975c6a524d9eed978b662",
+          "sha256": "c81826d09ee3c5869d0fdcc10099a35c0325ce6e041b7de940d5d96c9ac744cf",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+          "bytes": 26963,
+          "gitBlobSha1": "35fb4868ae3189b40b6f047259158285692b2dd4",
+          "sha256": "4fce0c7fa64b7fd9e0586fffa2f6f284954d03cf8dedcbd16a97a0742613952c",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+          "bytes": 2574,
+          "gitBlobSha1": "8dc2dfe26fd313c321351241382bd8d1f42bba5c",
+          "sha256": "4e102e3ee33884922dea5a4edba77b3dba4c2740b4b7e4b7817602ace0bfba9c",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+          "bytes": 63310,
+          "gitBlobSha1": "df4ede9f6407ffc23bd61a4206b31b3cd7b113af",
+          "sha256": "ae939eff90967fa75b5db366091bbb28872eded1ff20734c713503bb2da50fcc",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "bytes": 107074,
+          "gitBlobSha1": "8e372c64bb5f484bccb101d82dc29ca9c5c55427",
+          "sha256": "befbeab4bff547f9f981bb6db26351ec51e0ffdacd395ca5e78675f3726753f0",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+          "bytes": 43777,
+          "gitBlobSha1": "7f3167eace3d6a566c157be9231a42a0b2c0bd7d",
+          "sha256": "468b353ef7af2831d46c1bc0f96eff59412a42602b9ba06915c14a8854d64024",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
+          "bytes": 180541,
+          "gitBlobSha1": "c4cbf23da1786b2d6e7171ac4150951228d92ba8",
+          "sha256": "008f4d96f8199bae7d85fa6077c3bb7c6661e59d0b9d12cc1ca18635d839f743",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
+          "bytes": 11248,
+          "gitBlobSha1": "451914205bcabf9dff028edafa63f64c7dd676f2",
+          "sha256": "23b5d2162830228c29ebc07ceec2c0256193caf501b4619a9b24c44e041c2891",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "AGENTS.md",
+          "bytes": 7372,
+          "gitBlobSha1": "502e6f8a61b8dc6c13e04346ee38fe838e444950",
+          "sha256": "08a9dcaa38fe480767161c17d35195a6255bf0aa193a309078115d586f1e881b",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
+          "bytes": 6954,
+          "gitBlobSha1": "2ac883b669f47b2a6cda15e4fc120099348500f2",
+          "sha256": "af56dcb2b08225ea94b64a135fe39bd036fc5925c54aa733a783481d2f561518",
+          "fullRemoteBodyVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          "bytes": 7145,
+          "gitBlobSha1": "eb0071d95314715d23497d0a968364d774621039",
+          "sha256": "9a34c948cdbf08cff017d176c12da73d0bbae6faceb696bf98de1d1bf46a9e8f",
+          "fullRemoteBodyVerified": true
+        }
+      ],
+      "sourceFilesVerified": 8,
+      "fullBodyFilesVerified": 13,
+      "scopeGuard": "24_EXACT_PATHS",
+      "verdict": "VERIFIED_INDEPENDENT_GITHUB_READBACK"
+    }
+  },
+  "extensionAuthorizationAndResults": {
+    "authorization": {
+      "sameGoal": true,
+      "sameTask": 4,
+      "taskTotal": 13,
+      "remainingAfterIssue": 9,
+      "maximumStarts": 5,
+      "maximumNativeMillis": 2700000,
+      "initialStarts": 3,
+      "initialNativeMillis": 601015,
+      "beforeLastStart": {
+        "starts": 4,
+        "nativeMillis": 715447
+      },
+      "noFurtherAutomaticBudgetRequest": true
+    },
+    "immutableHistory": [
+      {
+        "manifest": "immutable-before.json",
+        "manifestSha256": "1901c715b265359c59881273f58df045784f3b1866b30e5cc3221c6175495e8b",
+        "checked": 4096,
+        "changed": []
+      },
+      {
+        "manifest": "immutable-before-five.json",
+        "manifestSha256": "e6a67cbdeb5d9b1dd5107226e79b74ffc0daf4ac1546420db40007b8905da6d3",
+        "checked": 4417,
+        "changed": []
+      }
+    ],
+    "preflights": [
+      {
+        "campaign": "autonomous009-goal010-20261114-d",
+        "session": "b18263c423fd4f2ebf61a06ca981bbf6",
+        "complete": {
+          "admittedScenes": 4,
+          "directions": [
+            "SOLO_DAMAGE",
+            "PARTY_DAMAGE",
+            "SOLO_DAMAGE",
+            "PARTY_DAMAGE"
+          ],
+          "modelVersion": 14,
+          "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+          "trainingStateSha": "e4a2d2c882bc03565eea38901dbccb7c8f73fdcf2284eaefc930790f3b84466d",
+          "precutArms": 8,
+          "matchedPrecutFacts": true,
+          "riskMatched": true,
+          "episodeSeconds": 120,
+          "afterCut": false,
+          "gameServerStarted": false,
+          "trainingStateUnchanged": true,
+          "trainingCredit": false
+        },
+        "proofs": [
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a.physical.sha",
+            "sha256": "fb7c35d6a4c3e36abf6bfa0f028651896827d3a198ac9077b688cb0f403a89e1",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a.risk.tsv",
+            "sha256": "82892df7f7cd88e13b5d976ac6c7ddc1059a67e94be1133a23401c0932b7fe2f",
+            "bytes": 335
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json",
+            "sha256": "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+            "bytes": 6597
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json",
+            "sha256": "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+            "bytes": 6573
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.source.json",
+            "sha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+            "bytes": 6146
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.source.json",
+            "sha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+            "bytes": 6570
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/6f4c013db5d61186dbc4d960532881ad3225c87d0604a4831d9708530fdf8a11.physical.sha",
+            "sha256": "1dc3d1b80a742d2954af04c77f1a7930d0d9cd3b14d247b11f61d53db5c86e05",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json",
+            "sha256": "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+            "bytes": 6317
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json",
+            "sha256": "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+            "bytes": 6687
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.inventory.json",
+            "sha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2",
+            "bytes": 42343
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.source.json",
+            "sha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d",
+            "bytes": 6683
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json",
+            "sha256": "29dbbcc6b5470c4820ba4d207058bc35c648d3306782e7a14e2e64f720ea31d9",
+            "bytes": 44254
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json",
+            "sha256": "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+            "bytes": 6768
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/admission.complete.json",
+            "sha256": "1fbb7b2a716baae54125f5c44dc3a982977d79ab573138dc084ff36f195d844b",
+            "bytes": 452
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json",
+            "sha256": "677a2528ba64949138812aeb2d4ae1eeac90e416814f8c2d671d469306d9d401",
+            "bytes": 40982
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json",
+            "sha256": "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041",
+            "bytes": 6711
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0.physical.sha",
+            "sha256": "70b7db2a9e327270f3bc4d5058ff25c41cd9790f9976b155b4d111a6cd100ab6",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/cells.tsv",
+            "sha256": "4590e44db1c8375f7e4588a763c7577b439df0bc422369a4cfa39ba839c63f69",
+            "bytes": 2384
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.inventory.json",
+            "sha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0",
+            "bytes": 39625
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.source.json",
+            "sha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+            "bytes": 6565
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc.physical.sha",
+            "sha256": "3aeea350514fa49135ac9a04824eae02a2010c8c744a7bffc98c707bd0fbf1ab",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc.risk.tsv",
+            "sha256": "23a25c5e46290a21dc7ffb6443d77063573b8aee7ef3c666e6ecf944e1175165",
+            "bytes": 334
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/independence.json",
+            "sha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890",
+            "bytes": 1086
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/planning-refusals.json",
+            "sha256": "ab954f31d6df83c2de1d2178965603486c82b07b2a80863d6a7ea01f8d6d2135",
+            "bytes": 7321
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/scene-catalog-counts.json",
+            "sha256": "4394eb354884a3a3d4dbc576f618ca4eb6f66cc7c21023ec8ecbea7c1e33d1d4",
+            "bytes": 250
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/b18263c423fd4f2ebf61a06ca981bbf6/source-coverage.json",
+            "sha256": "df35993aabbd2ff714b4ad7da96df35f241497d2f3dcef3d9cf090381616cfa5",
+            "bytes": 9996
+          }
+        ],
+        "refusalCounts": {
+          "TARGET_BOUND_ALTERNATIVES": 56
+        },
+        "sceneCounts": {
+          "ANCHOR_AGGRO_REFUSED": 3082,
+          "CANONICAL_ANCHOR_ACCEPTED": 6383,
+          "ISOLATED_SCENE_ACCEPTED": 16,
+          "LEVEL_REWARD_GEO_ACCEPTED": 9578,
+          "NO_ISOLATED_TARGET_POINT": 148,
+          "OUT_OF_WORLD_TEMPLATE_REFUSED": 14,
+          "SAFE_TEMPLATE_SEEN": 120925,
+          "TARGET_BOUND_SCENE_REFUSED": 56
+        }
+      },
+      {
+        "campaign": "autonomous009-goal010-20261114-d",
+        "session": "ff3d526d25d140eaaa8def8d90bd7aaa",
+        "complete": {
+          "admittedScenes": 4,
+          "directions": [
+            "SOLO_DAMAGE",
+            "PARTY_DAMAGE",
+            "SOLO_DAMAGE",
+            "PARTY_DAMAGE"
+          ],
+          "modelVersion": 14,
+          "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+          "trainingStateSha": "e4a2d2c882bc03565eea38901dbccb7c8f73fdcf2284eaefc930790f3b84466d",
+          "precutArms": 8,
+          "matchedPrecutFacts": true,
+          "riskMatched": true,
+          "episodeSeconds": 120,
+          "afterCut": false,
+          "gameServerStarted": false,
+          "trainingStateUnchanged": true,
+          "trainingCredit": false
+        },
+        "proofs": [
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json",
+            "sha256": "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+            "bytes": 6597
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json",
+            "sha256": "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+            "bytes": 6573
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.source.json",
+            "sha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+            "bytes": 6146
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.source.json",
+            "sha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+            "bytes": 6570
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/6f4c013db5d61186dbc4d960532881ad3225c87d0604a4831d9708530fdf8a11.physical.sha",
+            "sha256": "1dc3d1b80a742d2954af04c77f1a7930d0d9cd3b14d247b11f61d53db5c86e05",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json",
+            "sha256": "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+            "bytes": 6317
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json",
+            "sha256": "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+            "bytes": 6687
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.inventory.json",
+            "sha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2",
+            "bytes": 42343
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.source.json",
+            "sha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d",
+            "bytes": 6683
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json",
+            "sha256": "29dbbcc6b5470c4820ba4d207058bc35c648d3306782e7a14e2e64f720ea31d9",
+            "bytes": 44254
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json",
+            "sha256": "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+            "bytes": 6768
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/9d0ca3d1720eb37aa4c62adfbec1fa98fcc713d2f0893fde4b73633f8b38a4e5.physical.sha",
+            "sha256": "c053ca66d9d23cf7e92c4315bbc6cc96b7187f3ed3381619a5bb9d80ae5f3860",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/9d0ca3d1720eb37aa4c62adfbec1fa98fcc713d2f0893fde4b73633f8b38a4e5.risk.tsv",
+            "sha256": "ec249879160c60f12cf9c67d399552829dc707aedf30748b98ac864a5e5c171b",
+            "bytes": 336
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/a2460309951c053b3613aec8973f956929e29e9f4fed216224a6dea51cfe9c26.physical.sha",
+            "sha256": "ec6e06c4dd6466f87215bb9220098506ecb00e9cda4f40ed134193fb773cea64",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/admission.complete.json",
+            "sha256": "1fbb7b2a716baae54125f5c44dc3a982977d79ab573138dc084ff36f195d844b",
+            "bytes": 452
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json",
+            "sha256": "677a2528ba64949138812aeb2d4ae1eeac90e416814f8c2d671d469306d9d401",
+            "bytes": 40982
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json",
+            "sha256": "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041",
+            "bytes": 6711
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/cells.tsv",
+            "sha256": "25001872f1fb06ffbb0242b2314b7db2e89e77cb0a9843120caa1789c54d1a15",
+            "bytes": 2384
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.inventory.json",
+            "sha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0",
+            "bytes": 39625
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.source.json",
+            "sha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+            "bytes": 6565
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/e21059ca3e7b396e0340de5dbc82cb000590dc719cfdd37d13798d2c383d05f2.physical.sha",
+            "sha256": "178c6925eba5360a9b5d9aed343693a763eab96c33f5f21d789e7cd2736ee88d",
+            "bytes": 64
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/e21059ca3e7b396e0340de5dbc82cb000590dc719cfdd37d13798d2c383d05f2.risk.tsv",
+            "sha256": "4b1a5d5ec2dc2541984f73138e921844e1cc3c799add33b9f9f2f033a83c5dd9",
+            "bytes": 336
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/independence.json",
+            "sha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890",
+            "bytes": 1086
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/planning-refusals.json",
+            "sha256": "36157f56f608be80add6d9b4343c8ee23916d4bcf50f916085bdbdd2e6cc7d44",
+            "bytes": 6019
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/scene-catalog-counts.json",
+            "sha256": "db1652bfb10bfa19cbe21f9d4db9c59c5289190df2ad65e31bfea13c67ee58e1",
+            "bytes": 248
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/admission/ff3d526d25d140eaaa8def8d90bd7aaa/source-coverage.json",
+            "sha256": "df35993aabbd2ff714b4ad7da96df35f241497d2f3dcef3d9cf090381616cfa5",
+            "bytes": 9996
+          }
+        ],
+        "refusalCounts": {
+          "TARGET_BOUND_ALTERNATIVES": 46
+        },
+        "sceneCounts": {
+          "ANCHOR_AGGRO_REFUSED": 3065,
+          "CANONICAL_ANCHOR_ACCEPTED": 6178,
+          "ISOLATED_SCENE_ACCEPTED": 8,
+          "LEVEL_REWARD_GEO_ACCEPTED": 9819,
+          "NO_ISOLATED_TARGET_POINT": 169,
+          "OUT_OF_WORLD_TEMPLATE_REFUSED": 7,
+          "SAFE_TEMPLATE_SEEN": 120897,
+          "TARGET_BOUND_SCENE_REFUSED": 46
+        }
+      },
+      {
+        "campaign": "autonomous009-goal010-20261114-e",
+        "session": "226988a32dcd4384ab4153d0df75aea2",
+        "complete": null,
+        "proofs": [
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json",
+            "sha256": "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+            "bytes": 6597
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json",
+            "sha256": "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+            "bytes": 6573
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.source.json",
+            "sha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+            "bytes": 6146
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.source.json",
+            "sha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+            "bytes": 6570
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json",
+            "sha256": "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+            "bytes": 6317
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json",
+            "sha256": "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+            "bytes": 6687
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.inventory.json",
+            "sha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2",
+            "bytes": 42343
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.source.json",
+            "sha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d",
+            "bytes": 6683
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json",
+            "sha256": "29dbbcc6b5470c4820ba4d207058bc35c648d3306782e7a14e2e64f720ea31d9",
+            "bytes": 44254
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json",
+            "sha256": "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+            "bytes": 6768
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json",
+            "sha256": "677a2528ba64949138812aeb2d4ae1eeac90e416814f8c2d671d469306d9d401",
+            "bytes": 40982
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json",
+            "sha256": "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041",
+            "bytes": 6711
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/cells.tsv",
+            "sha256": "f718331cb19525c614c661109ba48e9036339bbbc3357cfe31741c6f7d5bb421",
+            "bytes": 104
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.inventory.json",
+            "sha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0",
+            "bytes": 39625
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.source.json",
+            "sha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+            "bytes": 6565
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/independence.json",
+            "sha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890",
+            "bytes": 1086
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/planning-refusals.json",
+            "sha256": "d47f9c3921b4364674b8bc1a9fee3f9d58f0a1b6b0411f5b34a79bd094313bc3",
+            "bytes": 16447
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/scene-catalog-counts.json",
+            "sha256": "9d9d42a190813aeccdffc057d46e73dfb4d36812caef93687959d2a452dfb34d",
+            "bytes": 226
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/226988a32dcd4384ab4153d0df75aea2/source-coverage.json",
+            "sha256": "df35993aabbd2ff714b4ad7da96df35f241497d2f3dcef3d9cf090381616cfa5",
+            "bytes": 9996
+          }
+        ],
+        "refusalCounts": {
+          "TARGET_BOUND_ALTERNATIVES": 126
+        },
+        "sceneCounts": {
+          "ANCHOR_AGGRO_REFUSED": 19218,
+          "CANONICAL_ANCHOR_ACCEPTED": 38484,
+          "LEVEL_REWARD_GEO_ACCEPTED": 63720,
+          "NO_ISOLATED_TARGET_POINT": 1416,
+          "OUT_OF_WORLD_TEMPLATE_REFUSED": 42,
+          "SAFE_TEMPLATE_SEEN": 723702,
+          "TARGET_BOUND_SCENE_REFUSED": 126
+        }
+      },
+      {
+        "campaign": "autonomous009-goal010-20261114-e",
+        "session": "f8de7b555b1a489dbbb3e2f93d2c3954",
+        "complete": null,
+        "proofs": [
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json",
+            "sha256": "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+            "bytes": 6597
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json",
+            "sha256": "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+            "bytes": 6573
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.source.json",
+            "sha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+            "bytes": 6146
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.inventory.json",
+            "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+            "bytes": 35067
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.source.json",
+            "sha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+            "bytes": 6570
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json",
+            "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+            "bytes": 26456
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json",
+            "sha256": "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+            "bytes": 6317
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json",
+            "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096",
+            "bytes": 40627
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json",
+            "sha256": "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+            "bytes": 6687
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.inventory.json",
+            "sha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2",
+            "bytes": 42343
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.source.json",
+            "sha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d",
+            "bytes": 6683
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json",
+            "sha256": "29dbbcc6b5470c4820ba4d207058bc35c648d3306782e7a14e2e64f720ea31d9",
+            "bytes": 44254
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json",
+            "sha256": "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+            "bytes": 6768
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json",
+            "sha256": "677a2528ba64949138812aeb2d4ae1eeac90e416814f8c2d671d469306d9d401",
+            "bytes": 40982
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json",
+            "sha256": "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041",
+            "bytes": 6711
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/cells.tsv",
+            "sha256": "f718331cb19525c614c661109ba48e9036339bbbc3357cfe31741c6f7d5bb421",
+            "bytes": 104
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.inventory.json",
+            "sha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0",
+            "bytes": 39625
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.source.json",
+            "sha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+            "bytes": 6565
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/independence.json",
+            "sha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890",
+            "bytes": 1086
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/planning-refusals.json",
+            "sha256": "6cf27c95b9cd8e4ad7376ea1b0649ac63fbf3ff1b7a7002dd291f1006ce14bf8",
+            "bytes": 10975
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/scene-catalog-counts.json",
+            "sha256": "fbcd56bb1e4c0d48b6a02656a618c517bf545c9444ac6b2c5cf368e1434a6420",
+            "bytes": 225
+          },
+          {
+            "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-e/admission/f8de7b555b1a489dbbb3e2f93d2c3954/source-coverage.json",
+            "sha256": "df35993aabbd2ff714b4ad7da96df35f241497d2f3dcef3d9cf090381616cfa5",
+            "bytes": 9996
+          }
+        ],
+        "refusalCounts": {
+          "TARGET_BOUND_ALTERNATIVES": 84
+        },
+        "sceneCounts": {
+          "ANCHOR_AGGRO_REFUSED": 19422,
+          "CANONICAL_ANCHOR_ACCEPTED": 38838,
+          "LEVEL_REWARD_GEO_ACCEPTED": 63114,
+          "NO_ISOLATED_TARGET_POINT": 1656,
+          "OUT_OF_WORLD_TEMPLATE_REFUSED": 84,
+          "SAFE_TEMPLATE_SEEN": 725256,
+          "TARGET_BOUND_SCENE_REFUSED": 84
+        }
+      }
+    ],
+    "lastFailure": "Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.",
+    "bindingD": {
+      "sourceCommit": "6b9f902644f8d34187ccedff7d65f1a88fc88f83",
+      "priorNativeMillis": 601015,
+      "sourceSession": "b18263c423fd4f2ebf61a06ca981bbf6",
+      "cells": 4,
+      "receiptSha": "1FBB7B2A716BAAE54125F5C44DC3A982977D79AB573138DC084FF36F195D844B",
+      "files": [
+        {
+          "sha256": "4590E44DB1C8375F7E4588A763C7577B439DF0BC422369A4CFA39BA839C63F69",
+          "name": "cells.tsv",
+          "bytes": 2384
+        },
+        {
+          "sha256": "FB7C35D6A4C3E36ABF6BFA0F028651896827D3A198AC9077B688CB0F403A89E1",
+          "name": "31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a.physical.sha",
+          "bytes": 64
+        },
+        {
+          "sha256": "82892DF7F7CD88E13B5D976AC6C7DDC1059A67E94BE1133A23401C0932B7FE2F",
+          "name": "31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a.risk.tsv",
+          "bytes": 335
+        },
+        {
+          "sha256": "1DC3D1B80A742D2954AF04C77F1A7930D0D9CD3B14D247B11F61D53DB5C86E05",
+          "name": "6f4c013db5d61186dbc4d960532881ad3225c87d0604a4831d9708530fdf8a11.physical.sha",
+          "bytes": 64
+        },
+        {
+          "sha256": "70B7DB2A9E327270F3BC4D5058FF25C41CD9790F9976B155B4D111A6CD100AB6",
+          "name": "c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0.physical.sha",
+          "bytes": 64
+        },
+        {
+          "sha256": "3AEEA350514FA49135AC9A04824EAE02A2010C8C744A7BFFC98C707BD0FBF1AB",
+          "name": "f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc.physical.sha",
+          "bytes": 64
+        },
+        {
+          "sha256": "23A25C5E46290A21DC7FFB6443D77063573B8AEE7EF3C666E6ECF944E1175165",
+          "name": "f084cd9ec1d3951c15875dbe633b67e424afd9aa4cb51f760843e441e7935ebc.risk.tsv",
+          "bytes": 334
+        }
+      ],
+      "classes": [
+        {
+          "sha256": "79CB76D43D3CB286E361646A4950282ADC54BDCBE0FFC09B9BE659C969E76E98",
+          "name": "PhantomAutonomousTrainingNative.class"
+        },
+        {
+          "sha256": "FC3FD9CA5E70015E468BAFC7D75AED180516D930E0FA129C77C8350DDA9F0DCF",
+          "name": "PhantomLearning001ShadowNative.class"
+        },
+        {
+          "sha256": "F683CA168521CF6803944DE364A46A700A178E6FD6C0914C6536C153238005AB",
+          "name": "PhantomLearning001ShadowNative$Runtime.class"
+        }
+      ],
+      "schema": "GOAL010_PREFLIGHT_EXACT_BINDING_V1",
+      "configSha": "FB608EF42C91AD8269C47B17A52F5456C545FA584393D2390318C5FF1D2DFCDB",
+      "priorStarts": 3,
+      "jarSha": "FC0DB4459D8FB5C8ED0A0E28BC7B115B245F3C4AFA78BE628F6BDF475007468C",
+      "maximumNativeMillis": 2700000,
+      "precutArms": 8,
+      "nativeLiveGuardsRemainRequired": true,
+      "afterCut": false,
+      "maximumStarts": 5,
+      "trainingCredit": false,
+      "sourceModelVersion": 14
+    },
+    "physicalDiffD": [
+      {
+        "cell": "c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0",
+        "side": "STOCK",
+        "differences": {
+          "configRates": {
+            "headless": "2b077f12eb106b269eb2d615c1fb7ca9178fd3203ddd3375e2e1ad667b35ee82",
+            "native": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9"
+          },
+          "hpMpCp": {
+            "headless": "[0:2822.0/2822:2739.0/2739:1693.0/1693]",
+            "native": "[0:4713.0/4713:2739.0/2739:1693.0/1693]"
+          }
+        }
+      },
+      {
+        "cell": "c9504427bc786eb7f6a37d002a90809f584ab76ddd34a8b2e091f661435ccde0",
+        "side": "LEARNED",
+        "differences": {
+          "configRates": {
+            "headless": "2b077f12eb106b269eb2d615c1fb7ca9178fd3203ddd3375e2e1ad667b35ee82",
+            "native": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9"
+          },
+          "hpMpCp": {
+            "headless": "[0:2822.0/2822:2739.0/2739:1693.0/1693]",
+            "native": "[0:4713.0/4713:2739.0/2739:1693.0/1693]"
+          }
+        }
+      },
+      {
+        "cell": "31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a",
+        "side": "STOCK",
+        "differences": {
+          "configRates": {
+            "headless": "2b077f12eb106b269eb2d615c1fb7ca9178fd3203ddd3375e2e1ad667b35ee82",
+            "native": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9"
+          },
+          "hpMpCp": {
+            "headless": "[0:2790.0/2790:2736.0/2736:1674.0/1674, 1:3182.0/3182:2756.0/2756:2864.0/2864, 2:4556.0/4556:1666.0/1666:2733.0/2733, 3:2822.0/2822:2739.0/2739:1693.0/1693]",
+            "native": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]"
+          }
+        }
+      },
+      {
+        "cell": "31003f754f993141be0053b7156e852420fad8906318853a85b492929ca3d89a",
+        "side": "LEARNED",
+        "differences": {
+          "configRates": {
+            "headless": "2b077f12eb106b269eb2d615c1fb7ca9178fd3203ddd3375e2e1ad667b35ee82",
+            "native": "9d46d48704aefc80337a640ff0086f9849e5aa3c2cb48c43a1376094976d85f9"
+          },
+          "hpMpCp": {
+            "headless": "[0:2790.0/2790:2736.0/2736:1674.0/1674, 1:3182.0/3182:2756.0/2756:2864.0/2864, 2:4556.0/4556:1666.0/1666:2733.0/2733, 3:2822.0/2822:2739.0/2739:1693.0/1693]",
+            "native": "[0:4681.0/4681:2736.0/2736:1674.0/1674, 1:5073.0/5073:2756.0/2756:2864.0/2864, 2:6492.0/6492:1666.0/1666:2733.0/2733, 3:4713.0/4713:2739.0/2739:1693.0/1693]"
+          }
+        }
+      }
+    ],
+    "beforeSQL": {
+      "sqlPid": 66792,
+      "readOnly": true,
+      "equalBefore": false,
+      "observedUtc": "2026-11-14T14:19:37.8861980Z",
+      "rows": 183,
+      "tag": "before",
+      "sqlCreated": 134391395721842500,
+      "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D"
+    },
+    "afterSQL": {
+      "observedUtc": "2026-11-14T15:13:48.5187006Z",
+      "readOnly": true,
+      "sqlCreated": 134391428241630168,
+      "rows": 183,
+      "tag": "after",
+      "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+      "sqlPid": 81216,
+      "equalBefore": true
+    }
+  },
+  "extensionSourceFullReadback": {
+    "ref": "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe",
+    "method": "Independent GitHub connector full UTF8 body SHA256 + API blobSHA1 against canonical git show",
+    "files": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+        "bytes": 16755,
+        "gitBlobSha1": "3cbbe00a5d3daba3335ddf7bc4a42f41d288490d",
+        "sha256": "481ac91a4f0a3485d0a1830e1c5aa5edb1e72b72bd5f8aa9ff4fc32481b2524e",
+        "githubBlobSha": "3cbbe00a5d3daba3335ddf7bc4a42f41d288490d",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+        "bytes": 26432,
+        "gitBlobSha1": "cae475a50b96c8d1444045bf4a85b0f7bd3894f9",
+        "sha256": "47963c0a30cd05bd934bb3ec110b60928f727108b12dcb4adafd7cf3515d93e0",
+        "githubBlobSha": "cae475a50b96c8d1444045bf4a85b0f7bd3894f9",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "bytes": 119707,
+        "gitBlobSha1": "74253408c378e9228f53f2b16b9a5a402f62e68a",
+        "sha256": "0c28e53ac1e00ed6555d64fec8e91c9d31d738d447d08aca5dcf2b985def98dc",
+        "githubBlobSha": "74253408c378e9228f53f2b16b9a5a402f62e68a",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+        "bytes": 28842,
+        "gitBlobSha1": "ef6722a19416447388aa900a79de4894453b829a",
+        "sha256": "4904a63fae5b11f123716d9b547a6dbb0e8b562d3a837f328bbb3c2a75ad7941",
+        "githubBlobSha": "ef6722a19416447388aa900a79de4894453b829a",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+        "bytes": 2574,
+        "gitBlobSha1": "8dc2dfe26fd313c321351241382bd8d1f42bba5c",
+        "sha256": "4e102e3ee33884922dea5a4edba77b3dba4c2740b4b7e4b7817602ace0bfba9c",
+        "githubBlobSha": "8dc2dfe26fd313c321351241382bd8d1f42bba5c",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+        "bytes": 63474,
+        "gitBlobSha1": "ca63687ccdc3e52f6c8eb671b8b926dd21399adf",
+        "sha256": "b1c46209282a7d11b125ab7d417a832d805fcf388c658774624e33da9abe0085",
+        "githubBlobSha": "ca63687ccdc3e52f6c8eb671b8b926dd21399adf",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "bytes": 107074,
+        "gitBlobSha1": "8e372c64bb5f484bccb101d82dc29ca9c5c55427",
+        "sha256": "befbeab4bff547f9f981bb6db26351ec51e0ffdacd395ca5e78675f3726753f0",
+        "githubBlobSha": "8e372c64bb5f484bccb101d82dc29ca9c5c55427",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+        "bytes": 43777,
+        "gitBlobSha1": "73d51ed751b5418aeded9a96fbe30bf6e5eca7cb",
+        "sha256": "37daff8e0a8ae2aedf3ec39e54fe38d6b3de09038a335a88fc0056bf44d8752f",
+        "githubBlobSha": "73d51ed751b5418aeded9a96fbe30bf6e5eca7cb",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+        "bytes": 90878,
+        "gitBlobSha1": "d5163961b1cd43563952ce3a276c6b1c620a947e",
+        "sha256": "a0941b0f73ebd5eb64548442e5686d6194a359b3a1bdd862702fc18897212e3b",
+        "githubBlobSha": "d5163961b1cd43563952ce3a276c6b1c620a947e",
+        "fullBodyMatch": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+        "bytes": 15876,
+        "gitBlobSha1": "88a425579776efedb5c297b70b56f5d7fe533261",
+        "sha256": "95f5348cd477d3d73b6af8d514d7d33a3af109880ca82621e3d90f7d326b203b",
+        "githubBlobSha": "88a425579776efedb5c297b70b56f5d7fe533261",
+        "fullBodyMatch": true
+      }
+    ]
+  }
 }
