@@ -23,6 +23,15 @@ internal static partial class Program
 
     private static async Task<int> Run(string[] args)
     {
+        if (args.Length > 0 && args[0] == "--prompt-lab-live") return await PromptLabLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-description-live") return await PromptLabDescriptionLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-refine-modes-live") return await PromptLabRefineModesLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-compare-modes-live") return await PromptLabCompareModesLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-controls") return PromptLabControls(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab001")
+        { await PromptLab001(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
+        if (args.Length > 0 && args[0] == "--corpus001")
+        { await SemanticCorpus001(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--task095")
         { Task095(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--task095-controls") return Task095Controls();
@@ -533,7 +542,7 @@ internal static partial class Program
         choices = new[] { new { finish_reason = "stop", message = new { content = JsonSerializer.Serialize(new
         { items = kinds.Select((kind, i) => new { kind, text = "Вечер ещё оставил время на разговор " + i, reason = "Короткая новая фраза" }) }) } } }
     });
-    private sealed class RecordingHandler(string body, HttpStatusCode status = HttpStatusCode.OK) : HttpMessageHandler
+    private sealed class RecordingHandler(string body, HttpStatusCode status = HttpStatusCode.OK, string mediaType = "application/json") : HttpMessageHandler
     {
         public int Calls { get; private set; }
         public string? Payload { get; private set; }
@@ -541,7 +550,7 @@ internal static partial class Program
         {
             cancellationToken.ThrowIfCancellationRequested(); Calls++;
             Payload = request.Content == null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-            return new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+            return new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, mediaType) };
         }
     }
     private sealed class FaultHandler(Exception error) : HttpMessageHandler

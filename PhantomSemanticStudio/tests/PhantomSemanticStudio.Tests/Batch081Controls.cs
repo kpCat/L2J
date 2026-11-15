@@ -51,7 +51,7 @@ internal static partial class Program
                 dynamic ui = Open(root, fixture.Module, new LmStudioClient(firstHttp));
                 using (var disposable = (IDisposable)ui)
                 {
-                    Equal(6, (int)Control(ui, "tabs").TabPages.Count);
+                    Equal(7, (int)Control(ui, "tabs").TabPages.Count);
                     Equal(20m, (decimal)Control(ui, "nudCount").Maximum);
                     Equal(500m, (decimal)Control(ui, "nudBatchTarget").Maximum);
                     foreach (var facet in new[] { "Aggression", "Sarcasm", "Humor", "Reserved", "Swagger", "Timidity", "Romance", "Roughness", "Cunning", "Gossip" })

@@ -1,0 +1,4 @@
+[
+  {"id":"balanced","temperature":0.70,"topP":0.90,"topK":40,"repeatPenalty":1.05,"seed":13001},
+  {"id":"expressive","temperature":1.00,"topP":0.95,"topK":64,"repeatPenalty":1.10,"seed":13001}
+]

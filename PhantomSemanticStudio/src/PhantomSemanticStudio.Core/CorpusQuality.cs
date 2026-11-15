@@ -1,0 +1,84 @@
+using System.Text.RegularExpressions;
+
+namespace PhantomSemanticStudio.Core;
+
+public sealed record CorpusQualityIssue(string Code, int Record, string Detail);
+
+/// <summary>Conservative editorial triage. No score here is a human judgement or an approval.</summary>
+public static class CorpusQuality
+{
+    private static readonly Regex Strong = new(@"(?i)\b(?:бля(?:д|т|\b)|пизд|ёб|ебан|ебуч|заеб|наху|нахер|хуй|хуя|хуе)", RegexOptions.CultureInvariant);
+    private static readonly Regex Mild = new(@"(?i)\b(?:блин|чёрт|черт|хрен|фигня|задолбал)\b", RegexOptions.CultureInvariant);
+    private static readonly Regex Sexual = new(@"(?i)\b(?:секс|трах|оргазм|раздевай|постель|постели|девствен|целк|сиськ|оральн|анальн|пизд(?:а|у|ы|е|ой|ою|ам|ами|ах)\b)", RegexOptions.CultureInvariant);
+    private static readonly Regex FirstMaleBody = new(@"(?i)\b(?:мой|моего|моему|моим|моём)\s+член\b|\bу меня\s+(?:есть\s+)?член\b", RegexOptions.CultureInvariant);
+    private static readonly Regex FirstFemaleBody = new(@"(?i)\b(?:моя|мою|моей|мои|моих)\s+(?:пизд|сиськ)|\bу меня\s+(?:есть\s+)?(?:пизд|сиськ)", RegexOptions.CultureInvariant);
+    private static readonly Regex SecondMaleBody = new(@"(?i)\b(?:твой|твоего|твоему|твоим|твоём)\s+член\b|\bу тебя\s+(?:есть\s+)?член\b", RegexOptions.CultureInvariant);
+    private static readonly Regex SecondFemaleBody = new(@"(?i)\b(?:твоя|твою|твоей|твои|твоих)\s+(?:пизд|сиськ)|\bу тебя\s+(?:есть\s+)?(?:пизд|сиськ)", RegexOptions.CultureInvariant);
+    private static readonly Regex Cliche = new(@"(?i)(понимаю (?:твои|ваши) чувства|неприятно, когда|важно помнить|следует учитывать|не стоит расстраиваться|как (?:ии|языковая модель)|отличный вопрос)", RegexOptions.CultureInvariant);
+    public static IReadOnlyList<CorpusQualityIssue> Check(IReadOnlyList<V4Entry> entries, V4GenerationRequest request, IReadOnlyList<V4Entry> peers)
+    {
+        var issues = new List<CorpusQualityIssue>();
+        var previous = peers.ToList();
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var e = entries[i]; void Flag(string code, string detail) => issues.Add(new(code, i + 1, detail));
+            if (request.QaOnly) Flag("QA_ONLY_NO_RUNTIME_GENDER_FILTER", "Отдельная QA-сцена, не approved V4 corpus.");
+            if (e.Category != request.Category || e.Mode != request.Mode || e.RequiredEvent != request.RequiredEvent) Flag("GENERATION_SCOPE", "Категория, mode или event отличаются от frozen request.");
+            if (e.Mode == "TRIGGER" && !e.Category.StartsWith("social.conversation.", StringComparison.Ordinal) && !e.Category.StartsWith("social.greeting.", StringComparison.Ordinal))
+            {
+                var trigger = Regex.Replace(V4Rules.Normalize(e.Text), @"[\p{P}\p{S}]", "").Replace('ё', 'е').Trim();
+                if (new[] { "давай", "о чем именно", "я не против", "давай я не против", "поболтаем так поболтаем", "смотря о чем", "у тебя есть идеи", "ладно", "хорошо" }.Contains(trigger))
+                    Flag("TRIGGER_TOO_GENERIC", "Буквальный вход без контекста не указывает на эту категорию.");
+            }
+            if (e.Mode != "TRIGGER")
+            {
+                if (e.Relations.Any(r => r != request.Style.Relation)) Flag("RELATION_SCOPE", "Модель расширила или потеряла разрешённое отношение.");
+                if (e.Voices.Any(v => v != request.Style.Voice)) Flag("VOICE_SCOPE", "Голос не совпадает с заданной альтернативой.");
+                if (!request.Style.MatureRequested && e.Maturity != "GENERAL") Flag("MATURE_SCOPE", "MATURE не разрешён в этом запросе.");
+                if (!request.Style.StrongProfanityRequested && e.Profanity != "NONE") Flag("PROFANITY_SCOPE", "Ругань не разрешена в этой порции.");
+                if (Strong.IsMatch(e.Text) && e.Profanity != "STRONG" || Mild.IsMatch(e.Text) && e.Profanity == "NONE")
+                    Flag("PROFANITY_MARKING", "Лексический индикатор ругани не соответствует метке; нужен редактор.");
+                if (Sexual.IsMatch(e.Text) && e.Maturity != "MATURE") Flag("MATURE_MARKING_REVIEW", "Возможный взрослый подтекст без MATURE; индикатор не доказывает смысл.");
+                if (e.Maturity == "MATURE" && !Sexual.IsMatch(e.Text)) Flag("MATURE_SUBSTANCE_REVIEW", "Метка без явного взрослого лексического индикатора; проверить настоящий смысл, а не считать наличие контента по метке.");
+                if (e.Profanity != "NONE" && request.Style.Channel is not ("TELL" or "BOT_PRIVATE"))
+                    Flag("JAVA_PUBLIC_PROFANITY_BLOCKED", "Текущий Java consumer допускает мат только в приватном согласном контексте; публичная запись недоступна.");
+                if (e.Stance is "FLIRT" or "AGGRESSIVE_BANTER" && (request.Style.Channel is not ("TELL" or "BOT_PRIVATE") || request.Style.Relation is not ("TRUSTED" or "FAMILIAR")))
+                    Flag("JAVA_STANCE_CONTEXT_BLOCKED", "Этот stance доступен в текущем Java только приватно и при FAMILIAR/TRUSTED с согласием.");
+                var bodyText = Regex.Replace(e.Text, @"(?i)\bчлен(?:а|ом|у|е)?\s+(?:клана|группы|совета|пати)\b", "участник");
+                var firstMale = FirstMaleBody.IsMatch(bodyText); var firstFemale = FirstFemaleBody.IsMatch(bodyText);
+                var secondMale = SecondMaleBody.IsMatch(bodyText); var secondFemale = SecondFemaleBody.IsMatch(bodyText);
+                if (firstMale || firstFemale || secondMale || secondFemale)
+                    Flag("ANATOMY_RUNTIME_UNFILTERED", "Персональная анатомия не может безопасно отбираться текущим универсальным V4 runtime.");
+                if (request.Style.SpeakerSex == "FEMALE" && firstMale || request.Style.SpeakerSex == "MALE" && firstFemale
+                    || request.Style.AddresseeSex == "FEMALE" && secondMale || request.Style.AddresseeSex == "MALE" && secondFemale)
+                    Flag("ANATOMY_CONTRADICTION", "Анатомическая атрибуция противоречит явно заданной вымышленной сцене.");
+                var saysVirgin = Regex.IsMatch(e.Text, @"(?i)\bя\s+(?:(?:ещё|всё ещё)\s+)?(?:девственница|целка)\b");
+                var saysExperienced = Regex.IsMatch(e.Text, @"(?i)(?:я|у меня).{0,32}(?:давно не девствен|не девственниц|уже был секс|первый раз уже|не первый раз)");
+                if (saysVirgin || saysExperienced) Flag("PERSONAL_FACT_RUNTIME_UNFILTERED", "Личный факт нельзя привязать к персонажу через текущий V4 wire.");
+                if (request.Style.SpeakerVirginity == "VIRGIN" && saysExperienced || request.Style.SpeakerVirginity == "NOT_VIRGIN" && saysVirgin)
+                    Flag("PERSONAL_FACT_CONTRADICTION", "Реплика противоречит явно заданной биографии вымышленного совершеннолетнего персонажа.");
+            }
+            if (Cliche.IsMatch(e.Text)) Flag("GENERIC_AI_STYLE", "Возможная шаблонная или наставническая формулировка.");
+            var normalized = V4Rules.Normalize(e.Text);
+            foreach (var peer in previous)
+            {
+                if (V4Rules.Normalize(peer.Text) == normalized) { Flag("EXACT_DUPLICATE", peer.Id); break; }
+                if (normalized.Length >= 16 && NearClone(e.Text, peer.Text)) { Flag("NEAR_DUPLICATE_REVIEW", peer.Id); break; }
+            }
+            previous.Add(e);
+        }
+        return issues.AsReadOnly();
+    }
+    public static bool NearClone(string first, string second)
+    {
+        static HashSet<string> Tokens(string text) => Regex.Matches(V4Rules.Normalize(text), @"[\p{L}\p{N}]+")
+            .Select(m => m.Value).Where(t => t.Length > 2).ToHashSet(StringComparer.Ordinal);
+        static HashSet<string> Grams(string text)
+        { var clean = Regex.Replace(V4Rules.Normalize(text), @"[^\p{L}\p{N}]", ""); return Enumerable.Range(0, Math.Max(0, clean.Length - 2)).Select(i => clean.Substring(i, 3)).ToHashSet(StringComparer.Ordinal); }
+        var a = Tokens(first); var b = Tokens(second);
+        if (a.Count >= 3 && a.SetEquals(b)) return true;
+        var x = Grams(first); var y = Grams(second);
+        return a.Count >= 3 && b.Count >= 3 && a.Intersect(b).Count() >= 3 && x.Union(y).Count() > 0
+            && (double)x.Intersect(y).Count() / x.Union(y).Count() >= .82;
+    }
+}

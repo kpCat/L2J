@@ -1,5 +1,11 @@
 # Phantom Semantic Studio · 0.1
 
+## Corpus001 R2 — изолированная лаборатория
+
+Добавлены версионированные профили, измеряемые native/compatible запросы и возобновляемый пилот Core/CLI. Новая вкладка «Лаборатория промптов» связывает описание, редактируемый план, генерацию, оценки, улучшение и сравнение; принятый результат проходит отдельный preview/import/build V4. См. [интерактивный цикл и ограничения](docs/PROMPT_LAB_RU.md) и [CLI-пилот](docs/SEMANTIC_CORPUS_RU.md). Технические тесты и реальные запросы не означают приёмку качества корпуса или ручного UI. Модель и API владелец запускает вручную; настройки загрузки программа не меняет.
+
+Из копии Studio: `scripts\Start-CorpusLab.cmd -Action ThinkingPlan`, затем `-Action Status`. Эти команды работают без модели. Для HTTP нужны отдельные `Models`/`Pilot` после ручного запуска. Артефакты не попадают в прежнюю библиотеку. После подтверждения завершения Goal013 проверенный source overlay интегрируется в основную feature/phantom-world отдельно от corpus/stage; автоматической установки в GameServer нет.
+
 TASK062: исходники находятся в `PhantomSemanticStudio/` общего kpCat/L2J, основная ветка — `feature/phantom-world`. Происхождение и точный snapshot — [IMPORT_ORIGIN.md](IMPORT_ORIGIN.md); общие правила — [../AGENTS.md](../AGENTS.md). Исторические checkpoint reports ниже сохранены и не являются новой приёмкой TASK062.
 
 Отдельная C# WinForms-программа для расширения **разговорного** Semantic Pack High Five под контролем редактора. Текущий checkpoint PSS-010: [reports/PSS-010-final.md](reports/PSS-010-final.md), [UI evidence](reports/PSS-010-ui.md); Java content evidence прежнего PSS-003: [reports/PSS-003-final.md](reports/PSS-003-final.md).

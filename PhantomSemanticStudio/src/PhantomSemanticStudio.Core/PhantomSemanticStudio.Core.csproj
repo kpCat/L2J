@@ -2,6 +2,7 @@
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><RestorePackagesWithLockFile>true</RestorePackagesWithLockFile></PropertyGroup>
   <ItemGroup><PackageReference Include="Microsoft.Data.Sqlite" Version="[10.0.12]" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="PhantomSemanticStudio.Tests" /></ItemGroup>
+  <ItemGroup><Content Include="..\..\prompts\corpus001\*" Link="prompts\corpus001\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\..\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\semantic\v4\registry.tsv" LogicalName="V4.registry.tsv" />
     <EmbeddedResource Include="..\..\..\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\semantic\v4\voices.tsv" LogicalName="V4.voices.tsv" />

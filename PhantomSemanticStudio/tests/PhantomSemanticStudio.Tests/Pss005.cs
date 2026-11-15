@@ -252,7 +252,7 @@ internal static partial class Program
                     if (left.Bounds.IntersectsWith(right.Bounds) || panel.Bounds.IntersectsWith(left.Bounds) || panel.Bounds.IntersectsWith(right.Bounds)
                         || !left.Parent.ClientRectangle.Contains(left.Bounds) || !right.Parent.ClientRectangle.Contains(right.Bounds))
                         throw new AssertionFailure($"Semantic layout: left={left.Bounds}; right={right.Bounds}; validation={panel.Bounds}; parent={left.Parent.ClientRectangle}; form={ui.Size}");
-                    Equal(6, (int)Control(ui, "tabs").TabPages.Count); True(panel.ReadOnly);
+                    Equal(7, (int)Control(ui, "tabs").TabPages.Count); True(panel.ReadOnly);
                 }
             });
             Test("PSS-005 actual offline action saved advisory stale editor and edit clears approval", () =>

@@ -105,7 +105,10 @@ public sealed record SemanticReviewEvidence
     public int MaxMatches { get; init; } = 12;
     public IReadOnlyList<SemanticVerdict> Verdicts { get; init; } = Array.Empty<SemanticVerdict>();
 }
-public sealed record GenerationRequest(string Topic, string Act, string Band, string Register, string Gender, string Instruction, string Words, int Count, GenerationMode Mode = GenerationMode.MIXED);
+public sealed record GenerationRequest(string Topic, string Act, string Band, string Register, string Gender, string Instruction, string Words, int Count, GenerationMode Mode = GenerationMode.MIXED)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public GenerationStyleContext? Style { get; init; }
+}
 public enum LmDiagnosticCode { CHECKED_MODEL_LIST, MODEL_NOT_LISTED, SERVER_OFFLINE, CONNECTION_ERROR, TIMEOUT, CANCELLED, ENDPOINT, AUTH, HTTP_ERROR, SCHEMA_REJECTED, BAD_RESPONSE, INVALID_SETTINGS, INVALID_REQUEST }
 public sealed record LmDiagnostic(LmDiagnosticCode Code, string Message, string FailureCategory = "")
 {

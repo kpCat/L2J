@@ -65,6 +65,7 @@ public partial class MainForm : Form
             session = await Task.Run(Store.LoadSession, token);
             http = LmStudioClient.CreateHttpClient(); lm = new LmStudioClient(http);
             FillSettings(); FillChoices(); BindCandidates(); BindLessons();
+            promptLab.SetContext(Store, ReadSettings, () => txtApiKey.Text);
             tabs.SelectedTab = tabSettings; ready = true;
             RestoreBatchInputs(false); BindBatchState(session.BatchJob);
             statusLabel.Text = "L2J только для чтения. Настройки готовы; импорт запускается вручную.";
@@ -543,6 +544,7 @@ public partial class MainForm : Form
     }
     private void Tabs_Selecting(object? sender, TabControlCancelEventArgs e)
     {
+        if (promptLab.Busy && e.TabPage != tabPromptLab) { e.Cancel = true; return; }
         if (batchRunning && e.TabPage != tabGenerate) { e.Cancel = true; return; }
     }
     private void Tabs_Deselecting(object? sender, TabControlCancelEventArgs e)
@@ -728,7 +730,7 @@ public partial class MainForm : Form
             statusLabel.Text = "STAGED_UNVALIDATED. XML-предложение только в workspace, НЕ ДЛЯ УСТАНОВКИ.";
         });
     }
-    private void Cancel_Click(object? sender, EventArgs e) { if (batchRunning) BatchCancel_Click(sender, e); else operation?.Cancel(); evidenceRefresh?.Cancel(); }
+    private void Cancel_Click(object? sender, EventArgs e) { if (promptLab.Busy) promptLab.CancelCurrentOperation(); else if (batchRunning) BatchCancel_Click(sender, e); else operation?.Cancel(); evidenceRefresh?.Cancel(); }
     private void PackQuality_Click(object? sender, EventArgs e)
     {
         if (!ready || busy) return;
@@ -798,6 +800,7 @@ public partial class MainForm : Form
     }
     private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
     {
+        if (!promptLab.TryClose()) { e.Cancel = true; statusLabel.Text = "Дождитесь сохранения лаборатории или исправьте её диагностику."; return; }
         if (busy) { batchService?.RequestCancel(); operation?.Cancel(); e.Cancel = true; statusLabel.Text = "Отмена запрошена. Закройте окно повторно после завершения операции."; return; }
         e.Cancel = !ResolvePendingEdit();
         if (!e.Cancel) CancelEvidenceRefresh();
@@ -805,5 +808,10 @@ public partial class MainForm : Form
     private void MainForm_FormClosed(object? sender, FormClosedEventArgs e)
     {
         CancelEvidenceRefresh(); operation?.Dispose(); http?.Dispose(); store?.Dispose();
+    }
+    private void PromptLab_BusyChanged(object? sender, EventArgs e)
+    {
+        foreach (TabPage page in tabs.TabPages) if (page != tabPromptLab) page.Enabled = !promptLab.Busy;
+        btnCancel.Enabled = busy || promptLab.Busy;
     }
 }

@@ -42,6 +42,7 @@ public sealed record BatchEditorialMetadata
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record BatchGenerationParameters
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public GenerationStyleContext? Style { get; init; }
     public string Topic { get; init; } = "";
     public string Act { get; init; } = "";
     public string Band { get; init; } = "UNKNOWN";
@@ -62,6 +63,7 @@ public sealed record BatchGenerationParameters
             || string.IsNullOrWhiteSpace(Instruction) || Instruction.Length > 3000 || Words == null || Words.Length > 600)
             throw new InvalidDataException("Проверьте разговорный scope, голос, задание до 3000 символов и размер партии 1–500.");
         Facets.Validate();
+        if (Style != null) PromptProfiles.Default.ValidateLegacy(Style, Topic, Act, Band, Gender);
         if (snapshot != null && (!snapshot.Topics.Contains(Topic, StringComparer.Ordinal) || !snapshot.Acts.Contains(Act, StringComparer.Ordinal)
             || !snapshot.Entries.Any(e => e.Kind == "PATTERN" && e.Topic == Topic && e.Act == Act)))
             throw new InvalidDataException("Партия требует существующую разговорную связку topic/act.");
@@ -73,12 +75,14 @@ public sealed record BatchGenerationParameters
     internal string PromptInstruction() => Instruction + "\nEDITORIAL_ONLY: " + JsonSerializer.Serialize(Facets)
         + "; native base voice=" + (Voice.Length == 0 ? "universal" : Voice)
         + ". Сочетай интенсивности независимо только в формулировке. Это не игровые действия или native traits."
-        + " roughness не разрешает мат/mature; romance только уместно и без adult. Не выдумывай достижения, личные факты, сделки или выполненные действия. Разнообразие, без повторов.";
+        + " Facets сами по себе не дают разрешения на mature или интенсивность мата: используй явный контекстный профиль. "
+        + "Не выдумывай достижения, личные факты, сделки или выполненные действия. Разнообразие, без повторов.";
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record BatchJobState
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? PromptProfileHash { get; init; }
     public int Version { get; init; } = 1;
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
     public string Status { get; init; } = "READY";
@@ -157,7 +161,8 @@ public sealed class BatchGenerationService(WorkspaceStore store, SessionState se
             Parameters = parameters with { Facets = parameters.Facets with { } }, ParametersFingerprint = parameters.Fingerprint(),
             SourceModuleRoot = snapshot.ModuleRoot, SourceFingerprint = snapshot.Fingerprint,
             SourceFiles = snapshot.Files.ToList(), SourceFilesFingerprint = BatchGenerationContract.FilesFingerprint(snapshot.Files),
-            ModelId = settings.ModelId, SettingsFingerprint = BatchGenerationContract.SettingsFingerprint(settings)
+            ModelId = settings.ModelId, SettingsFingerprint = BatchGenerationContract.SettingsFingerprint(settings),
+            PromptProfileHash = PromptProfiles.Default.Hash
         };
         Commit(job, []); return job;
     }
@@ -188,7 +193,7 @@ public sealed class BatchGenerationService(WorkspaceStore store, SessionState se
             try
             {
                 settings.Validate(); parameters.Validate(snapshot); CheckSourceSettings(snapshot, settings);
-                if (job.ParametersFingerprint != parameters.Fingerprint() || job.SettingsFingerprint != BatchGenerationContract.SettingsFingerprint(settings)
+                if (job.PromptProfileHash != PromptProfiles.Default.Hash || job.ParametersFingerprint != parameters.Fingerprint() || job.SettingsFingerprint != BatchGenerationContract.SettingsFingerprint(settings)
                     || job.SourceModuleRoot != snapshot.ModuleRoot || job.SourceFingerprint != snapshot.Fingerprint
                     || job.SourceFilesFingerprint != BatchGenerationContract.FilesFingerprint(snapshot.Files))
                     throw new InvalidDataException("Drift");
@@ -216,7 +221,7 @@ public sealed class BatchGenerationService(WorkspaceStore store, SessionState se
                 {
                     drafts = await client.GenerateAsync(settings, apiKey, snapshot,
                         new(parameters.Topic, parameters.Act, parameters.Band, parameters.Register, parameters.Gender,
-                            parameters.PromptInstruction(), parameters.Words, requested, parameters.Mode), cancel.Token).ConfigureAwait(false);
+                            parameters.PromptInstruction(), parameters.Words, requested, parameters.Mode) { Style = parameters.Style }, cancel.Token).ConfigureAwait(false);
                 }
                 catch (LmStudioException e)
                 {

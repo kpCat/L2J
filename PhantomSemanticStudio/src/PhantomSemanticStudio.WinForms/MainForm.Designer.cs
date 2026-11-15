@@ -49,6 +49,8 @@ partial class MainForm
             tabCandidates = new System.Windows.Forms.TabPage();
             tabExport = new System.Windows.Forms.TabPage();
             tabSettings = new System.Windows.Forms.TabPage();
+            tabPromptLab = new System.Windows.Forms.TabPage();
+            promptLab = new PhantomSemanticStudio.WinForms.PromptLabControl();
             statusStrip = new System.Windows.Forms.StatusStrip();
             statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             lblSnapshot = new System.Windows.Forms.Label();
@@ -271,6 +273,14 @@ partial class MainForm
             tabs.Padding = new System.Drawing.Point(14, 8);
             tabs.SelectedIndex = 0;
             tabs.Multiline = true;
+            tabPromptLab.Name = "tabPromptLab";
+            tabPromptLab.Text = "Лаборатория промптов";
+            tabPromptLab.UseVisualStyleBackColor = true;
+            tabPromptLab.Padding = new System.Windows.Forms.Padding(0);
+            promptLab.Name = "promptLab";
+            promptLab.Dock = System.Windows.Forms.DockStyle.Fill;
+            promptLab.BusyChanged += PromptLab_BusyChanged;
+            tabPromptLab.Controls.Add(promptLab);
             // tabGenerate
             tabGenerate.Name = "tabGenerate";
             tabGenerate.Size = new System.Drawing.Size(1252, 712);
@@ -1282,6 +1292,7 @@ partial class MainForm
             headerPanel.Controls.Add(btnCancel);
             tabs.Controls.Add(tabGenerate);
             tabs.Controls.Add(tabChat);
+            tabs.Controls.Add(tabPromptLab);
             tabs.Controls.Add(tabLibrary);
             tabs.Controls.Add(tabCandidates);
             tabs.Controls.Add(tabExport);
@@ -1730,4 +1741,6 @@ partial class MainForm
     private System.Windows.Forms.Button btnV4Import = null!;
     private System.Windows.Forms.Button btnDialogueLab = null!;
     private System.Windows.Forms.TextBox txtSettingsResult = null!;
+    private System.Windows.Forms.TabPage tabPromptLab = null!;
+    private PhantomSemanticStudio.WinForms.PromptLabControl promptLab = null!;
 }
