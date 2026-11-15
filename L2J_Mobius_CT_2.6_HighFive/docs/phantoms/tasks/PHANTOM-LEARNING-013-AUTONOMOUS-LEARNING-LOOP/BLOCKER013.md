@@ -1,5 +1,7 @@
 # BLOCKER013 — HEADLESS_PREPARATION_TIMEOUT
 
+**F3 завершён:** ровно1/1 pass, TIMEOUT,992298ms within1200s; автоматический fallback/owner cleanup, worker/admin/SQL exit proof, OFF/owned0.5partial pre-CUT proofs,0sealed/0CUT/0FIT/0GS. Runtime timeout обработан правильно, полного legal admission нет. Дальнейших попыток/четвёртого исправления или запроса не будет по прямому условию владельца. Итог F3_RESULT.md/F3_EVIDENCE.json; FULL запрещён.
+
 ## Продолжение F3 — разрешено владельцем 15 ноября 2026
 
 Владелец явно разрешил третье и последнее исправление в этом же Goal, только Training.ps1/существующий Native adapter/Test-Training.ps1. Новый deadline1200s включает210s cooperative drain и подтверждение exit; один новый combined TRAIN+independent V2 readiness pass, без четвёртого исправления. Native4GS/80min и игровые/SQL/model/objective guards прежние. Исходный PARTIAL ниже сохранён как исторический результат до этого разрешения.

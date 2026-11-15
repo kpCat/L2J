@@ -1,5 +1,40 @@
 # COMMANDS013 — журнал команд и оснований
 
+## F3 — разрешённое последнее продолжение
+
+- Прямое разрешение владельца: exact3 source,1200s total including210s drain, один readiness pass; никакого четвёртого исправления/запроса, без изменения native4/80.
+- Source baseline `58dccc305a4c11d5afba626a42860d3161df1eda`; `git fetch origin feature/phantom-world`; exact `git add --` Training.ps1/Test-Training.ps1/PhantomAutonomousTrainingNative.java + BLOCKER013/EXECUTION_LEDGER; `git diff --cached --check -- <exact5>`; `git commit -m 'phantom(learning013): bound headless readiness and cooperative recovery'`; `git push origin feature/phantom-world` → `b8d7df91fb596e3cdc839b21309fe995af436593`, exit0. TEST `git fetch origin feature/phantom-world`, `git merge --ff-only origin/feature/phantom-world`, exit0. No force/новой ветки.
+- `Test-Training.ps1 -Headless013` через Windows PS5.1: behavioral RED→GREEN; final exit0, actual3 OS held exits/orphan takeover/shared cap/provenance/no false READY. `PhantomAutonomousTrainingNative headless-contract` DB-free exit0. `Test-Cycle013/Test-Config/Test-Arguments/Test-CimExitRace` PS5.1 exit0.
+- Последовательно `ant -f <module>/build.xml phantom-learning013-test phantom-learning012-test phantom-learning011-test phantom-autonomous-training-test phantom-learning008-test phantom-learning007-test jar` exit0,4m. REGRESSION.log external SHA в F3_EVIDENCE. После review fixes менялись только PS integration/tests, их focused checks повторены; Java source после Ant не менялся.
+- `mariadb-admin --no-defaults --help` read-only подтвердил --connect-timeout/--shutdown-timeout; общие SQL helpers/read-only contracts не редактировались.
+- Canonical TEST006 `Training.ps1 -Action Preflight -Autonomous -Root <own TEST>` exit0. Затем **ровно один** `Training.ps1 -Action Prepare -Autonomous -Root <own TEST>` через Windows PS5.1, campaign autonomous009-goal013-f3-20261115. Wrapper exit1 TRAIN013_HEADLESS_TIMEOUT, elapsed992298ms, withinCap=true. До завершения только status/stdout/process observations; manual stop/request0. Native self-deadline завершил worker, Director сам сохранил scoped stop и held receipt; SQL-admin/server exit0. Полные timing details F3_RESULT.
+- Финальный canonical Export exit0, fresh5SELECT byte-identical helper/Tag after exit0:183rows exactbaseline. Production PS5.1 Test-TrainExitReceipt(worker/sql)=true. Предварительный PS7 validator false вызван ISO DateTime coercion диагностического shell; production proof подтверждён отдельно без source change.
+- Final automatic OFF/owned0/portsfree/native ledger starts0/millis0/reservations0/pointer12 PASS; canonical Preflight203Geo/207protected exit0. Основной checkout: `git rev-parse HEAD`, `git status --short`, старый7e997636…/tracked0/untracked111.
+- Final F3 docs/evidence: same feature scoped add/commit/ordinary push, independent GitHub HEAD/parents/exact diff/full bodies, receipt F3_READBACK.json. Бюджет task№7/13/6remaining; новое Goal не создано. Исторические команды ниже не переписаны.
+
+Точные команды заключительной публикации F3 из SOURCE004 (список `$publishPaths013` — только11 текущих docs/report/roadmap paths; полный список записан в F3_READBACK.json):
+
+```powershell
+git rev-parse HEAD
+git symbolic-ref --short HEAD
+git status --short
+git fetch origin feature/phantom-world
+git rev-parse origin/feature/phantom-world
+git diff --check -- $publishPaths013
+git add -- $publishPaths013
+git diff --cached --check -- $publishPaths013
+git diff --cached --name-only
+git commit -m "docs(learning013): record final readiness timeout and preserved lineage"
+git push origin feature/phantom-world
+git ls-tree -r HEAD -- $allow013.allowed
+git add -- $readbackPath013
+git diff --cached --check -- $readbackPath013
+git commit -m "docs(learning013): record independent final GitHub readback"
+git push origin feature/phantom-world
+```
+
+TEST006: `git fetch origin feature/phantom-world`; `git merge --ff-only origin/feature/phantom-world`; `git rev-parse HEAD`; `git status --short`. Для scope/идентичности — exact `git diff --name-only <baseline> HEAD -- $allow013.allowed`. Parent/HEAD/diff/body-readback независимо через GitHub connector и public REST commit API; SQL/runtime не запускаются. Все команды разрешены текущим заданием и GIT_POLICY; MAIN working files не затрагиваются.
+
 Работа выполняется в существующих source004 и TEST006, без новых веток или checkout. Запись и публикация только feature/phantom-world явно разрешены пользователем и GIT_POLICY.md. Основной dirty checkout сохранён. Ниже параметры путей обозначены SOURCE, TEST и EVIDENCE; это фактически проверенные директории текущего сеанса, не переносимый hardcoded runtime contract.
 
 ## Git

@@ -3,12 +3,12 @@
   "baseline": "52aac9e0274a63906a9fe5053611b8daf1aac778",
   "sourceHead": "d12a506a520b958e2bac82c247c4da95c43d5b16",
   "sourceCount": 10,
-  "expectedFinalChangedPaths": 39,
+  "expectedFinalChangedPaths": 42,
   "originalTaskManifestMatches": 11,
   "sourceScopeExpanded": false,
   "privateRuntimeFilesAllowed": false,
   "readOnlyProductionContracts": "TacticalTrainerV3/TacticalStoreV3/TacticalModelV3/ActionAdvantageV2/TerminalReward/V2 codecs/Combat/Party/Player/SkillData/Spawn/Geo/reward/objective/SQL schema unchanged",
-  "verification": "Exact GitHub base-to-delivery diff and complete full-body readback are recorded after push in READBACK_DELIVERY.json. The latter receipt is one explicitly allowed follow-up file.",
+  "verification": "Historical READBACK_DELIVERY covers pre-F3. Latest exact42 diff/full-body proof is F3_READBACK.json; source allowlist remains10 globally and3 in F3.",
   "allowed": [
     "L2J_Mobius_CT_2.6_HighFive/build.xml",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
@@ -22,6 +22,9 @@
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/DELIVERY_HANDOFF.md",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/EVIDENCE.json",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/EXECUTION_LEDGER.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/F3_EVIDENCE.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/F3_READBACK.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/F3_RESULT.md",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/FINAL_SCOPE.json",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/GIT_POLICY.md",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/HANDOFF.md",
@@ -49,5 +52,7 @@
     "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
     "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
     "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1"
-  ]
+  ],
+  "thirdFixImplementationHead": "b8d7df91fb596e3cdc839b21309fe995af436593",
+  "thirdFixChangedSourceCount": 3
 }

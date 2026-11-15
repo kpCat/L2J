@@ -1,5 +1,7 @@
 # ACCEPTANCE_RESULT013
 
+**Актуально после F3:** PARTIAL013_HEADLESS_TIMEOUT_NO_FULL_ADMISSION. G1–G4 остаются незакрытыми. R17 timeout/drain исправлен и проверен actual one-pass:992298ms/1200s, worker/admin/SQL held exits, automatic OFF/owned0. R16 GUI и real native FIT recovery NOT_RUN. Новый G8 receipt — F3_READBACK.json; полный разбор F3_RESULT/F3_EVIDENCE. Прежняя матрица ниже — исторический результат до последнего разрешённого исправления.
+
 Итог **PARTIAL013_PRE_NATIVE_ADMISSION_UNFINISHED**, final manual gate **REQUIRED**. Это техническая матрица фактов, не принятие владельцем.
 
 | Gate | Факт |

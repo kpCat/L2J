@@ -1,0 +1,235 @@
+{
+  "schema": "PHANTOM_LEARNING013_F3_EVIDENCE_V1",
+  "status": "PARTIAL013_HEADLESS_TIMEOUT_NO_FULL_ADMISSION",
+  "full013": false,
+  "goalTechnicalObjectiveAchieved": false,
+  "continuationOfSameGoal": true,
+  "nextGoalStarted": false,
+  "authorization": {
+    "thirdAndLastFix": true,
+    "changedSourceCount": 3,
+    "headlessReadinessPassesAllowed": 1,
+    "headlessReadinessPassesExecuted": 1,
+    "maximumHeadlessSeconds": 1200,
+    "drainReserveSeconds": 210,
+    "fourthFixRequested": false,
+    "fourthFixPerformed": false,
+    "nativeBudgetChanged": false
+  },
+  "source": {
+    "baselineBeforeF3": "58dccc305a4c11d5afba626a42860d3161df1eda",
+    "implementationHead": "b8d7df91fb596e3cdc839b21309fe995af436593",
+    "branch": "feature/phantom-world",
+    "ordinaryPush": true,
+    "files": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "bytes": 169506,
+        "sha256": "238074CA2AFA21C9B76510A8E0F7B9E80F515FAE3594164C6EAABAD73CAF6782",
+        "gitBlobSha": "20c1a4da2457b4e662cc7e979ca8d17480ace520"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+        "bytes": 87679,
+        "sha256": "2F3DB55299A34C2636FECB72FB28CDB8466FAD50FEF67D518A535260B5B5A01B",
+        "gitBlobSha": "616c02640de58a81091b29cb04f0e27fc6ea8289"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "bytes": 205363,
+        "sha256": "35759BB77BEF7FF1305AAC05064B27E5126F39C9431BECF59FC72D011E021B16",
+        "gitBlobSha": "043043d15baf3f0f1c74a30234528ed3e9b7f436"
+      }
+    ],
+    "independentFullBodiesFetched": 3,
+    "globalSourceAllowlistCount": 10,
+    "noAdditionalTrainerOrSupervisor": true,
+    "readonlyContractsChanged": false
+  },
+  "validation": {
+    "behavioralRed": "HEADLESS013_TIMEOUT_MUST_REQUEST_COHORT_DRAIN",
+    "focusedPS51Exit": 0,
+    "timeoutCancellationRestartRecovery": true,
+    "ownedOsChildHeldExits": 3,
+    "orphanControllerTakeover": true,
+    "combinedReadyRequiresCompletion": true,
+    "admissionTerminalProvenance": true,
+    "sharedCapNoReset": true,
+    "nativeDbFreeContractExit": 0,
+    "nativeContractSyntheticOnly": true,
+    "targetedAntExit": 0,
+    "targetedAntSeconds": 240,
+    "targets": [
+      "phantom-learning013-test",
+      "phantom-learning012-test",
+      "phantom-learning011-test",
+      "phantom-autonomous-training-test",
+      "phantom-learning008-test",
+      "phantom-learning007-test",
+      "jar"
+    ],
+    "ps51LegacyRegressionsExit": 0,
+    "reviewImportantFindings": 5,
+    "reviewFixPasses": 1,
+    "reviewSourceMutation": false,
+    "mariadbAdminTimeoutOptionsConfirmedByInstalledHelp": true,
+    "testsDoNotCountAsGameplayEvidence": true
+  },
+  "runtime": {
+    "status": "TIMEOUT",
+    "issuedUtc": "2026-11-15T11:57:03.5515158Z",
+    "hardDeadlineUtc": "2026-11-15T12:17:03.5515158Z",
+    "elapsedMillis": 992298,
+    "withinCap": true,
+    "maximumSeconds": 1200,
+    "drainReserveSeconds": 210,
+    "manualDrain": false,
+    "workerExitCode": 2,
+    "workerExitProof": true,
+    "workerTerminatedUtc": "2026-11-15T12:13:33.6639196Z",
+    "workerMillis": 973130,
+    "workerReceiptSha": "7EB7151440FA97F8744DE274812F40E2CD9D75BEC4DC9C789447137A5AD40674",
+    "scopedStopExists": true,
+    "stopWrittenUtc": "2026-11-15T12:13:34.1030919Z",
+    "adminExitCode": 0,
+    "adminExited": true,
+    "sqlExitCode": 0,
+    "sqlExitProof": true,
+    "sqlReceiptSha": "184396A295EF3E45313F40BDB9A1E1258D47C462B00B55C3446B1D1A7BFBFCB2",
+    "headlessProofs": 5,
+    "sealedTrain": 0,
+    "cuts": 0,
+    "combinedReady": false,
+    "fits": 0,
+    "patience": 0,
+    "creditedCycles": 0,
+    "nativeStarts": 0,
+    "nativeMillis": 0,
+    "bestVersion": 2,
+    "parentVersion": 14,
+    "parentUpdates": 903,
+    "resources": {
+      "pid": 79780,
+      "startedUtc": "2026-11-15T11:57:20.5346617Z",
+      "sampledUtc": "2026-11-15T12:13:34.0721003Z",
+      "elapsedMillis": 973537,
+      "cpuSeconds": 181.484375,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4665503744,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true
+    },
+    "jarSha": "9643d8f1edf8bd849a95d8b7fc5f345e0400d60559f8b8d48077f9e19f19165d",
+    "receiptValidatorRuntime": "Windows PowerShell 5.1 / .NET4.0.30319.42000",
+    "ps7DiagnosticDateCoercion": "A preliminary PS7 read converted ISO strings to DateTime and returned false; authoritative PS5.1 validator returned true for both receipts.",
+    "stopPrecededWorkerExit": false
+  },
+  "result": {
+    "nativeStarts": 0,
+    "nativeMillis": 0,
+    "maximumNativeStarts": 4,
+    "maximumNativeMillis": 4800000,
+    "trainingCuts": 0,
+    "fits": 0,
+    "optimizerDelta": 0,
+    "newModels": 0,
+    "newIndependentNativeV2Pairs": 0,
+    "gameVerdict": "NO_EVAL",
+    "improvementSupported": false,
+    "completeNativeLearningLoop": false,
+    "guiLifecycle013": "NOT_RUN",
+    "realNativeFitCrashRecovery013": "NOT_RUN",
+    "nightReady": false,
+    "productionPromotion": false
+  },
+  "interpretation": {
+    "readinessTimeoutNotNoData": true,
+    "globalAbsenceOfLegalScenesProven": false,
+    "patienceIncremented": false,
+    "partialHeadlessProofsAreNotSufficientAdmission": true,
+    "stopFileCausedWorkerExitClaimed": false,
+    "nativeSelfDeadlineStoppedWorkerFirst": true,
+    "scopedCancelBeforeExitExercisedInOsFixtures": true,
+    "manualDrainUsed": false
+  },
+  "lineage": {
+    "acceptedTest": 2,
+    "workingModel": 14,
+    "selectedEpoch": 0,
+    "optimizerUpdates": 903,
+    "completedEpochs": 223,
+    "applications": 48,
+    "gradientEpisodes": 16,
+    "freshFinalSelectRows": 183,
+    "beforeAndFinalSha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+    "exactFiveSelectEquality": true,
+    "pointer12Sha256": "ACC21BED707B518FB58E23FEC006E7D658723763C73C237A039D950E14C9B010",
+    "terminalAdamSha": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+    "selectedModel14Sha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "historicalPayloadsPreserved": true
+  },
+  "safety": {
+    "autoOff": true,
+    "phase": "OFF",
+    "outcomeEnabled": false,
+    "ownedProcesses": 0,
+    "portsFree": [
+      33357,
+      18001,
+      19301
+    ],
+    "finalCanonicalPreflightExit": 0,
+    "geoFilesVerified": 203,
+    "protectedFilesVerified": 207,
+    "nativeReservations": 0,
+    "manualForcedKill": false,
+    "mainHeadUnchanged": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+    "mainTrackedChanges": 0,
+    "mainUntracked": 111,
+    "mainPlayChanged": false,
+    "foreignSqlChanged": false,
+    "privateSqlModelActorArtifactsIncludedInGit": false
+  },
+  "acceptance": {
+    "G0": "PASS_SAFETY",
+    "G1": "FAIL_NO_TRAIN_CUT",
+    "G2": "FAIL_NO_FIT",
+    "G3": "NOT_RUN",
+    "G4": "NOT_RUN",
+    "G5": "OFFLINE_PASS_NO_FALSE_GAIN",
+    "G6": "PASS_FROZEN_AND_CLEANUP",
+    "G7": "PASS_BOUND_TIMEOUT_AND_REGRESSION",
+    "G8": "SEE_F3_READBACK_JSON",
+    "manual013": "REQUIRED",
+    "historicalManual012": "REQUIRED"
+  },
+  "externalLogHashes": [
+    {
+      "file": "REGRESSION.log",
+      "bytes": 54869,
+      "sha256": "1A7CCB035A2251FDC3121236185D362ECAF2545BB425664391C50FAC3DFE8E72"
+    },
+    {
+      "file": "READINESS-ONCE.log",
+      "bytes": 544,
+      "sha256": "6037F21A530F45C4C53835DA4EFD05AE422FDA7BA59283BA355F3EB4EBE2FB8A"
+    },
+    {
+      "file": "FINAL-EXPORT.log",
+      "bytes": 130,
+      "sha256": "F16EBA023C15C9927E0A4C029C2F294D685D323475C75417EF17061E0BAAE318"
+    }
+  ],
+  "encoding": {
+    "mojibake": "NO_MATCH",
+    "escapedCyrillicIncludingXml": "NO_MATCH",
+    "strictUtf8": true
+  },
+  "taskCounter": {
+    "number": 7,
+    "total": 13,
+    "remaining": 6
+  },
+  "finalReadback": "F3_READBACK.json",
+  "historicalEvidence": "Original EVIDENCE.json and READBACK_DELIVERY.json describe pre-F3 delivery and remain unchanged."
+}

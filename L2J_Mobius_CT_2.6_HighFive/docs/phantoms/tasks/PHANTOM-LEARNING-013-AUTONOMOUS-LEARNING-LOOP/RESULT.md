@@ -1,5 +1,7 @@
 # RESULT013 — PARTIAL: полный native цикл не доказан
 
+**Актуальное продолжение F3:** третье/последнее исправление разрешено владельцем и опубликовано в b8d7df91fb5. Один readiness pass завершён TIMEOUT автоматически за992298ms в cap1200s; worker/admin/SQL exit подтверждены, manual drain0, automatic OFF.5pre-CUT proofs/0sealed/0CUT/FIT0/GS0. **PARTIAL013_HEADLESS_TIMEOUT_NO_FULL_ADMISSION**, FULL запрещён. [F3_RESULT](F3_RESULT.md), [F3_EVIDENCE](F3_EVIDENCE.json), [F3_READBACK](F3_READBACK.json). Ниже сохранена прежняя доставка до F3.
+
 **PARTIAL013_PRE_NATIVE_ADMISSION_UNFINISHED. FULL013 не достигнут.** Source `d12a506a520b958e2bac82c247c4da95c43d5b16`, development/push только feature/phantom-world. Native0/4GS,0/80min. TRAIN CUT0, optimizer updates0130, new model0, fresh EVAL0130. Игровой verdict **NO_EVAL**; улучшение модели не доказано.
 
 В existing Training Director реализован opt-in013 cycle protocol COLLECT→FIT→independent V2→CHECKPOINT→NEXT/PAUSE: атомарные фазовые receipts, общий4/80 ledger и child2/35 subset, cold pins, раздельные selected/terminal Adam/best TEST, pending decision до checkpoint, duplicate credit guard и patience3. Используются прежние TacticalTrainerV3/TacticalStoreV3/EVAL V2. Defaults OFF. Это описание исходников, не доказательство их end-to-end native работоспособности.

@@ -1,5 +1,7 @@
 # Goal013 — автономный control plane проверен offline; native цикл не выполнен
 
+**Актуальное F3:** последнее разрешённое исправление source b8d7df91fb5 и один readiness pass закончились **PARTIAL013_HEADLESS_TIMEOUT_NO_FULL_ADMISSION**. Deadline/fallback/automatic scoped drain+worker/admin/SQL held exits/OFF подтверждены actual run992298ms/1200s.5partial pre-CUT proofs,0sealed,0TRAIN CUT/FIT/new EVAL/GS. Исторические183rows/2/14/903/223/apps48/pointer12/Geo203/protected207 сохранены. G1–G4unmet, FULL запрещён; дальнейших попыток/четвёртого запроса нет. [F3_RESULT](../tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/F3_RESULT.md), [F3_EVIDENCE](../tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/F3_EVIDENCE.json). №7/13/6remaining/manual REQUIRED. Ниже историческая доставка до F3.
+
 **PARTIAL013_PRE_NATIVE_ADMISSION_UNFINISHED. FULL013 запрещён.** Native0/4GS,0/80min; TRAIN CUT0/FIT0/optimizer delta0/fresh V2 EVAL0. Игровой verdict NO_EVAL, улучшение модели не доказано.
 
 В existing Director добавлены versioned atomic cycle state, global budget, раздельные selected/terminal Adam/best TEST, typed V2 proof closure/replay, checkpoint-before-credit и patience3. Existing trainer/store/reward/objective/production engines сохранены. Targeted Ant/JAR, DB-free controller/recovery и V2 suites PASS; synthetic receipts не заменяют native evidence.
