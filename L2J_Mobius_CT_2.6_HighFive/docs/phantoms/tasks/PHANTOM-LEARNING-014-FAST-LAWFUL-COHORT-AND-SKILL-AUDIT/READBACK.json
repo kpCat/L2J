@@ -1,0 +1,356 @@
+{
+  "schema": "PHANTOM_LEARNING014_INDEPENDENT_READBACK_V1",
+  "repository": "kpCat/L2J",
+  "branch": "feature/phantom-world",
+  "baseline": "42d6b675a9cf57faa4df8a74cc52a8b4adda97fa",
+  "verifiedHead": "1f9d2f1a54418a1a3a601bf2eebcf67e9f14f7ec",
+  "verifiedParent": "42d6b675a9cf57faa4df8a74cc52a8b4adda97fa",
+  "gitHubFreshFeatureHeadMatches": true,
+  "compare": {
+    "status": "ahead",
+    "aheadBy": 1,
+    "behindBy": 0,
+    "totalCommits": 1,
+    "changedPaths": 33,
+    "sourcePaths": 6,
+    "documentationPaths": 27,
+    "unexpectedPaths": 0
+  },
+  "methods": [
+    "Independent GitHub connector current branch commit",
+    "GitHub REST Git commit parent",
+    "Pinned baseline-to-head exact diff",
+    "Complete base64 body of all 33 changed files",
+    "Decode bytes and recompute SHA1 of Git blob header plus body",
+    "Compare recomputed SHA with remote blob SHA and local git ls-tree",
+    "Parse published EVIDENCE.json and assert observed status/budget/frozen/safety fields"
+  ],
+  "fullBodyVerification": {
+    "files": 33,
+    "sourceFiles": 6,
+    "totalBytes": 1087984,
+    "recomputedGitBlobSha1": true,
+    "localCanonicalTreeMatches": true,
+    "physicalBuildSourceEolNote": "FINAL_SCOPE physical SHA256 describes actual working/build bytes. Git canonical LF blobs are checked separately; no false CRLF byte-equality claim.",
+    "selfTests": [
+      "SHA1(abc)",
+      "Git empty blob"
+    ]
+  },
+  "verifiedSemantics": {
+    "status": "PARTIAL014_HEADLESS_TIMEOUT_NO_FULL_TRAIN_ADMISSION",
+    "full014": false,
+    "G0": "PASS",
+    "G1": "PASS_MEASURED",
+    "G2": "PARTIAL_ONE_PATH_IMPROVED",
+    "G3": "FAIL_TIMEOUT",
+    "G4": "PARTIAL_NATIVE_EFFECTS_NOT_RUN",
+    "G5": "AUDIT_DELIVERED_WITH_UNKNOWNS",
+    "G6": "NOT_RUN_G3_FAILED",
+    "G7": "BOUNDED_CHECKS_PASS",
+    "G8": "PASS_PUBLICATION_AND_INDEPENDENT_READBACK",
+    "headlessSessions": 2,
+    "totalMillis": 787906,
+    "headlessLimitMillis": 1200000,
+    "pairedCells": 1,
+    "sealedTrain": 0,
+    "GS": 0,
+    "CUT": 0,
+    "FIT": 0,
+    "optimizerDelta": 0,
+    "acceptedTest": 2,
+    "draftModel": 14,
+    "adamUpdates": 903,
+    "completedEpochs": 223,
+    "applications": 48,
+    "sqlRows": 183,
+    "sqlExactSha": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+    "ownProcesses": 0,
+    "automaticOff": true,
+    "protected207Geo203Preserved": true,
+    "mainPlayUnchanged": true,
+    "manualGate014": "REQUIRED",
+    "nextGoalStarted": false,
+    "taskNumber": 8,
+    "remaining": 5
+  },
+  "encoding": {
+    "mojibakeFullMarkerSet": "NO_MATCH",
+    "escapedCyrillicAndXml": "NO_MATCH",
+    "originalTaskManifest": "11/11",
+    "exactScopeAllowlist": 34
+  },
+  "gitCommandsUsed": [
+    "git rev-parse --show-toplevel",
+    "git symbolic-ref --short HEAD",
+    "git rev-parse HEAD",
+    "git status --short",
+    "git status --short --untracked-files=no",
+    "git status --short --untracked-files=all",
+    "git worktree list --porcelain",
+    "git for-each-ref --format='%(refname) %(objectname)' refs/heads/feature/phantom-world refs/remotes/origin/feature/phantom-world",
+    "git diff --name-only -- <exact task014 path>",
+    "git diff --stat -- <exact approved source paths>",
+    "git diff -- <exact6>",
+    "git diff --check -- $paths",
+    "git fetch origin feature/phantom-world",
+    "git rev-parse origin/feature/phantom-world",
+    "git add -- $paths",
+    "git diff --cached --name-only",
+    "git diff --cached --check -- $paths",
+    "git commit -m 'phantom(learning014): profile readiness and reject impossible heal preparation'",
+    "git push origin feature/phantom-world",
+    "git ls-tree -r HEAD -- $paths",
+    "git rev-parse HEAD^"
+  ],
+  "gitAuthorization": "Explicit Goal014 scoped commit/ordinary push authorization plus approved exact6 plan. $paths is the exact FINAL_SCOPE allowlist filtered to existing paths; no add-dot/branch/worktree/force/history rewrite.",
+  "bodyProofs": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 333168,
+      "gitBlobSha": "03af636064dfcd02961835aa215c02fe64a7113e",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "bytes": 13125,
+      "gitBlobSha": "23cfbf151e82f0fcf878564cdaecc5aa331e9f20",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT.md",
+      "bytes": 2294,
+      "gitBlobSha": "c714adfce55094dfe6822e580cbfed05cae6fdc5",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/ACCEPTANCE.md",
+      "bytes": 2732,
+      "gitBlobSha": "8a3f66173a4aa18b11565d12021ec0c084b060d4",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/ACCEPTANCE_RESULT.md",
+      "bytes": 2406,
+      "gitBlobSha": "c81853d1359a4b0a13ffb97dda4f7a7d6d9db6f2",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/BUFF_AUDIT.md",
+      "bytes": 3593,
+      "gitBlobSha": "c236fbb6f4dd03dc93398979e68669a290dc202b",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/BUFF_AUDIT_RESULT.md",
+      "bytes": 5001,
+      "gitBlobSha": "abfeb08b1e7e70b10f5f247c9e84d87374453813",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/COMMANDS.md",
+      "bytes": 8228,
+      "gitBlobSha": "66ef97da145e3f88b66eafd6d38479e855df360e",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/DELIVERY_HANDOFF.md",
+      "bytes": 3182,
+      "gitBlobSha": "f7928f655a908c91b211d6e8cfb5ea18b09aeca0",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/EVIDENCE.json",
+      "bytes": 7707,
+      "gitBlobSha": "cc8dda627f984c8cb21415925600f662cf5622cd",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/FINAL_SCOPE.json",
+      "bytes": 18681,
+      "gitBlobSha": "53e6fe6bfd69c4aa168398bf608c5cf0855a178e",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/GIT_AND_SAFETY.md",
+      "bytes": 3132,
+      "gitBlobSha": "643402b2ca12d0885be0cecc8a70517b93399265",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/HANDOFF.md",
+      "bytes": 1901,
+      "gitBlobSha": "d6180300c46ce736e5ace917f1c6f817cf455bb4",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/IMPLEMENTATION_PLAN014.md",
+      "bytes": 11641,
+      "gitBlobSha": "ffb9472a83079dce4d20e8bb72d8dc08905e33fb",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/MANIFEST.sha256",
+      "bytes": 892,
+      "gitBlobSha": "03574400b8b19c7f9510d4af8e7bec8d9890322a",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PLAN.md",
+      "bytes": 2694,
+      "gitBlobSha": "aaeca01a10078ac4c4a6bc01b715235b0cb86437",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PREPARATION014-S1.json",
+      "bytes": 3913,
+      "gitBlobSha": "7c791bf9d5d75e404097861bb8c843925078d3be",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PREPARATION014-S2.json",
+      "bytes": 5505,
+      "gitBlobSha": "0474426e306b92da9ca7f84567a1062f124a25b8",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PRE_AUDIT.md",
+      "bytes": 4350,
+      "gitBlobSha": "0228a9153db4cc0396f31176e35c9773196b095c",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROFILING_AND_PIPELINE.md",
+      "bytes": 4403,
+      "gitBlobSha": "1bb4e1fccd4934889ea8eb92037ca2da9445c3e2",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROFILING_RESULT.md",
+      "bytes": 4366,
+      "gitBlobSha": "118a4e12c09f5562afdbe5cb0b3b3eb4faf86f31",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROGRESS.md",
+      "bytes": 7189,
+      "gitBlobSha": "faf9408a443f9d8c996fde866229ed379b3b7822",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/RESULT.md",
+      "bytes": 9115,
+      "gitBlobSha": "054dd0783ee9056cd5d46d46742e01f60043bd5d",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/SKILL_AUDIT_RESULT.md",
+      "bytes": 4062,
+      "gitBlobSha": "5ff10429af7039d6cdbad25141d6e49628b0ad62",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/SKILL_TARGET_CONTRACT.md",
+      "bytes": 4041,
+      "gitBlobSha": "94aa031a19fc0c249e89fe5279837d0c28e74da2",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/START_HERE.md",
+      "bytes": 1212,
+      "gitBlobSha": "7f059cb459e61ca8b6cf66d12e020184e91da2d5",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/TASK.md",
+      "bytes": 12662,
+      "gitBlobSha": "af769151bcb56d05fd6423093f6c4eec23d9d241",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/TEST_MATRIX.md",
+      "bytes": 2916,
+      "gitBlobSha": "d04a1b04ec4d33d8a87e9bfe7b1a6ba9579ca905",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "bytes": 32595,
+      "gitBlobSha": "1bde66bce8c8dc1fb71560c627d0169415ff4680",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 207827,
+      "gitBlobSha": "8a8c6d60031167fbfe525e96c4672d1cb3e05aed",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "bytes": 103105,
+      "gitBlobSha": "80da5eeac6a0ec9cc33c861d78a2572c9fd4bf53",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "bytes": 88736,
+      "gitBlobSha": "a05c5b2d1622622b99547e1ddf2b9c32a2dd792c",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "bytes": 171610,
+      "gitBlobSha": "b3ab155d8b2a9b2a19f023980ccf4bbb85d0a7c4",
+      "fullBodyHashVerified": true,
+      "localTreeMatches": true
+    }
+  ],
+  "receiptOnlyPublication": {
+    "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/READBACK.json",
+    "expectedParent": "1f9d2f1a54418a1a3a601bf2eebcf67e9f14f7ec",
+    "expectedFinalChangedPaths": 34,
+    "expectedSourcePaths": 6,
+    "selfReferenceAvoided": true,
+    "procedure": "After receipt-only ordinary push independently reread final feature HEAD, REST parent, exact one-file diff, cumulative34 diff and complete receipt bytes/hash. Final observed SHA reported in chat; this receipt never contains its own future commit SHA.",
+    "commands": [
+      "git add -- $receiptPath014",
+      "git diff --cached --check -- $receiptPath014",
+      "git diff --cached --name-only",
+      "git commit -m 'docs(learning014): record independent GitHub verification'",
+      "git push origin feature/phantom-world",
+      "git ls-tree HEAD -- $receiptPath014"
+    ]
+  }
+}
