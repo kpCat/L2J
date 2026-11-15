@@ -33,6 +33,7 @@ public final class AutonomousTrainingChecks
 			case "objective" -> objective();
 			case "config" -> configuration();
 			case "config013" -> configuration013();
+			case "config016" -> configuration016();
 			case "curriculum" -> curriculum();
 			case "encounter" -> encounter();
 			case "preparation014" -> preparation014();
@@ -349,6 +350,34 @@ public final class AutonomousTrainingChecks
 		final String block = split.equals("TRAIN") ? "block" + (i % 16) : split + i;
 		final var selection = new TrainExplorationV1.Selection(id, block, (classId == 88 ? "c" : "d").repeat(64), split, experimental, observation, List.of(stock, other), stock, selected, experimental ? .25 : 1, experimental ? .9 : 0, experimental ? "EXPLORATION_ALTERNATIVE" : "CONTROL_STOCK", "", 12, "f".repeat(64));
 		return new ActionAdvantageV2.Sample(selection, terminal);
+	}
+
+	private static void configuration016() throws Exception
+	{
+		final var path = java.nio.file.Files.createTempFile("goal016-config-", ".ini");
+		final String body = "schemaVersion=1\nautonomous009Version=1\nautonomous013Version=1\nautonomous016Version=1\nautonomous009Enabled=false\nautonomous009Phase=OFF\nautonomous009Comparator=" + AutonomousTrainingV1.COMPARATOR
+			+ "\nclasses=auto\nlevels=auto\nv3Enabled=true\nmaxHeapMb=4096\nautonomous009MemoryBudgetMb=8192\nautonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=3\nautonomous009SmokeMaxNativeMinutes=75\nepisodesPerBatch=51\n"
+			+ "autonomous009EvaluationOnly=false\nautonomous009CycleLimit=1\nautonomous009Campaign=autonomous009-learning016-v1\noutcome006DatasetId=autonomous009-learning016-v1-c000001\n";
+		try
+		{
+			java.nio.file.Files.writeString(path, body, java.nio.charset.StandardCharsets.UTF_8);
+			final TrainingConfig config;
+			try { config = TrainingConfig.load(path); }
+			catch (IllegalArgumentException rejected) { throw new AssertionError("TRAIN016_CONFIG_51_REJECTED", rejected); }
+			check(config.episodesPerBatch() == 51 && AutonomousTrainingV1.cohortCellLimit(51) == 3, "TRAIN016_BATCH_IS_NOT_THREE_17_SLOT_CELLS");
+			for (String invalid : List.of(body.replace("Batch=51", "Batch=84"), body.replace("Batch=51", "Batch=48"), body.replace("autonomous016Version=1", "autonomous016Version=2"),
+				body.replace("autonomous013Version=1", "autonomous013Version=0"), body.replace("EvaluationOnly=false", "EvaluationOnly=true"), body.replace("Phase=OFF", "Phase=EVAL"),
+				body.replace("MaxStarts=3", "MaxStarts=4"), body.replace("NativeMinutes=75", "NativeMinutes=76"), body.replace("CycleLimit=1", "CycleLimit=0"),
+				body.replace("learning016-v1", "goal015-s2")))
+			{
+				java.nio.file.Files.writeString(path, invalid, java.nio.charset.StandardCharsets.UTF_8);
+				boolean rejected = false; try { TrainingConfig.load(path); } catch (IllegalArgumentException expected) { rejected = true; }
+				check(rejected, "TRAIN016_WRONG_BATCH_OR_AUTHORITY_ACCEPTED");
+			}
+			java.nio.file.Files.writeString(path, body.replace("autonomous016Version=1", "autonomous016Version=0").replace("Batch=51", "Batch=84"), java.nio.charset.StandardCharsets.UTF_8);
+			check(TrainingConfig.load(path).episodesPerBatch() == 84, "TRAIN016_LEGACY_BATCH_CHANGED");
+		}
+		finally { java.nio.file.Files.deleteIfExists(path); }
 	}
 
 	private static void configuration013() throws Exception

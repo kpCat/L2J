@@ -5,6 +5,7 @@ param(
     [switch]$Headless013,
     [switch]$Readiness014,
     [switch]$Readiness015,
+    [switch]$Readiness016,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -17,11 +18,149 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($Readiness016){
+    $fixture=Join-Path ([IO.Path]::GetTempPath()) ('Training016-'+[guid]::NewGuid().ToString('N'))
+    $null=[IO.Directory]::CreateDirectory($fixture)
+    try{
+        $values=Read-TrainConfig (Join-Path $PSScriptRoot 'AutonomousTraining.ini')
+        $legacy=$values.Clone()
+        $values.autonomous013Version='1';$values.autonomous016Version='1';$values.episodesPerBatch='51'
+        $values.autonomous009Campaign='autonomous009-learning016-v1';$values.outcome006DatasetId='autonomous009-learning016-v1-c000001'
+        $values.autonomous009CycleLimit='1';$values.autonomous009AcceptanceSmoke='true';$values.autonomous009SmokeMaxStarts='3';$values.autonomous009SmokeMaxNativeMinutes='75'
+        $file=Join-Path $fixture 'TRAIN_CONFIG.ini'
+        try{Write-TrainConfig $file $values;$loaded=Read-TrainConfig $file}catch{throw 'READINESS016_COMMON_CONFIG_51_REJECTED'}
+        Require ($loaded.episodesPerBatch -ceq '51') 'READINESS016_CONFIG_DID_NOT_ROUNDTRIP'
+        foreach($change in @(@{episodesPerBatch='84'},@{episodesPerBatch='48'},@{autonomous016Version='2'},@{autonomous013Version='0'},
+            @{autonomous009EvaluationOnly='true'},@{autonomous009Phase='EVAL'},@{autonomous009SmokeMaxStarts='4'},@{autonomous009SmokeMaxNativeMinutes='76'},
+            @{autonomous009CycleLimit='0'},@{autonomous009Campaign='autonomous009-goal015-s2'})){
+            $bad=$values.Clone();foreach($key in $change.Keys){$bad[$key]=$change[$key]}
+            $refused=$false;try{Assert-TrainConfig $bad}catch{$refused=$true}
+            Require $refused 'READINESS016_WRONG_BATCH_OR_AUTHORITY_ACCEPTED'
+        }
+        Write-TrainConfig $file $legacy;Require ((Read-TrainConfig $file).episodesPerBatch -ceq '48') 'READINESS016_LEGACY_CONFIG_CHANGED'
+        $budgetFile=Join-Path $fixture 'native-budget016.json'
+        $budget=Get-TrainNativeBudget013 $budgetFile 16
+        Require ($budget.schemaVersion -eq 16 -and $budget.maximumStarts -eq 3 -and [long]$budget.maximumNativeMillis -eq 4500000L) 'READINESS016_NATIVE_LEDGER_INHERITED_013_BUDGET'
+        foreach($ordinal in 1..3){
+            $reserved=Reserve-TrainNativeBudget013 $budgetFile 'autonomous009-learning016-v1-c000001' $false 210000L 16
+            $settled=Complete-TrainNativeBudget013 $budgetFile $reserved.pending 1000L 'OWN_HELD_HANDLE_EXIT_TIME' 16
+            $duplicate=Complete-TrainNativeBudget013 $budgetFile $reserved.pending 1000L 'OWN_HELD_HANDLE_EXIT_TIME' 16
+            Require ($settled.starts -eq $ordinal -and $settled.nativeMillis -eq $ordinal*1000 -and $duplicate.nativeMillis -eq $settled.nativeMillis) 'READINESS016_NATIVE_CHARGE_REPLAY'
+        }
+        $refused=$false;try{$null=Reserve-TrainNativeBudget013 $budgetFile 'autonomous009-learning016-v1-c000001' $false 210000L 16}catch{$refused=$true}
+        Require $refused 'READINESS016_FOURTH_GS_ALLOWED'
+        $evalFile=Join-Path $fixture 'forbidden-eval.json';$refused=$false
+        try{$null=Reserve-TrainNativeBudget013 $evalFile 'autonomous009-learning016-v1-c000001' $true 210000L 16}catch{$refused=$true}
+        Require ($refused -and !(Test-Path -LiteralPath $evalFile)) 'READINESS016_CHILD_EVAL_RESERVED'
+        Remove-Item -LiteralPath $budgetFile
+        $refused=$false;try{$null=Get-TrainNativeBudget013 $budgetFile 16}catch{$refused=$true};Require $refused 'READINESS016_DELETED_LEDGER_RESET'
+        $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
+        Require ($errors.Count -eq 0) 'READINESS016_SOURCE_PARSE'
+        $definitions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -cin @('Test-TrainIncremental016','Get-TrainReadinessWindow016','Assert-TrainReadinessMode016','Open-TrainHeadless013','Read-TrainSourceConfig')},$false)
+        $script:SourceScripts016=$PSScriptRoot
+        # AST functions have no file path; preserve the real script-root dependency explicitly.
+        . ([scriptblock]::Create((($definitions|ForEach-Object {$_.Extent.Text}) -join "`n").Replace('$PSScriptRoot','$script:SourceScripts016')))
+        $now=[DateTime]::UtcNow;$first=Get-TrainReadinessWindow016 1 @() $now
+        $prior1=[pscustomobject]@{schemaVersion=16;session=1;elapsedMillis=599000L;finishedUtc=$now.AddSeconds(599).ToString('o');ownedWorkerAbsent=$true;sqlAbsent=$true;withinCap=$true}
+        $second=Get-TrainReadinessWindow016 2 @($prior1) $now.AddSeconds(600)
+        $prior2=[pscustomobject]@{schemaVersion=16;session=2;elapsedMillis=599000L;finishedUtc=$now.AddSeconds(1199).ToString('o');ownedWorkerAbsent=$true;sqlAbsent=$true;withinCap=$true}
+        $third=Get-TrainReadinessWindow016 3 @($prior1,$prior2) $now.AddSeconds(1200)
+        Require ($first.maximumSeconds -eq 600 -and $second.priorElapsedMillis -eq 599000 -and $third.priorElapsedMillis -eq 1198000 -and $third.priorElapsedMillis+$third.maximumSeconds*1000 -le 1800000) 'READINESS016_CUMULATIVE_TIME_RESET'
+        foreach($case in @(@{session=4;prior=@($prior1,$prior2)},@{session=2;prior=@()},@{session=1;prior=@($prior1)})){
+            $refused=$false;try{$null=Get-TrainReadinessWindow016 $case.session $case.prior $now.AddSeconds(1200)}catch{$refused=$true};Require $refused 'READINESS016_SESSION_REPLAY_ALLOWED'
+        }
+        $prior1.schemaVersion=15;$refused=$false;try{$null=Get-TrainReadinessWindow016 2 @($prior1) $now.AddSeconds(1200)}catch{$refused=$true};Require $refused 'READINESS016_HISTORICAL_BUDGET_IMPORTED';$prior1.schemaVersion=16
+        $prior1.sqlAbsent=$false;$refused=$false;try{$null=Get-TrainReadinessWindow016 2 @($prior1) $now.AddSeconds(1200)}catch{$refused=$true};Require $refused 'READINESS016_SQL_EXIT_UNPROVEN';$prior1.sqlAbsent=$true
+        $script:ReadinessDeadline013=$first;$ctx=Open-TrainHeadless013 $fixture $values 'prepare' ('a'*64) $now
+        $again=Open-TrainHeadless013 $fixture $values 'prepare' ('a'*64) $now.AddSeconds(1)
+        Require ($ctx.journal.goalVersion -eq 16 -and $ctx.journal.maximumSeconds -eq 600 -and $again.recovered -and $again.journal.hardDeadlineUtc -ceq $ctx.journal.hardDeadlineUtc -and
+            (([datetime]$ctx.journal.workDeadlineUtc).ToUniversalTime()-$now).TotalSeconds -eq 390) 'READINESS016_WORK_DEADLINE_WIDENED_ON_RESUME'
+        $ctx.journal.status='TIMEOUT';$ctx.journal.exitProven=$true;Write-TrainJson $ctx.path $ctx.journal;$script:ReadinessDeadline013=$second
+        $refused=$false;try{$null=Open-TrainHeadless013 $fixture $values 'prepare' ('a'*64) $now.AddSeconds(600)}catch{$refused=$true}
+        Require $refused 'READINESS016_BOOLEAN_EXIT_WITHOUT_HELD_RECEIPT_RESTARTED_WORKER'
+        & {
+            $layout=@{Root=$fixture};$Action='Start';$ConfigProfile='OUTCOME006';$Autonomous=$true;$Readiness016Session=0
+            $EnableExploration007=$false;$EnableExploration008=$false;$EnableEvaluation005=$false
+            Write-TrainConfig (Join-Path $fixture 'TRAIN_CONFIG.ini') $values
+            $refused=$false;$cause='';try{$null=Read-TrainSourceConfig}catch{$cause=$_.Exception.Message;$refused=$cause -ceq 'TRAIN016_G3_REQUIRED_BEFORE_START'}
+            Require $refused ('READINESS016_START_WITHOUT_G3_REACHED_SQL_OR_PREPARE cause='+$cause)
+        }
+        $target=Join-Path $fixture 'physical';$link=Join-Path $fixture 'reparse';$null=[IO.Directory]::CreateDirectory($target)
+        $null=New-Item -ItemType Junction -Path $link -Target $target
+        $refused=$false;try{Assert-TrainDirectory $link}catch{$refused=$true};Require $refused 'READINESS016_REPARSE_ACCEPTED';Remove-Item -LiteralPath $link -Force
+        $director=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Invoke-TrainAutonomousDirector013'},$false)[0]
+        $collect=$director.Body.FindAll({param($n) $n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.StartsWith("if(`$journal.phase -ceq 'COLLECT')",[StringComparison]::Ordinal)},$true)
+        Require ($collect.Count -eq 1) 'READINESS016_COLLECT_BRANCH'
+        $body=[scriptblock]::Create($collect[0].Extent.Text)
+        & {
+            $script:Config=$values.Clone();$script:ReadinessSession=0;$script:ReadinessOnly013=$false;$script:ReadinessGoalVersion=16
+            $script:probe016=0;$script:native016=0;$script:verify016=0
+            $directory=Join-Path $fixture 'director';$cycleDirectory=Join-Path $directory 'cycles/c000001';$cohort=Join-Path $directory 'cohort'
+            $null=[IO.Directory]::CreateDirectory($cycleDirectory);$null=[IO.Directory]::CreateDirectory($cohort)
+            Write-TrainJson (Join-Path $cohort 'training-admission013.json') @{cells=3;minimumCells=3;classes=2;scopes=2;unitFixture=$true}
+            Write-TrainJson (Join-Path $cohort 'cohort016.complete.json') @{unitFixture=$true;trainingCredit=$false}
+            $parent016=[pscustomobject]@{modelVersion=14;modelSha=('b'*64);optimizerSha=('e'*64)}
+            $journal=[pscustomobject]@{phase='COLLECT';dataset='autonomous009-learning016-v1-c000001';reason='';parentCheckpoint=$parent016};$config=$values.Clone();$campaign=$values.autonomous009Campaign;$Dependencies=$null;$Jar='a'*64;$path=Join-Path $directory 'director.json';$layout=@{Root=$fixture}
+            function Assert-TrainHeadlessAdmission013 {param($Scope,$Admission)}
+            function Publish-TrainState {param($Phase,$Reason)}
+            function Write-TrainConfig {param($File,$Values)}
+            function Save-TrainCycleState013 {param($Path,$Journal)}
+            function Invoke-TrainJava {param($Dependencies,$Class,$Arguments) if($Arguments[0] -ceq 'verify-seal016'){$script:verify016++}}
+            function Invoke-TrainEvaluation013 {param($Dependencies,$Jar,$Journal,$Path,$CycleDirectory,$Probe) $script:probe016++}
+            function Invoke-TrainAutonomousNative {param($Dependencies,$Jar,$Journal,$Path) $script:native016++;Write-TrainText (Join-Path $cohort 'collection.complete') 'UNIT_NOT_GAMEPLAY'}
+            function Get-TrainAdmissionFailure013 {return $null}
+            function Read-TrainCold013 {param($Dependencies) return $parent016}
+            function Test-TrainRequest {param($Kind) return $false}
+            & $body
+            Require ($script:probe016 -eq 0 -and $script:native016 -eq 1 -and $script:verify016 -gt 0 -and $journal.phase -ceq 'FIT') 'READINESS016_DIRECTOR_RAN_EVAL_OR_BYPASSED_SEAL'
+        }
+        $fitNodes=$director.Body.FindAll({param($n) $n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.StartsWith("if(`$journal.phase -ceq 'FIT')",[StringComparison]::Ordinal)},$true)
+        Require ($fitNodes.Count -eq 1) 'READINESS016_FIT_BRANCH'
+        $fitBody=[scriptblock]::Create($fitNodes[0].Extent.Text)
+        foreach($scenario in @('INSUFFICIENT','ONE_FIT','AMBIGUOUS')){
+            & {
+                $layout=@{Root=$fixture};$cycleDirectory=Join-Path $fixture $scenario;$null=[IO.Directory]::CreateDirectory($cycleDirectory)
+                $parent=[pscustomobject]@{modelVersion=14;modelSha=('b'*64);optimizerSha=('e'*64);optimizerUpdates=903}
+                $child=[pscustomobject]@{modelVersion=15;modelSha=('f'*64);optimizerSha=('d'*64);optimizerUpdates=904}
+                $journal=[pscustomobject]@{phase='FIT';dataset='autonomous009-learning016-v1-c000001';parentCheckpoint=$parent;fits=0;reason='';completedCycles=0;bestVersion=2;bestSha=('c'*64)}
+                $script:Config=$values.Clone();$config=$values.Clone();$Dependencies=$null;$path=Join-Path $cycleDirectory 'director.json';$script:fitCalls016=0
+                function Write-TrainConfig {param($File,$Values)}
+                function Publish-TrainState {param($Phase,$Reason)}
+                function Save-TrainCycleState013 {param($File,$Journal) Write-TrainJson $File $Journal}
+                function Invoke-TrainEvaluation013 {throw 'READINESS016_POST_FIT_EVAL_FORBIDDEN'}
+                function Invoke-TrainJava {
+                    param($Dependencies,$Class,$Arguments)
+                    Require ($Class -ceq 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' -and $Arguments[0] -ceq 'train') 'READINESS016_UNEXPECTED_FIT_DEPENDENCY'
+                    $script:fitCalls016++
+                    $result=if($scenario -ceq 'ONE_FIT'){@{candidateVersion=15;candidateSha=$child.modelSha;metrics=@{optimizerSha=$child.optimizerSha}}}else{@{candidateVersion=0}}
+                    Write-TrainJson (Join-Path $fixture 'tactical-v3-evaluation.json') $result
+                }
+                function Read-TrainCold013 {param($Dependencies) if($scenario -ceq 'ONE_FIT'){return $child}else{return $parent}}
+                if($scenario -ceq 'AMBIGUOUS'){
+                    Write-TrainJson (Join-Path $cycleDirectory 'fit-reserved016.json') @{schemaVersion=16;cycle=$journal.dataset;parent=$parent}
+                    $refused=$false;try{& $fitBody}catch{$refused=$_.Exception.Message -ceq 'TRAIN016_FIT_RESERVATION_UNCERTAIN_NO_REPLAY'}
+                    Require ($refused -and $script:fitCalls016 -eq 0) 'READINESS016_UNKNOWN_FIT_REPLAYED'
+                }else{
+                    & $fitBody;$journal.phase='FIT';& $fitBody
+                    Require ($script:fitCalls016 -eq 1 -and $journal.phase -ceq 'DONE016' -and $journal.bestVersion -eq 2 -and $journal.fits -eq $(if($scenario -ceq 'ONE_FIT'){1}else{0})) 'READINESS016_REPEATED_FIT_OR_LOST_ACCEPTED_BEST'
+                    if($scenario -ceq 'INSUFFICIENT'){Require ($journal.reason -ceq 'NO_FIT_INSUFFICIENT_VALID_DATA') 'READINESS016_FAKE_FIT_ON_INSUFFICIENT_DATA'}
+                }
+            }
+        }
+        Write-Output 'READINESS016_GREEN config51=1 legacy=1 sessions3Wall1800=1 native3Minutes75=1 noEval=1 noRepeatedFit=1 actualJunctionRejected=1 SQL=0 GS=0'
+    }finally{
+        $script:ReadinessDeadline013=$null
+        $resolved=[IO.Path]::GetFullPath($fixture);$temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+        if(!$resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase)){throw 'READINESS016_TEMP_SCOPE'}
+        Remove-Item -LiteralPath $resolved -Recurse -Force
+    }
+    return
+}
 if($Readiness015){
     $tokens=$null;$errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
     Require ($errors.Count -eq 0) 'READINESS015_SOURCE_PARSE'
-    $functions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -cin @('Get-TrainReadinessWindow014','Get-TrainReadinessWindow015','Open-TrainHeadless013','Assert-TrainReadinessMode015')},$false)
+    $functions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -cin @('Get-TrainReadinessWindow014','Get-TrainReadinessWindow015','Open-TrainHeadless013','Assert-TrainReadinessMode015','Test-TrainIncremental016')},$false)
     . ([scriptblock]::Create(($functions|ForEach-Object {$_.Extent.Text}) -join "`n"))
     Require ([bool](Get-Command Get-TrainReadinessWindow015 -ErrorAction SilentlyContinue)) 'READINESS015_SHARED_BUDGET_MISSING'
     $now=[DateTime]::UtcNow;$first=Get-TrainReadinessWindow015 1 $null $now
@@ -120,7 +259,7 @@ if($Headless013){
     $tokens=$null;$errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
     Require ($errors.Count -eq 0) 'HEADLESS013_SOURCE_PARSE'
-    $functions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and ($n.Name -match 'Headless.*013$' -or $n.Name -cin @('Invoke-TrainJava','Test-TrainRequest','Publish-TrainState','Copy-TrainConfig013'))},$false)
+    $functions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and ($n.Name -match 'Headless.*013$' -or $n.Name -cin @('Test-TrainIncremental016','Invoke-TrainJava','Test-TrainRequest','Publish-TrainState','Copy-TrainConfig013'))},$false)
     . ([scriptblock]::Create(($functions|ForEach-Object {$_.Extent.Text}) -join "`n"))
     Require ([bool](Get-Command Open-TrainHeadless013 -ErrorAction SilentlyContinue)) 'HEADLESS013_CONTRACT_MISSING'
     $script:HeadlessAdoption013=$null;$script:ReadinessOnly013=$false;$script:HeadlessCleanupDeadline013=$null;$script:ReadinessDeadline013=$null;$script:State=$null;$script:DirectorNonce='';$script:Config=$null;$script:WorkerRecord=$null

@@ -9,6 +9,7 @@ param(
     [switch]$Autonomous,
     [ValidateRange(0,2)][int]$Readiness014Session=0,
     [ValidateRange(0,2)][int]$Readiness015Session=0,
+    [ValidateRange(0,3)][int]$Readiness016Session=0,
     [switch]$Json,
     [switch]$EnableEvaluation005,
     [ValidateRange(1,4)][int]$Evaluation005PairLimit=4,
@@ -32,9 +33,9 @@ $script:HeadlessCleanupDeadline013=$null
 $script:ReadinessOnly013=$false
 $script:ReadinessDeadline013=$null
 $script:HeadlessAdoption013=$null
-if($Readiness014Session -gt 0 -and $Readiness015Session -gt 0){throw 'TRAIN015_EXCLUSIVE_READINESS_GOAL'}
-$script:ReadinessSession=if($Readiness015Session -gt 0){$Readiness015Session}else{$Readiness014Session}
-$script:ReadinessGoalVersion=if($Readiness015Session -gt 0){15}else{14}
+if(@(@($Readiness014Session,$Readiness015Session,$Readiness016Session)|Where-Object {$_ -gt 0}).Count -gt 1){throw 'TRAIN015_EXCLUSIVE_READINESS_GOAL'}
+$script:ReadinessSession=if($Readiness016Session -gt 0){$Readiness016Session}elseif($Readiness015Session -gt 0){$Readiness015Session}else{$Readiness014Session}
+$script:ReadinessGoalVersion=if($Readiness016Session -gt 0){16}elseif($Readiness015Session -gt 0){15}else{14}
 if($script:ReadinessSession -gt 0 -and ($Action -cne 'Prepare' -or !$Autonomous)){throw 'TRAIN014_READINESS_ONLY'}
 function Get-TrainReadinessWindow014([int]$Session,$Prior,[datetime]$Now=[DateTime]::UtcNow) {
     if($Session -eq 1){if($Prior){throw 'TRAIN014_SESSION_REPLAY'};$seconds=480}
@@ -61,6 +62,55 @@ function Assert-TrainReadinessMode015($Values,[int]$Session) {
         !$Values.ContainsKey('autonomous009EvaluationOnly') -or $Values.autonomous009EvaluationOnly -cne 'false'){throw 'TRAIN015_TRAIN_ONLY_BOUNDED_MODE_REQUIRED'}
     if(!$Values.ContainsKey('episodesPerBatch') -or $Values.episodesPerBatch -cne '51'){throw 'TRAIN015_PIPELINE_51_REQUIRED'}
 }
+function Test-TrainIncremental016($Values) {return $Values -and $Values.ContainsKey('autonomous016Version') -and $Values.autonomous016Version -ceq '1'}
+function Assert-TrainReadinessMode016($Values,[int]$Session) {
+    if($Session -gt 0 -and !(Test-TrainIncremental016 $Values)){throw 'TRAIN016_EXPLICIT_PROTOCOL_REQUIRED'}
+    if(Test-TrainIncremental016 $Values){
+        Assert-TrainConfig $Values
+        if($Session -notin @(0,1,2,3) -or ($Action -ceq 'Prepare' -and $Session -eq 0)){throw 'TRAIN016_BOUNDED_READINESS_REQUIRED'}
+    }
+}
+function Get-TrainReadinessWindow016([int]$Session,[object[]]$Prior,[datetime]$Now=[DateTime]::UtcNow) {
+    $rows=@($Prior|Where-Object {$null -ne $_});$elapsed=0L;$ordinal=0
+    if($Session -lt 1 -or $Session -gt 3 -or $rows.Count -ne $Session-1){throw 'TRAIN016_READINESS_ORDINAL_OR_REPLAY'}
+    foreach($row in $rows){
+        $ordinal++
+        if($row.schemaVersion -ne 16 -or $row.session -ne $ordinal -or !$row.ownedWorkerAbsent -or !$row.sqlAbsent -or !$row.withinCap -or
+           [long]$row.elapsedMillis -lt 0 -or [long]$row.elapsedMillis -gt 600000L -or ([datetime]$row.finishedUtc).ToUniversalTime() -gt $Now.ToUniversalTime()){throw 'TRAIN016_PRIOR_EXIT_OR_CAP'}
+        $elapsed+=[long]$row.elapsedMillis
+    }
+    $maximum=[int][Math]::Min(600,[Math]::Floor((1800000L-$elapsed)/1000))
+    if($maximum -le 210){throw 'TRAIN016_HEADLESS_BUDGET_EXHAUSTED'}
+    return [pscustomobject]@{schemaVersion=13;goalVersion=16;session=$Session;nonce=[guid]::NewGuid().ToString('N');issuedUtc=$Now.ToUniversalTime().ToString('o');hardDeadlineUtc=$Now.ToUniversalTime().AddSeconds($maximum).ToString('o');maximumSeconds=$maximum;priorElapsedMillis=$elapsed;drainReserveSeconds=210;trainingCredit=$false}
+}
+function Save-TrainReadinessControl016([string]$PassRoot,[int]$Session) {
+    if($Session -eq 1){return}
+    $scope=Join-Path $layout.Root 'autonomous\v1\campaigns\autonomous009-learning016-v1\cohorts\autonomous009-learning016-v1-c000001'
+    if(Test-Path -LiteralPath (Join-Path $scope 'cohort016.complete.json')){throw 'TRAIN016_ALREADY_SEALED_NO_MORE_READINESS'}
+    $old=Read-TrainJson (Join-Path $scope 'headless-operation013.json')
+    if($old.goalVersion -ne 16 -or $old.session -ne $Session-1 -or !$old.exitProven -or !$old.worker -or !(Test-TrainProcessAbsent $old.worker) -or !(Test-TrainExitReceipt $layout $old.worker)){throw 'TRAIN016_PREVIOUS_WORKER_EXIT_UNPROVEN'}
+    $sql=Read-TrainJson (Join-Path $layout.Sql 'owned-process.json')
+    if(!(Test-TrainProcessAbsent $sql) -or !(Test-TrainExitReceipt $layout $sql)){throw 'TRAIN016_PREVIOUS_SQL_EXIT_UNPROVEN'}
+    $ownerSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'owner.txt')).Hash
+    $backup=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ('PhantomLearning016\control-backups\'+$ownerSha+'\session'+($Session-1))
+    if(!(Test-Path -LiteralPath $backup)){
+        $null=[IO.Directory]::CreateDirectory($backup)
+        $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User;$acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetOwner($sid);$acl.SetAccessRuleProtection($true,$false)
+        foreach($trustee in @($sid.Value,'S-1-5-18')){$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($trustee),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
+        Set-Acl -LiteralPath $backup -AclObject $acl
+    }
+    Assert-TrainPrivate $backup
+    $archive=Join-Path $layout.Root ('autonomous\v16\readiness\session'+($Session-1)+'-control');$null=[IO.Directory]::CreateDirectory($archive);Assert-TrainDirectory $archive
+    foreach($entry in @(@{root=$scope;prefix='cohort';names=@('headless-operation013.json','headless-result013.json','preparation-cost014.json','stop.request')},@{root=$PassRoot;prefix='director';names=@('readiness-issued013.json','readiness-result013.json')})){
+        foreach($name in $entry.names){
+            $file=Join-Path $entry.root $name;if(!(Test-Path -LiteralPath $file)){continue};Assert-G0PhysicalFile $file;$sha=(Get-FileHash -LiteralPath $file).Hash
+            foreach($destination in @((Join-Path $backup ($entry.prefix+'-'+$name)),(Join-Path $archive ($entry.prefix+'-'+$name)))){
+                if(!(Test-Path -LiteralPath $destination)){[IO.File]::Copy($file,$destination,$false)};Assert-TrainHash $destination $sha
+            }
+            if($name -cne 'headless-operation013.json'){Remove-Item -LiteralPath $file}
+        }
+    }
+}
 function Test-TrainOutcomeV2($Values) {
     if(!$Values.ContainsKey('evaluationOutcomeVersion') -or $Values.evaluationOutcomeVersion -ceq '1'){return $false}
     if($Values.evaluationOutcomeVersion -cne '2' -or $Values.autonomous009EvaluationOnly -cne 'true' -or $Values.autonomous009Exploration -cne 'false' -or
@@ -86,7 +136,8 @@ function Read-TrainSourceConfig {
     if(Test-Path -LiteralPath $saved){$current=Read-TrainConfig $saved;if($current.ContainsKey('configProfile')){$profile=$current.configProfile}}
     if($current -and $current.ContainsKey('autonomous013ParentCampaign')){
         if($current.autonomous013ParentCampaign -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,64}$'){throw 'TRAIN013_RECOVERY_PARENT_PATH'}
-        $parentDirectory=Join-Path $layout.Root ('autonomous\v13\campaigns\'+$current.autonomous013ParentCampaign)
+        $parentVersion=if(Test-TrainIncremental016 $current){16}else{13}
+        $parentDirectory=Join-Path $layout.Root ('autonomous\v'+$parentVersion+'\campaigns\'+$current.autonomous013ParentCampaign)
         $parentPath=Join-Path $parentDirectory 'base-config.json';$parentJournal=Read-TrainJson (Join-Path $parentDirectory 'director-state.json')
         if((Get-FileHash -LiteralPath $parentPath).Hash -cne $current.autonomous013ParentConfigSha -or $parentJournal.configSha -cne $current.autonomous013ParentConfigSha){throw 'TRAIN013_RECOVERY_PARENT_SHA'}
         $current=Copy-TrainConfig013 (Read-TrainJson $parentPath)
@@ -101,6 +152,12 @@ function Read-TrainSourceConfig {
             if($values.autonomous009Campaign -ceq 'autonomous009-uninitialized'){$values.autonomous009Campaign='autonomous009-'+[guid]::NewGuid().ToString('N');$values.outcome006DatasetId=$values.autonomous009Campaign+'-c000001'}
             if($values.autonomous009Phase -ceq 'OFF'){$values.autonomous009Phase=if($values.autonomous009EvaluationOnly -ceq 'true'){'EVAL'}else{'PREPARE'}}
         }
+        if((Test-TrainIncremental016 $values) -and $Action -ceq 'Prepare'){$values.autonomous009Enabled='true';$values.outcome006Enabled='true';$values.autonomous009Phase='PREPARE'}
+        if((Test-TrainIncremental016 $values) -and $Action -cin @('Start','Resume')){
+            $seal=Join-Path $layout.Root 'autonomous\v1\campaigns\autonomous009-learning016-v1\cohorts\autonomous009-learning016-v1-c000001\cohort016.complete.json'
+            if(!(Test-Path -LiteralPath $seal)){throw 'TRAIN016_G3_REQUIRED_BEFORE_START'}
+        }
+        Assert-TrainReadinessMode016 $values $Readiness016Session
         Assert-TrainConfig $values;return $values
     }
     if($EnableExploration007 -and $EnableExploration008){throw 'TRAIN008_EXCLUSIVE_OPT_IN_REQUIRED'}
@@ -295,20 +352,32 @@ function Open-TrainHeadless013([string]$Installation,$Values,[string]$Operation,
     $relative=if($Operation -ceq 'prepare'){'cohorts\'+$Values.outcome006DatasetId}else{'evaluations\'+$Values.outcome006DatasetId+'-'+$Values.autonomous009ModelVersion}
     $scope=Join-Path $Installation ('autonomous\v1\campaigns\'+$Values.autonomous009Campaign+'\'+$relative)
     $null=[IO.Directory]::CreateDirectory($scope);Assert-TrainDirectory $scope;$path=Join-Path $scope 'headless-operation013.json';$recovered=Test-Path -LiteralPath $path
+    $freshPass=Get-Variable -Name ReadinessDeadline013 -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+    if($recovered -and $freshPass -and $freshPass.PSObject.Properties['goalVersion'] -and $freshPass.goalVersion -eq 16){
+        $prior=Read-TrainJson $path
+        if(!$prior.PSObject.Properties['goalVersion'] -or $prior.goalVersion -ne 16 -or !$prior.PSObject.Properties['session'] -or $prior.session -gt $freshPass.session){throw 'TRAIN016_FOREIGN_HEADLESS_CONTEXT'}
+        if($prior.session -lt $freshPass.session){
+            if($prior.session -ne $freshPass.session-1 -or !$prior.exitProven -or !$prior.worker -or $prior.status -cin @('RUNNING','DRAINING') -or
+                !(Test-TrainProcessAbsent $prior.worker) -or !(Test-TrainExitReceipt $layout $prior.worker)){throw 'TRAIN016_PREVIOUS_HELD_EXIT_REQUIRED'}
+            $recovered=$false
+        }
+    }
     if($recovered){
         $j=Read-TrainJson $path
-        $maximum=if($j.PSObject.Properties['goalVersion'] -and $j.goalVersion -in @(14,15)){if($j.maximumSeconds -notin @(480,720)){throw 'TRAIN014_HEADLESS_CAP'};[int]$j.maximumSeconds}else{1200}
+        $maximum=if($j.PSObject.Properties['goalVersion'] -and $j.goalVersion -eq 16){if($j.maximumSeconds -le 210 -or $j.maximumSeconds -gt 600){throw 'TRAIN016_HEADLESS_CAP'};[int]$j.maximumSeconds}elseif($j.PSObject.Properties['goalVersion'] -and $j.goalVersion -in @(14,15)){if($j.maximumSeconds -notin @(480,720)){throw 'TRAIN014_HEADLESS_CAP'};[int]$j.maximumSeconds}else{1200}
         foreach($field in @('issuedUtc','workDeadlineUtc','hardDeadlineUtc')){$j.$field=([datetime]$j.$field).ToUniversalTime().ToString('o')}
         if($j.schemaVersion -ne 13 -or $j.operation -cne $Operation -or $j.configSha -cne $ConfigSha -or $j.scope -cne $scope -or $j.trainingCredit -ne $false -or $j.nonce -cnotmatch '^[a-f0-9]{32}$' -or
            ([DateTime]::Parse($j.hardDeadlineUtc)-[DateTime]::Parse($j.issuedUtc)).TotalSeconds -ne $maximum -or ([DateTime]::Parse($j.workDeadlineUtc)-[DateTime]::Parse($j.issuedUtc)).TotalSeconds -ne ($maximum-210)){throw 'TRAIN013_HEADLESS_COLD_PIN_CHANGED'}
     }else{
         $pass=Get-Variable -Name ReadinessDeadline013 -Scope Script -ValueOnly -ErrorAction SilentlyContinue
         $issued=if($pass){[DateTime]::Parse($pass.issuedUtc).ToUniversalTime()}else{$Now.ToUniversalTime()}
-        $bounded=$pass -and $pass.PSObject.Properties['goalVersion'] -and $pass.goalVersion -in @(14,15)
+        $bounded=$pass -and $pass.PSObject.Properties['goalVersion'] -and $pass.goalVersion -in @(14,15,16)
         $maximum=if($bounded){[int]$pass.maximumSeconds}else{1200}
-        if($maximum -notin @(480,720,1200) -or ($bounded -and $maximum -eq 1200)){throw 'TRAIN014_HEADLESS_CAP'}
+        if($bounded -and $pass.goalVersion -eq 16){if($maximum -le 210 -or $maximum -gt 600){throw 'TRAIN016_HEADLESS_CAP'}}
+        elseif($maximum -notin @(480,720,1200) -or ($bounded -and $maximum -eq 1200)){throw 'TRAIN014_HEADLESS_CAP'}
         $j=[pscustomobject]@{schemaVersion=13;operation=$Operation;scope=$scope;configSha=$ConfigSha;nonce=[guid]::NewGuid().ToString('N');issuedUtc=$issued.ToString('o');workDeadlineUtc=$issued.AddSeconds($maximum-210).ToString('o');hardDeadlineUtc=$issued.AddSeconds($maximum).ToString('o');drainDeadlineUtc='';status='RUNNING';reason='';worker=$null;exitCode=$null;exitProven=$false;resultSha='';trainingCredit=$false}
         if($maximum -ne 1200){$j|Add-Member goalVersion $pass.goalVersion;$j|Add-Member maximumSeconds $maximum}
+        if($bounded -and $pass.goalVersion -eq 16){$j|Add-Member session $pass.session}
         Write-TrainJson $path $j
     }
     return [pscustomobject]@{scope=$scope;path=$path;journal=$j;recovered=$recovered;terminal=($j.status -cin @('READY','TIMEOUT','CANCELLED','INSUFFICIENT_EVIDENCE','ERROR','DRAIN_UNCONFIRMED'))}
@@ -434,7 +503,8 @@ function Restore-TrainHeadlessConfig013 {
     $raw=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
     if(!$raw.ContainsKey('autonomous013Version') -or $raw.autonomous013Version -cne '1'){return}
     $campaign=if($raw.ContainsKey('autonomous013ParentCampaign')){$raw.autonomous013ParentCampaign}else{$raw.autonomous009Campaign}
-    $directory=Join-Path $layout.Root ('autonomous\v13\campaigns\'+$campaign);$basePath=Join-Path $directory 'base-config.json'
+    $version=if(Test-TrainIncremental016 $raw){16}else{13}
+    $directory=Join-Path $layout.Root ('autonomous\v'+$version+'\campaigns\'+$campaign);$basePath=Join-Path $directory 'base-config.json'
     if(Test-Path -LiteralPath $basePath){$j=Read-TrainJson (Join-Path $directory 'director-state.json');Assert-TrainHash $basePath $j.configSha;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') (Copy-TrainConfig013 (Read-TrainJson $basePath))}
 }
 function Recover-TrainHeadlessControl013($Dependencies,[switch]$Cancel) {
@@ -901,9 +971,11 @@ function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[strin
         return
     }
     if($Journal.pending){throw 'TRAIN009_PENDING_NATIVE_REQUIRES_EXIT_RECOVERY'}
-    $reservationId='';$budgetPath=Join-Path $layout.Root 'autonomous\v13\native-budget.json';$scopeSpent=0L
+    $goal=if(Test-TrainIncremental016 $script:Config){16}else{13}
+    $reservationId='';$budgetPath=Join-Path $layout.Root ('autonomous\v'+$goal+'\native-budget.json');$scopeSpent=0L
     if($loop013){
-        $global=Reserve-TrainNativeBudget013 $budgetPath $script:Config.autonomous009Campaign ($script:Config.autonomous009EvaluationOnly -ceq 'true') $reserve
+        $scope=if($goal -eq 16){$script:Config.outcome006DatasetId}else{$script:Config.autonomous009Campaign}
+        $global=Reserve-TrainNativeBudget013 $budgetPath $scope ($script:Config.autonomous009EvaluationOnly -ceq 'true') $reserve $goal
         $reservationId=$global.pending;$reserved=@($global.reservations|Where-Object {$_.attemptId -ceq $reservationId})[0]
         $Journal.starts=[int]$global.starts;$Journal.nativeMillis=[long]$global.nativeMillis;$Journal.pendingStartedUtc=$reserved.startedUtc
         foreach($row in @($global.reservations|Where-Object {$_.scope -ceq $reserved.scope -and $null -ne $_.chargedMillis})){$scopeSpent+=[long]$row.chargedMillis}
@@ -930,7 +1002,7 @@ function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[strin
             $charge=Join-Path $layout.Root ('attempts\'+$record.nonce+'\budget-charge.json')
             if(Test-Path -LiteralPath $charge){throw 'TRAIN010_NATIVE_CHARGE_ALREADY_RECORDED'}
             Write-TrainJson $charge @{campaign=$Journal.campaign;attemptId=$record.nonce;pid=$record.pid;created=$record.created;chargedMillis=$elapsed;monotonicUpperMillis=$timer.ElapsedMilliseconds;proof=$proof;priorNativeMillis=$Journal.nativeMillis;maximumNativeMillis=$nativeLimit}
-            if($loop013){$global=Complete-TrainNativeBudget013 $budgetPath $record.nonce $elapsed $proof;$Journal.nativeMillis=[long]$global.nativeMillis;$Journal.starts=[int]$global.starts}
+            if($loop013){$global=Complete-TrainNativeBudget013 $budgetPath $record.nonce $elapsed $proof $goal;$Journal.nativeMillis=[long]$global.nativeMillis;$Journal.starts=[int]$global.starts}
             else{$Journal.nativeMillis=[long]$Journal.nativeMillis+$elapsed}
             $Journal.pending=$false;$Journal.lastAttempt=$script:State.attemptId;Write-TrainJson $JournalPath $Journal
         }
@@ -1023,13 +1095,14 @@ function Invoke-TrainEvaluation013($Dependencies,[string]$Jar,$Journal,[string]$
 function Invoke-TrainAutonomousDirector013($Dependencies,[string]$Jar) {
     if($script:Config.autonomous009EvaluationOnly -ceq 'true' -or $script:Config.autonomous009AcceptanceSmoke -cne 'true'){throw 'TRAIN013_OWN_TRAIN_ACCEPTANCE_REQUIRED'}
     $baseConfig=Copy-TrainConfig013 $script:Config;$campaign=$baseConfig.autonomous009Campaign
-    $directory=Join-Path $layout.Root ('autonomous\v13\campaigns\'+$campaign);$null=[IO.Directory]::CreateDirectory($directory);Assert-TrainDirectory $directory
+    $goal=if(Test-TrainIncremental016 $baseConfig){16}else{13}
+    $directory=Join-Path $layout.Root ('autonomous\v'+$goal+'\campaigns\'+$campaign);$null=[IO.Directory]::CreateDirectory($directory);Assert-TrainDirectory $directory
     $path=Join-Path $directory 'director-state.json';$basePath=Join-Path $directory 'base-config.json'
     if(!(Test-Path -LiteralPath $basePath)){Write-TrainJson $basePath $baseConfig}
     $baseConfig=Copy-TrainConfig013 (Read-TrainJson $basePath)
     $ownerSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'owner.txt')).Hash;$sourceSha=Get-TrainSourceFingerprint
     $controlSha=Get-TrainControlSource013;$geoSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'geo203.json')).Hash;$protectedSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'protected207.json')).Hash
-    $budgetPath=Join-Path $layout.Root 'autonomous\v13\native-budget.json';$global=Get-TrainNativeBudget013 $budgetPath
+    $budgetPath=Join-Path $layout.Root ('autonomous\v'+$goal+'\native-budget.json');$global=Get-TrainNativeBudget013 $budgetPath $goal
     if($global.pending){
         $reservation=@($global.reservations|Where-Object {$_.attemptId -ceq $global.pending})[0]
         $record=Read-TrainJson (Join-Path $layout.Root 'native-process.json')
@@ -1038,7 +1111,7 @@ function Invoke-TrainAutonomousDirector013($Dependencies,[string]$Jar) {
         $chargePath=Join-Path $layout.Root ('attempts\'+$record.nonce+'\budget-charge.json')
         if(Test-Path -LiteralPath $chargePath){$charge=Read-TrainJson $chargePath;if([long]$charge.priorNativeMillis -ne [long]$reservation.priorNativeMillis -or [long]$charge.chargedMillis -ne [long]$exitFact.nativeElapsedMillis){throw 'TRAIN013_CHARGE_MISMATCH'}}
         else{Write-TrainJson $chargePath @{campaign=$campaign;attemptId=$record.nonce;pid=$record.pid;created=$record.created;chargedMillis=$exitFact.nativeElapsedMillis;priorNativeMillis=$reservation.priorNativeMillis;maximumNativeMillis=4800000L;proof='OWN_HELD_HANDLE_EXIT_TIME'}}
-        $global=Complete-TrainNativeBudget013 $budgetPath $record.nonce ([long]$exitFact.nativeElapsedMillis) 'OWN_HELD_HANDLE_EXIT_TIME'
+        $global=Complete-TrainNativeBudget013 $budgetPath $record.nonce ([long]$exitFact.nativeElapsedMillis) 'OWN_HELD_HANDLE_EXIT_TIME' $goal
     }
     if(Test-Path -LiteralPath $path){
         $journal=Read-TrainJson $path
@@ -1071,11 +1144,18 @@ function Invoke-TrainAutonomousDirector013($Dependencies,[string]$Jar) {
         if($journal.phase -ceq 'COLLECT'){
             $config.autonomous009Phase='COLLECT';$script:Config=$config;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $config
             try{
+                if((Test-TrainIncremental016 $script:Config) -and !$script:ReadinessOnly013 -and !(Test-Path -LiteralPath (Join-Path $cohort 'cohort016.complete.json'))){throw 'TRAIN016_G3_REQUIRED_BEFORE_NATIVE_MODE'}
                 Assert-TrainHeadlessAdmission013 $cohort (Join-Path $cohort 'training-admission013.json')
-                Publish-TrainState 'COLLECTING' 'Проверка законного TRAIN cohort и terminal provenance до GS.';Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('prepare',$layout.Root)
+                Publish-TrainState 'COLLECTING' 'Проверка законного TRAIN cohort и terminal provenance до GS.'
+                if(!(Test-TrainIncremental016 $script:Config) -or !(Test-Path -LiteralPath (Join-Path $cohort 'cohort016.complete.json'))){Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('prepare',$layout.Root)}
+                if(Test-TrainIncremental016 $script:Config){Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('verify-seal016',$layout.Root)}
+                if(Test-TrainIncremental016 $script:Config){
+                    $liveCold=Read-TrainCold013 $Dependencies
+                    if($liveCold.modelVersion -ne $journal.parentCheckpoint.modelVersion -or $liveCold.modelSha -cne $journal.parentCheckpoint.modelSha -or $liveCold.optimizerSha -cne $journal.parentCheckpoint.optimizerSha){throw 'TRAIN016_STALE_MODEL_OR_ADAM_BEFORE_GS'}
+                }
                 $admission=Read-TrainJson (Join-Path $cohort 'training-admission013.json')
                 if([int]$admission.cells -lt [int]$admission.minimumCells -or [int]$admission.classes -lt 2 -or [int]$admission.scopes -lt 2){$journal.reason='NO_DATA';Save-TrainCycleState013 $path $journal;continue}
-                if($script:ReadinessSession -eq 0 -and !(Test-Path -LiteralPath (Join-Path $cycleDirectory 'child-probe-admitted.json'))){$null=Invoke-TrainEvaluation013 $Dependencies $Jar $journal $path $cycleDirectory $true}
+                if(!(Test-TrainIncremental016 $script:Config) -and $script:ReadinessSession -eq 0 -and !(Test-Path -LiteralPath (Join-Path $cycleDirectory 'child-probe-admitted.json'))){$null=Invoke-TrainEvaluation013 $Dependencies $Jar $journal $path $cycleDirectory $true}
             }catch{
                 $cause=if($_.Exception.Message -ceq 'TRAIN013_HEADLESS_INSUFFICIENT_EVIDENCE'){$(if($_.Exception.Data['headlessOperation'] -ceq 'prepare'){'TRAIN013_INSUFFICIENT_LEGAL_COHORT'}else{'EVAL012_INSUFFICIENT_COVERAGE'})}else{Get-TrainAdmissionFailure013}
                 if(!$cause){throw}
@@ -1097,6 +1177,31 @@ function Invoke-TrainAutonomousDirector013($Dependencies,[string]$Jar) {
         }
         if($journal.phase -ceq 'FIT'){
             $config.autonomous009Phase='FIT';$script:Config=$config;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $config;Publish-TrainState 'FITTING' 'Продолжение exact terminal Adam; selected checkpoint отдельно.'
+            if(Test-TrainIncremental016 $script:Config){
+                $fitReservation=Join-Path $cycleDirectory 'fit-reserved016.json';$fitResult=Join-Path $cycleDirectory 'fit-result.json'
+                if(Test-Path -LiteralPath $fitReservation){
+                    $reserved=Read-TrainJson $fitReservation
+                    if($reserved.schemaVersion -ne 16 -or $reserved.cycle -cne $journal.dataset -or $reserved.parent.modelSha -cne $journal.parentCheckpoint.modelSha -or $reserved.parent.optimizerSha -cne $journal.parentCheckpoint.optimizerSha){throw 'TRAIN016_FIT_RESERVATION_CHANGED'}
+                    if(!(Test-Path -LiteralPath $fitResult)){throw 'TRAIN016_FIT_RESERVATION_UNCERTAIN_NO_REPLAY'}
+                    $fit=Read-TrainJson $fitResult
+                    if(!$fit.PSObject.Properties['reservationSha'] -or $fit.reservationSha -cne (Get-FileHash -LiteralPath $fitReservation).Hash){throw 'TRAIN016_FIT_RESULT_LINEAGE_CHANGED'}
+                }else{
+                    if([int]$journal.fits -ne 0){throw 'TRAIN016_FIT_ALREADY_COMMITTED_NO_REPLAY'}
+                    Write-TrainJson $fitReservation @{schemaVersion=16;cycle=$journal.dataset;parent=$journal.parentCheckpoint;trainingCredit=$false;issuedUtc=[DateTime]::UtcNow.ToString('o')}
+                    Invoke-TrainJava $Dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+                    $fit=Read-TrainJson (Join-Path $layout.Root 'tactical-v3-evaluation.json');$fit|Add-Member reservationSha (Get-FileHash -LiteralPath $fitReservation).Hash;Write-TrainJson $fitResult $fit
+                }
+                $cold=Read-TrainCold013 $Dependencies
+                if([long]$fit.candidateVersion -gt 0){
+                    if($cold.modelVersion -ne $fit.candidateVersion -or $cold.modelSha -cne $fit.candidateSha -or $cold.optimizerSha -cne $fit.metrics.optimizerSha -or [long]$cold.optimizerUpdates -le [long]$journal.parentCheckpoint.optimizerUpdates){throw 'TRAIN016_FIT_COLD_READBACK_CHANGED'}
+                    $journal.fits=1;$journal.reason='ONE_FIT_COLD_RESTORED'
+                }else{
+                    if($cold.modelVersion -ne $journal.parentCheckpoint.modelVersion -or $cold.modelSha -cne $journal.parentCheckpoint.modelSha -or $cold.optimizerSha -cne $journal.parentCheckpoint.optimizerSha){throw 'TRAIN016_NO_FIT_LINEAGE_CHANGED'}
+                    $journal.reason='NO_FIT_INSUFFICIENT_VALID_DATA'
+                }
+                Write-TrainJson (Join-Path $cycleDirectory 'checkpoint016.json') @{schemaVersion=16;cycle=$journal.dataset;selected=$cold;parent=$journal.parentCheckpoint;bestVersion=$journal.bestVersion;bestSha=$journal.bestSha;fits=$journal.fits;reason=$journal.reason;independentEvaluation=$false;productionPromotion=$false}
+                $journal.phase='DONE016';$journal.completedCycles=1;Save-TrainCycleState013 $path $journal;Publish-TrainState 'STOPPED' $journal.reason;return
+            }
             Invoke-TrainJava $Dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
             $fit=Read-TrainJson (Join-Path $layout.Root 'tactical-v3-evaluation.json')
             if([long]$fit.candidateVersion -le 0){$journal.reason='NO_DATA';Write-TrainJson (Join-Path $cycleDirectory 'fit-result.json') $fit;Save-TrainCycleState013 $path $journal;continue}
@@ -1741,10 +1846,27 @@ try {
                     $assets=Get-TrainAssets;Ensure-TrainStage $jar $assets
                     $script:ReadinessOnly013=$Action -ceq 'Prepare' -and $script:Config.ContainsKey('autonomous013Version') -and $script:Config.autonomous013Version -ceq '1' -and $script:Config.autonomous009EvaluationOnly -cne 'true'
                     if($script:ReadinessOnly013){
-                        $passRoot=Join-Path $layout.Root ('autonomous\v13\campaigns\'+$script:Config.autonomous009Campaign);$null=[IO.Directory]::CreateDirectory($passRoot);Assert-TrainDirectory $passRoot
+                        $passVersion=if(Test-TrainIncremental016 $script:Config){16}else{13}
+                        $passRoot=Join-Path $layout.Root ('autonomous\v'+$passVersion+'\campaigns\'+$script:Config.autonomous009Campaign);$null=[IO.Directory]::CreateDirectory($passRoot);Assert-TrainDirectory $passRoot
                         Restore-TrainHeadlessConfig013;$script:Config=Read-TrainSourceConfig;Assert-TrainReadinessMode015 $script:Config $Readiness015Session;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config
                         $passPath=Join-Path $passRoot 'readiness-issued013.json';$configSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'TRAIN_CONFIG.ini')).Hash
-                        if(Test-Path -LiteralPath $passPath){$pass=Read-TrainJson $passPath;if($pass.configSha -cne $configSha -or $pass.jarSha -cne $jar){throw 'TRAIN013_READINESS_COLD_PIN'}}
+                        if(Test-TrainIncremental016 $script:Config){
+                            if($script:ReadinessGoalVersion -ne 16 -or $script:ReadinessSession -lt 1){throw 'TRAIN016_BOUNDED_READINESS_REQUIRED'}
+                            $budgetRoot=Join-Path $layout.Root 'autonomous\v16\readiness';$null=[IO.Directory]::CreateDirectory($budgetRoot);Assert-TrainDirectory $budgetRoot
+                            $issuedPath014=Join-Path $budgetRoot ('session'+$script:ReadinessSession+'-issued.json')
+                            if(Test-Path -LiteralPath $issuedPath014){throw 'TRAIN016_SESSION_ALREADY_ISSUED_NO_REPLAY'}
+                            $priorResults=@()
+                            if($script:ReadinessSession -gt 1){foreach($priorOrdinal in 1..($script:ReadinessSession-1)){
+                                $prior=Read-TrainJson (Join-Path $budgetRoot ('session'+$priorOrdinal+'-result.json'))
+                                Assert-TrainHash (Join-Path $budgetRoot ('session'+$priorOrdinal+'-issued.json')) $prior.issuedSha
+                                $priorResults+=@($prior)
+                            }}
+                            $pass=Get-TrainReadinessWindow016 $script:ReadinessSession $priorResults
+                            Save-TrainReadinessControl016 $passRoot $script:ReadinessSession
+                            $pass|Add-Member configSha $configSha;$pass|Add-Member jarSha $jar
+                            Write-TrainJson $issuedPath014 $pass;Write-TrainJson $passPath $pass
+                        }
+                        elseif(Test-Path -LiteralPath $passPath){$pass=Read-TrainJson $passPath;if($pass.configSha -cne $configSha -or $pass.jarSha -cne $jar){throw 'TRAIN013_READINESS_COLD_PIN'}}
                         else{
                             if($script:ReadinessSession -gt 0){
                                 $budgetRoot=Join-Path $layout.Root ('autonomous\v'+$script:ReadinessGoalVersion+'\readiness');$null=[IO.Directory]::CreateDirectory($budgetRoot);Assert-TrainDirectory $budgetRoot
@@ -1757,7 +1879,8 @@ try {
                             }else{$issued=[DateTime]::UtcNow;$pass=[pscustomobject]@{schemaVersion=13;nonce=[guid]::NewGuid().ToString('N');issuedUtc=$issued.ToString('o');hardDeadlineUtc=$issued.AddSeconds(1200).ToString('o');configSha=$configSha;jarSha=$jar;maximumSeconds=1200;drainReserveSeconds=210;trainingCredit=$false}}
                             Write-TrainJson $passPath $pass
                         }
-                        $maximum=if($script:ReadinessSession -gt 0){if(!$pass.PSObject.Properties['goalVersion'] -or $pass.goalVersion -ne $script:ReadinessGoalVersion -or $pass.session -ne $script:ReadinessSession){throw 'TRAIN014_SESSION_PIN'};if($script:ReadinessSession -eq 1){480}else{720}}else{1200}
+                        $maximum=if($script:ReadinessSession -gt 0){if(!$pass.PSObject.Properties['goalVersion'] -or $pass.goalVersion -ne $script:ReadinessGoalVersion -or $pass.session -ne $script:ReadinessSession){throw 'TRAIN014_SESSION_PIN'};if($script:ReadinessGoalVersion -eq 16){[int]$pass.maximumSeconds}elseif($script:ReadinessSession -eq 1){480}else{720}}else{1200}
+                        if($script:ReadinessGoalVersion -eq 16 -and ($maximum -le 210 -or $maximum -gt 600)){throw 'TRAIN016_HEADLESS_CAP'}
                         if($pass.schemaVersion -ne 13 -or $pass.nonce -cnotmatch '^[a-f0-9]{32}$' -or $pass.maximumSeconds -ne $maximum -or $pass.drainReserveSeconds -ne 210 -or $pass.trainingCredit -ne $false -or (([datetime]$pass.hardDeadlineUtc).ToUniversalTime()-([datetime]$pass.issuedUtc).ToUniversalTime()).TotalSeconds -ne $maximum){throw 'TRAIN013_READINESS_DEADLINE_PIN'}
                         $script:ReadinessDeadline013=$pass;$script:HeadlessCleanupDeadline013=([datetime]$pass.hardDeadlineUtc).ToUniversalTime()
                         if([DateTime]::UtcNow -ge $script:HeadlessCleanupDeadline013){throw 'TRAIN013_HEADLESS_TIMEOUT'}
@@ -1782,6 +1905,7 @@ try {
                     Write-TrainJson (Join-Path $passRoot 'readiness-result013.json') @{schemaVersion=13;status=$result;finishedUtc=$finished.ToString('o');elapsedMillis=[long]($finished-([datetime]$pass.issuedUtc).ToUniversalTime()).TotalMilliseconds;withinCap=($finished -le ([datetime]$pass.hardDeadlineUtc).ToUniversalTime());ownedWorkerAbsent=$true;sqlAbsent=(!$script:SqlRecord -or (Test-TrainProcessAbsent $script:SqlRecord));nativeStarted=$false;trainingCredit=$false}
                     if($script:ReadinessSession -gt 0){
                         $result014=Read-TrainJson (Join-Path $passRoot 'readiness-result013.json');$result014.schemaVersion=$script:ReadinessGoalVersion;$result014|Add-Member session $script:ReadinessSession
+                        if($script:ReadinessGoalVersion -eq 16){$result014|Add-Member issuedSha (Get-FileHash -LiteralPath (Join-Path $layout.Root ('autonomous\v16\readiness\session'+$script:ReadinessSession+'-issued.json'))).Hash}
                         $resultPath014=Join-Path $layout.Root ('autonomous\v'+$script:ReadinessGoalVersion+'\readiness\session'+$script:ReadinessSession+'-result.json');if(Test-Path -LiteralPath $resultPath014){throw 'TRAIN014_RESULT_ALREADY_EXISTS'};Write-TrainJson $resultPath014 $result014
                     }
                     $script:Config.autonomous009Enabled='false';$script:Config.autonomous009Phase='OFF';$script:Config.outcome006Enabled='false';Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config

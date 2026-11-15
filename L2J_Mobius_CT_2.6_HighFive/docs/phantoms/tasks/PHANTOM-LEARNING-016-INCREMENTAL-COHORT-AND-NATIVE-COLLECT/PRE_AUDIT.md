@@ -1,0 +1,13 @@
+# Проверенная база перед 016
+
+- Remote `feature/phantom-world` на момент выдачи: `eafcee66c18212ee9a2cdc08225ba4d5ecb0e302`. Последний docs-коммит 015; parent source `91109ae9268908a4e384763befe2dee2834ddec3`; параллельный Studio-коммит `5cff6b19efc140700af8950255c4dc9c13206c96` сохранён. До кода повторить `git fetch` и сравнить фактический свежий HEAD; не перетирать новые работы.
+- 015 native pre-CUT: Solo94, Solo110, Party103 — шесть подготовленных рук, **не** `cells.tsv` seal. `episodesPerBatch=84`, фактически требовался четвёртый cell; требуемая новая 016-конфигурация `51` уже имеет fail-closed guard в `Training.ps1` (`TRAIN015_PIPELINE_51_REQUIRED`).
+- 015 исправил `L2jPhantomPartyBackend.groupViable`: прогноз full-fight MP `3060/2806` теперь `FORECAST_SHORTFALL`, а не самостоятельный veto. Риск не равно гарантированной победе; текущий каст всё ещё строго проверяется.
+- `AutonomousTrainingV1.cohortCellLimit(51)=3`, `cohortSlots(3,51)=51` с отдельными TRAIN/TUNING/AUDIT. Считать slot budget и unique-cell budget разными величинами.
+- `PhantomAutonomousTrainingNative.planCells`: сейчас записывает `cells.tsv` **после завершения цикла**; `admitHeadlessCell` проводит обе STOCK/LEARNED проверки и сохраняет доказательства. `prepareSources` пишет `training-admission013.json` лишь после возвращения `planCells`. Это узкое место.
+- Existing `Training.ps1` имеет `Readiness015Session`, `Readiness014Session`, bounded 480+720 и исправленный TRAIN_ONLY; нужна новая отдельная 016 нумерация/суммарный ledger, без сброса старого. Проверить факт в файле, не принимать прежние reports за работающую интеграцию.
+- `PhantomLearning001ShadowNative.prepareAcquired` ждёт естественного восстановления. Моб/гео/Party/skill actual checks перед боем нужны повторно. Из 014: recovery до134с; не ускорять искусственным MP/HP.
+- Начальные исторические SQL TEST006: 183 строки, SHA `9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D`, TEST accepted2, DRAFT14, Adam903 updates/223 epochs, apps48, grad16; pointer12, Geo203 и protected207. Эти значения — стартовые pins, не обещание неизменности разрешённых новых TEST data; historical rows должны сохраниться.
+- Основной локальный `D:\Codex\repos\L2J-phantom-world` ранее dirty и на `7e997636...`; не checkout/merge/reset его без предварительной владельческой авторизации и защиты чужих файлов. Исходники менять в безопасном уже существующем source004 при реальной чистоте; TEST006 предназначен для ограниченного TEST.
+
+**Перепроверить G0 перед любым SQL или native:** наличие SQL/моделей/записей/бэкапов, JDK25/Ant, фактический site identity, stop/off/порты, owner, backup changed sources вне checkout и SHA-256. Нельзя «восстановить» старые частичные пары 015 новым маркером или подменить их статус.

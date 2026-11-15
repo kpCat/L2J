@@ -1,0 +1,1050 @@
+{
+    "schema":  "PHANTOM_LEARNING_016_EVIDENCE_V1",
+    "goal":  "PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT",
+    "result":  "PARTIAL016_UNSEALED",
+    "manualGate":  "REQUIRED",
+    "recordedUtc":  "2026-11-15T22:50:31.6027102Z",
+    "gates":  {
+                  "G2":  "PASS_FOCUSED_CONTRACTS_ONLY",
+                  "G5":  "NOT_RUN_FAIL",
+                  "G8":  "PUBLICATION_PENDING_READBACK",
+                  "G6":  "PRESERVED_NO_FIT_NO_LEGAL_DATA",
+                  "G3":  "FAIL_UNSEALED",
+                  "G0":  "PASS",
+                  "G1":  "PASS_OFFLINE_AND_CONFIG",
+                  "G4":  "NOT_RUN_NO_G3",
+                  "G7":  "PASS_WITH_METRIC_LIMITATIONS"
+              },
+    "branch":  "feature/phantom-world",
+    "issuedHead":  "eafcee66c18212ee9a2cdc08225ba4d5ecb0e302",
+    "sourceBase":  "2ae5d18302ba82704541e1ee483d7c2c880cacf2",
+    "publicationParent":  "591c5261ed52f9b3f62d9a146513935fda503afb",
+    "mainHead":  "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+    "mainForeignTrackedDirt":  13,
+    "mainUpdated":  false,
+    "parallelStudioChangesPreserved":  true,
+    "architecture":  "TRAIN016_INCREMENTAL_PRECUT_V1",
+    "episodesPerBatch":  51,
+    "requiredCells":  3,
+    "requiredClasses":  2,
+    "requiredScopes":  [
+                           "SOLO",
+                           "PARTY"
+                       ],
+    "schedule":  {
+                     "TRAIN":  33,
+                     "AUDIT":  9,
+                     "TUNING":  9
+                 },
+    "configOptIn":  "autonomous016Version=1",
+    "campaign":  "autonomous009-learning016-v1",
+    "dataset":  "autonomous009-learning016-v1-c000001",
+    "implementation":  {
+                           "productionPartyCombatChanged":  false,
+                           "files":  [
+                                         {
+                                             "sourceBeforeSha":  "4D9C705D00998F733DCEFEBC26F2BB6E8132FA8D097A7C6F72B3FBE725D8F244",
+                                             "testFrozenSha":  "E5B3AA353C6BC8E8F623126AEFAF5AC8D53FF7AE8BF6EFF09087AE4F0582BCCA",
+                                             "mutable":  true,
+                                             "testBeforeSha":  "4D9C705D00998F733DCEFEBC26F2BB6E8132FA8D097A7C6F72B3FBE725D8F244",
+                                             "relative":  "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+                                             "sourceFinalSha":  "F390A8779017C07DED278346C7CF23419165BB19417045F2D492E34A6AC8A7F0"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "2A186F06C43957099E0B4D9AA0B25F6FBFF47888ADF3001320168B8E29719BE1",
+                                             "testFrozenSha":  "62DF719E69FBD455A6EACD2E7875A6BBD470D65B93D5D386E5FCBADE4381C919",
+                                             "mutable":  true,
+                                             "testBeforeSha":  "2A186F06C43957099E0B4D9AA0B25F6FBFF47888ADF3001320168B8E29719BE1",
+                                             "relative":  "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+                                             "sourceFinalSha":  "62DF719E69FBD455A6EACD2E7875A6BBD470D65B93D5D386E5FCBADE4381C919"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "EF6F4197AE7A57799592F4524416AB0639173B741C6E684C7F8B2A5A3A414646",
+                                             "testFrozenSha":  "FFE8C042C41E95C5678BBE8799EAAA7F22892770D88DA4B4315DA30DD42B0506",
+                                             "mutable":  true,
+                                             "testBeforeSha":  "EF6F4197AE7A57799592F4524416AB0639173B741C6E684C7F8B2A5A3A414646",
+                                             "relative":  "tools/phantom-runtime/training/TrainingOwner.ps1",
+                                             "sourceFinalSha":  "FFE8C042C41E95C5678BBE8799EAAA7F22892770D88DA4B4315DA30DD42B0506"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "CFECF9174584DD8946D9C2C96B50EBC2C7D13F3A52CC3D78793FED73A51FBD61",
+                                             "testFrozenSha":  "320B7F8659B26731F1A27976C7325CB6D251DE3E9656E4EDFC2E80084BB502E5",
+                                             "mutable":  true,
+                                             "testBeforeSha":  "CFECF9174584DD8946D9C2C96B50EBC2C7D13F3A52CC3D78793FED73A51FBD61",
+                                             "relative":  "tools/phantom-runtime/training/Training.ps1",
+                                             "sourceFinalSha":  "320B7F8659B26731F1A27976C7325CB6D251DE3E9656E4EDFC2E80084BB502E5"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "B39915DBE95CD34376967DF4C5362123F4DA4DFE5DE6D139DC2845DCE1479153",
+                                             "testFrozenSha":  "7D574B2BE64FC8E07E0F8765C3E29F30A1C5CCAFCCAAF70AF6EA8C3022F2C070",
+                                             "mutable":  true,
+                                             "testBeforeSha":  "B39915DBE95CD34376967DF4C5362123F4DA4DFE5DE6D139DC2845DCE1479153",
+                                             "relative":  "tools/phantom-runtime/training/Test-Training.ps1",
+                                             "sourceFinalSha":  "7D574B2BE64FC8E07E0F8765C3E29F30A1C5CCAFCCAAF70AF6EA8C3022F2C070"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "7DB67BBB1EE27133C77C9D3F329A3AA87851396C615808020A5754319EA23FC9",
+                                             "testFrozenSha":  "1210B20643D7FE9B2F440782E014B8F1379AF895E894082DE228DA2265E20F8D",
+                                             "mutable":  true,
+                                             "testBeforeSha":  "7DB67BBB1EE27133C77C9D3F329A3AA87851396C615808020A5754319EA23FC9",
+                                             "relative":  "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+                                             "sourceFinalSha":  "1210B20643D7FE9B2F440782E014B8F1379AF895E894082DE228DA2265E20F8D"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "AE8C467AA73492FDBBF599ABC9F91CC7121D74F5337A4B287AAB883040FE1574",
+                                             "testFrozenSha":  "3AB59ED064225080EF6D1AF3450EAEA0C86A6093356B761E9E0274F6D74ACF10",
+                                             "mutable":  true,
+                                             "testBeforeSha":  "AE8C467AA73492FDBBF599ABC9F91CC7121D74F5337A4B287AAB883040FE1574",
+                                             "relative":  "build.xml",
+                                             "sourceFinalSha":  "3AB59ED064225080EF6D1AF3450EAEA0C86A6093356B761E9E0274F6D74ACF10"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "81284CA4E4531AF10885CE0F63C009CB1BEDA6839959CDF38B614DE4F66EF291",
+                                             "testFrozenSha":  "81284CA4E4531AF10885CE0F63C009CB1BEDA6839959CDF38B614DE4F66EF291",
+                                             "mutable":  false,
+                                             "testBeforeSha":  "81284CA4E4531AF10885CE0F63C009CB1BEDA6839959CDF38B614DE4F66EF291",
+                                             "relative":  "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+                                             "sourceFinalSha":  "81284CA4E4531AF10885CE0F63C009CB1BEDA6839959CDF38B614DE4F66EF291"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "C22F724693A1B90A0E8CCEA5C02A600AAA97B261ECF005FABDA97402F572E41F",
+                                             "testFrozenSha":  "C22F724693A1B90A0E8CCEA5C02A600AAA97B261ECF005FABDA97402F572E41F",
+                                             "mutable":  false,
+                                             "testBeforeSha":  "C22F724693A1B90A0E8CCEA5C02A600AAA97B261ECF005FABDA97402F572E41F",
+                                             "relative":  "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+                                             "sourceFinalSha":  "C22F724693A1B90A0E8CCEA5C02A600AAA97B261ECF005FABDA97402F572E41F"
+                                         },
+                                         {
+                                             "sourceBeforeSha":  "2FE97CBEA233C00A26D91760DD901FD4EC46F2835D6440F56DDB3A9461B32109",
+                                             "testFrozenSha":  "2FE97CBEA233C00A26D91760DD901FD4EC46F2835D6440F56DDB3A9461B32109",
+                                             "mutable":  false,
+                                             "testBeforeSha":  "2FE97CBEA233C00A26D91760DD901FD4EC46F2835D6440F56DDB3A9461B32109",
+                                             "relative":  "test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+                                             "sourceFinalSha":  "2FE97CBEA233C00A26D91760DD901FD4EC46F2835D6440F56DDB3A9461B32109"
+                                         }
+                                     ],
+                           "SkillDataEconomyBuffShotsChanged":  false,
+                           "newAbstractionOutsideApprovedScope":  false,
+                           "exactCodePaths":  7,
+                           "optimizerObjectiveChanged":  false,
+                           "rewardChanged":  false
+                       },
+    "preservation":  {
+                         "historicalRowsEqual":  true,
+                         "acceptedTest":  2,
+                         "historicalGradients":  16,
+                         "newApplications":  0,
+                         "beforeSqlSha":  "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+                         "historicalApplications":  48,
+                         "afterRows":  183,
+                         "safety":  {
+                                        "ownedProcesses":  0,
+                                        "portsFree":  [
+                                                          33357,
+                                                          18001,
+                                                          19301
+                                                      ],
+                                        "automaticEnabled":  false,
+                                        "phase":  "OFF",
+                                        "outcomeEnabled":  false,
+                                        "pointer12Sha256":  "ACC21BED707B518FB58E23FEC006E7D658723763C73C237A039D950E14C9B010",
+                                        "observedUtc":  "2026-11-15T22:48:54.1853624Z"
+                                    },
+                         "goal015":  "OWNER_ACCEPTED_PARTIAL_UNMODIFIED",
+                         "terminalAdamEpochs":  223,
+                         "selectedDraft":  14,
+                         "MAIN_PLAY":  "UNTOUCHED_BY_TASK",
+                         "newTerminalCredits":  0,
+                         "Geo203Protected207":  "PREFLIGHT_AND_POSTFLIGHT_PASS",
+                         "afterSqlSha":  "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+                         "terminalAdamUpdates":  903,
+                         "beforeRows":  183,
+                         "newGradients":  0
+                     },
+    "transfer":  {
+                     "outsideAllowlistSemanticDifferences":  0,
+                     "backupsVerified":  true,
+                     "postFixDeployedToFrozenTest":  false,
+                     "sourceInputs":  3069,
+                     "outsideAllowlistCrLfOnly":  36,
+                     "byteFingerprintsEqual":  false,
+                     "counterfeitBuildStamp":  false,
+                     "canonicalTestBuild":  {
+                                                "builtUtc":  "2026-11-15T22:32:36.2574496Z",
+                                                "sourceFingerprint":  "445814cbc0ddc1dd342f3e290dbdef2256c0497f03a6c44116f758bb645933c3",
+                                                "jarSha":  "2AB276BC0AE80E1609135265C199666C380A4A82DF635AD77B0D30C7E4682952"
+                                            },
+                     "copiedArtifacts":  24
+                 },
+    "actualPreparation":  {
+                              "pendingIndex":  0,
+                              "reason":  "TRAIN016_PRECUT_MATCH_OR_FRESHNESS",
+                              "refusalCounts":  {
+                                                    "FULL_RECOVERY_HAS_NO_WOUNDED_HEAL_RECIPIENT":  1,
+                                                    "TARGET_BOUND_ALTERNATIVES":  1672
+                                                },
+                              "sealed":  false,
+                              "frozenFileCount":  59,
+                              "phases":  {
+                                             "STATE":  1,
+                                             "STOCK_READY_PRECUT":  1,
+                                             "PROPOSED":  2,
+                                             "STALE_OR_REFUSED":  1
+                                         },
+                              "completedPairs":  0,
+                              "sessions":  1,
+                              "result":  "ERROR",
+                              "issuedElapsedMillis":  72430,
+                              "privateExternalBackupVerified":  true,
+                              "rawArms":  [
+                                              {
+                                                  "nativeActionsObserved":  0,
+                                                  "receiptSha":  "DF0447968142323842EEFE9ABAF737CFA1D34FA67D18EA341AC3A5B237FA2E27",
+                                                  "admitted":  true,
+                                                  "targetEpoch":  [
+                                                                      "1"
+                                                                  ],
+                                                  "work":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625",
+                                                  "trainingCredit":  false,
+                                                  "actors":  1,
+                                                  "physicalSha":  "cba66043ec0dfca18e0cb9156c1e12ff63d896313502028293ac6c867b3358db",
+                                                  "targets":  1,
+                                                  "afterCut":  false
+                                              },
+                                              {
+                                                  "nativeActionsObserved":  0,
+                                                  "receiptSha":  "DF0447968142323842EEFE9ABAF737CFA1D34FA67D18EA341AC3A5B237FA2E27",
+                                                  "admitted":  true,
+                                                  "targetEpoch":  [
+                                                                      "1"
+                                                                  ],
+                                                  "work":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af",
+                                                  "trainingCredit":  false,
+                                                  "actors":  1,
+                                                  "physicalSha":  "cba66043ec0dfca18e0cb9156c1e12ff63d896313502028293ac6c867b3358db",
+                                                  "targets":  1,
+                                                  "afterCut":  false
+                                              }
+                                          ],
+                              "pairedScopes":  0,
+                              "sequence":  1,
+                              "frozenBytes":  553954,
+                              "conservativeFullPrepareMillis":  172590,
+                              "lastTransitionFileSha":  "7F351982FC48673AC7205AEFEA67A59B2F9B7AC36331CAF40650F0362551F4E2",
+                              "old015ConvertedTo016":  0,
+                              "workerHeldExit":  {
+                                                     "exitCode":  2,
+                                                     "proof":  "OWN_HELD_HANDLE_EXIT",
+                                                     "nativeElapsedMillis":  49700
+                                                 },
+                              "journalEvents":  5,
+                              "sqlHeldExit":  {
+                                                  "proof":  "OWN_HELD_HANDLE_EXIT",
+                                                  "exitCode":  0
+                                              },
+                              "pendingRows":  2,
+                              "frozenFiles":  [
+                                                  {
+                                                      "sha256":  "4A6A9BBC0DF2E75A22A69539045395B6A529AEC68B5940AA1E06ADA2577B2096",
+                                                      "bytes":  40627,
+                                                      "relative":  "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "519FC8FD71AFA741B65E9B79CA0047A9B8BADDEE8C68CE474A2F98D0EDDFFEBD",
+                                                      "bytes":  6597,
+                                                      "relative":  "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "0208DBEF19228F0C56914C48B1DC99F78B0B84497B8B30D79710E947566E3E79",
+                                                      "bytes":  35067,
+                                                      "relative":  "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "563D7E304DB696EE996B13F53FB088F9DF74B10CA1CB628DCDC96E935E9B3A66",
+                                                      "bytes":  6573,
+                                                      "relative":  "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "F4BF649ED4844CCBA20D36FF3A4BFF9DAEDD1674D5D5BDF0970EC6F1596E41ED",
+                                                      "bytes":  42893,
+                                                      "relative":  "6865da954d8fe2f62e236aaade0f99ba4bb6433e19ba1c3a9d9bac958957364e.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "6865DA954D8FE2F62E236AAADE0F99BA4BB6433E19BA1C3A9D9BAC958957364E",
+                                                      "bytes":  6706,
+                                                      "relative":  "6865da954d8fe2f62e236aaade0f99ba4bb6433e19ba1c3a9d9bac958957364e.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "197C0A5A14C1D30D281D2280A9D6BF6989AADB738C7774BCC08702A832B0D800",
+                                                      "bytes":  26456,
+                                                      "relative":  "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "7BD9E1C473BF47D95908D3886C892EEA58FD7474E410E87D11ADF0F7FB229348",
+                                                      "bytes":  6317,
+                                                      "relative":  "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "4A6A9BBC0DF2E75A22A69539045395B6A529AEC68B5940AA1E06ADA2577B2096",
+                                                      "bytes":  40627,
+                                                      "relative":  "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "83947C1C07461A0E97AB850A90747FD98186FE86FD984A5DE1BF1ABD8EC006B8",
+                                                      "bytes":  6687,
+                                                      "relative":  "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "197C0A5A14C1D30D281D2280A9D6BF6989AADB738C7774BCC08702A832B0D800",
+                                                      "bytes":  26456,
+                                                      "relative":  "83ce845f7a887a14778edca850fda45ff5db9a2e8e941305c3118c588b831a8a.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "83CE845F7A887A14778EDCA850FDA45FF5DB9A2E8E941305C3118C588B831A8A",
+                                                      "bytes":  6154,
+                                                      "relative":  "83ce845f7a887a14778edca850fda45ff5db9a2e8e941305c3118c588b831a8a.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "29DBBCC6B5470C4820BA4D207058BC35C648D3306782E7A14E2E64F720EA31D9",
+                                                      "bytes":  44254,
+                                                      "relative":  "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "9390C2462D2A217151500C25A74F49B9AC357D4698748BB3CBFA40C8FEB08E45",
+                                                      "bytes":  6768,
+                                                      "relative":  "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "677A2528BA64949138812AEB2D4AE1EEAC90E416814F8C2D671D469306D9D401",
+                                                      "bytes":  40982,
+                                                      "relative":  "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "BCFE5FBF4FB6ECC35F50CE5AEABF9ED8B7AABA38261AE17091E9D16918585041",
+                                                      "bytes":  6711,
+                                                      "relative":  "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "1B79E58C8FD12E93A3BDE3CE3463818B3B64254B46671738D31E67D702D3C1B2",
+                                                      "bytes":  42343,
+                                                      "relative":  "ea8860ae380f04fa2a56192d2c97523f8c5d85d6bddec8b8a9b15003832fc59f.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "EA8860AE380F04FA2A56192D2C97523F8C5D85D6BDDEC8B8A9B15003832FC59F",
+                                                      "bytes":  6683,
+                                                      "relative":  "ea8860ae380f04fa2a56192d2c97523f8c5d85d6bddec8b8a9b15003832fc59f.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "7A31FEE776C4DC453F6B403FA50C7F0EB44CC4E87BCF161BDA3179F6F0EA1734",
+                                                      "bytes":  64,
+                                                      "relative":  "f505cff0487c81d745bf50fa01ec70707428c32f5f9c679f08965583c911b570.physical.sha"
+                                                  },
+                                                  {
+                                                      "sha256":  "0208DBEF19228F0C56914C48B1DC99F78B0B84497B8B30D79710E947566E3E79",
+                                                      "bytes":  35067,
+                                                      "relative":  "f97d9939ca3477fe85a25ffeac025bcfdb725aabe2d47b6b7d4d6ac5c3da55d4.inventory.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "F97D9939CA3477FE85A25FFEAC025BCFDB725AABE2D47B6B7D4D6AC5C3DA55D4",
+                                                      "bytes":  6570,
+                                                      "relative":  "f97d9939ca3477fe85a25ffeac025bcfdb725aabe2d47b6b7d4d6ac5c3da55d4.source.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "5ED4AA86A4BADC060A2505EBAAB8875339A4FC1199A1E2A80CD6493B44DEDEB9",
+                                                      "bytes":  1808,
+                                                      "relative":  "headless-operation013.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "EAFEED8F2EC8B9D69A14A6C13FD1EE3E53ADA0F26021FA5C69161D201E1E8E1D",
+                                                      "bytes":  224,
+                                                      "relative":  "headless-result013.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "8225E76EF6FFAFC45A28CAA617849FA56D32CB9DC240F33652BAC8B4FFE421EA",
+                                                      "bytes":  6002,
+                                                      "relative":  "preparation-cost014.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "AC7E2D3CF25CDA6E51AC6AEA5554C93837F2605140F9C59C186EAB729F6CD7E9",
+                                                      "bytes":  525,
+                                                      "relative":  "preparation-cost014.jsonl"
+                                                  },
+                                                  {
+                                                      "sha256":  "05C709D5A9EF072644FFA0435EEBE9492F84C592955A271E16768AF530E28866",
+                                                      "bytes":  11267,
+                                                      "relative":  "source-coverage.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "CBA66043EC0DFCA18E0CB9156C1E12FF63D896313502028293AC6C867B3358DB",
+                                                      "bytes":  2469,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/admission-facts.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "DF0447968142323842EEFE9ABAF737CFA1D34FA67D18EA341AC3A5B237FA2E27",
+                                                      "bytes":  109,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/admission-only.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "2614DD7B205AFCE3778A090C70AC2CC574B635AF95A3D46611DDA63719EDB78B",
+                                                      "bytes":  53,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/admissions.jsonl"
+                                                  },
+                                                  {
+                                                      "sha256":  "F7C98DB993D1684D00388991F4E89074EE9BE0315A2E66A05FAF795526DAACB3",
+                                                      "bytes":  145,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/combat-request.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "7E18A5D8129DC21F4245FA76EBF22EACED08B04ABF349968EC653363A5E0B5AB",
+                                                      "bytes":  279,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/encounter-admission.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "BF0D5973158FF853669B742B2C74EB3ADCC7B76D33698860AD3E3E669518A10E",
+                                                      "bytes":  85,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/incarnations.tsv"
+                                                  },
+                                                  {
+                                                      "sha256":  "26950F72C63A526881896BCDC59C91B786DB54666CB57372D7BCD25CD4E529BC",
+                                                      "bytes":  713,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/local-source-binding.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "034DC6C287EF5234379CB6482D6D757833AE4949FBDD7B9ADFA60007815B816F",
+                                                      "bytes":  419,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/native-admission.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "45F1734F5199B06B573596D770F58A0C80F0F25A8DD5880F466AFD67E19BB23D",
+                                                      "bytes":  2586,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/precut.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "38D44192FA8AFB0555E550E80208E265D0AB1AF5537C0237A7CDED4B1F716EF2",
+                                                      "bytes":  2698,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/preparation-cost014.jsonl"
+                                                  },
+                                                  {
+                                                      "sha256":  "3ECB747F8C3E4B01E9BFD5AE7EFB610CDEB994AB2B7D4EA059AFC485696CF507",
+                                                      "bytes":  84,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/readiness.txt"
+                                                  },
+                                                  {
+                                                      "sha256":  "EDD64F87D1A27C3AF54BB296F39B07C8F32C78183902A3B51E446998E9A10FA9",
+                                                      "bytes":  124,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/roster.tsv"
+                                                  },
+                                                  {
+                                                      "sha256":  "6524F1B6A635B1FE8A6EAEEE21D3EF35299D429F46951C8BE6F33F8670DCCD6C",
+                                                      "bytes":  1301,
+                                                      "relative":  "25e634577779ac6f20b4db6eafbafe0e6667947e75456571fccf2d5b0c6f3625/shared-source.txt"
+                                                  },
+                                                  {
+                                                      "sha256":  "CBA66043EC0DFCA18E0CB9156C1E12FF63D896313502028293AC6C867B3358DB",
+                                                      "bytes":  2469,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/admission-facts.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "DF0447968142323842EEFE9ABAF737CFA1D34FA67D18EA341AC3A5B237FA2E27",
+                                                      "bytes":  109,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/admission-only.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "316AEDA1DF237D6F96411C1661794C3797847FEEDB105C9D72AAE37D55EF0E5C",
+                                                      "bytes":  53,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/admissions.jsonl"
+                                                  },
+                                                  {
+                                                      "sha256":  "1575FAC7B20DBDC78A2BC7B513570BE78D98D57656BE85998F47FC7EA4417644",
+                                                      "bytes":  145,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/combat-request.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "7E18A5D8129DC21F4245FA76EBF22EACED08B04ABF349968EC653363A5E0B5AB",
+                                                      "bytes":  279,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/encounter-admission.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "7D599ED39407D66AD6D43617BB5053002CBE95E117BB5A604708FB09AE682F92",
+                                                      "bytes":  85,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/incarnations.tsv"
+                                                  },
+                                                  {
+                                                      "sha256":  "26950F72C63A526881896BCDC59C91B786DB54666CB57372D7BCD25CD4E529BC",
+                                                      "bytes":  713,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/local-source-binding.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "8BA60996AC5DFFA07BD512AAE9431D3CB43269C0D47CF2FDD057D656EBB0DA88",
+                                                      "bytes":  417,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/native-admission.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "EFD2CDF31DD025924CF9B4A64013E727E6C1CCE0921011404102FCA77D421692",
+                                                      "bytes":  2586,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/precut.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "A3133C01BB3244CEF4AFB7F23827E4B15FC7A4F66E2E531354D8AA06D1E9C06A",
+                                                      "bytes":  2707,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/preparation-cost014.jsonl"
+                                                  },
+                                                  {
+                                                      "sha256":  "3ECB747F8C3E4B01E9BFD5AE7EFB610CDEB994AB2B7D4EA059AFC485696CF507",
+                                                      "bytes":  84,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/readiness.txt"
+                                                  },
+                                                  {
+                                                      "sha256":  "D08FBE3740A2483CBCD7BC5F4BAF1248502EF71B2DFD23D0584A6A897162924C",
+                                                      "bytes":  124,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/roster.tsv"
+                                                  },
+                                                  {
+                                                      "sha256":  "6524F1B6A635B1FE8A6EAEEE21D3EF35299D429F46951C8BE6F33F8670DCCD6C",
+                                                      "bytes":  1301,
+                                                      "relative":  "4f607cd4a2c1d52f0bce6034bfd39dcfde749f2775502563291ad4b5de2365af/shared-source.txt"
+                                                  },
+                                                  {
+                                                      "sha256":  "521EC7A74F1BFAEE4120DE36FF1F706D9140B17FB23B09E5634F3430954E8EC1",
+                                                      "bytes":  2097,
+                                                      "relative":  "incremental016/000000-521ec7a74f1bfaee4120de36ff1f706d9140b17fb23b09e5634f3430954e8ec1.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "AA2AE9ABE4FE3ADFFC38C08E21E4100E95FD9D7643B11E79771BC8E4B16AFEAD",
+                                                      "bytes":  2390,
+                                                      "relative":  "incremental016/000001-aa2ae9abe4fe3adffc38c08e21e4100e95fd9d7643b11e79771bc8e4b16afead.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "15A805ADD4A1123151513A8C1D1776478ACB151A57CB9F48E50617B558466A8E",
+                                                      "bytes":  20591,
+                                                      "relative":  "incremental016/000002-15a805add4a1123151513a8c1d1776478acb151a57cb9f48e50617b558466a8e.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "934EC64CE200416FFCAA4581A685D2CD2C7068747A91F60F3A273D2AC6FC5FCA",
+                                                      "bytes":  20636,
+                                                      "relative":  "incremental016/000003-934ec64ce200416ffcaa4581a685d2cd2c7068747a91f60f3a273d2ac6fc5fca.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "7F351982FC48673AC7205AEFEA67A59B2F9B7AC36331CAF40650F0362551F4E2",
+                                                      "bytes":  22636,
+                                                      "relative":  "incremental016/000004-7f351982fc48673ac7205aefea67a59b2f9b7ac36331caf40650f0362551f4e2.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "E582311FF0A416A6066498D9933CDEEAEB38542DED81B2BE6FB3979327EEF932",
+                                                      "bytes":  2874,
+                                                      "relative":  "incremental016/contract016.json"
+                                                  },
+                                                  {
+                                                      "sha256":  "2A68D7F710A3BB851BFE894E93184B0CCD45F4C09C9E3652943BA4C7321950F6",
+                                                      "bytes":  165,
+                                                      "relative":  "incremental016/head016.json"
+                                                  }
+                                              ],
+                              "pairedClasses":  0
+                          },
+    "diagnosis":  {
+                      "red":  [
+                                  "red016-npc-spawn-generation.log",
+                                  "red016-npc-generation-journal.log"
+                              ],
+                      "authority":  "TacticalSnapshotV3.epoch(Monster)=getNativeEvidenceTarget().spawnGeneration()",
+                      "green":  "green016-npc-spawn-generation.log",
+                      "newGenerationOrMigration":  "NOT_AUTHORIZED_NOT_IMPLEMENTED",
+                      "localNpcGenerationMayEqualOne":  true,
+                      "reusedObjectAndActorOwnerStillRefused":  true,
+                      "sourceCorrection":  "GREEN_OFFLINE_ONLY",
+                      "falseGlobalUniquenessCheck":  true,
+                      "frozenPinsNotRewritten":  true
+                  },
+    "native":  {
+                   "probe":  0,
+                   "TRAINED_MODEL":  "NO",
+                   "MPSpent":  0,
+                   "nativeMillis":  0,
+                   "PRODUCTION":  "OFF",
+                   "GAME_ADVANTAGE":  "NOT_EVALUATED",
+                   "shotsSpent":  0,
+                   "FITReason":  "NO_LEGAL_SEALED_NEW_TRAIN_DATA",
+                   "paidEffects":  0,
+                   "FIT":  0,
+                   "CUT":  0,
+                   "EVAL":  0,
+                   "GameServerStarts":  0,
+                   "terminals":  0,
+                   "promotion":  0,
+                   "deaths":  0
+               },
+    "limits":  {
+                   "nativeMillis":  4500000,
+                   "remainingTasks":  3,
+                   "FIT":  1,
+                   "automaticExpansion":  false,
+                   "headlessSessions":  3,
+                   "nextGoalStarted":  false,
+                   "taskNumber":  10,
+                   "taskBudget":  13,
+                   "GSStarts":  3,
+                   "headlessWallMillis":  1800000
+               },
+    "validation":  {
+                       "powershell":  [
+                                          {
+                                              "exitCode":  0,
+                                              "log":  "final016-ps-Readiness016.log",
+                                              "route":  "Readiness016"
+                                          },
+                                          {
+                                              "exitCode":  0,
+                                              "log":  "final016-ps-Readiness015.log",
+                                              "route":  "Readiness015"
+                                          },
+                                          {
+                                              "exitCode":  0,
+                                              "log":  "final016-ps-Readiness014.log",
+                                              "route":  "Readiness014"
+                                          },
+                                          {
+                                              "exitCode":  0,
+                                              "log":  "final016-ps-Headless013-corrected.log",
+                                              "route":  "Headless013-corrected"
+                                          },
+                                          {
+                                              "exitCode":  0,
+                                              "log":  "final016-ps-Test-Cycle013.log",
+                                              "route":  "Test-Cycle013"
+                                          },
+                                          {
+                                              "exitCode":  0,
+                                              "log":  "final016-ps-Test-Config.log",
+                                              "route":  "Test-Config"
+                                          },
+                                          {
+                                              "exitCode":  0,
+                                              "log":  "final016-ps-Test-Atomic.log",
+                                              "route":  "Test-Atomic"
+                                          }
+                                      ],
+                       "postFixAutonomousExit":  0,
+                       "encoding":  {
+                                        "mojibake":  "NO_MATCHES_EXACT30_FINAL_SCOPE",
+                                        "escapedCyrillic":  "NO_MATCHES_EXACT30_FINAL_SCOPE"
+                                    },
+                       "logs":  [
+                                    {
+                                        "sha256":  "4EE0837F0B3C291AD86B29627FF96BA8CB9BC96A02B30F9D5AA1E5E95A3CAFF0",
+                                        "name":  "diagnose016-control-fixture.log",
+                                        "bytes":  693
+                                    },
+                                    {
+                                        "sha256":  "1037790D9808652DA84C97C8C45B04F92C3AD7F7862CD175EBDBEC76014FBD53",
+                                        "name":  "final016-jar.log",
+                                        "bytes":  11738
+                                    },
+                                    {
+                                        "sha256":  "99E7164CD93EB757B90F79268ED2A3764A9FDAEFDC440DAB02257EFE11D559BC",
+                                        "name":  "final016-phantom-autonomous-training-test.log",
+                                        "bytes":  19908
+                                    },
+                                    {
+                                        "sha256":  "76F309D9E75C1198DD73A0B9FCCD2D4E460759AC8733A23D08AA5A697A9CB75F",
+                                        "name":  "final016-phantom-humanized-v3-content-validate.log",
+                                        "bytes":  17518
+                                    },
+                                    {
+                                        "sha256":  "4379E20B9D98EB65F2CF09B765F5B629328E5E91D15C603CEA2FE1D0603B806B",
+                                        "name":  "final016-phantom-learning007-test.log",
+                                        "bytes":  16216
+                                    },
+                                    {
+                                        "sha256":  "ADF0B83B7FEB501FC6DFB32480F27DBF3C51335DF55256CE271D10AB169DA283",
+                                        "name":  "final016-phantom-learning008-test.log",
+                                        "bytes":  16554
+                                    },
+                                    {
+                                        "sha256":  "546468F9FBEBA0700729886A6C2542FF8FBB584F090E31EFF1C07D55F0E6FFFB",
+                                        "name":  "final016-phantom-learning015-test.log",
+                                        "bytes":  47602
+                                    },
+                                    {
+                                        "sha256":  "D9A0B33444852D25AE3B3B615F1DFC5C2ABA44191757B6247C29A1F635D94BDB",
+                                        "name":  "final016-phantom-learning016-test.log",
+                                        "bytes":  15496
+                                    },
+                                    {
+                                        "sha256":  "D2182850B541E193A22912511AE790D4DF9906E475DEF845610337A19A20E0EB",
+                                        "name":  "final016-ps-Headless013-corrected.log",
+                                        "bytes":  356
+                                    },
+                                    {
+                                        "sha256":  "6A87C8E112FCD45B5BEA4528691E0D9A460DEA85FC1BE3770DD0D6F92BD963C3",
+                                        "name":  "final016-ps-Headless013.log",
+                                        "bytes":  554
+                                    },
+                                    {
+                                        "sha256":  "F134239CB5BF61569A9D8E6224A2FB2DBE65ECCDBB79774E99F841CE96C3A060",
+                                        "name":  "final016-ps-Readiness014.log",
+                                        "bytes":  139
+                                    },
+                                    {
+                                        "sha256":  "04BA8726154D5DF6795B327968F72EBA46462AF7C8C16100500BFC548F073D7D",
+                                        "name":  "final016-ps-Readiness015.log",
+                                        "bytes":  211
+                                    },
+                                    {
+                                        "sha256":  "CA87FD62CDC300AF46631E25CCED38387370C8A39D0F61055DDD3BECDF34215B",
+                                        "name":  "final016-ps-Readiness016.log",
+                                        "bytes":  140
+                                    },
+                                    {
+                                        "sha256":  "9242132AD0E50D5FBBB0F189848D49733D4C8679135A52088CC00095E7DE9E0A",
+                                        "name":  "final016-ps-Test-Atomic.log",
+                                        "bytes":  140
+                                    },
+                                    {
+                                        "sha256":  "8CA26B517D8EBED1DD9A5EEC17F60782D3BAE56F5BA1531560CC6FC6BA38489E",
+                                        "name":  "final016-ps-Test-Config.log",
+                                        "bytes":  182
+                                    },
+                                    {
+                                        "sha256":  "006015C59043567C7B0E61D85177C6731F5175647A261393EB112CA727CA4DC9",
+                                        "name":  "final016-ps-Test-Cycle013.log",
+                                        "bytes":  268
+                                    },
+                                    {
+                                        "sha256":  "48DC3BFAA13A4D7C66DE68DFB19D3296662F276644E65C8A18192C8418A1A42A",
+                                        "name":  "green016-complete-contract.log",
+                                        "bytes":  7747
+                                    },
+                                    {
+                                        "sha256":  "EE0D0D67EAE05607F566120EC9CCFF269785C96BA594E25193CEAF3C1582A41C",
+                                        "name":  "green016-config-java.log",
+                                        "bytes":  7666
+                                    },
+                                    {
+                                        "sha256":  "B798AFD768F777CBA617C63D849A6AD77868975E4C5FC7FD2B43766E9486076C",
+                                        "name":  "green016-config-ps.log",
+                                        "bytes":  94
+                                    },
+                                    {
+                                        "sha256":  "CA87FD62CDC300AF46631E25CCED38387370C8A39D0F61055DDD3BECDF34215B",
+                                        "name":  "green016-controls-full-corrected.log",
+                                        "bytes":  140
+                                    },
+                                    {
+                                        "sha256":  "415A52D62F7541CF3FBC9DA0D813B21BCAB6638088E50BE845F98FEACDD6A5B4",
+                                        "name":  "green016-controls-full.log",
+                                        "bytes":  529
+                                    },
+                                    {
+                                        "sha256":  "CA87FD62CDC300AF46631E25CCED38387370C8A39D0F61055DDD3BECDF34215B",
+                                        "name":  "green016-controls-held-exit.log",
+                                        "bytes":  140
+                                    },
+                                    {
+                                        "sha256":  "B798AFD768F777CBA617C63D849A6AD77868975E4C5FC7FD2B43766E9486076C",
+                                        "name":  "green016-director-initial.log",
+                                        "bytes":  94
+                                    },
+                                    {
+                                        "sha256":  "38C38CD6530398CE882A9B4A22678B7652381DA0CC949D2F74D36EA371F691FB",
+                                        "name":  "green016-full-journal-fixture.log",
+                                        "bytes":  8919
+                                    },
+                                    {
+                                        "sha256":  "145CC213BEFBD0508BE5199715C023673DE72D0FA40DFB84AEAEB84488CF4F71",
+                                        "name":  "green016-incremental-initial.log",
+                                        "bytes":  6404
+                                    },
+                                    {
+                                        "sha256":  "C9992C5B725510E741E7AC475C2695D8E8E8F322F86CAB177328C222B0512888",
+                                        "name":  "green016-incremental-second.log",
+                                        "bytes":  7747
+                                    },
+                                    {
+                                        "sha256":  "B798AFD768F777CBA617C63D849A6AD77868975E4C5FC7FD2B43766E9486076C",
+                                        "name":  "green016-native-budget.log",
+                                        "bytes":  94
+                                    },
+                                    {
+                                        "sha256":  "32CC338118AAB2B754F3C52A2DCCBCEEA8B1002DC6CCEF7D42BA6F8FC06D0A73",
+                                        "name":  "green016-npc-spawn-generation.log",
+                                        "bytes":  7747
+                                    },
+                                    {
+                                        "sha256":  "F9F8EBE76507B3BCE9FC1ECDD0548EF320524940E9BDF77D8B42EFD427AF07F6",
+                                        "name":  "postfix016-autonomous.log",
+                                        "bytes":  10049
+                                    },
+                                    {
+                                        "sha256":  "95BD0F06A07A5C38CB97D6CE78989CA0735ABEF8C810CE568D47F66FFC17712F",
+                                        "name":  "postfix016-jar.log",
+                                        "bytes":  5868
+                                    },
+                                    {
+                                        "sha256":  "9432676D9E8859391D6647FE8629B5226E12FB35A57C60544566D85921CF9916",
+                                        "name":  "postflight016-lineage.log",
+                                        "bytes":  163
+                                    },
+                                    {
+                                        "sha256":  "4EC760942F4E998305F8AA3F762CDE6EB93A4442993440296B051BE007110D5E",
+                                        "name":  "postflight016-preflight.log",
+                                        "bytes":  215
+                                    },
+                                    {
+                                        "sha256":  "4EC760942F4E998305F8AA3F762CDE6EB93A4442993440296B051BE007110D5E",
+                                        "name":  "preflight016-final.log",
+                                        "bytes":  215
+                                    },
+                                    {
+                                        "sha256":  "309F04A594CCC26F0615DD93018C36912955FB4EFC24EECE6CFCCC79FB0816DC",
+                                        "name":  "readiness016-s1.log",
+                                        "bytes":  540
+                                    },
+                                    {
+                                        "sha256":  "5DCF78FDB8AB5510F6309CA06F2CB3E06311B0A1A6C6287B430FB5B102F4A782",
+                                        "name":  "red016-config-java.log",
+                                        "bytes":  8692
+                                    },
+                                    {
+                                        "sha256":  "EB9018437CBF05B355C6045DBBCD9059EDF2C00E2EB49DD3502544227AF6D559",
+                                        "name":  "red016-config-ps.log",
+                                        "bytes":  509
+                                    },
+                                    {
+                                        "sha256":  "9CE1D06AD107293638F3621F2A50362CC496714E0BA90F91503227EC7433BD19",
+                                        "name":  "red016-director.log",
+                                        "bytes":  519
+                                    },
+                                    {
+                                        "sha256":  "41C8C33F8CB40830FCC9DB23C883C025B206BDF218C9BDDE318861DBD3E98405",
+                                        "name":  "red016-headless-exit-proof.log",
+                                        "bytes":  551
+                                    },
+                                    {
+                                        "sha256":  "6579FFDAF0525C22DD98636829630E508B4D6979043A3C7D1002790F5F7BAC57",
+                                        "name":  "red016-incremental.log",
+                                        "bytes":  8154
+                                    },
+                                    {
+                                        "sha256":  "3271116F6727E4640CAEFDB9F0A46ECC47BB1FC356BC415BB7D38F9EFD6B05F0",
+                                        "name":  "red016-native-budget.log",
+                                        "bytes":  519
+                                    },
+                                    {
+                                        "sha256":  "0B1C1E548C50D5271729A2AB65764C59685B9653C6E47321157BDC69446DA50B",
+                                        "name":  "red016-npc-generation-journal.log",
+                                        "bytes":  8780
+                                    },
+                                    {
+                                        "sha256":  "15EFAEF77BC175A98687BAF8478C6801AFB70C57ABAE2E48AF83B7E1304BC914",
+                                        "name":  "red016-npc-spawn-generation.log",
+                                        "bytes":  8467
+                                    },
+                                    {
+                                        "sha256":  "98F6E0F0DA55FEA1858B7D931F74F008BD2BEB216EC9B378FA2C2C3E7D8BB0BE",
+                                        "name":  "red016-settled-bytes-corrected.log",
+                                        "bytes":  8408
+                                    },
+                                    {
+                                        "sha256":  "AA490329A8B6477DED056E9B57A04601966847C48CA42EA48444EA43E2C6AD39",
+                                        "name":  "red016-settled-bytes.log",
+                                        "bytes":  8779
+                                    },
+                                    {
+                                        "sha256":  "567DA9000F4316E6C742E2426A7E8C359989ECA85368F663A8D7CB6DA507CFAC",
+                                        "name":  "regression016-jar.log",
+                                        "bytes":  11738
+                                    },
+                                    {
+                                        "sha256":  "DE25A46401C570ED331F20274919DB7EF943258EE9D24C245281CB25AF9CDB22",
+                                        "name":  "regression016-phantom-autonomous-training-test.log",
+                                        "bytes":  19924
+                                    },
+                                    {
+                                        "sha256":  "43E945EF4D8994BFFEC080D214B8BC53F5412B544CA3385B30F24BCAB3BE4DEF",
+                                        "name":  "regression016-phantom-humanized-v3-content-validate.log",
+                                        "bytes":  17536
+                                    },
+                                    {
+                                        "sha256":  "4420605BA0651E420B994D3A53712BF5272FD66AF388A3782158722171322C36",
+                                        "name":  "regression016-phantom-learning007-test.log",
+                                        "bytes":  16232
+                                    },
+                                    {
+                                        "sha256":  "F12059C1E25F2EF850F092BBF52BBE5BE1588B03C458ACD39C6F429373EE50F4",
+                                        "name":  "regression016-phantom-learning008-test.log",
+                                        "bytes":  16554
+                                    },
+                                    {
+                                        "sha256":  "1E2FE9886EF77F48B83AE22A3B1398A17ED9493865B9C53AE4333B76ECD74DCB",
+                                        "name":  "regression016-phantom-learning015-test.log",
+                                        "bytes":  47602
+                                    },
+                                    {
+                                        "sha256":  "E578730B2712EF889E9614427B5344FCBA3E8E154448719D20B2EA1FD17DB7B4",
+                                        "name":  "regression016-phantom-learning016-test.log",
+                                        "bytes":  15496
+                                    },
+                                    {
+                                        "sha256":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                                        "name":  "regression016-ps-Readiness016.log",
+                                        "bytes":  0
+                                    },
+                                    {
+                                        "sha256":  "04BA8726154D5DF6795B327968F72EBA46462AF7C8C16100500BFC548F073D7D",
+                                        "name":  "regression016-readiness015-initial.log",
+                                        "bytes":  211
+                                    },
+                                    {
+                                        "sha256":  "773EDC94757AF66C0F650AC7308DECB710C57296D56EE9807AAEFAE4CF68E897",
+                                        "name":  "review-green016-fixes.log",
+                                        "bytes":  7747
+                                    },
+                                    {
+                                        "sha256":  "35E775FEB00E6F7B2D85042E3154813A9A04DEA1A4611C03270F8B93ED485F24",
+                                        "name":  "review-green016-precut-live-shape.log",
+                                        "bytes":  7747
+                                    },
+                                    {
+                                        "sha256":  "E52C0089B041D0B153F4139DAF39E053D0DE61AFB469018F90BF824724DBC46E",
+                                        "name":  "review-red016-foreign-cohort.log",
+                                        "bytes":  8409
+                                    },
+                                    {
+                                        "sha256":  "7B61DE1419F055205BAEFD1EDACDD28F4FDF8FAD804ACF10A9465493D97E1141",
+                                        "name":  "review-red016-interrupted-scan.log",
+                                        "bytes":  8313
+                                    },
+                                    {
+                                        "sha256":  "DEF14F9C3905FEAA9381D49D77319441DD4ADBB056587BB2FA096F2E0919B3C3",
+                                        "name":  "review-red016-precut-live-shape.log",
+                                        "bytes":  8289
+                                    },
+                                    {
+                                        "sha256":  "810B6A50EA1132E37819927BD89596EB61C350B3FF9618347FD0C6B6C717AD62",
+                                        "name":  "review-red016-preseal-aggregate.log",
+                                        "bytes":  8305
+                                    }
+                                ],
+                       "postFixJarExit":  0,
+                       "review":  {
+                                      "foreignRootRegraded":  "Important",
+                                      "secondReview":  false,
+                                      "Minor":  1,
+                                      "lateEpochCorrectionLiveVerified":  false,
+                                      "Important":  3,
+                                      "allFixedRedGreen":  true,
+                                      "Critical":  0
+                                  },
+                       "ant":  {
+                                   "value":  [
+                                                 {
+                                                     "exitCode":  0,
+                                                     "elapsedMillis":  50610,
+                                                     "target":  "phantom-learning016-test",
+                                                     "log":  "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\15\\01a1e0df-49e5-7330-87b6-ba5edf88bb9c\\final016-phantom-learning016-test.log"
+                                                 },
+                                                 {
+                                                     "exitCode":  0,
+                                                     "elapsedMillis":  68128,
+                                                     "target":  "phantom-learning015-test",
+                                                     "log":  "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\15\\01a1e0df-49e5-7330-87b6-ba5edf88bb9c\\final016-phantom-learning015-test.log"
+                                                 },
+                                                 {
+                                                     "exitCode":  0,
+                                                     "elapsedMillis":  35966,
+                                                     "target":  "phantom-autonomous-training-test",
+                                                     "log":  "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\15\\01a1e0df-49e5-7330-87b6-ba5edf88bb9c\\final016-phantom-autonomous-training-test.log"
+                                                 },
+                                                 {
+                                                     "exitCode":  0,
+                                                     "elapsedMillis":  76963,
+                                                     "target":  "phantom-learning008-test",
+                                                     "log":  "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\15\\01a1e0df-49e5-7330-87b6-ba5edf88bb9c\\final016-phantom-learning008-test.log"
+                                                 },
+                                                 {
+                                                     "exitCode":  0,
+                                                     "elapsedMillis":  58610,
+                                                     "target":  "phantom-learning007-test",
+                                                     "log":  "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\15\\01a1e0df-49e5-7330-87b6-ba5edf88bb9c\\final016-phantom-learning007-test.log"
+                                                 },
+                                                 {
+                                                     "exitCode":  0,
+                                                     "elapsedMillis":  48286,
+                                                     "target":  "jar",
+                                                     "log":  "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\15\\01a1e0df-49e5-7330-87b6-ba5edf88bb9c\\final016-jar.log"
+                                                 },
+                                                 {
+                                                     "exitCode":  0,
+                                                     "elapsedMillis":  55943,
+                                                     "target":  "phantom-humanized-v3-content-validate",
+                                                     "log":  "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\15\\01a1e0df-49e5-7330-87b6-ba5edf88bb9c\\final016-phantom-humanized-v3-content-validate.log"
+                                                 }
+                                             ],
+                                   "Count":  7
+                               },
+                       "postFix016Exit":  0
+                   },
+    "profiling":  {
+                      "limitation":  "Some DB-free PS checks overlapped source Ant; no Ant parallelism. Fixture/orchestration failures are not behavioral RED.",
+                      "lastDirectorCpuSeconds":  26.781,
+                      "sourceAntSequential":  true,
+                      "allToolsSequential":  false,
+                      "lastDirectorWorkingSetBytes":  138964992,
+                      "peakCaptured":  false,
+                      "costPhases":  [
+                                         {
+                                             "phase":  "SOURCE_DISCOVERY",
+                                             "elapsedNanos":  1086287600,
+                                             "records":  1
+                                         },
+                                         {
+                                             "phase":  "IMMUTABLE_VIABILITY",
+                                             "elapsedNanos":  319900,
+                                             "records":  1
+                                         },
+                                         {
+                                             "phase":  "ROSTER_REPRODUCTION",
+                                             "elapsedNanos":  304046700,
+                                             "records":  2
+                                         },
+                                         {
+                                             "phase":  "CATALOG",
+                                             "elapsedNanos":  535500,
+                                             "records":  2
+                                         },
+                                         {
+                                             "phase":  "MATERIALIZATION",
+                                             "elapsedNanos":  99294800,
+                                             "records":  2
+                                         },
+                                         {
+                                             "phase":  "ANCHOR_TRAVEL",
+                                             "elapsedNanos":  1632000,
+                                             "records":  2
+                                         },
+                                         {
+                                             "phase":  "NATURAL_RECOVERY",
+                                             "elapsedNanos":  2144500,
+                                             "records":  2
+                                         },
+                                         {
+                                             "phase":  "NATIVE_ADMISSION",
+                                             "elapsedNanos":  17031400,
+                                             "records":  2
+                                         },
+                                         {
+                                             "phase":  "DRAIN",
+                                             "elapsedNanos":  10561300,
+                                             "records":  2
+                                         }
+                                     ]
+                  },
+    "remaining":  [
+                      "G3 and real TRAIN not reached",
+                      "Corrected source not live verified",
+                      "New frozen identifier and explicit history-preserving transition require owner approval",
+                      "No actual TRAIN STOP/RESUME or new FIT cold restore",
+                      "Shots20+/Blessed/purchases, three-death memory, role buffs, PvP/raid/team, server bootstrap V3 remain separate requirements"
+                  ]
+}

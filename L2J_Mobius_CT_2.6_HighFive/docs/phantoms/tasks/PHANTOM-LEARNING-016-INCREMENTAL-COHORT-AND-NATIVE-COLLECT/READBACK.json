@@ -1,0 +1,9 @@
+{
+  "schema": "PHANTOM_LEARNING_016_GITHUB_READBACK_V1",
+  "status": "PENDING_PUBLICATION",
+  "branch": "feature/phantom-world",
+  "expectedParent": "591c5261ed52f9b3f62d9a146513935fda503afb",
+  "result": "PARTIAL016_UNSEALED",
+  "manualGate": "REQUIRED",
+  "note": "Independent GitHub HEAD, parent, exact diff and complete file bodies will be recorded after ordinary push."
+}

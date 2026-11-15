@@ -213,6 +213,8 @@ function Read-TrainConfig([string]$Path) {
 }
 function Assert-TrainAutonomousConfig($Values) {
     $loop013=$Values.ContainsKey('autonomous013Version') -and $Values.autonomous013Version -ceq '1'
+    $incremental016=$Values.ContainsKey('autonomous016Version') -and $Values.autonomous016Version -ceq '1'
+    if($Values.ContainsKey('autonomous016Version') -and $Values.autonomous016Version -cnotin @('0','1')){throw 'TRAIN016_PROTOCOL_VERSION'}
     if($Values.ContainsKey('autonomous013Version') -and $Values.autonomous013Version -cnotin @('0','1')){throw 'TRAIN013_PROTOCOL_VERSION'}
     foreach($entry in @{autonomous009Enabled='false';autonomous009Exploration='true';autonomous009AcceptanceSmoke='false';autonomous009Phase='OFF';autonomous009MinLevel='1';autonomous009MaxLevel='85';autonomous009MemoryBudgetMb='8192';autonomous009DurationMinutes='1440';autonomous009CheckpointMinutes='15';autonomous009ReplayCapacity='128';autonomous009EvaluationEveryCycles='1';autonomous009StagnationLimit='3';autonomous009NoDataLimit='3';autonomous009CycleLimit='0';autonomous009SourceCursor='0';autonomous009ClassWeights='auto';autonomous009Families='DAMAGE,HEAL';autonomous009SmokeMaxStarts='6';autonomous009SmokeMaxNativeMinutes='90'}.GetEnumerator()){
         if(!$Values.ContainsKey($entry.Key)){$Values[$entry.Key]=$entry.Value}
@@ -240,7 +242,16 @@ function Assert-TrainAutonomousConfig($Values) {
     }
     if([int]$Values.autonomous009MinLevel -gt [int]$Values.autonomous009MaxLevel){throw 'TRAIN009_LEVEL_INTERVAL'}
     if([int]$Values.autonomous009MemoryBudgetMb -lt ([int]$Values.maxHeapMb+512)){throw 'TRAIN009_MEMORY_HEADROOM'}
-    if([int]$Values.episodesPerBatch -lt 48 -or [int]$Values.episodesPerBatch % 12 -ne 0 -or [int]$Values.episodesPerBatch -gt [int]$Values.autonomous009ReplayCapacity){throw 'TRAIN009_COHORT_CAPACITY'}
+    if($incremental016){
+        if(!$loop013 -or $Values.episodesPerBatch -cne '51' -or $Values.autonomous009EvaluationOnly -cne 'false' -or $Values.autonomous009Phase -ceq 'EVAL' -or
+           ($Values.ContainsKey('evaluationOutcomeVersion') -and $Values.evaluationOutcomeVersion -cne '1') -or $Values.autonomous009CycleLimit -cne '1' -or
+           $Values.autonomous009Campaign -cne 'autonomous009-learning016-v1' -or $Values.outcome006DatasetId -cne 'autonomous009-learning016-v1-c000001' -or
+           $Values.autonomous009AcceptanceSmoke -cne 'true'){throw 'TRAIN016_FIXED_51_TRAIN_ONLY_CAMPAIGN_REQUIRED'}
+        $starts016=0;$minutes016=0
+        if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts016) -or $starts016 -lt 1 -or $starts016 -gt 3 -or
+           ![int]::TryParse([string]$Values.autonomous009SmokeMaxNativeMinutes,[ref]$minutes016) -or $minutes016 -lt 1 -or $minutes016 -gt 75){throw 'TRAIN016_NATIVE_BUDGET'}
+    }
+    if([int]$Values.episodesPerBatch -lt 48 -or (!$incremental016 -and [int]$Values.episodesPerBatch % 12 -ne 0) -or [int]$Values.episodesPerBatch -gt [int]$Values.autonomous009ReplayCapacity){throw 'TRAIN009_COHORT_CAPACITY'}
     foreach($bound in @(@('autonomous009PriorStarts',10L),@('autonomous009PriorNativeMillis',5400000L))){if($Values.ContainsKey($bound[0])){$value=0L;if(![long]::TryParse([string]$Values[$bound[0]],[ref]$value) -or $value -lt 0 -or $value -gt $bound[1]){throw 'TRAIN009_PRIOR_BUDGET_INVALID'}}}
     $families=@($Values.autonomous009Families.Split(','))
     if(!$families.Count -or @($families|Select-Object -Unique).Count -ne $families.Count -or @($families|Where-Object {$_ -cnotin @('DAMAGE','HEAL')}).Count){throw 'TRAIN009_ACTION_FAMILIES'}
@@ -265,16 +276,18 @@ function Assert-TrainAutonomousConfig($Values) {
         }elseif(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 6 -or $starts -gt 10 -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90'){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
     }
 }
-function Get-TrainNativeBudget013([string]$Path) {
+function Get-TrainNativeBudget013([string]$Path,[int]$Goal=13) {
+    if($Goal -notin @(13,16)){throw 'TRAIN016_UNKNOWN_BUDGET_GOAL'}
+    $maximumStarts=if($Goal -eq 16){3}else{4};$maximumMillis=if($Goal -eq 16){4500000L}else{4800000L};$goalName='PHANTOM-LEARNING-'+('{0:D3}' -f $Goal)
     if(!(Test-Path -LiteralPath $Path)){
         if(Test-Path -LiteralPath ($Path+'.issued.json')){throw 'TRAIN013_GLOBAL_BUDGET_MISSING_NO_RESET'}
-        Write-TrainJson ($Path+'.issued.json') @{schemaVersion=13;goal='PHANTOM-LEARNING-013';maximumStarts=4;maximumNativeMillis=4800000L}
-        Write-TrainJson $Path @{schemaVersion=13;goal='PHANTOM-LEARNING-013';maximumStarts=4;maximumNativeMillis=4800000L;starts=0;nativeMillis=0L;pending='';reservations=@()}
+        Write-TrainJson ($Path+'.issued.json') @{schemaVersion=$Goal;goal=$goalName;maximumStarts=$maximumStarts;maximumNativeMillis=$maximumMillis}
+        Write-TrainJson $Path @{schemaVersion=$Goal;goal=$goalName;maximumStarts=$maximumStarts;maximumNativeMillis=$maximumMillis;starts=0;nativeMillis=0L;pending='';reservations=@()}
     }
     $budget=Read-TrainJson $Path
-    if($budget.schemaVersion -ne 13 -or $budget.goal -cne 'PHANTOM-LEARNING-013' -or $budget.maximumStarts -ne 4 -or [long]$budget.maximumNativeMillis -ne 4800000L){throw 'TRAIN013_GLOBAL_BUDGET_PIN_CHANGED'}
+    if($budget.schemaVersion -ne $Goal -or $budget.goal -cne $goalName -or $budget.maximumStarts -ne $maximumStarts -or [long]$budget.maximumNativeMillis -ne $maximumMillis){throw 'TRAIN013_GLOBAL_BUDGET_PIN_CHANGED'}
     $rows=@($budget.reservations);$sum=0L
-    if($rows.Count -gt 4 -or $budget.starts -ne $rows.Count -or @($rows|Group-Object attemptId|Where-Object {$_.Count -ne 1}).Count){throw 'TRAIN013_GLOBAL_RESERVATIONS_CHANGED'}
+    if($rows.Count -gt $maximumStarts -or $budget.starts -ne $rows.Count -or @($rows|Group-Object attemptId|Where-Object {$_.Count -ne 1}).Count){throw 'TRAIN013_GLOBAL_RESERVATIONS_CHANGED'}
     foreach($row in $rows){
         if($row.attemptId -cnotmatch '^[a-f0-9]{32}$' -or $row.scope -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$'){throw 'TRAIN013_GLOBAL_RESERVATION_IDENTITY'}
         if($null -ne $row.chargedMillis){if([long]$row.chargedMillis -lt 0 -or $row.proof -cne 'OWN_HELD_HANDLE_EXIT_TIME'){throw 'TRAIN013_GLOBAL_CHARGE_UNPROVEN'};$sum+=[long]$row.chargedMillis}
@@ -283,11 +296,12 @@ function Get-TrainNativeBudget013([string]$Path) {
     if([long]$budget.nativeMillis -ne $sum -or ($budget.pending -and @($rows|Where-Object {$_.attemptId -ceq $budget.pending -and $null -eq $_.chargedMillis}).Count -ne 1)){throw 'TRAIN013_GLOBAL_CHARGE_SUM_CHANGED'}
     return $budget
 }
-function Reserve-TrainNativeBudget013([string]$Path,[string]$Scope,[bool]$Evaluation,[long]$DrainReserve) {
-    $budget=Get-TrainNativeBudget013 $Path
+function Reserve-TrainNativeBudget013([string]$Path,[string]$Scope,[bool]$Evaluation,[long]$DrainReserve,[int]$Goal=13) {
+    if($Goal -eq 16 -and ($Evaluation -or $Scope -cne 'autonomous009-learning016-v1-c000001')){throw 'TRAIN016_TRAIN_ONLY_BUDGET'}
+    $budget=Get-TrainNativeBudget013 $Path $Goal
     if($budget.pending){throw 'TRAIN013_PENDING_NATIVE_REQUIRES_RECOVERY'}
     if($Scope -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$' -or $DrainReserve -lt 0){throw 'TRAIN013_RESERVATION_SCOPE'}
-    if([int]$budget.starts -ge 4 -or [long]$budget.nativeMillis+$DrainReserve -ge 4800000L){throw 'TRAIN013_RESOURCE_GLOBAL_NATIVE_BUDGET'}
+    if([int]$budget.starts -ge [int]$budget.maximumStarts -or [long]$budget.nativeMillis+$DrainReserve -ge [long]$budget.maximumNativeMillis){throw 'TRAIN013_RESOURCE_GLOBAL_NATIVE_BUDGET'}
     $scoped=@($budget.reservations|Where-Object {$_.scope -ceq $Scope});$scopeMillis=0L
     foreach($row in $scoped){if([bool]$row.evaluation -ne $Evaluation){throw 'TRAIN013_RESERVATION_MODE_CHANGED'};$scopeMillis+=[long]$row.chargedMillis}
     if($Evaluation -and ($scoped.Count -ge 2 -or $scopeMillis+$DrainReserve -ge 2100000L)){throw 'TRAIN013_RESOURCE_CHILD_NATIVE_BUDGET'}
@@ -295,10 +309,10 @@ function Reserve-TrainNativeBudget013([string]$Path,[string]$Scope,[bool]$Evalua
     $row=[pscustomobject]@{attemptId=$id;scope=$Scope;evaluation=$Evaluation;startedUtc=[DateTime]::UtcNow.ToString('o');ordinal=([int]$budget.starts+1);priorNativeMillis=$budget.nativeMillis;chargedMillis=$null;proof=''}
     $budget.reservations=@($budget.reservations)+@($row);$budget.starts=[int]$budget.starts+1;$budget.pending=$id
     Write-TrainJson $Path $budget
-    return Get-TrainNativeBudget013 $Path
+    return Get-TrainNativeBudget013 $Path $Goal
 }
-function Complete-TrainNativeBudget013([string]$Path,[string]$Attempt,[long]$Millis,[string]$Proof) {
-    $budget=Get-TrainNativeBudget013 $Path
+function Complete-TrainNativeBudget013([string]$Path,[string]$Attempt,[long]$Millis,[string]$Proof,[int]$Goal=13) {
+    $budget=Get-TrainNativeBudget013 $Path $Goal
     $rows=@($budget.reservations|Where-Object {$_.attemptId -ceq $Attempt})
     if($rows.Count -ne 1 -or $Millis -lt 0 -or $Proof -cne 'OWN_HELD_HANDLE_EXIT_TIME'){throw 'TRAIN013_NATIVE_CHARGE_IDENTITY_OR_PROOF'}
     $row=$rows[0]
@@ -306,7 +320,7 @@ function Complete-TrainNativeBudget013([string]$Path,[string]$Attempt,[long]$Mil
     if($budget.pending -cne $Attempt){throw 'TRAIN013_NATIVE_CHARGE_RESERVATION_MISSING'}
     $row.chargedMillis=$Millis;$row.proof=$Proof;$budget.nativeMillis=[long]$budget.nativeMillis+$Millis;$budget.pending=''
     Write-TrainJson $Path $budget
-    return Get-TrainNativeBudget013 $Path
+    return Get-TrainNativeBudget013 $Path $Goal
 }
 function Assert-TrainEvaluationReceipt013($Receipt,[string]$CycleId,[long]$Version,[string]$ModelSha,[string]$SummaryPath,[string]$SummarySha) {
     if($Receipt.schemaVersion -ne 13 -or $Receipt.cycleId -cne $CycleId -or [long]$Receipt.modelVersion -ne $Version -or $Receipt.modelSha -cne $ModelSha){throw 'TRAIN013_EVALUATION_CYCLE_OR_MODEL_CHANGED'}

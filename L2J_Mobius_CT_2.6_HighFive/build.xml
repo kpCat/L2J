@@ -1288,6 +1288,15 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning016-test" depends="compile-tests" description="Run incremental TRAIN016 configuration, durable preparation and native reservation contracts without database access.">
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="config016" />
+		</java>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="incremental-contract016" />
+		</java>
+	</target>
+
 	<target name="phantom-learning015-test" depends="phantom-party-tactics-test,phantom-post002-support-test,phantom-learning011-test,phantom-learning012-test,phantom-learning013-test,phantom-learning014-test,phantom-party-mp015-test" description="Run canonical Party MP risk, normal Party and bounded readiness contracts without database access.">
 		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
 			<arg value="preparation015" />

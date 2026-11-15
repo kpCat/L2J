@@ -23,6 +23,7 @@ public final class TrainingConfig
 		_sha = sha;
 		if (integer("schemaVersion", 1, 1, 1) != 1) { throw new IllegalArgumentException("Неизвестная версия конфигурации."); }
 		seed();
+		if (integer("autonomous016Version", 0, 0, 1) == 1 && !autonomousConfigured()) { throw new IllegalArgumentException("TRAIN016_AUTONOMOUS_VERSION_REQUIRED"); }
 		if (text("autonomous009Enabled", "false").equals("true") && !autonomousConfigured()) { throw new IllegalArgumentException("Для автономного opt-in нужна явная версия конфигурации."); }
 		if (autonomousConfigured()) { validateAutonomous(); }
 		if (_values.containsKey("mode") && !Set.of("SOLO", "PARTY", "BOTH").contains(text("mode", "")))
@@ -127,6 +128,15 @@ public final class TrainingConfig
 	private void validateAutonomous()
 	{
 		final boolean loop013 = integer("autonomous013Version", 0, 0, 1) == 1;
+		final boolean incremental016 = integer("autonomous016Version", 0, 0, 1) == 1;
+		if (incremental016 && (!loop013 || integer("episodesPerBatch", 48, 48, 256) != 51
+			|| !text("autonomous009EvaluationOnly", "false").equals("false") || text("autonomous009Phase", "OFF").equals("EVAL")
+			|| integer("evaluationOutcomeVersion", 1, 1, 2) != 1 || integer("autonomous009CycleLimit", 0, 0, 1000000) != 1
+			|| !text("autonomous009Campaign", "").equals("autonomous009-learning016-v1")
+			|| !text("outcome006DatasetId", "").equals("autonomous009-learning016-v1-c000001")
+			|| !text("autonomous009AcceptanceSmoke", "false").equals("true")))
+		{ throw new IllegalArgumentException("TRAIN016_FIXED_51_TRAIN_ONLY_CAMPAIGN_REQUIRED"); }
+		if (incremental016) { integer("autonomous009SmokeMaxStarts", 3, 1, 3); integer("autonomous009SmokeMaxNativeMinutes", 75, 1, 75); }
 		integer("autonomous009Version", 1, 1, 1);
 		if (!text("autonomous009Comparator", "").equals(AutonomousTrainingV1.COMPARATOR) || !text("v3Enabled", "false").equals("true")
 			|| !Set.of("OFF", "PREPARE", "COLLECT", "FIT", "EVAL").contains(text("autonomous009Phase", "OFF")))
@@ -160,7 +170,7 @@ public final class TrainingConfig
 		integer("autonomous009ReplayCapacity", 128, 48, 512); integer("autonomous009EvaluationEveryCycles", 1, 1, 100);
 		integer("autonomous009StagnationLimit", 3, 3, 3); integer("autonomous009NoDataLimit", 3, 1, 16);
 		integer("autonomous009PriorStarts", 0, 0, 10); longValue("autonomous009PriorNativeMillis", 0, 0, 5400000);
-		if (integer("episodesPerBatch", 48, 48, 256) % 12 != 0 || integer("episodesPerBatch", 48, 48, 256) > integer("autonomous009ReplayCapacity", 128, 48, 512))
+		if (!incremental016 && integer("episodesPerBatch", 48, 48, 256) % 12 != 0 || integer("episodesPerBatch", 48, 48, 256) > integer("autonomous009ReplayCapacity", 128, 48, 512))
 		{ throw new IllegalArgumentException("Автономный batch должен вмещаться в replay и состоять из полных12-slot cells."); }
 		integer("autonomous009CycleLimit", 0, 0, 1000000); longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE);
 		integer("cpuBudgetPercent", 75, 1, 100);
