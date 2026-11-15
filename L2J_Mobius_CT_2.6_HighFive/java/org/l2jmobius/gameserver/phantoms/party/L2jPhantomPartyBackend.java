@@ -512,8 +512,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	{ return autonomousFarmTarget(party, supportMembers, null, witness); }
 	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, java.util.function.Consumer<String> witness)
 	{ return autonomousFarmTarget(party, supportMembers, source, 0, witness); }
+	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source,
+		java.util.function.Consumer<String> witness, java.util.function.Consumer<PartyMpForecast> mpWitness)
+	{ return autonomousFarmTarget(party, supportMembers, source, 0, witness, mpWitness); }
 
 	private OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int page, java.util.function.Consumer<String> witness)
+	{ return autonomousFarmTarget(party, supportMembers, source, page, witness, null); }
+
+	private OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int page,
+		java.util.function.Consumer<String> witness, java.util.function.Consumer<PartyMpForecast> mpWitness)
 	{
 		if (source == null) { farmWait(party, "WAIT_GROUP_SOURCE"); return OptionalInt.empty(); }
 		if (party.members().size() < 2 || party.members().size() > 9 || !party.members().containsAll(supportMembers) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM)) { return OptionalInt.empty(); }
@@ -551,7 +558,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				if (actors.stream().anyMatch(player -> player.getInstanceId() != target.getInstanceId() || !target.isAutoAttackable(player) || !PhantomEngagementPlanner.rewardingFarmTarget(player, target) || Math.abs((long) player.getZ() - target.getZ()) > 200 || !GeoEngine.getInstance().canSeeTarget(player, target) || !GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), target.getX(), target.getY(), target.getZ(), player.getInstanceId()))) { if (witness != null) { witness.accept("target=" + target.getObjectId() + ":native_geometry_or_reward"); } continue; }
 				if (!farmApproachSafe(actors, members, target)) { if (witness != null) { witness.accept("target=" + target.getObjectId() + ":party_approach_unproven"); } continue; }
 				final var reasons = new ArrayList<String>();
-				if (groupViable(actors, members, target, value -> { if (reasons.size() < 64) { reasons.add(value); } if (witness != null) { witness.accept(value); } }, false))
+				if (groupViable(actors, members, target, value -> { if (reasons.size() < 64) { reasons.add(value); } if (witness != null) { witness.accept(value); } }, false, mpWitness))
 				{ _farmWaitReasons.remove(party.leader().profileId()); return OptionalInt.of(target.getObjectId()); }
 				if (refusal == null) { refusal = reasons.stream().filter(value -> value.startsWith("WAIT_")).findFirst().orElse("WAIT_GROUP_READINESS"); }
 			}
@@ -592,6 +599,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 
 	/** Combine factual native damage estimates; never require every member to solo the mob. */
 	private boolean groupViable(List<Player> actors, List<MemberSnapshot> members, Creature target, java.util.function.Consumer<String> witness, boolean continuing)
+	{ return groupViable(actors, members, target, witness, continuing, null); }
+
+	private boolean groupViable(List<Player> actors, List<MemberSnapshot> members, Creature target, java.util.function.Consumer<String> witness, boolean continuing,
+		java.util.function.Consumer<PartyMpForecast> mpForecast)
 	{
 		final var projected = L2jPhantomBackgroundAuthority.nativePlanningTarget(target, true);
 		final var observedThreats = new java.util.LinkedHashMap<Creature, ThreatVictims>();
@@ -627,12 +638,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			if (mode == null) { continue; }
 			final boolean weapon = capabilities.stream().anyMatch(capability -> mode.capabilityKey().equals(capability.capabilityKey())
 				&& "native.weapon".equals(capability.variantKey()) && capability.learned() && capability.readyNow());
-			final var loadout = _combatLoadouts.resolve(player.getActiveClass(), mode, player::getSkillLevel, selected ->
-			{
-				final var learned = player.getKnownSkill(selected.skillId());
-				return (mode != PhantomCombatMode.RANGED_PHYSICAL || weapon) && learned != null && learned.getLevel() == selected.skillLevel()
-					&& PhantomCombatSkillSafety.supports(learned, mode, player.isTransformed());
-			}, weapon, 4).orElse(null);
+			final var loadout = farmLoadout(player, mode, weapon);
 			if (loadout == null) { continue; }
 			final var skills = loadout.selectedSkills().stream().map(selected -> player.getKnownSkill(selected.skillId()))
 				.filter(learned -> learned != null && (continuing || !player.isSkillDisabled(learned) && player.checkDoCastConditions(learned))
@@ -745,7 +751,6 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final Player player = actors.get(index);
 			final double actions = intervals[index] > 0 ? PhantomPartyFarmEligibility.requiredActions(millis, intervals[index]) : 0;
 			if (actions > ammunition[index]) { if (witness != null) { witness.accept("WAIT_GROUP_AMMO:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":shots=" + actions + ":ammo=" + ammunition[index]); } return false; }
-			if (actions * costs[index] > player.getCurrentMp() * 0.8) { if (witness != null) { witness.accept("WAIT_GROUP_MP:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":actionMPRequired=" + actions * costs[index] + ":MP=" + player.getCurrentMp()); } return false; }
 			final double exposure = PhantomPartyFarmEligibility.threatExposureMillis(millis, mainVictims.contains(player.getObjectId()), supportCastMillis);
 			double incoming = farmIncomingDamage(player, target, exposure);
 			for (var entry : observedThreats.entrySet())
@@ -758,7 +763,20 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			}
 			exposures[index] = incoming;
 			final long profileId = members.get(index).ref().profileId();
-			if (!risk.accepts(profileId, incoming, player.getCurrentHp(), covered))
+			final double observedMp = player.getCurrentMp();
+			final var assessment = assessMemberRisk(profileId, covered, actions * costs[index], observedMp, incoming, player.getCurrentHp());
+			if (mpForecast != null)
+			{
+				mpForecast.accept(new PartyMpForecast(target.getObjectId(), player.getObjectId(), index, actions * costs[index], observedMp,
+					player.getMaxMp(), observedMp * 0.8, assessment.mpRisk()));
+			}
+			if (TASK130_EVIDENCE && assessment.mpRisk() == MpRisk.FORECAST_SHORTFALL && TASK130_SAMPLES.getAndIncrement() < 180)
+			{
+				System.out.println("NATIVE015_PARTY_MP_RISK target=" + target.getObjectId() + " actor=" + player.getObjectId()
+					+ " estimatedFightMp=" + actions * costs[index] + " observedCurrentMp=" + observedMp + " observedMaximumMp=" + player.getMaxMp()
+					+ " reserveAllowanceMp=" + observedMp * 0.8 + " reason=FORECAST_SHORTFALL_CURRENT_CONTEXT_NO_FUTURE_MP_CREDIT");
+			}
+			if (!assessment.memberPolicyAccepted())
 			{
 				if (witness != null)
 				{
@@ -774,7 +792,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			.filter(entry -> !entry.getValue().current().getAsBoolean()).map(java.util.Map.Entry::getKey).findFirst().orElse(null);
 		if (changedThreat != null)
 		{ if (witness != null) { witness.accept("WAIT_THREAT:target=" + changedThreat.getObjectId() + ":reason=native.threat.changed"); } return false; }
-		if (TASK130_EVIDENCE && TASK130_SAMPLES.getAndIncrement() < 180)
+		if (mpForecast == null && TASK130_EVIDENCE && TASK130_SAMPLES.getAndIncrement() < 180)
 		{
 			System.out.println("NATIVE130_D03 target=" + target.getObjectId() + " level=" + target.getLevel() + " continuing=" + continuing
 				+ " effectiveDps=" + effective + " durationMs=" + millis + " contributions=" + java.util.Arrays.toString(contributions)
@@ -795,6 +813,37 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				+ " recipient=" + mainVictim + " readySkill=" + (readyHeal == null ? "none" : readyHeal.getId() + ":" + readyHeal.getLevel()) + " projectedHpCredit=0");
 		}
 		return true;
+	}
+
+	public enum MpRisk { UNKNOWN, WITHIN_ESTIMATE, FORECAST_SHORTFALL }
+	public record PartyMpForecast(int targetObjectId, int actorObjectId, int memberIndex, double estimatedFightMp,
+		double observedCurrentMp, double observedMaximumMp, double reserveAllowanceMp, MpRisk risk) { }
+	private record MemberRiskAssessment(MpRisk mpRisk, boolean memberPolicyAccepted) { }
+
+	private static boolean partyMpBudgetExceeded(double estimatedFightMp, double observedCurrentMp) { return estimatedFightMp > observedCurrentMp * 0.8; }
+
+	private static MpRisk assessFightMp(double estimatedFightMp, double observedCurrentMp)
+	{
+		if (!Double.isFinite(estimatedFightMp) || estimatedFightMp < 0 || !Double.isFinite(observedCurrentMp) || observedCurrentMp < 0) { return MpRisk.UNKNOWN; }
+		return partyMpBudgetExceeded(estimatedFightMp, observedCurrentMp) ? MpRisk.FORECAST_SHORTFALL : MpRisk.WITHIN_ESTIMATE;
+	}
+
+	/** Forecast shortfall is risk only. Every other native admission and action check remains authoritative. */
+	private static MemberRiskAssessment assessMemberRisk(long profileId, boolean covered, double estimatedFightMp, double observedCurrentMp,
+		double incomingDamage, double currentHp)
+	{
+		return new MemberRiskAssessment(assessFightMp(estimatedFightMp, observedCurrentMp),
+			PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK.accepts(profileId, incomingDamage, currentHp, covered));
+	}
+
+	private org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout farmLoadout(Player player, PhantomCombatMode mode, boolean weapon)
+	{
+		return _combatLoadouts.resolve(player.getActiveClass(), mode, player::getSkillLevel, selected ->
+		{
+			final var learned = player.getKnownSkill(selected.skillId());
+			return (mode != PhantomCombatMode.RANGED_PHYSICAL || weapon) && learned != null && learned.getLevel() == selected.skillLevel()
+				&& PhantomCombatSkillSafety.supports(learned, mode, player.isTransformed());
+		}, weapon, 4).orElse(null);
 	}
 
 	/** The stock first hit may call nearby faction members and linked minions. These are forecasts, never observed hate. */
@@ -916,6 +965,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	@Override
 	public boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int targetObjectId,
 		java.util.function.Consumer<String> refusal)
+	{ return autonomousFarmEncounterReady(party, supportMembers, source, targetObjectId, refusal, null); }
+
+	public boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int targetObjectId,
+		java.util.function.Consumer<String> refusal, java.util.function.Consumer<PartyMpForecast> mpWitness)
 	{
 		if (party == null || source == null) { return false; }
 		final var object = World.getInstance().findObject(targetObjectId);
@@ -944,7 +997,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 					farmWait(party, reason);
 					refusal.accept(reason);
 				}
-			}, true);
+			}, true, mpWitness);
 		}
 		finally { for (int index = leases.size() - 1; index >= 0; index--) { leases.get(index).close(); } }
 	}

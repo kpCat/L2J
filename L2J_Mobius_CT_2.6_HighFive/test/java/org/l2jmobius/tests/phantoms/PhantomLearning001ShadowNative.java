@@ -277,6 +277,8 @@ public final class PhantomLearning001ShadowNative
 		private boolean acquiredEncounterReleased;
 		private List<String[]> trainingRows = List.of();
 		private List<Player> trainingPlayers = List.of();
+		private final List<org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend.PartyMpForecast> trainingPartyMpForecasts = new java.util.ArrayList<>();
+		private final List<String> trainingPartyNativeFacts015 = new java.util.ArrayList<>();
 		private PhantomTrainingScenarios.Scene trainingScene;
 		private boolean trainingParty;
 		private volatile boolean trainingAdmission;
@@ -590,13 +592,21 @@ public final class PhantomLearning001ShadowNative
 		java.util.Map<String, Object> acquiredPartyAdmission()
 		{
 			check(acquiredTraining && trainingParty && evaluationTarget != null, "AUTONOMOUS_PARTY_ADMISSION_INPUT");
+			trainingPartyMpForecasts.clear();
+			trainingPartyNativeFacts015.clear();
 			final var nativeLeader = trainingPlayers.getFirst().getParty().getLeader();
 			final int index = trainingPlayers.indexOf(nativeLeader); final long leader = Long.parseLong(trainingRows.get(index)[2]);
 			final var party = backend.currentMember(leader).flatMap(backend::observe).orElseThrow();
 			final var authority = coordinator.claim(leader).orElseThrow().state();
 			final var supports = authority.assignments().stream().filter(row -> row.roleKey().startsWith("support.")).map(row -> row.member()).collect(java.util.stream.Collectors.toSet());
 			final var farm = PhantomAutonomousFarmParty.farmSource(goals.load(leader).orElseThrow().goal()); final var reasons = new java.util.ArrayList<String>();
-			final int target = backend.autonomousFarmTarget(party, supports, farm, value -> { if (reasons.size() < 64) { reasons.add(value); } }).orElse(0);
+			final int target = backend.autonomousFarmTarget(party, supports, farm, value -> { if (reasons.size() < 64) { reasons.add(value); } }, forecast ->
+			{
+				if (forecast.targetObjectId() != evaluationTarget.getObjectId()) { return; }
+				check(trainingPartyMpForecasts.size() < 9, "AUTONOMOUS_PARTY_MP_OBSERVATION_OVERFLOW");
+				trainingPartyMpForecasts.add(forecast);
+				trainingPartyNativeFacts015.add(partyMemberNativeFacts015(forecast.actorObjectId()));
+			}).orElse(0);
 			final var roles = new PhantomCombatRequest.PartyRoles(authority.phantomMembers().stream().map(row -> row.characterObjectId()).collect(java.util.stream.Collectors.toUnmodifiableSet()),
 				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("frontline.guardian")).count(),
 				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("support.healer")).count(),
@@ -611,8 +621,52 @@ public final class PhantomLearning001ShadowNative
 					new PhantomCombatRequest(profile, evaluationTarget.getObjectId(), mode, true, true, 60000, () -> false, LearningScope.PARTY, roles, () -> false); requestProofs++;
 				}
 			}
-			return java.util.Map.of("admitted", target == evaluationTarget.getObjectId(), "target", target, "wait", backend.autonomousFarmWaitReason(party.leader()), "reasons", reasons.toString(),
-				"combatRequestValidated", requestProofs > 0, "combatRequestProofs", requestProofs, "combatRequestTimeoutMillis", 60000, "combatRequestScope", "PARTY", "roles", roles.toString());
+			final var result = new java.util.LinkedHashMap<String, Object>(java.util.Map.of("admitted", target == evaluationTarget.getObjectId(), "target", target, "wait", backend.autonomousFarmWaitReason(party.leader()), "reasons", reasons.toString(),
+				"combatRequestValidated", requestProofs > 0, "combatRequestProofs", requestProofs, "combatRequestTimeoutMillis", 60000, "combatRequestScope", "PARTY", "roles", roles.toString()));
+			result.put("partyMpPolicyVersion", 15); result.put("partyMpForecasts", partyMpForecastReceipt015());
+			if (target == evaluationTarget.getObjectId()) { check(trainingPartyMpForecasts.size() == trainingPlayers.size(), "AUTONOMOUS_PARTY_MP_OBSERVATIONS_INCOMPLETE"); }
+			return result;
+		}
+		private String partyMpForecastReceipt015()
+		{
+			final var rows = new java.util.ArrayList<String>();
+			for (var forecast : trainingPartyMpForecasts)
+			{
+				check(Double.isFinite(forecast.estimatedFightMp()) && forecast.estimatedFightMp() >= 0 && Double.isFinite(forecast.observedCurrentMp())
+					&& forecast.observedCurrentMp() >= 0 && Double.isFinite(forecast.observedMaximumMp()) && forecast.observedMaximumMp() >= forecast.observedCurrentMp()
+					&& forecast.risk() != org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend.MpRisk.UNKNOWN, "AUTONOMOUS_PARTY_MP_FACTS_UNKNOWN");
+				rows.add(PhantomLearning005Evaluation.mapJson(java.util.Map.of("target", forecast.targetObjectId(), "actor", forecast.actorObjectId(), "memberIndex", forecast.memberIndex(),
+					"estimatedFightMp", forecast.estimatedFightMp(), "observedCurrentMp", forecast.observedCurrentMp(), "observedMaximumMp", forecast.observedMaximumMp(),
+					"reserveAllowanceMp", forecast.reserveAllowanceMp(), "risk", forecast.risk().name(), "reason", "CURRENT_CANONICAL_PLAIN_HIT_FORECAST_NO_FUTURE_MP_CREDIT")));
+			}
+			return "{\"schema\":\"PARTY_MP_RISK015\",\"policyVersion\":15,\"afterCut\":false,\"trainingCredit\":false,\"isBattleResult\":false,\"admissionPermission\":false,\"status\":"
+				+ PhantomLearning005Evaluation.q(rows.isEmpty() ? "UNKNOWN" : "OBSERVED") + ",\"members\":[" + String.join(",", rows)
+				+ "],\"nativeFacts\":[" + String.join(",", trainingPartyNativeFacts015) + "]}";
+		}
+		/** Current native context only; inventory facts do not certify activation or future support. */
+		private String partyMemberNativeFacts015(int actorObjectId)
+		{
+			final var player = trainingPlayers.stream().filter(actor -> actor.getObjectId() == actorObjectId).findFirst().orElseThrow();
+			final var weapon = player.getActiveWeaponItem(); final var pet = player.getSummon();
+			final var shots = new java.util.ArrayList<String>();
+			for (var item : player.getInventory().getItems())
+			{
+				final var action = item.getTemplate().getDefaultAction();
+				if (action != org.l2jmobius.gameserver.model.item.type.ActionType.SOULSHOT && action != org.l2jmobius.gameserver.model.item.type.ActionType.SPIRITSHOT) { continue; }
+				shots.add(item.getId() + ":" + item.getCount() + ":" + item.getTemplate().getCrystalType() + ":" + action + ":blessed=" + (item.getEtcItem() != null && item.getEtcItem().isBlessed()));
+			}
+			shots.sort(String::compareTo);
+			final String buffs = player.getEffectList().getEffects().stream().map(info -> info.getSkill().getId() + ":" + info.getSkill().getLevel() + ":remainingSeconds=" + info.getTime()).sorted().collect(java.util.stream.Collectors.joining(","));
+			final var facts = new java.util.LinkedHashMap<String, Object>();
+			facts.put("actor", actorObjectId); facts.put("classId", player.getActiveClass()); facts.put("level", player.getLevel());
+			facts.put("nativeMpRegenPerSecond", org.l2jmobius.gameserver.model.stats.Formulas.calcMpRegen(player) / 3d);
+			facts.put("weaponGrade", weapon == null ? "NONE" : weapon.getCrystalTypePlus().name()); facts.put("shotInventoryFacts", shots.toString());
+			facts.put("soulshotCharged", player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.SOULSHOTS));
+			facts.put("blessedSpiritshotCharged", player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.BLESSED_SPIRITSHOTS));
+			facts.put("ordinarySpiritshotCharged", player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.SPIRITSHOTS));
+			facts.put("activeBuffs", buffs); facts.put("ownedPet", pet != null && pet.getOwner() == player); facts.put("petAlive", pet != null && !pet.isAlikeDead());
+			facts.put("petCurrentMp", pet == null ? 0 : pet.getCurrentMp()); facts.put("futureRechargeGuaranteed", false);
+			return PhantomLearning005Evaluation.mapJson(facts);
 		}
 		/** Reserve through the ordinary owners without executing their first worker before durable CUT. */
 		java.util.Map<String, Object> acquiredEncounterAdmission(long timeoutMillis)

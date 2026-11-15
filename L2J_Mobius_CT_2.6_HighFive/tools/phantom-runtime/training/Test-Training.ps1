@@ -4,6 +4,7 @@ param(
     [string]$Root,
     [switch]$Headless013,
     [switch]$Readiness014,
+    [switch]$Readiness015,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -16,6 +17,86 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($Readiness015){
+    $tokens=$null;$errors=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
+    Require ($errors.Count -eq 0) 'READINESS015_SOURCE_PARSE'
+    $functions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -cin @('Get-TrainReadinessWindow014','Get-TrainReadinessWindow015','Open-TrainHeadless013','Assert-TrainReadinessMode015')},$false)
+    . ([scriptblock]::Create(($functions|ForEach-Object {$_.Extent.Text}) -join "`n"))
+    Require ([bool](Get-Command Get-TrainReadinessWindow015 -ErrorAction SilentlyContinue)) 'READINESS015_SHARED_BUDGET_MISSING'
+    $now=[DateTime]::UtcNow;$first=Get-TrainReadinessWindow015 1 $null $now
+    Require ($first.goalVersion -eq 15 -and $first.maximumSeconds -eq 480) 'READINESS015_FIRST_CAP'
+    $prior=[pscustomobject]@{schemaVersion=15;session=1;elapsedMillis=470000L;finishedUtc=$now.AddSeconds(470).ToString('o');ownedWorkerAbsent=$true;sqlAbsent=$true;withinCap=$true}
+    $second=Get-TrainReadinessWindow015 2 $prior $now.AddSeconds(500)
+    Require ($second.goalVersion -eq 15 -and $second.maximumSeconds -eq 720 -and [long]$prior.elapsedMillis+720000L -le 1200000L) 'READINESS015_TOTAL_CAP_RESET'
+    foreach($case in @(@{session=1;prior=$prior},@{session=2;prior=$null},@{session=3;prior=$prior})){
+        $refused=$false;try{$null=Get-TrainReadinessWindow015 $case.session $case.prior $now.AddSeconds(500)}catch{$refused=$true};Require $refused 'READINESS015_REPLAY_OR_THIRD'
+    }
+    $prior.schemaVersion=14;$refused=$false;try{$null=Get-TrainReadinessWindow015 2 $prior $now.AddSeconds(500)}catch{$refused=$true};Require $refused 'READINESS015_HISTORICAL_RECEIPT_REUSED'
+    $prior.schemaVersion=15;$prior.sqlAbsent=$false;$refused=$false;try{$null=Get-TrainReadinessWindow015 2 $prior $now.AddSeconds(500)}catch{$refused=$true};Require $refused 'READINESS015_SQL_EXIT_UNPROVEN'
+    $root015=Join-Path ([IO.Path]::GetTempPath()) ('Training015-headless-'+[guid]::NewGuid().ToString('N'))
+    $values015=@{autonomous009Campaign='autonomous009-contract015';outcome006DatasetId='autonomous009-contract015-c000001';autonomous009ModelVersion='14'}
+    try{
+        $script:ReadinessDeadline013=$first
+        $ctx015=Open-TrainHeadless013 $root015 $values015 'prepare' ('a'*64) $now
+        Require ($ctx015.journal.PSObject.Properties['goalVersion'] -and $ctx015.journal.goalVersion -eq 15 -and $ctx015.journal.maximumSeconds -eq 480 -and
+            (([datetime]$ctx015.journal.workDeadlineUtc).ToUniversalTime()-$now).TotalSeconds -eq 270) 'READINESS015_WORKER_CAP_OR_GOAL_WIDENED'
+        $cold015=Open-TrainHeadless013 $root015 $values015 'prepare' ('a'*64) $now.AddSeconds(1)
+        Require ($cold015.recovered -and $cold015.journal.hardDeadlineUtc -ceq $ctx015.journal.hardDeadlineUtc) 'READINESS015_COLD_DEADLINE_RESET'
+        $script:ReadinessDeadline013=$second;$values015.outcome006DatasetId='autonomous009-contract015-c000002'
+        $ctxSecond015=Open-TrainHeadless013 $root015 $values015 'prepare' ('b'*64) $now.AddSeconds(500)
+        Require ($ctxSecond015.journal.goalVersion -eq 15 -and $ctxSecond015.journal.maximumSeconds -eq 720 -and
+            (([datetime]$ctxSecond015.journal.workDeadlineUtc).ToUniversalTime()-([datetime]$second.issuedUtc).ToUniversalTime()).TotalSeconds -eq 510) 'READINESS015_SECOND_WORKER_CAP'
+        $script:ReadinessDeadline013=[pscustomobject]@{goalVersion=15;maximumSeconds=1200;issuedUtc=$now.ToString('o')};$values015.outcome006DatasetId='autonomous009-contract015-c000003'
+        $refused=$false;try{$null=Open-TrainHeadless013 $root015 $values015 'prepare' ('c'*64) $now}catch{$refused=$true};Require $refused 'READINESS015_WIDENED_PASS_ACCEPTED'
+        # Execute the actual COLLECT branch with only Java/EVAL dependencies stubbed. No gameplay proof is fabricated.
+        $directorNodes015=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Invoke-TrainAutonomousDirector013'},$false)
+        $collectNodes015=$directorNodes015[0].Body.FindAll({param($n) $n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.StartsWith("if(`$journal.phase -ceq 'COLLECT')",[StringComparison]::Ordinal)},$true)
+        Require ($collectNodes015.Count -eq 1) 'READINESS015_DIRECTOR_COLLECT_BRANCH_MISSING'
+        $collectBody015=[scriptblock]::Create($collectNodes015[0].Extent.Text)
+        foreach($goal015 in @(14,15)){
+            & {
+                $script:ReadinessSession=1;$script:ReadinessGoalVersion=$goal015;$script:ReadinessOnly013=$true
+                $Readiness014Session=if($goal015 -eq 14){1}else{0};$Readiness015Session=if($goal015 -eq 15){1}else{0}
+                $script:prepareCalls015=0;$script:probeCalls015=0
+                $directory=Join-Path $root015 ('director-goal'+$goal015);$cycleDirectory=Join-Path $directory 'cycles/c000001'
+                $null=[IO.Directory]::CreateDirectory($cycleDirectory)
+                $cohort=$ctx015.scope;$layout=@{Root=$root015};$path=Join-Path $directory 'director-state.json';$Dependencies=$null;$Jar='a'*64;$config=@{};$campaign='autonomous009-contract015'
+                $journal=[pscustomobject]@{phase='COLLECT';dataset='autonomous009-contract015-c000001';reason=''}
+                Write-TrainJson (Join-Path $cohort 'training-admission013.json') @{cells=3;minimumCells=3;classes=2;scopes=2;unitFixture=$true;trainingCredit=$false}
+                function Assert-TrainHeadlessAdmission013 { param($Scope,$Admission) if(!(Test-Path -LiteralPath $Admission)){throw 'UNIT_TRAIN_ADMISSION_MISSING'} }
+                function Publish-TrainState { param($Phase,$Reason) }
+                function Write-TrainConfig { param($File,$Values) }
+                function Invoke-TrainJava { param($Dependencies,$Class,$Arguments) $script:prepareCalls015++ }
+                function Get-TrainAdmissionFailure013 { return $null }
+                function Invoke-TrainEvaluation013 {
+                    param($Dependencies,$Jar,$Journal,$Path,$CycleDirectory,$Probe)
+                    $script:probeCalls015++
+                    Write-TrainJson (Join-Path $CycleDirectory 'child-probe-admitted.json') @{unitFixture=$true;trainingCredit=$false}
+                }
+                function Invoke-TrainAutonomousNative { throw 'READINESS015_ATTEMPTED_NATIVE_START' }
+                & $collectBody015
+                Require ($script:prepareCalls015 -eq 1 -and $script:probeCalls015 -eq 0) 'READINESS015_DIRECTOR_RAN_INDEPENDENT_PROBE'
+                $complete015=Read-TrainJson (Join-Path $directory 'readiness-complete013.json')
+                Require ($complete015.schemaVersion -eq $goal015 -and $complete015.scope -ceq 'TRAIN_ONLY' -and !$complete015.nativeStarted -and !$complete015.trainingCredit) 'READINESS015_TRAIN_ONLY_COMPLETION'
+            }
+        }
+        Require ([bool](Get-Command Assert-TrainReadinessMode015 -ErrorAction SilentlyContinue)) 'READINESS015_MODE_GUARD_MISSING'
+        Assert-TrainReadinessMode015 @{autonomous013Version='1';autonomous009EvaluationOnly='false';episodesPerBatch='51'} 1
+        foreach($badMode015 in @(@{autonomous013Version='0';autonomous009EvaluationOnly='false';episodesPerBatch='51'},@{autonomous013Version='1';autonomous009EvaluationOnly='true';episodesPerBatch='51'})){
+            $refused=$false;try{Assert-TrainReadinessMode015 $badMode015 1}catch{$refused=$true};Require $refused 'READINESS015_UNBOUNDED_OR_EVAL_MODE_ACCEPTED'
+        }
+        $refused=$false;try{Assert-TrainReadinessMode015 @{autonomous013Version='1';autonomous009EvaluationOnly='false';episodesPerBatch='84'} 1}catch{$refused=$true};Require $refused 'READINESS015_PIPELINE_51_NOT_ENFORCED'
+        Assert-TrainReadinessMode015 @{autonomous013Version='0';autonomous009EvaluationOnly='true'} 0
+    }finally{
+        $script:ReadinessDeadline013=$null
+        $resolved015=[IO.Path]::GetFullPath($root015);$temp015=[IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+        if(!$resolved015.StartsWith($temp015,[StringComparison]::OrdinalIgnoreCase)){throw 'READINESS015_TEMP_SCOPE'}
+        if(Test-Path -LiteralPath $resolved015){Remove-Item -LiteralPath $resolved015 -Recurse -Force}
+    }
+    Write-Output 'READINESS015_GREEN sessions=2 wallCap=1200 workerCapPreserved=1 coldDeadlinePreserved=1 directorTrainOnly=1 incompatibleModesRejected=1 historicalReceiptsPreserved=1 replayRejected=1 thirdRejected=1 SQL=0 GS=0'
+    return
+}
 if($Readiness014){
     $tokens=$null;$errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)

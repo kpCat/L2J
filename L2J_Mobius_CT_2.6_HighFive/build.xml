@@ -1275,6 +1275,32 @@
 		</java>
 	</target>
 
+	<target name="phantom-party-mp015-test" depends="compile-tests" description="Run the shared Party full-fight MP risk contract without database access.">
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="party-mp-policy015" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" dir="${datapack}/game" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="native-cast-mp015" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<arg value="party-mp-wiring015" />
+		</java>
+	</target>
+
+	<target name="phantom-learning015-test" depends="phantom-party-tactics-test,phantom-post002-support-test,phantom-learning011-test,phantom-learning012-test,phantom-learning013-test,phantom-learning014-test,phantom-party-mp015-test" description="Run canonical Party MP risk, normal Party and bounded readiness contracts without database access.">
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="preparation015" />
+		</java>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="headless-contract015" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" dir="${datapack}/game" fork="true" failonerror="true" timeout="120000" maxmemory="1g">
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="npc-catalog015" />
+		</java>
+	</target>
+
 	<target name="phantom-learning014-test" depends="compile-tests" description="Run recovery viability and bounded headless deadline contracts without database access.">
 		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
 			<arg value="preparation014" />

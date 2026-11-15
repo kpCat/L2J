@@ -1651,6 +1651,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	private static void tactics(PhantomTestRegistry registry)	{
 		registry.add("130-maintenance-does-not-incapacitate-healer", context ->
 		{
+			org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT = context.moduleRoot().resolve("dist/game").toFile();
 			final var values = new StatSet();
 			values.set("skill_id", 1430);
 			values.set("level", 5);

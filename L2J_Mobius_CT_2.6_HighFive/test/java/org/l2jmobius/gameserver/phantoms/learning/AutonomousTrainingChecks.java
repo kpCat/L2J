@@ -36,9 +36,133 @@ public final class AutonomousTrainingChecks
 			case "curriculum" -> curriculum();
 			case "encounter" -> encounter();
 			case "preparation014" -> preparation014();
+			case "preparation015" -> preparation015();
+			case "party-mp-policy015" -> partyMpPolicy015();
+			case "native-cast-mp015" -> nativeCastMp015();
+			case "party-mp-wiring015" -> partyMpWiring015();
+			case "npc-catalog015" -> { npcCatalog015(); return; }
 			default -> throw new IllegalArgumentException("Unknown autonomous contract group");
 		}
 		System.out.println("AUTONOMOUS_TRAINING_GREEN " + args[0]);
+	}
+	/** Full-fight shortfall must not veto an otherwise accepted member policy. */
+	private static void partyMpPolicy015() throws Exception
+	{
+		final var backend = org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend.class;
+		final java.lang.reflect.Method assessment;
+		try { assessment = backend.getDeclaredMethod("assessMemberRisk", long.class, boolean.class, double.class, double.class, double.class, double.class); }
+		catch (NoSuchMethodException missing) { throw new AssertionError("CANONICAL_PARTY_MP_RISK_CONTRACT_MISSING", missing); }
+		assessment.setAccessible(true);
+		final var result = assessment.invoke(null, 1L, false, 3060d, 2806d, 10d, 100d);
+		final var admitted = result.getClass().getDeclaredMethod("memberPolicyAccepted"); admitted.setAccessible(true);
+		final var risk = result.getClass().getDeclaredMethod("mpRisk"); risk.setAccessible(true);
+		check(Boolean.TRUE.equals(admitted.invoke(result)), "FULL_FIGHT_MP_FORECAST_VETOED_LAWFUL_RISK_3060_2806");
+		check(risk.invoke(result).toString().equals("FORECAST_SHORTFALL"), "Historical MP shortfall disappeared from risk diagnostics");
+		final var normal = assessment.invoke(null, 1L, false, 1000d, 2806d, 10d, 100d);
+		check(Boolean.TRUE.equals(admitted.invoke(normal)) && risk.invoke(normal).toString().equals("WITHIN_ESTIMATE"), "Normally admissible Party member changed");
+		final var hpRefused = assessment.invoke(null, 1L, false, 3060d, 2806d, 200d, 100d);
+		check(Boolean.FALSE.equals(admitted.invoke(hpRefused)), "MP-risk change bypassed the existing HP-risk refusal");
+		final var badProfile = assessment.invoke(null, 0L, false, 1000d, 2806d, 0d, 100d);
+		check(Boolean.FALSE.equals(admitted.invoke(badProfile)), "Invalid member identity passed existing tactical risk policy");
+		final var equal = assessment.invoke(null, 1L, false, 2244.8d, 2806d, 10d, 100d);
+		check(risk.invoke(equal).toString().equals("WITHIN_ESTIMATE"), "Strict forecast equality boundary changed");
+		for (double unknown : new double[] { Double.NaN, Double.POSITIVE_INFINITY, -1 })
+		{
+			final var unknownEstimate = assessment.invoke(null, 1L, false, unknown, 2806d, 10d, 100d);
+			final var unknownMp = assessment.invoke(null, 1L, false, 3060d, unknown, 10d, 100d);
+			check(risk.invoke(unknownEstimate).toString().equals("UNKNOWN") && risk.invoke(unknownMp).toString().equals("UNKNOWN"), "Unknown MP facts became a proof");
+			check(Boolean.TRUE.equals(admitted.invoke(unknownEstimate)), "Unknown forecast became a new early refusal");
+		}
+	}
+	/** Characterize the real native MP gate; this unspawned unit fixture is never TRAIN evidence. */
+	private static void nativeCastMp015()
+	{
+		check(!org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Native MP fixture started with SQL");
+		final var actor = new MpFixture015();
+		final Skill impossible = skill(990015, 1, false, EffectType.MAGICAL_ATTACK, 2807, 1, 0);
+		final Skill lawful = skill(990016, 1, false, EffectType.MAGICAL_ATTACK, 100, 1, 0);
+		check(actor.getCurrentMp() == 2806 && actor.getMaxMp() == 2806, "Native fixture MP is not the exact full amount");
+		check(!actor.checkDoCastConditions(impossible), "Native cast accepted 2807 MP cost with only 2806 MP");
+		check(actor.checkDoCastConditions(lawful), "Native cast rejected a lawful 100 MP action");
+		check(!actor.checkDoCastConditions(null), "Native cast accepted a missing skill");
+		final var unavailable = new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability("combat.ranged_magic", "native.skill", 100,
+			impossible.getId(), impossible.getLevel(), "ONE", true, true, actor.checkDoCastConditions(impossible), "native.mp", 100, "unit.native.conditions");
+		final var member = new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot(
+			org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(1, actor.getObjectId()), 0, 0, 0, 0, 0, 100, 100, 100,
+			false, false, false, false, 0, List.of(), List.of(unavailable), "0".repeat(64));
+		check(!org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.farmContributor(member), "A roster without any lawful damage action gained a contributor");
+		check(actor.getCurrentMp() == 2806 && !actor.hasAI() && actor.getWorldRegion() == null, "Readiness check consumed MP, spawned AI or published the unit actor");
+		check(!org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Native MP fixture initialized SQL");
+	}
+
+	private static final class MpFixture015 extends org.l2jmobius.gameserver.model.actor.Creature
+	{
+		private MpFixture015()
+		{
+			super(990015, template());
+			getStatus().setCurrentHp(getMaxHp(), false); getStatus().setCurrentMp(getMaxMp(), false);
+		}
+		private static org.l2jmobius.gameserver.model.actor.templates.CreatureTemplate template()
+		{
+			final var values = new StatSet(); values.set("baseHpMax", 100); values.set("baseMpMax", 2806);
+			return new org.l2jmobius.gameserver.model.actor.templates.CreatureTemplate(values);
+		}
+		@Override public boolean isAutoAttackable(org.l2jmobius.gameserver.model.actor.Creature attacker) { return false; }
+		@Override public void sendInfo(org.l2jmobius.gameserver.model.actor.Player player) { }
+		@Override public void updateAbnormalEffect() { }
+		@Override public org.l2jmobius.gameserver.model.item.instance.Item getActiveWeaponInstance() { return null; }
+		@Override public org.l2jmobius.gameserver.model.item.Weapon getActiveWeaponItem() { return null; }
+		@Override public org.l2jmobius.gameserver.model.item.instance.Item getSecondaryWeaponInstance() { return null; }
+		@Override public org.l2jmobius.gameserver.model.item.ItemTemplate getSecondaryWeaponItem() { return null; }
+		@Override public int getLevel() { return 1; }
+	}
+
+	/** Legacy command remains an alias; no forecast is an impossibility verdict. */
+	private static void preparation015() throws Exception { partyMpPolicy015(); }
+	private static void npcCatalog015() throws Exception
+	{
+		check(!org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Catalog validator must remain DB-free");
+		org.l2jmobius.gameserver.config.ConfigLoader.init();
+		org.l2jmobius.gameserver.handler.EffectHandler.getInstance().executeScript();
+		org.l2jmobius.gameserver.data.xml.SkillData.getInstance();
+		final var templates = org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplates(_ -> true);
+		final var counts = new java.util.TreeMap<String, Long>(); final var unknown = new java.util.TreeSet<String>();
+		final var effects = AutonomousTrainingChecks.class.getDeclaredMethod("catalogBuffCannotReach", org.l2jmobius.gameserver.model.skill.targets.TargetType.class, boolean.class);
+		effects.setAccessible(true);
+		long facts = 0;
+		for (var template : templates)
+		{
+			for (var skill : template.getAISkills(org.l2jmobius.gameserver.model.actor.enums.npc.AISkillScope.BUFF))
+			{
+				facts++; counts.merge(skill.getTargetType().name(), 1L, Long::sum);
+				if (skill.getTargetType() != org.l2jmobius.gameserver.model.skill.targets.TargetType.CLAN && !Boolean.TRUE.equals(effects.invoke(null, skill.getTargetType(), false)))
+				{ unknown.add(template.getId() + ":" + skill.getId() + ":" + skill.getLevel() + ":" + skill.getTargetType()); }
+			}
+		}
+		check(!org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Canonical metadata unexpectedly initialized SQL");
+		final String receipt = "{\"schema\":\"CANONICAL_NPC_EFFECTS015\",\"templates\":" + templates.size() + ",\"buffFacts\":" + facts
+			+ ",\"targetTypes\":{" + counts.entrySet().stream().map(row -> TrainingStore.quote(row.getKey()) + ":" + row.getValue()).collect(java.util.stream.Collectors.joining(","))
+			+ "},\"unassessedGlobalBuffs\":[" + unknown.stream().map(TrainingStore::quote).collect(java.util.stream.Collectors.joining(","))
+			+ "],\"globalEffectsClosedForAnyTarget\":" + unknown.isEmpty() + ",\"SQL\":0,\"GS\":0}";
+		final var reports = java.nio.file.Path.of(System.getProperty("phantom.test.reports")); java.nio.file.Files.createDirectories(reports);
+		java.nio.file.Files.writeString(reports.resolve("necessary-mp015-npc-catalog.json"), receipt, java.nio.charset.StandardCharsets.UTF_8);
+		System.out.println("NPC_CATALOG015 templates=" + templates.size() + " buffFacts=" + facts + " types=" + counts + " unassessed=" + unknown.size() + " SQL=0 GS=0");
+	}
+
+	/** Metadata research only: never an admission predicate or a combat forecast. */
+	private static boolean catalogBuffCannotReach(org.l2jmobius.gameserver.model.skill.targets.TargetType type, boolean sameClan)
+	{
+		return switch (type) { case SELF, ONE, PARTY -> true; case CLAN -> !sameClan; default -> false; };
+	}
+
+	private static void partyMpWiring015() throws Exception
+	{
+		final var module = java.nio.file.Path.of(System.getProperty("phantom.module.root"));
+		final String backend = java.nio.file.Files.readString(module.resolve("java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java"));
+		final String runtime = java.nio.file.Files.readString(module.resolve("test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java"));
+		check(!backend.contains("WAIT_GROUP_MP") && !backend.contains("PROVEN_IMPOSSIBLE"), "Obsolete full-fight MP veto or impossibility verdict remains");
+		check(backend.contains("false, mpWitness") && backend.contains("true, mpWitness"), "Initial and continuing admission lost their common forecast observer");
+		check(runtime.contains("trainingPartyMpForecasts") && runtime.contains("partyMpForecasts"), "CANONICAL_MP_DIAGNOSTICS_NOT_CONNECTED_TO_RUNTIME_RECEIPT");
 	}
 
 	private static void inventory()

@@ -128,7 +128,7 @@ public final class PhantomAutonomousTrainingNative
 	static boolean retryableSelectionRefusal(String reason, boolean v2)
 	{ return retryableHeadlessRefusal(reason) || v2 && Set.of("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED", "AUTONOMOUS_PRE_CUT_PARTY_RISK_REFUSED").contains(reason); }
 	static boolean retryableAdmission013(String reason, boolean loop013, boolean v2)
-	{ return retryableSelectionRefusal(reason, v2 || loop013) || loop013 && reason.equals("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS"); }
+	{ return retryableSelectionRefusal(reason, v2 || loop013) || loop013 && Set.of("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS", "AUTONOMOUS_NECESSARY_PARTY_MP_UNREACHABLE").contains(reason); }
 	static String preCutSelectionRefusal(Map<String, Object> admission, boolean v2, boolean loop013Headless)
 	{ return preCutSelectionRefusal(admission, v2 || loop013Headless); }
 	private static final class Refusals
@@ -187,7 +187,12 @@ public final class PhantomAutonomousTrainingNative
 			final String side = index == 0 ? "STOCK" : "LEARNED", work = hash(hash("ADMISSION/" + cell) + "/" + side);
 			final var arm = PhantomEvaluationReplayV2.map(arms.get(index)); final var shas = PhantomEvaluationReplayV2.map(arm.get("rawFileShas"));
 			final var mandatory = new ArrayList<>(List.of("admission-only.json", "native-admission.json", "encounter-admission.json", "precut.json", "incarnations.tsv", "curriculum-native-facts-v2.json"));
-			if (scope.equals("PARTY")) { mandatory.add("party-admission.json"); }
+			if (scope.equals("PARTY"))
+			{
+				mandatory.add("party-admission.json");
+				final var partyAdmission = PhantomEvaluationReplayV2.object(directory.resolve(work).resolve("party-admission.json"));
+				if (partyAdmission.get("partyMpPolicyVersion") instanceof Number version && version.intValue() == 15) { mandatory.add("party-mp-forecast015.json"); }
+			}
 			if (!side.equals(arm.get("side")) || !work.equals(arm.get("work")) || !shas.keySet().equals(new HashSet<>(mandatory))) { throw new IllegalStateException("EVAL012_NATIVE_PAIR_SAFE_PATHS"); }
 			for (String name : mandatory)
 			{
@@ -345,7 +350,8 @@ public final class PhantomAutonomousTrainingNative
 	{
 		if (!journal.containsKey("goalVersion")) { return 1200; }
 		final long maximum = PhantomEvaluationReplayV2.number(journal, "maximumSeconds");
-		if (PhantomEvaluationReplayV2.number(journal, "goalVersion") != 14 || maximum != 480 && maximum != 720) { throw new IllegalStateException("TRAIN014_HEADLESS_CAP"); }
+		final long goal = PhantomEvaluationReplayV2.number(journal, "goalVersion");
+		if (goal != 14 && goal != 15 || maximum != 480 && maximum != 720) { throw new IllegalStateException("TRAIN014_HEADLESS_CAP"); }
 		return (int) maximum;
 	}
 	private static void preparationCost014(Path work, Map<String, Object> context, Map<String, Object> phase)
@@ -427,6 +433,18 @@ public final class PhantomAutonomousTrainingNative
 			System.out.println("HEADLESS013_NATIVE_CONTRACT_GREEN timeout=1 cancel=1 ownerCrash=1 foreignStop=1 SQL=0 GS=0 SYNTHETIC_CONTROL_ONLY");
 		}
 		finally { headlessScope013 = null; headlessNonce013 = null; headlessReason013 = ""; }
+	}
+	private static void headlessContract015()
+	{
+		final String reason = "AUTONOMOUS_NECESSARY_PARTY_MP_UNREACHABLE";
+		if (!retryableAdmission013(reason, true, false) || retryableAdmission013(reason, false, false) || retryableAdmission013(reason, false, true))
+		{ throw new AssertionError("TRAIN015_PROVEN_REFUSAL_MUST_CONTINUE_TRAIN_DISCOVERY_ONLY"); }
+		if (headlessMaximum014(Map.of("goalVersion", 15L, "maximumSeconds", 480L)) != 480 || headlessMaximum014(Map.of("goalVersion", 15L, "maximumSeconds", 720L)) != 720)
+		{ throw new AssertionError("TRAIN015_ISSUED_CAP_LOST"); }
+		boolean refused = false;
+		try { headlessMaximum014(Map.of("goalVersion", 15L, "maximumSeconds", 1200L)); } catch (IllegalStateException expected) { refused = true; }
+		if (!refused) { throw new AssertionError("TRAIN015_CAP_EXTENSION_ACCEPTED"); }
+		System.out.println("HEADLESS015_NATIVE_CONTRACT_GREEN discovery=1 immutableCaps=1 SQL=0 GS=0");
 	}
 	private static void finishHeadless013(Path root, TrainingConfig config, String status) throws Exception
 	{
@@ -1311,6 +1329,7 @@ public final class PhantomAutonomousTrainingNative
 				if (cell.party())
 				{
 					final var admission = measured014(work, costContext, "PARTY_ADMISSION", runtime::acquiredPartyAdmission); immutable(work.resolve("party-admission.json"), PhantomLearning005Evaluation.mapJson(admission));
+					immutable(work.resolve("party-mp-forecast015.json"), (String) admission.get("partyMpForecasts"));
 					if (!Boolean.TRUE.equals(admission.get("admitted"))) { throw new IllegalStateException(preCutSelectionRefusal(admission, evaluation && outcomeV2(config), admissionOnly && config.integer("autonomous013Version", 0, 0, 1) == 1)); }
 					if (evaluation && !Boolean.TRUE.equals(admission.get("combatRequestValidated"))) { throw new IllegalStateException("AUTONOMOUS_PARTY_REQUEST_PREFLIGHT_REQUIRED"); }
 				}
@@ -1445,6 +1464,7 @@ public final class PhantomAutonomousTrainingNative
 		{
 			if ((args.length == 2 || args.length == 3) && args[0].equals("verify-eval013")) { verifyEvaluation013(Path.of(args[1]), args.length == 3 ? Path.of(args[2]) : null); return; }
 			if (args.length == 1 && args[0].equals("headless-contract")) { headlessContract013(); return; }
+			if (args.length == 1 && args[0].equals("headless-contract015")) { headlessContract015(); return; }
 			if (args.length == 1 && args[0].equals("source-contract")) { sourceContract(); return; }
 			if (args.length == 2 && args[0].equals("diagnose-cohort")) { diagnoseCohort(Path.of(args[1])); return; }
 			if (args.length != 2 || !List.of("inspect", "prepare", "admit-eval", "checkpoint", "checkpoint013").contains(args[0])) { throw new IllegalArgumentException("Ожидается inspect/prepare/admit-eval/checkpoint/checkpoint013 <собственная установка>."); }
@@ -1615,7 +1635,11 @@ public final class PhantomAutonomousTrainingNative
 				final String workId = hash(id + "/" + side); final var raw = new java.util.TreeMap<String, String>();
 				for (String name : List.of("admission-only.json", "native-admission.json", "encounter-admission.json", "precut.json", "incarnations.tsv", "curriculum-native-facts-v2.json"))
 				{ raw.put(name, NeuralPolicy.sha256(Files.readAllBytes(directory.resolve(workId).resolve(name)))); }
-				if (cell.party()) { raw.put("party-admission.json", NeuralPolicy.sha256(Files.readAllBytes(directory.resolve(workId).resolve("party-admission.json")))); }
+				if (cell.party())
+				{
+					raw.put("party-admission.json", NeuralPolicy.sha256(Files.readAllBytes(directory.resolve(workId).resolve("party-admission.json"))));
+					raw.put("party-mp-forecast015.json", NeuralPolicy.sha256(Files.readAllBytes(directory.resolve(workId).resolve("party-mp-forecast015.json"))));
+				}
 				final String actualFacts = Files.readString(directory.resolve(workId).resolve("curriculum-native-facts-v2.json"));
 				if (curriculumFacts != null && !curriculumFacts.equals(actualFacts)) { throw new IllegalStateException("EVAL012_PRE_CUT_CURRICULUM_PARITY"); } curriculumFacts = actualFacts;
 				proofArms.add(PhantomEvaluationOutcomeV2.fields("side", side, "work", workId, "rawFileShas", raw));
