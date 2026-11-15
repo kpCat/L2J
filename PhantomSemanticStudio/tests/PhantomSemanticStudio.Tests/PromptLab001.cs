@@ -1,17 +1,102 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Net;
 using PhantomSemanticStudio.Core;
 
 internal static partial class Program
 {
     private sealed record TargetedFamilyJob(string RunId, string VersionId, string VersionHash, string Family, string Case, string Arm, string Sampler);
-    private sealed record TargetedFamilyPlan(string Schema, string Model, string CoreHash, string RunnerHash, string RegistryHash, IReadOnlyList<TargetedFamilyJob> Jobs);
+    private sealed record TargetedFamilyPlan(string Schema, string Model, string CoreHash, string RunnerHash, string RegistryHash, IReadOnlyList<TargetedFamilyJob> Jobs, string? SpecHash = null);
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed record TargetedFamilyCase(string Family, string Case, V4GenerationRequest Request);
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    private sealed record TargetedFamilyArm(string Id, Dictionary<string, string> CategoryInstructions, Dictionary<string, string> FamilyInstructions,
+        Dictionary<string, PromptFamilyExample[]> Examples);
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    private sealed record TargetedFamilySampler(string Id, PromptLabApiOptions Options);
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    private sealed record TargetedFamilySpec(string Schema, TargetedFamilyCase[] Cases, TargetedFamilyArm[] Arms, TargetedFamilySampler[] Samplers);
     private sealed record TargetedAnalysisRow(TargetedFamilyJob Job, int Number, string RawText, string Text, string Profanity, string Maturity, int Characters,
         IReadOnlyList<string> FrozenFlags, IReadOnlyList<string> ReanalysedFlags);
 
     private static string FileSha(string path) => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path)));
+
+    private static TargetedFamilyPlan BuildDataDefinedTargetedPlan(PromptLabStore store, PromptLabSession lab, string model, byte[] source)
+    {
+        var spec = JsonSerializer.Deserialize<TargetedFamilySpec>(source, WorkspaceStore.JsonOptions) ?? throw new InvalidDataException("TARGETED_SPEC_EMPTY");
+        if (spec.Schema != "pw-targeted-family-spec/1" || spec.Cases is not { Length: >= 1 and <= 8 }
+            || spec.Arms is not { Length: >= 2 and <= 4 } || spec.Samplers is not { Length: >= 1 and <= 4 })
+            throw new InvalidDataException("TARGETED_SPEC_SHAPE");
+        V4Rules.Require(spec.Cases.Length * spec.Arms.Length * spec.Samplers.Length <= 64, "TARGETED_SPEC_JOB_CAP");
+        static bool Label(string? text) => text is { Length: > 0 and <= 48 } && text.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-');
+        var registry = store.EffectiveRegistry();
+        foreach (var item in spec.Cases)
+        {
+            if (item == null || !Label(item.Case) || item.Request == null || item.Request.Components != null)
+                throw new InvalidDataException("TARGETED_SPEC_CASE");
+            item.Request.Validate(PromptProfiles.Default, registry);
+            V4Rules.Require(item.Family == PromptHierarchy.Default.FamilyFor(item.Request.Category).Id, "TARGETED_SPEC_FAMILY");
+        }
+        V4Rules.Require(spec.Cases.Select(c => (c.Family, c.Case)).Distinct().Count() == spec.Cases.Length, "TARGETED_SPEC_CASE_COLLISION");
+        var familyIds = spec.Cases.Select(c => c.Family).Distinct().ToArray(); var categories = spec.Cases.Select(c => c.Request.Category).Distinct().ToArray();
+        var frozen = new Dictionary<(string Family, string Arm), V4GenerationRequest[]>();
+        foreach (var arm in spec.Arms)
+        {
+            if (arm == null || !Label(arm.Id) || arm.CategoryInstructions == null || arm.FamilyInstructions == null || arm.Examples == null)
+                throw new InvalidDataException("TARGETED_SPEC_ARM");
+            V4Rules.Require(arm.CategoryInstructions.Keys.All(categories.Contains) && arm.FamilyInstructions.Keys.All(familyIds.Contains)
+                && arm.Examples.Keys.All(familyIds.Contains), "TARGETED_SPEC_UNUSED_OVERRIDE");
+            foreach (var examples in arm.Examples)
+                V4Rules.Require(examples.Value != null && examples.Value.Length <= 2 && examples.Value.All(e => e != null && categories.Contains(e.Category)
+                    && PromptHierarchy.Default.FamilyFor(e.Category).Id == examples.Key && e.Status == "EXPERIMENTAL"), "TARGETED_SPEC_EXAMPLES");
+            var hierarchy = PromptHierarchy.Default;
+            if (arm.Examples.Count > 0)
+            {
+                var node = JsonNode.Parse(V4Rules.ReadBytes(Path.Combine(AppContext.BaseDirectory, "prompts", "corpus001", "families.v1.json"), 128 * 1024))!;
+                foreach (var family in node["families"]!.AsArray())
+                    if (arm.Examples.TryGetValue(family!["id"]!.GetValue<string>(), out var examples))
+                        family["examples"] = JsonSerializer.SerializeToNode(examples, WorkspaceStore.JsonOptions);
+                hierarchy = PromptHierarchy.Parse(node.ToJsonString());
+            }
+            foreach (var family in familyIds)
+                frozen.Add((family, arm.Id), spec.Cases.Where(c => c.Family == family).Select(c => c.Request with
+                { Components = hierarchy.Freeze(c.Request, PromptProfiles.Default, registry,
+                    arm.FamilyInstructions.GetValueOrDefault(family), arm.CategoryInstructions.GetValueOrDefault(c.Request.Category)) }).ToArray());
+        }
+        V4Rules.Require(spec.Samplers.All(s => s != null && Label(s.Id) && s.Options != null)
+            && spec.Samplers.Select(s => s.Id).Distinct().Count() == spec.Samplers.Length, "TARGETED_SPEC_SAMPLERS");
+        foreach (var sampler in spec.Samplers) sampler.Options.Validate();
+        // Validate every scope before persisting versions or issuing requests.
+        var versions = new Dictionary<(string Family, string Arm), PromptLabVersion>();
+        foreach (var family in familyIds)
+        {
+            PromptLabVersion? previous = null;
+            foreach (var arm in spec.Arms)
+            {
+                var scopes = frozen[(family, arm.Id)];
+                previous = store.SaveVersion(lab.PrepareVersion(new PromptLabVersion { ProfileId = previous?.ProfileId ?? "", ParentId = previous?.Id ?? "",
+                    Name = "Сравнение по spec · " + family, System = scopes[0].Components!.FamilyInstruction,
+                    User = "Создай самостоятельные русские альтернативы одного следующего хода. Это не цепочка разговора.",
+                    RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"], Scenario = scopes[0], AdditionalScenarios = scopes.Skip(1).ToArray(),
+                    CategoryInstructions = scopes.Select(s => s.Components!.CategoryInstruction).ToArray() }));
+                versions.Add((family, arm.Id), previous);
+            }
+        }
+        var experiment = Guid.NewGuid().ToString("N"); var jobs = new List<TargetedFamilyJob>();
+        for (var si = 0; si < spec.Samplers.Length; si++)
+            for (var ci = 0; ci < spec.Cases.Length; ci++)
+                for (var offset = 0; offset < spec.Arms.Length; offset++)
+                {
+                    var item = spec.Cases[ci]; var arm = spec.Arms[(offset + ci + si) % spec.Arms.Length]; var version = versions[(item.Family, arm.Id)];
+                    var scopeIndex = Array.FindIndex(spec.Cases.Where(c => c.Family == item.Family).ToArray(), c => c.Case == item.Case);
+                    var scope = new[] { version.Scenario }.Concat(version.AdditionalScenarios).ElementAt(scopeIndex);
+                    var run = store.BeginRun(version.Id, scenario: scope, apiOptions: spec.Samplers[si].Options, experimentId: experiment);
+                    jobs.Add(new(run.Id, version.Id, store.VersionHash(version.Id), item.Family, item.Case, arm.Id, spec.Samplers[si].Id));
+                }
+        return new("pw-targeted-family-trial/1", model, FileSha(typeof(PromptLabStore).Assembly.Location), FileSha(typeof(Program).Assembly.Location), registry.Hash, jobs.AsReadOnly(), V4Rules.Hash(source));
+    }
 
     private static TargetedFamilyPlan BuildTargetedFamilyPlan(PromptLabStore store, PromptLabSession lab, string model)
     {
@@ -72,16 +157,20 @@ internal static partial class Program
 
     private static async Task<int> TargetedFamilyTrial(string[] args, Func<int, HttpClient>? httpFactory = null)
     {
-        if (args.Length is < 4 or > 5 || args.Length == 5 && (!int.TryParse(args[4], out var parsed) || parsed is < 0 or > 24))
-            throw new InvalidDataException("Нужны owned workspace, source, exact model и необязательный limit0..24.");
-        var limit = args.Length == 5 ? int.Parse(args[4]) : 24; var root = PathSafety.Canonical(args[1]);
+        if (args.Length is < 4 or > 6 || args.Length >= 5 && (!int.TryParse(args[4], out var parsed) || parsed is < 0 or > 64))
+            throw new InvalidDataException("Нужны owned workspace, source, exact model, необязательный limit0..64 и JSON spec.");
+        var limit = args.Length >= 5 ? int.Parse(args[4]) : 24; var root = PathSafety.Canonical(args[1]);
+        var specBytes = args.Length == 6 ? V4Rules.ReadBytes(PathSafety.Canonical(args[5]), 128 * 1024) : null;
         var planPath = Path.Combine(root, "targeted-family-plan.json"); var shaPath = planPath + ".sha256";
+        var specPath = Path.Combine(root, "targeted-family-spec.json");
         if (Directory.Exists(root) && !File.Exists(planPath)) throw new InvalidDataException("Нужен новый root либо owned trial с сохранённым manifest.");
         using var workspace = new WorkspaceStore(root, args[2]); var store = new PromptLabStore(workspace); using var lab = new PromptLabSession(store, httpFactory);
         TargetedFamilyPlan plan;
         if (!File.Exists(planPath))
         {
-            plan = BuildTargetedFamilyPlan(store, lab, args[3]);
+            plan = specBytes == null ? BuildTargetedFamilyPlan(store, lab, args[3]) : BuildDataDefinedTargetedPlan(store, lab, args[3], specBytes);
+            if (specBytes != null)
+                using (var file = new FileStream(specPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) file.Write(specBytes);
             var bytes = JsonSerializer.SerializeToUtf8Bytes(plan, WorkspaceStore.JsonOptions);
             using (var file = new FileStream(planPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) file.Write(bytes);
             File.WriteAllText(shaPath, V4Rules.Hash(bytes), Encoding.ASCII);
@@ -92,7 +181,9 @@ internal static partial class Program
             V4Rules.Require(File.Exists(shaPath) && File.ReadAllText(shaPath).Trim() == V4Rules.Hash(bytes), "TARGETED_PLAN_HASH");
             plan = JsonSerializer.Deserialize<TargetedFamilyPlan>(bytes, WorkspaceStore.JsonOptions) ?? throw new InvalidDataException("TARGETED_PLAN_EMPTY");
         }
-        V4Rules.Require(plan.Schema == "pw-targeted-family-trial/1" && plan.Model == args[3] && plan.Jobs is { Count: 24 }
+        V4Rules.Require(plan.Schema == "pw-targeted-family-trial/1" && plan.Model == args[3] && plan.Jobs is { Count: >= 1 and <= 64 }
+            && (plan.SpecHash == null ? specBytes == null && plan.Jobs.Count == 24 : specBytes != null && V4Rules.Hash(specBytes) == plan.SpecHash
+                && File.Exists(specPath) && FileSha(specPath) == plan.SpecHash)
             && plan.CoreHash == FileSha(typeof(PromptLabStore).Assembly.Location) && plan.RunnerHash == FileSha(typeof(Program).Assembly.Location)
             && plan.RegistryHash == store.EffectiveRegistry().Hash, "TARGETED_PLAN_REVISION_DRIFT");
         foreach (var job in plan.Jobs)
@@ -113,7 +204,8 @@ internal static partial class Program
                 if (existing.State is "INDETERMINATE" or "CANCELLED" || existing.State == "ISSUED" && !recovering)
                 { stopped = true; Console.WriteLine("STOP_REVIEW_REQUIRED " + existing.Id + " " + existing.State); break; }
                 if (existing.CompletedAtUtc.HasValue) continue;
-                if (cancellation.IsCancellationRequested || !recovering && attempts >= limit) break;
+                if (cancellation.IsCancellationRequested) break;
+                if (!recovering && attempts >= limit) continue;
                 if (!recovering) attempts++;
                 var run = await lab.ResumeAsync(job.RunId, new StudioSettings { HighFiveRoot = args[2], ModelId = args[3] },
                     Environment.GetEnvironmentVariable("LM_STUDIO_API_KEY") ?? "", args[3], cancellation.Token, new PromptLabConsoleProgress());
@@ -144,6 +236,8 @@ internal static partial class Program
         var bytes = V4Rules.ReadBytes(planPath, 128 * 1024);
         V4Rules.Require(File.ReadAllText(planPath + ".sha256").Trim() == V4Rules.Hash(bytes), "TARGETED_PLAN_HASH");
         var plan = JsonSerializer.Deserialize<TargetedFamilyPlan>(bytes, WorkspaceStore.JsonOptions) ?? throw new InvalidDataException("TARGETED_PLAN_EMPTY");
+        if (plan.SpecHash != null)
+            V4Rules.Require(FileSha(Path.Combine(root, "targeted-family-spec.json")) == plan.SpecHash, "TARGETED_REPORT_SPEC_HASH");
         var output = Path.Combine(root, args[3]); V4Rules.Require(!File.Exists(output), "REPORT_ALREADY_EXISTS");
         using var workspace = new WorkspaceStore(root, args[2]); var store = new PromptLabStore(workspace); var registry = store.EffectiveRegistry();
         V4Rules.Require(plan.Schema == "pw-targeted-family-trial/1" && plan.RegistryHash == registry.Hash, "TARGETED_REPORT_REGISTRY");
@@ -160,7 +254,8 @@ internal static partial class Program
             V4Rules.Require(parsed.Success, "TARGETED_REVALIDATION_REJECTED: " + run.Id);
             using var response = JsonDocument.Parse(run.Response!.Content);
             var rawEntries = response.RootElement.GetProperty("records");
-            var flags = CorpusQuality.Check(parsed.Entries, request, []);
+            var flags = CorpusQuality.Check(parsed.Entries, request, []).Concat(request.Components == null ? []
+                : PromptHierarchy.CheckExampleEcho(request.Components, parsed.Entries)).ToArray();
             for (var index = 0; index < parsed.Entries.Count; index++)
             {
                 var entry = parsed.Entries[index]; var characters = 0; foreach (var rune in entry.Text.EnumerateRunes()) characters++;
@@ -451,6 +546,48 @@ internal static partial class Program
 
     private static async Task PromptLab001()
     {
+        await TestAsync("001 data-defined trial freezes examples and rejects spec drift without HTTP", async () =>
+        {
+            using var f = new Fixture();
+            var category = "lineage.party.mistakes";
+            var request = new V4GenerationRequest { Category = category, Count = 4, Style = new() { Category = category } };
+            var examples = new[] { new PromptFamilyExample(category, "Я поторопился, теперь жду.", "Бывает. Дальше вместе пойдём.", "editorial_reference_not_corpus", "EXPERIMENTAL") };
+            var spec = new { Schema = "pw-targeted-family-spec/1", Cases = new[] { new { Family = "party_coordination", Case = "holdout", Request = request } },
+                Arms = new[] { new { Id = "seed", CategoryInstructions = new Dictionary<string, string>(), FamilyInstructions = new Dictionary<string, string>(), Examples = new Dictionary<string, PromptFamilyExample[]>() },
+                    new { Id = "examples", CategoryInstructions = new Dictionary<string, string> { [category] = "Прими исправление, не начинай новый конфликт." },
+                        FamilyInstructions = new Dictionary<string, string>(), Examples = new Dictionary<string, PromptFamilyExample[]> { ["party_coordination"] = examples } } },
+                Samplers = new[] { new { Id = "balanced", Options = new PromptLabApiOptions() } } };
+            var path = Path.Combine(f.Root, "spec.json"); File.WriteAllBytes(path, JsonSerializer.SerializeToUtf8Bytes(spec, WorkspaceStore.JsonOptions));
+            var root = Path.Combine(f.Root, "data-trial"); var handler = new PromptLabWorkflowHandler();
+            var args = new[] { "--prompt-lab-targeted-family-live", root, f.Module, "instance-1", "0", path };
+            Equal(0, await TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);
+            Equal(0, await TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);
+            using (var workspace = new WorkspaceStore(root, f.Module))
+            {
+                var store = new PromptLabStore(workspace); Equal(1, store.ListProfiles().Count);
+                var versions = store.ListVersions(store.ListProfiles()[0].Id); Equal(2, versions.Count);
+                True(versions.Any(v => v.Scenario.Components!.Examples.Count == 1 && v.Scenario.Components.Examples[0] == examples[0]));
+                True(store.ListProfiles().All(p => p.AcceptedVersionId.Length == 0));
+                var plan = JsonSerializer.Deserialize<TargetedFamilyPlan>(File.ReadAllBytes(Path.Combine(root, "targeted-family-plan.json")), WorkspaceStore.JsonOptions)!;
+                var run = store.GetRun(plan.Jobs.Single(j => j.Arm == "examples").RunId); store.MarkIssued(run.Id);
+                var definition = store.EffectiveRegistry().Categories.Single(c => c.Key == category);
+                var content = JsonSerializer.Serialize(new { header = new { schema = "pw-semantic-batch/1", category, act = definition.Act, mode = "REPLY", count = 4, language = "ru" },
+                    records = new[] { examples[0].Reply, "Ладно, ждём остальных.", "Ну вот и разобрались.", "Проехали, стоим спокойно." }
+                        .Select(text => new { text, stance = "NEUTRAL", tone = "CALM", voices = new[] { "ANY" }, relations = new[] { "UNKNOWN" } }) });
+                store.SaveTransport(run.Id, new(new(new("{}", "{}", content, new(100, 60, 0, null, null, 1), "", 200, null, null),
+                    "synthetic-receipt", "SYSTEM", "USER", true), "instance-1", 65536, "http://127.0.0.1:1234/v1"));
+            }
+            Equal(0, await TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);
+            Equal(0, TargetedFamilyReport(["--prompt-lab-targeted-family-report", root, f.Module, "analysis.json"]));
+            using (var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "analysis.json"))))
+                True(report.RootElement.GetProperty("Rows")[0].GetProperty("ReanalysedFlags").EnumerateArray().Any(x => x.GetString() == "REFERENCE_ECHO_REVIEW"));
+            True(File.Exists(Path.Combine(root, "targeted-family-spec.json")));
+            File.AppendAllText(path, " ");
+            await ThrowsAsync(() => TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);
+            File.WriteAllText(path, "{\"Schema\":\"pw-targeted-family-spec/1\",\"Cases\":[],\"Arms\":[],\"Samplers\":[],\"Invented\":true}");
+            args[1] = Path.Combine(f.Root, "invalid-data-trial");
+            await ThrowsAsync(() => TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);
+        });
         await TestAsync("001 targeted family plan pins a balanced matrix and never accepts experimental versions", async () =>
         {
             using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "workspace"), f.Module);
