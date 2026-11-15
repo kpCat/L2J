@@ -210,6 +210,9 @@ public final class PhantomEvaluationOutcomeV2Checks
 	{
 		check(PhantomAutonomousTrainingNative.safeReason(new IllegalStateException("TRAIN013_INSUFFICIENT_LEGAL_COHORT")).equals("TRAIN013_INSUFFICIENT_LEGAL_COHORT"), "TRAIN013_NO_DATA_REASON_MUST_NOT_BECOME_TECHNICAL_ERROR");
 		check(PhantomAutonomousTrainingNative.safeReason(new IllegalStateException("vendor password=private")).equals("IllegalStateException"), "TRAIN013_VENDOR_DIAGNOSTIC_MUST_REMAIN_PRIVATE");
+		check(PhantomAutonomousTrainingNative.retryableAdmission013("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS", true, false), "TRAIN013_UNAVAILABLE_HEAL_MUST_EXCLUDE_SCENE_BEFORE_CUT");
+		check(!PhantomAutonomousTrainingNative.retryableAdmission013("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS", false, true), "TRAIN013_LEGACY_EVAL_REFUSAL_UNCHANGED");
+		check(!PhantomAutonomousTrainingNative.retryableAdmission013("AUTONOMOUS_PRE_CUT_NATIVE_OWNER", true, false), "TRAIN013_OWNER_FAILURE_MUST_REMAIN_FATAL");
 		final var columns = List.of("charId", "char_name", "account_name", "level"); final var types = List.of(4, 12, 12, 4);
 		final var historic = new PhantomTrainingActors.SavedActor(100, List.of(new PhantomTrainingActors.SavedTable("characters", "charId", columns, types, List.of(List.of("100", "old", "fixture", "76")))));
 		final var other = new PhantomTrainingActors.SavedActor(200, List.of(new PhantomTrainingActors.SavedTable("characters", "charId", columns, types, List.of(List.of("200", "new", "fixture", "76")))));

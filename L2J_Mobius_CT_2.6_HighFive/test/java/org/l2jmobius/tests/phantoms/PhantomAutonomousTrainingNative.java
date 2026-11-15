@@ -127,6 +127,8 @@ public final class PhantomAutonomousTrainingNative
 	}
 	static boolean retryableSelectionRefusal(String reason, boolean v2)
 	{ return retryableHeadlessRefusal(reason) || v2 && Set.of("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED", "AUTONOMOUS_PRE_CUT_PARTY_RISK_REFUSED").contains(reason); }
+	static boolean retryableAdmission013(String reason, boolean loop013, boolean v2)
+	{ return retryableSelectionRefusal(reason, v2) || loop013 && reason.equals("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS"); }
 	private static final class Refusals
 	{
 		private final List<String> samples = new ArrayList<>();
@@ -1456,7 +1458,7 @@ public final class PhantomAutonomousTrainingNative
 				new AutonomousTrainingV1.CohortSlot(ordinal, cell.key(), hash(id), "EVAL", false), cell, side, true);
 			if (!Files.exists(work.resolve("admission-only.json")))
 			{
-				if (retryableSelectionRefusal(arm.preCutRefusal(), outcomeV2(config))) { return false; }
+				if (retryableAdmission013(arm.preCutRefusal(), config.integer("autonomous013Version", 0, 0, 1) == 1, outcomeV2(config))) { return false; }
 				throw new IllegalStateException(arm.preCutRefusal().isEmpty() ? "AUTONOMOUS_HEADLESS_RECEIPT_MISSING" : arm.preCutRefusal());
 			}
 			arms.add(arm);
