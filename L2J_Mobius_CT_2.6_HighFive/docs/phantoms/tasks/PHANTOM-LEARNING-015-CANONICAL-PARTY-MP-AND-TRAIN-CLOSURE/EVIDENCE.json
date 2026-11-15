@@ -1,0 +1,239 @@
+{
+  "schema": "PHANTOM_LEARNING015_EVIDENCE_V1",
+  "status": "PARTIAL015_MP_POLICY_FIXED_UNSEALED_TRAIN",
+  "full015": false,
+  "technicalObjectiveFullyAchieved": false,
+  "manualGate": "REQUIRED",
+  "gameAdvantage": "NO_EVAL",
+  "intelligenceImprovementProven": false,
+  "taskNumber": 9,
+  "totalTasks": 13,
+  "remainingTasksAfterIssue": 4,
+  "nextGoalStarted": false,
+  "authorization": {
+    "variantAApproved": true,
+    "partyMpPolicyPlanSeparatelyApproved": true,
+    "productionBehaviorException": "FULL_FIGHT_MP_SHORTFALL_IS_RISK_ONLY",
+    "exactSourcePathCount": 8,
+    "newWorktrees": 0,
+    "newBranches": 0,
+    "productionPromotion": false
+  },
+  "source": {
+    "originalBaseline": "9a4495b9dbe24f53cfe7357d43be801fd2067512",
+    "studioParent": "5cff6b19efc140700af8950255c4dc9c13206c96",
+    "implementationCommit": "91109ae9268908a4e384763befe2dee2834ddec3",
+    "branch": "feature/phantom-world",
+    "serverModuleStudioDiffEmpty": true,
+    "publication": "ORDINARY_NON_FORCE_PUSH",
+    "finalHeadAttestation": "External independent GitHub readback after report commit",
+    "files": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+        "sha256": "81284CA4E4531AF10885CE0F63C009CB1BEDA6839959CDF38B614DE4F66EF291"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+        "sha256": "7DB67BBB1EE27133C77C9D3F329A3AA87851396C615808020A5754319EA23FC9"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "sha256": "4D9C705D00998F733DCEFEBC26F2BB6E8132FA8D097A7C6F72B3FBE725D8F244"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+        "sha256": "C22F724693A1B90A0E8CCEA5C02A600AAA97B261ECF005FABDA97402F572E41F"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+        "sha256": "2FE97CBEA233C00A26D91760DD901FD4EC46F2835D6440F56DDB3A9461B32109"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "sha256": "CFECF9174584DD8946D9C2C96B50EBC2C7D13F3A52CC3D78793FED73A51FBD61"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+        "sha256": "B39915DBE95CD34376967DF4C5362123F4DA4DFE5DE6D139DC2845DCE1479153"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "sha256": "AE8C467AA73492FDBBF599ABC9F91CC7121D74F5337A4B287AAB883040FE1574"
+      }
+    ]
+  },
+  "realMpRegression": {
+    "phase": "PRE_CUT_NATIVE_ADMISSION",
+    "learnerClassId": 103,
+    "work": "6310eaf18c43a92358936b9cc6a88df90b55d6aa20091ad598278149b601c9c9",
+    "targetObjectId": 268525904,
+    "actorObjectId": 268525745,
+    "admitted": true,
+    "combatRequestValidated": true,
+    "estimateMp": 3060,
+    "currentMp": 2806,
+    "maximumMp": 2806,
+    "reserveAllowanceMp": 2244.8,
+    "risk": "FORECAST_SHORTFALL",
+    "firstCompletedRecoveryMillis": 134450.8376,
+    "isBattleResult": false,
+    "resourceGrants": false
+  },
+  "budgets": {
+    "readinessSessions": 2,
+    "maximumReadinessSessions": 2,
+    "issuedCapsSeconds": [
+      480,
+      720
+    ],
+    "elapsedMillis": [
+      274269,
+      507396
+    ],
+    "totalReadinessMillis": 781665,
+    "maximumReadinessMillis": 1200000,
+    "startupAndCleanupIncluded": true,
+    "unusedTimeRefunded": false,
+    "gameServerStarts": 0,
+    "maximumGameServerStarts": 3,
+    "nativeCombatMillis": 0,
+    "maximumNativeCombatMillis": 3600000,
+    "cuts": 0,
+    "fits": 0,
+    "maximumFits": 1,
+    "newIndependentEvals": 0,
+    "newModels": 0,
+    "optimizerDelta": 0,
+    "duplicateCredits": 0
+  },
+  "sessions": [
+    {
+      "session": 1,
+      "status": "TIMEOUT",
+      "issuedUtc": "2026-11-15T18:29:22.2582669Z",
+      "finishedUtc": "2026-11-15T18:33:56.527512Z",
+      "capSeconds": 480,
+      "elapsedMillis": 274269,
+      "workerExitProven": true,
+      "sqlAbsent": true,
+      "workerAbsent": true,
+      "completedArms": 3,
+      "matchedCellPreparations": 2,
+      "sealedTrain": false,
+      "independentEvalDirectory": false,
+      "configSha": "23009695EB541723F7A435F6AD75DE86C7299387CB6EC118521A30868CEC641B",
+      "jarSha": "ab641ad2cd6d57729a2fcc24aec316ec300c595f1d15a917c0b4290d86c6c00f",
+      "nativeStarted": false,
+      "trainingCredit": false
+    },
+    {
+      "session": 2,
+      "status": "CANCELLED",
+      "issuedUtc": "2026-11-15T18:37:16.3171199Z",
+      "finishedUtc": "2026-11-15T18:45:43.7134594Z",
+      "capSeconds": 720,
+      "elapsedMillis": 507396,
+      "workerExitProven": true,
+      "sqlAbsent": true,
+      "workerAbsent": true,
+      "completedArms": 6,
+      "matchedCellPreparations": 3,
+      "sealedTrain": false,
+      "independentEvalDirectory": false,
+      "configSha": "B4A153FD02E4173E915E84FDA230625E1C9579F894662E565CFAA5F015708144",
+      "jarSha": "ab641ad2cd6d57729a2fcc24aec316ec300c595f1d15a917c0b4290d86c6c00f",
+      "nativeStarted": false,
+      "trainingCredit": false
+    }
+  ],
+  "diagnosis": {
+    "fullTrainSeal": false,
+    "session2CompletedArms": 6,
+    "session2MatchedCellPreparations": 3,
+    "session2Classes": [
+      94,
+      110,
+      103
+    ],
+    "configuredEpisodeBatch": 84,
+    "pipelineEpisodeBatch": 51,
+    "configuredPlannerCellLimit": 4,
+    "pipelinePlannerCellLimit": 3,
+    "reason": "Inherited batch84 made planner continue fourth cell before seal; S2 cancelled to prevent discovered legacy independent-probe branch",
+    "notGlobalProfessionImpossibility": true,
+    "manualSealFabricated": false,
+    "thirdReadinessAttempted": false,
+    "retryAfterFix": false
+  },
+  "verification": {
+    "behavioralRed3060": "FULL_FIGHT_MP_FORECAST_VETOED_LAWFUL_RISK_3060_2806",
+    "policyGreen": true,
+    "nativeCast2807With2806Refused": true,
+    "nativeCast100With2806Ready": true,
+    "normalPartyAndHpRefusal": true,
+    "partyTacticsPassed": 14,
+    "supportPassed": 9,
+    "legacy011To014": true,
+    "finalJavaExit": 0,
+    "finalJavaSeconds": 47,
+    "jarExit": 0,
+    "contentPassed": 7,
+    "readiness015And014": true,
+    "headless013": true,
+    "reviewImportantFindings": 2,
+    "reviewImportantFixed": 2,
+    "reviewMinorDeferred": 1,
+    "finalReview": "Fresh code reviewer plus one TDD fix pass",
+    "selectedSkillSupportDecompositionComplete": false
+  },
+  "preservation": {
+    "fiveSelectRows": 183,
+    "fiveSelectSha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+    "equalBefore": true,
+    "acceptedTest": 2,
+    "draftModel": 14,
+    "adamUpdates": 903,
+    "adamEpochs": 223,
+    "applications": 48,
+    "gradientEpisodes": 16,
+    "selected14Sha256": "7D3C8FC1F2AE5FC199CFB7517F71743189FDD3FBB4B959A318753637E2D3BC37",
+    "terminalAdamSha256": "6A34B7EE503F35DFF75E61BA59892BE823F72E45402E1A20F4036B9740ADE844",
+    "pointer12Sha256": "ACC21BED707B518FB58E23FEC006E7D658723763C73C237A039D950E14C9B010",
+    "geoFiles": 203,
+    "protectedFiles": 207,
+    "mainPlayTouched": false,
+    "sharedSqlTouched": false,
+    "historicalReportsRewritten": false,
+    "selectedAndTerminalSeparate": true
+  },
+  "finalSafety": {
+    "ownedProcesses": 0,
+    "phase": "OFF",
+    "automaticEnabled": false,
+    "outcomeEnabled": false,
+    "portsFree": [
+      33357,
+      18001,
+      19301
+    ],
+    "nativeDeployment": false
+  },
+  "gates": {
+    "G0": "PASS",
+    "G1": "PASS_OWNER_APPROVED_RISK_CONTRACT",
+    "G2": "PASS_NATIVE_MP_REGRESSION",
+    "G3": "FAIL_UNSEALED",
+    "G4": "PARTIAL_PRE_CUT_ONLY",
+    "G5": "NOT_RUN_INSUFFICIENT_DATA",
+    "G6": "PASS_EXCEPT_APPROVED_MP_DELTA",
+    "G7": "PASS",
+    "G8": "FINAL_REMOTE_ATTESTATION_OUTSIDE_COMMIT"
+  },
+  "futureRequirements": {
+    "mandatoryGradeSoulshotsBlessed20Plus": "REQUIRED_NOT_IMPLEMENTED015",
+    "lawfulPaidResupply": "REQUIRED_NO_FREE_GRANTS015",
+    "adaptAfterThreeComparableDeaths": "REQUIRED_NOT_IMPLEMENTED015",
+    "mobPartySupportRecoveryStrategy": "REQUIRED_FUTURE_SCOPE"
+  },
+  "observedUtc": "2026-11-15T19:17:42.9908616Z"
+}
