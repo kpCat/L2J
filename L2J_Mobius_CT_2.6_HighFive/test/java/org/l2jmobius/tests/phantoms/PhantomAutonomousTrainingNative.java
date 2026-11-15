@@ -128,7 +128,9 @@ public final class PhantomAutonomousTrainingNative
 	static boolean retryableSelectionRefusal(String reason, boolean v2)
 	{ return retryableHeadlessRefusal(reason) || v2 && Set.of("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED", "AUTONOMOUS_PRE_CUT_PARTY_RISK_REFUSED").contains(reason); }
 	static boolean retryableAdmission013(String reason, boolean loop013, boolean v2)
-	{ return retryableSelectionRefusal(reason, v2) || loop013 && reason.equals("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS"); }
+	{ return retryableSelectionRefusal(reason, v2 || loop013) || loop013 && reason.equals("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS"); }
+	static String preCutSelectionRefusal(Map<String, Object> admission, boolean v2, boolean loop013Headless)
+	{ return preCutSelectionRefusal(admission, v2 || loop013Headless); }
 	private static final class Refusals
 	{
 		private final List<String> samples = new ArrayList<>();
@@ -1184,7 +1186,7 @@ public final class PhantomAutonomousTrainingNative
 				if (cell.party())
 				{
 					final var admission = runtime.acquiredPartyAdmission(); immutable(work.resolve("party-admission.json"), PhantomLearning005Evaluation.mapJson(admission));
-					if (!Boolean.TRUE.equals(admission.get("admitted"))) { throw new IllegalStateException(preCutSelectionRefusal(admission, evaluation && outcomeV2(config))); }
+					if (!Boolean.TRUE.equals(admission.get("admitted"))) { throw new IllegalStateException(preCutSelectionRefusal(admission, evaluation && outcomeV2(config), admissionOnly && config.integer("autonomous013Version", 0, 0, 1) == 1)); }
 					if (evaluation && !Boolean.TRUE.equals(admission.get("combatRequestValidated"))) { throw new IllegalStateException("AUTONOMOUS_PARTY_REQUEST_PREFLIGHT_REQUIRED"); }
 				}
 				final var nativeAdmission = runtime.acquiredEncounterAdmission(config.episodeSeconds() * 1000L);

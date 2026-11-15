@@ -213,6 +213,10 @@ public final class PhantomEvaluationOutcomeV2Checks
 		check(PhantomAutonomousTrainingNative.retryableAdmission013("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS", true, false), "TRAIN013_UNAVAILABLE_HEAL_MUST_EXCLUDE_SCENE_BEFORE_CUT");
 		check(!PhantomAutonomousTrainingNative.retryableAdmission013("AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS", false, true), "TRAIN013_LEGACY_EVAL_REFUSAL_UNCHANGED");
 		check(!PhantomAutonomousTrainingNative.retryableAdmission013("AUTONOMOUS_PRE_CUT_NATIVE_OWNER", true, false), "TRAIN013_OWNER_FAILURE_MUST_REMAIN_FATAL");
+		check(PhantomAutonomousTrainingNative.retryableAdmission013("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED", true, false), "TRAIN013_PURE_MP_REFUSAL_MUST_EXCLUDE_SCENE");
+		final var mp = Map.<String, Object>of("admitted", false, "wait", "WAIT_GROUP_MP:required=3060:available=2806", "reasons", "[WAIT_GROUP_MP:required=3060:available=2806]");
+		check(PhantomAutonomousTrainingNative.preCutSelectionRefusal(mp, false, true).equals("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED"), "TRAIN013_HEADLESS_MP_MUST_NOT_BECOME_GENERIC_TARGET_ERROR");
+		check(PhantomAutonomousTrainingNative.preCutSelectionRefusal(mp, false, false).equals("AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED"), "TRAIN013_LIVE_LEGACY_PARTY_GUARD_UNCHANGED");
 		final var columns = List.of("charId", "char_name", "account_name", "level"); final var types = List.of(4, 12, 12, 4);
 		final var historic = new PhantomTrainingActors.SavedActor(100, List.of(new PhantomTrainingActors.SavedTable("characters", "charId", columns, types, List.of(List.of("100", "old", "fixture", "76")))));
 		final var other = new PhantomTrainingActors.SavedActor(200, List.of(new PhantomTrainingActors.SavedTable("characters", "charId", columns, types, List.of(List.of("200", "new", "fixture", "76")))));
