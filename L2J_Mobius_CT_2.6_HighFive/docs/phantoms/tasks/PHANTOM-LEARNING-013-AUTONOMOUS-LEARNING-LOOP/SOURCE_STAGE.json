@@ -1,0 +1,84 @@
+{
+  "schema": "SOURCE_STAGE013",
+  "status": "IN_PROGRESS_NATIVE_NOT_RUN",
+  "sourceBase": "52aac9e0274a63906a9fe5053611b8daf1aac778",
+  "sourceAllowlistCount": 10,
+  "source": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "bytes": 138915,
+      "sha256": "5DE9FD3C332F88FF6F53D2FD3955A989D298D30091C87F82994DDD6AAD635D86"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "bytes": 58786,
+      "sha256": "EF6F4197AE7A57799592F4524416AB0639173B741C6E684C7F8B2A5A3A414646"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "bytes": 75846,
+      "sha256": "66B9E58460CC46C0BFF403BF954C84437FB808CEB8D948940BF44ADDF2A52BC5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+      "bytes": 2847,
+      "sha256": "AAAC434749E0851F0C71BF325D4A507134A97D7A4266F455B7BF1D99A49F5662"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+      "bytes": 17391,
+      "sha256": "6322F676707CB273EC360BB61EF4FC78AFD8110DA64F268134B7034A62AC2D2F"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "bytes": 17203,
+      "sha256": "2A186F06C43957099E0B4D9AA0B25F6FBFF47888ADF3001320168B8E29719BE1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 197792,
+      "sha256": "4D55C36355CBA51412C3077FBB53D694E756793D5DF8C32172197551B9B82EE4"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "bytes": 30835,
+      "sha256": "956EA4CE2FE3CDBDE90EBD240E7942D535B45400C6B56AC41330A3E7DFF4B2B3"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+      "bytes": 22048,
+      "sha256": "1840B7BF54A2AA642BF5E6D0259EC340546D33FD9571E35496C23AC8CEBD511D"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 332536,
+      "sha256": "C58E8FCBCFBE92FC5BA6A5C29D7DC7B6F3F592C60110F1179DD6DF8F3B7E3648"
+    }
+  ],
+  "logs": [
+    {
+      "name": "GREEN-REGRESSION013.log",
+      "sha256": "D8E9E38A171339C2735124EDA0AF054EC950EAEC435EEE4DF76D2F174E90D9D3",
+      "bytes": 54828
+    },
+    {
+      "name": "FIX-REGRESSION013.log",
+      "sha256": "9AADAEE716D559C3807E2A273CF18300BF588D5EC99EF25CEF1F455BBFAD1B8B",
+      "bytes": 54882
+    },
+    {
+      "name": "OFFLINE-REPLAY012.log",
+      "sha256": "56CD328CAA82EA304A101998FD2960937D296D307A967CA00FEE853555093DEC",
+      "bytes": 53981
+    }
+  ],
+  "targetedAnt": "013/012/011/autonomous009/008/007/JAR exit0",
+  "postReviewFocused": "diagnostics013/history013/Test-Cycle013/Test-Config exit0",
+  "freshSqlRows": 183,
+  "freshSqlSha": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+  "nativeStarts": 0,
+  "nativeMillis": 0,
+  "ownerApproval": "APPROVED_CURRENT_CHAT",
+  "manualAcceptance": "REQUIRED",
+  "nextGoalStarted": false
+}

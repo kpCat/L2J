@@ -191,6 +191,7 @@ public final class PhantomEvaluationOutcomeV2Checks
 	}
 	public static void main(String[] args) throws Exception
 	{
+		if (args.length > 0 && args[0].equals("history013")) { historicalPhysicalFence013(); return; }
 		if (args.length > 0 && args[0].equals("review")) { reviewRegressions(); return; }
 		if (args.length > 0 && args[0].equals("reader")) { authenticReaderMutations(); return; }
 		if (args.length > 0 && args[0].equals("resource")) { resourceSelection(); return; }
@@ -204,5 +205,21 @@ public final class PhantomEvaluationOutcomeV2Checks
 		nativeFirstReview();
 		nativeProbeFairness();
 		System.out.println("EVAL012_OUTCOMES_NEGATIVE_CODEC_STATISTICS_GREEN");
+	}
+	static void historicalPhysicalFence013() throws Exception
+	{
+		check(PhantomAutonomousTrainingNative.safeReason(new IllegalStateException("TRAIN013_INSUFFICIENT_LEGAL_COHORT")).equals("TRAIN013_INSUFFICIENT_LEGAL_COHORT"), "TRAIN013_NO_DATA_REASON_MUST_NOT_BECOME_TECHNICAL_ERROR");
+		check(PhantomAutonomousTrainingNative.safeReason(new IllegalStateException("vendor password=private")).equals("IllegalStateException"), "TRAIN013_VENDOR_DIAGNOSTIC_MUST_REMAIN_PRIVATE");
+		final var columns = List.of("charId", "char_name", "account_name", "level"); final var types = List.of(4, 12, 12, 4);
+		final var historic = new PhantomTrainingActors.SavedActor(100, List.of(new PhantomTrainingActors.SavedTable("characters", "charId", columns, types, List.of(List.of("100", "old", "fixture", "76")))));
+		final var other = new PhantomTrainingActors.SavedActor(200, List.of(new PhantomTrainingActors.SavedTable("characters", "charId", columns, types, List.of(List.of("200", "new", "fixture", "76")))));
+		check(historic.physicalFingerprint().equals(other.physicalFingerprint()) && !historic.sha().equals(other.sha()), "HISTORY013_FIXTURE_REQUIRES_DIFFERENT_ID_SAME_PHYSICAL");
+		final var root = java.nio.file.Files.createTempDirectory("history013-"); final var run = root.resolve("autonomous/v1/campaigns/history/evaluations/eval"); java.nio.file.Files.createDirectories(run);
+		java.nio.file.Files.writeString(run.resolve(historic.sha() + ".source.json"), historic.json(), java.nio.charset.StandardCharsets.UTF_8);
+		final var fields = new java.util.ArrayList<>(java.util.Collections.nCopies(16, "0")); fields.set(1, historic.sha());
+		java.nio.file.Files.writeString(run.resolve("cells.tsv"), "header\n" + String.join("\t", fields) + "\n", java.nio.charset.StandardCharsets.UTF_8);
+		final var fence = PhantomAutonomousTrainingNative.historicalFence013(root, List.of(other));
+		check(fence.physical().contains(other.physicalFingerprint()), "HISTORY013_OTHER_ACTOR_WITH_HISTORICAL_PHYSICAL_MUST_BE_EXCLUDED_WITHOUT_HISTORICAL_ACTOR_IN_CURRENT_PAGE");
+		System.out.println("TRAIN013_HISTORICAL_PHYSICAL_FENCE_GREEN");
 	}
 }

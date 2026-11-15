@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [ValidateSet('Test-Config','Test-Arguments','Test-Atomic','Test-ColdBaseline','Test-ExportAdmission','Test-PrivateBootstrap','Test-EmptyBootstrapRecovery','Test-ErrorHistory','Test-CimExitRace','Test-AdaptiveIdle','Test-StartupHandshake','Test-JobLifetime','Test-Broker','Test-Crash','Test-Isolation','Test-Generate','Test-Native','Test-Detached','Test-Resume','Test-Training','Test-Export','Test-GuiOwner')][string]$Action='Test-Config',
+    [ValidateSet('Test-Cycle013','Test-Config','Test-Arguments','Test-Atomic','Test-ColdBaseline','Test-ExportAdmission','Test-PrivateBootstrap','Test-EmptyBootstrapRecovery','Test-ErrorHistory','Test-CimExitRace','Test-AdaptiveIdle','Test-StartupHandshake','Test-JobLifetime','Test-Broker','Test-Crash','Test-Isolation','Test-Generate','Test-Native','Test-Detached','Test-Resume','Test-Training','Test-Export','Test-GuiOwner')][string]$Action='Test-Config',
     [string]$Root,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
@@ -14,6 +14,84 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($Action -eq 'Test-Cycle013'){
+    $config=Read-TrainConfig (Join-Path $PSScriptRoot 'AutonomousTraining.ini')
+    $config.autonomous013Version='1';$config.autonomous009AcceptanceSmoke='true';$config.autonomous009SmokeMaxStarts='4';$config.autonomous009SmokeMaxNativeMinutes='80'
+    try {Assert-TrainConfig $config} catch {throw 'TRAIN013_BOUNDED_TRAIN_4_80_REJECTED'}
+    $prior=[pscustomobject]@{patience=0;creditedCycles=@();bestVersion=2;bestSha=('a'*64)}
+    $receipt=[pscustomobject]@{schemaVersion=13;cycleId='autonomous009-test013-c000001';fitCommitted=$true;optimizerDelta=16;selectedEpoch=0;candidateVersion=15;candidateSha=('b'*64);evalValid=$true;coverage=$true;terminalPairs=4;paidDivergences=1;stockWins=2;learnedWins=2;stockDeaths=1;learnedDeaths=1;resourceComparable=$true;resourceRegression=$false;bestComparison='UNKNOWN';supportedGain=$false;criticalRegression=$false;reason=''}
+    $first=Get-TrainCycleDecision013 $receipt $prior
+    Require ($first.patience -eq 1 -and !$first.improved -and $first.bestVersion -eq 2 -and $first.reason -ceq 'NO_SUPPORTED_GAIN_LOW_POWER') 'TRAIN013_TUNING_OR_EPOCH0_FALSE_IMPROVEMENT'
+    $duplicate=Get-TrainCycleDecision013 $receipt $first
+    Require ($duplicate.patience -eq 1 -and $duplicate.creditedCycles.Count -eq 1) 'TRAIN013_DUPLICATE_CYCLE_CREDIT'
+    foreach($reason in @('NO_DATA','EVAL_COVERAGE_GAP','INVALID_EVAL','FAILED_FAIL_CLOSED','RESOURCE_LIMIT','PAUSED_BY_OWNER','STOPPED_BY_OWNER')){
+        $unready=$receipt.PSObject.Copy();$unready.cycleId='autonomous009-test013-'+$reason;$unready.reason=$reason
+        $decision=Get-TrainCycleDecision013 $unready $first
+        Require ($decision.patience -eq 1 -and $decision.creditedCycles.Count -eq 1 -and !$decision.improved) ('TRAIN013_INSUFFICIENT_COUNTED_'+$reason)
+    }
+    $secondReceipt=$receipt.PSObject.Copy();$secondReceipt.cycleId='autonomous009-test013-c000002';$second=Get-TrainCycleDecision013 $secondReceipt $first
+    $thirdReceipt=$receipt.PSObject.Copy();$thirdReceipt.cycleId='autonomous009-test013-c000003';$third=Get-TrainCycleDecision013 $thirdReceipt $second
+    Require ($third.patience -eq 3 -and $third.phase -ceq 'PAUSED_NO_MEASURABLE_PROGRESS' -and !$third.improved) 'TRAIN013_PATIENCE3_NOT_PAUSED'
+    $gain=$receipt.PSObject.Copy();$gain.cycleId='autonomous009-test013-c000004';$gain.selectedEpoch=2;$gain.supportedGain=$true;$gain.bestComparison='INDEPENDENT_MATCHED_SUPPORTED';$gain.terminalPairs=40;$gain.learnedWins=30;$gain.stockWins=15
+    $gain|Add-Member bestEvidenceSha ('c'*64);$gain|Add-Member qualityLower95 0.1
+    $better=Get-TrainCycleDecision013 $gain $third
+    Require ($better.improved -and $better.patience -eq 0 -and $better.bestVersion -eq 15) 'TRAIN013_SUPPORTED_GAIN_NOT_SAVED'
+    $regression=$gain.PSObject.Copy();$regression.cycleId='autonomous009-test013-c000005';$regression.criticalRegression=$true
+    $rejected=Get-TrainCycleDecision013 $regression $better
+    Require (!$rejected.improved -and $rejected.bestVersion -eq 15 -and $rejected.phase -ceq 'PAUSED_REGRESSION_OBSERVED') 'TRAIN013_REGRESSION_PROMOTED'
+    $directory=Join-Path ([IO.Path]::GetTempPath()) ('Training013-cycle-'+[guid]::NewGuid().ToString('N'));$null=[IO.Directory]::CreateDirectory($directory)
+    $path=Join-Path $directory 'decision.json';Write-TrainJson $path $third;$cold=Read-TrainJson $path
+    $recovered=Get-TrainCycleDecision013 $thirdReceipt $cold
+    Require ($recovered.patience -eq 3 -and $recovered.creditedCycles.Count -eq 3) 'TRAIN013_COLD_RESUME_DUPLICATED_CREDIT'
+    $journal=[pscustomobject]@{schemaVersion=13;cycle=1;phase='FIT';dataset=$receipt.cycleId;sourceSha=('d'*64);jarSha=('e'*64);completedCycles=0;patience=1}
+    $journalPath=Join-Path $directory 'director-state.json';Save-TrainCycleState013 $journalPath $journal
+    $journal.phase='EVAL';Save-TrainCycleState013 $journalPath $journal
+    $phaseRoot=Join-Path $directory 'cycles\c000001\phases'
+    Require ((Test-Path -LiteralPath (Join-Path $phaseRoot 'FIT.entered.json')) -and (Test-Path -LiteralPath (Join-Path $phaseRoot 'FIT.exited.json')) -and (Test-Path -LiteralPath (Join-Path $phaseRoot 'EVAL.entered.json'))) 'TRAIN013_PHASE_RECEIPTS_MISSING'
+    $phaseCold=Read-TrainJson $journalPath
+    Require ($phaseCold.phase -ceq 'EVAL' -and $phaseCold.patience -eq 1 -and !(Test-Path -LiteralPath (Join-Path $directory 'autonomous\v1\cold-checkpoint.json'))) 'TRAIN013_RESUME_PHASE_OR_HISTORICAL_POINTER_MUTATED'
+    $budgetPath=Join-Path $directory 'native-budget.json';$budget=Get-TrainNativeBudget013 $budgetPath
+    $r1=Reserve-TrainNativeBudget013 $budgetPath 'autonomous009-campaign-a' $false 210000L
+    $budget=Complete-TrainNativeBudget013 $budgetPath $r1.pending 100000L 'OWN_HELD_HANDLE_EXIT_TIME'
+    $duplicateBudget=Complete-TrainNativeBudget013 $budgetPath $r1.pending 100000L 'OWN_HELD_HANDLE_EXIT_TIME'
+    Require ($duplicateBudget.starts -eq 1 -and $duplicateBudget.nativeMillis -eq 100000L) 'TRAIN013_DUPLICATE_NATIVE_CHARGE'
+    $e1=Reserve-TrainNativeBudget013 $budgetPath 'autonomous009-child-eval' $true 210000L;$null=Complete-TrainNativeBudget013 $budgetPath $e1.pending 500000L 'OWN_HELD_HANDLE_EXIT_TIME'
+    $e2=Reserve-TrainNativeBudget013 $budgetPath 'autonomous009-child-eval' $true 210000L;$null=Complete-TrainNativeBudget013 $budgetPath $e2.pending 500000L 'OWN_HELD_HANDLE_EXIT_TIME'
+    $blocked=$false;try{$null=Reserve-TrainNativeBudget013 $budgetPath 'autonomous009-child-eval' $true 210000L}catch{$blocked=$_.Exception.Message -ceq 'TRAIN013_RESOURCE_CHILD_NATIVE_BUDGET'}
+    Require $blocked 'TRAIN013_CHILD_THIRD_START_ALLOWED'
+    $r4=Reserve-TrainNativeBudget013 $budgetPath 'autonomous009-new-campaign-b' $false 210000L;$null=Complete-TrainNativeBudget013 $budgetPath $r4.pending 200000L 'OWN_HELD_HANDLE_EXIT_TIME'
+    $blocked=$false;try{$null=Reserve-TrainNativeBudget013 $budgetPath 'autonomous009-new-campaign-c' $false 210000L}catch{$blocked=$_.Exception.Message -ceq 'TRAIN013_RESOURCE_GLOBAL_NATIVE_BUDGET'}
+    Require $blocked 'TRAIN013_NEW_CAMPAIGN_RESET_GLOBAL_BUDGET'
+    $timeBudget=Join-Path $directory 'child-time-budget.json';$null=Get-TrainNativeBudget013 $timeBudget
+    $t1=Reserve-TrainNativeBudget013 $timeBudget 'autonomous009-child-time' $true 210000L;$null=Complete-TrainNativeBudget013 $timeBudget $t1.pending 2090000L 'OWN_HELD_HANDLE_EXIT_TIME'
+    $blocked=$false;try{$null=Reserve-TrainNativeBudget013 $timeBudget 'autonomous009-child-time' $true 210000L}catch{$blocked=$_.Exception.Message -ceq 'TRAIN013_RESOURCE_CHILD_NATIVE_BUDGET'}
+    Require $blocked 'TRAIN013_CHILD_CUMULATIVE_TIME_RESET'
+    $evalDirectory=Join-Path $directory 'evaluation';$rawName=('f'*64)+'/settlement.json';$null=[IO.Directory]::CreateDirectory((Join-Path $evalDirectory ('f'*64)))
+    foreach($name in @('protocol-v2.json','evaluation-v2.complete','evaluation-pairs-v2.json',$rawName)){Write-TrainText (Join-Path $evalDirectory $name) '{}'}
+    $proofMap=[ordered]@{};foreach($name in @('protocol-v2.json','evaluation-v2.complete','evaluation-pairs-v2.json',$rawName)){$proofMap[$name]=(Get-FileHash -LiteralPath (Join-Path $evalDirectory $name)).Hash}
+    $evidence=[pscustomobject]@{schemaVersion=13;cycleId=$receipt.cycleId;modelVersion=15;modelSha=('b'*64);directory=$evalDirectory;completeSha=$proofMap['evaluation-v2.complete'];pairsSha=$proofMap['evaluation-pairs-v2.json'];protocolSha=$proofMap['protocol-v2.json'];proofFiles=[pscustomobject]$proofMap}
+    $summaryPath=Join-Path $directory 'eval-v2.json';Write-TrainJson $summaryPath $evidence;$summarySha=(Get-FileHash -LiteralPath $summaryPath).Hash
+    Assert-TrainEvaluationReceipt013 $evidence $receipt.cycleId 15 ('b'*64) $summaryPath $summarySha
+    foreach($broken in @('evaluation-pairs-v2.json',$rawName)){
+        Write-TrainText (Join-Path $evalDirectory $broken) '{"changed":true}'
+        $rejected=$false;try{Assert-TrainEvaluationReceipt013 $evidence $receipt.cycleId 15 ('b'*64) $summaryPath $summarySha}catch{$rejected=$true}
+        Require $rejected ('TRAIN013_RESUME_CHANGED_EVIDENCE_ACCEPTED_'+$broken)
+        Write-TrainText (Join-Path $evalDirectory $broken) '{}'
+    }
+    Remove-Item -LiteralPath (Join-Path $evalDirectory $rawName)
+    $rejected=$false;try{Assert-TrainEvaluationReceipt013 $evidence $receipt.cycleId 15 ('b'*64) $summaryPath $summarySha}catch{$rejected=$true}
+    Require $rejected 'TRAIN013_RESUME_MISSING_RAW_ACCEPTED'
+    $completedRoot=Join-Path $directory 'completed-campaign';$completedCycle=Join-Path $completedRoot 'cycles\c000003';$null=[IO.Directory]::CreateDirectory($completedCycle)
+    foreach($name in @('fit-result.json','eval-v2.json','decision.json')){Write-TrainText (Join-Path $completedCycle $name) '{}'}
+    $checkpointPath=Join-Path $completedCycle 'checkpoint.json';Write-TrainJson $checkpointPath @{schemaVersion=13;cycleId=$thirdReceipt.cycleId;completed=$true;fitSha=(Get-FileHash -LiteralPath (Join-Path $completedCycle 'fit-result.json')).Hash;evalSha=(Get-FileHash -LiteralPath (Join-Path $completedCycle 'eval-v2.json')).Hash;decisionSha=(Get-FileHash -LiteralPath (Join-Path $completedCycle 'decision.json')).Hash;patience=3}
+    $interrupted=[pscustomobject]@{schemaVersion=13;campaign='autonomous009-test013';cycle=3;phase='CHECKPOINT';dataset=$thirdReceipt.cycleId;sourceSha=('d'*64);jarSha=('e'*64);completedCycles=2;patience=2;creditedCycles=$second.creditedCycles;bestVersion=2;bestSha=('a'*64);bestDecision='UNRESOLVED';improved=$false;reason='';lastCheckpoint='';pendingDecision=$third;lastV2=$null}
+    $interruptedPath=Join-Path $completedRoot 'director-state.json';Save-TrainCycleState013 $interruptedPath $interrupted
+    $resumed=Complete-TrainCycle013 $interruptedPath (Read-TrainJson $interruptedPath) $checkpointPath $completedRoot
+    $resumedAgain=Complete-TrainCycle013 $interruptedPath (Read-TrainJson $interruptedPath) $checkpointPath $completedRoot
+    Require ($resumed.phase -ceq 'NEW' -and $resumedAgain.completedCycles -eq 3 -and $resumedAgain.cycle -eq 4 -and $resumedAgain.patience -eq 3 -and $resumedAgain.creditedCycles.Count -eq 3) 'TRAIN013_POST_DECISION_CRASH_OR_DUPLICATE_CHECKPOINT_CREDIT'
+    Write-Output 'TRAIN013_CYCLE_GREEN budget=4/80 globalCampaigns=1 child2/35=1 duplicateCharge=1 patience3=1 epoch0=1 noDataInvalidResourceOwner=7 duplicate=1 coldResume=1 phases=1 evidenceTamper=3 checkpointRecovery=1 best=1 regression=1 SQL=0 NATIVE=0 SYNTHETIC_STATE_MACHINE_ONLY'
+    return
+}
 function Reject([scriptblock]$Code,[string]$Reason) {
     $rejected=$false
     try { & $Code | Out-Null } catch { $rejected=$true }
@@ -24,8 +102,10 @@ if($Action -eq 'Test-GuiOwner'){
     $config=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
     Require ($config.autonomous009AcceptanceSmoke -ceq 'true' -and $config.autonomous009GuiHoldBeforeNative -ceq 'true') 'GUI_SMOKE_REQUIRES_PRE_NATIVE_HOLD'
     $baseStarts=[int]$config.autonomous009PriorStarts;$baseMillis=[long]$config.autonomous009PriorNativeMillis
-    Require ($baseStarts -eq 6 -and $baseMillis -eq 2231818 -and $config.autonomous009SmokeMaxStarts -ceq '10') 'GUI_SMOKE_EXACT_AUTHORIZED_BUDGET_REQUIRED'
-    foreach($name in @('owner-process.json','native-process.json','worker-process.json','sql\process.json')){
+    $loop013=$config.ContainsKey('autonomous013Version') -and $config.autonomous013Version -ceq '1'
+    if($loop013){Require ($baseStarts -eq 0 -and $baseMillis -eq 0 -and $config.autonomous009SmokeMaxStarts -ceq '4' -and $config.autonomous009SmokeMaxNativeMinutes -ceq '80') 'GUI013_EXACT_PRE_NATIVE_BUDGET_REQUIRED'}
+    else{Require ($baseStarts -eq 6 -and $baseMillis -eq 2231818 -and $config.autonomous009SmokeMaxStarts -ceq '10') 'GUI_SMOKE_EXACT_AUTHORIZED_BUDGET_REQUIRED'}
+    foreach($name in @('owner-process.json','native-process.json','worker-process.json','sql\owned-process.json')){
         $path=Join-Path $layout.Root $name
         Require (!(Test-Path -LiteralPath $path) -or (Test-TrainProcessAbsent (Read-TrainJson $path))) ('GUI_SMOKE_OWN_PROCESS_RUNNING:'+ $name)
     }
@@ -87,11 +167,17 @@ if($Action -eq 'Test-GuiOwner'){
         $null=Invoke-GuiButton $first 'Close'
         $survived=Wait-GuiPhase $second 'GUI_HOLD' $true;Assert-GuiPriorBudget $survived
         Require ($survived.director.nonce -ceq $firstNonce) 'GUI_SMOKE_CLOSING_WINDOW_STOPPED_DIRECTOR'
-        $null=Invoke-GuiButton $second 'Pause';$paused=Wait-GuiPhase $second 'PAUSED' $false;Assert-GuiPriorBudget $paused
+        $null=Invoke-GuiButton $second 'Pause';$paused=Wait-GuiPhase $second $(if($loop013){'PAUSED_BY_OWNER'}else{'PAUSED'}) $false;Assert-GuiPriorBudget $paused
         $null=Invoke-GuiButton $second 'Resume';$resumed=Wait-GuiPhase $second 'GUI_HOLD' $true;Assert-GuiPriorBudget $resumed
         Require ($resumed.director.nonce -cne $firstNonce -and $resumed.director.generation -gt $firstGeneration) 'GUI_SMOKE_RESUME_DID_NOT_CREATE_NEW_DIRECTOR'
         $null=Invoke-GuiButton $second 'Stop';$stopped=Wait-GuiPhase $second 'STOPPED' $false;Assert-GuiPriorBudget $stopped
         $null=Invoke-GuiButton $second 'Export'
+        if($loop013){
+            $null=Invoke-GuiButton $second 'Close'
+            Write-TrainJson (Join-Path $evidence 'gui-acceptance.json') @{schemaVersion=13;status='PASS_REAL_GUI_PRE_NATIVE_OWNER_LIFECYCLE';initialGeneration=$firstGeneration;resumedGeneration=$resumed.director.generation;twoWindowsOneDirector=$true;closingWindowsDidNotStopDirector=$true;guiProcessExitConfirmed=$true;allButtons=@('Start','Status','Pause','Resume','Stop','Export');nativeStarted=$false;nativeStarts=0;nativeMillis=0;receipts=$receipts.ToArray();inputMethod='WINFORMS_PERFORMCLICK_NOT_DESKTOP_INPUT'}
+            Write-Output ('TRAIN013_GUI_OWNER_GREEN buttons=6 windows=2 oneDirector=1 closeIndependent=1 stopResume=1 NATIVE=0 evidence='+$evidence)
+            return
+        }
         $lock=Enter-TrainLock $layout
         try{
             $current=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')

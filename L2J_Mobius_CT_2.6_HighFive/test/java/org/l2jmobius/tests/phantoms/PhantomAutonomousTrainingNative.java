@@ -360,21 +360,29 @@ public final class PhantomAutonomousTrainingNative
 		headers.sort(Comparator.comparing(h -> hash(config.seed() + "/" + cursor + "/source/" + h[0])));
 		final var attempts = new HashMap<Integer, Integer>(); final var signatures = new HashMap<Integer, Set<String>>(); final var sources = new ArrayList<Source>();
 		final var coverage = new ArrayList<String>();
+		final boolean isolated013 = config.integer("autonomous013Version", 0, 0, 1) == 1 && !config.text("autonomous009EvaluationOnly", "false").equals("true");
+		final var history013 = isolated013 ? historicalFence013(root, List.of()) : new SourceFence013(Set.of(), Set.of(), Set.of());
+		int inspected013 = 0;
 		for (var header : headers)
 		{
 			PhantomTrainingScenarios.requirePlanningActive(requested);
 			final int id = header[0], classId = header[1];
 			if (!config.classes().contains(classId) || sources.size() >= 64 || attempts.getOrDefault(classId, 0) >= 16
 				|| signatures.getOrDefault(classId, Set.of()).size() >= 2) { continue; }
-			attempts.merge(classId, 1, Integer::sum); Player player = null;
+			if (isolated013 && inspected013++ >= 4096) { break; }
+			if (!isolated013) { attempts.merge(classId, 1, Integer::sum); }
+			Player player = null;
 			try
 			{
 				final PhantomTrainingActors.SavedActor image;
 				try (var connection = DatabaseFactory.getConnection()) { image = PhantomTrainingActors.readSavedActor(connection, id); }
 				image.requireReproducible();
+				if (isolated013 && (history013.hashes().contains(image.sha()) || history013.actorIds().contains(id) || history013.physical().contains(image.physicalFingerprint())))
+				{ coverage.add("{\"source\":" + id + ",\"classId\":" + classId + ",\"status\":\"EXCLUDED_HISTORICAL_EVAL\"}"); continue; }
 				if (!config.levels().contains(Integer.parseInt(image.field("level")))) { continue; }
 				final String signature = image.physicalFingerprint();
 				if (signatures.getOrDefault(classId, Set.of()).contains(signature)) { continue; }
+				if (isolated013) { attempts.merge(classId, 1, Integer::sum); }
 				PhantomTrainingScenarios.requirePlanningActive(requested); player = reproduce(config, image);
 				final var inventory = PhantomSkillInventory.acquired(player, authority.progression());
 				final var seed = new AutonomousTrainingV1.ActorSeed(image.sha(), classId, player.getLevel(), player.getClassIndex(), inventory.abilities().stream().map(PhantomSkillInventory.Ability::skill).toList(), pools(player, inventory));
@@ -395,11 +403,11 @@ public final class PhantomAutonomousTrainingNative
 		PhantomTrainingScenarios.requirePlanningActive(requested); immutable(directory.resolve("source-coverage.json"), "{\"classes\":[" + String.join(",", classes) + "],\"sourceCursor\":" + cursor + ",\"records\":[" + String.join(",", coverage) + "]}");
 		return List.copyOf(sources);
 	}
-	private static String safeReason(Exception failure)
+	static String safeReason(Exception failure)
 	{
 		String message = failure.getMessage();
 		if (message != null && message.startsWith("LEARNING001_AUTONOMOUS_")) { message = message.substring("LEARNING001_".length()); }
-		return message != null && message.matches("AUTONOMOUS_[A-Z0-9_]{1,120}") ? message : failure.getClass().getSimpleName();
+		return message != null && message.matches("(?:AUTONOMOUS|TRAIN013)_[A-Z0-9_]{1,120}") ? message : failure.getClass().getSimpleName();
 	}
 	private static Player reproduce(TrainingConfig config, PhantomTrainingActors.SavedActor image) throws Exception
 	{
@@ -412,17 +420,38 @@ public final class PhantomAutonomousTrainingNative
 		return PhantomLearning001ActorFixture.createFromSaved(image, "AT" + UUID.randomUUID().toString().replace("-", "").substring(0, 13));
 	}
 	private static void checkpoint(Path installation) throws Exception
+	{ checkpoint(installation, false); }
+	private static void checkpoint(Path installation, boolean cycle013) throws Exception
 	{
 		final var root = PhantomTrainingActors.physicalRoot(installation); new TrainingStore(root).requireStopped(); PhantomTrainingActors.settings(root);
 		final var store = new TacticalStoreV3(root); final var parent = store.optimizationParent(); final var model = store.candidate(parent.modelId()); final var accepted = store.latestAccepted();
 		if (model == null || accepted == null) { throw new IllegalStateException("AUTONOMOUS_COLD_LINEAGE_REQUIRED"); }
 		final String body = "{\"modelVersion\":" + model.id() + ",\"modelSha\":" + q(model.sha()) + ",\"optimizerSha\":" + q(parent.sha()) + ",\"terminalWeightsSha\":" + q(parent.state().model().sha256())
-			+ ",\"optimizerUpdates\":" + parent.state().updates() + ",\"completedEpochs\":" + parent.state().completedEpochs() + ",\"acceptedTestVersion\":" + accepted.id() + ",\"acceptedTestSha\":" + q(accepted.sha()) + ",\"productionPromotion\":false}";
-		final Path directory = root.resolve("autonomous/v1"); requirePhysicalDirectory(root, directory); final Path temporary = directory.resolve("checkpoint." + UUID.randomUUID() + ".pending");
+			+ ",\"optimizerUpdates\":" + parent.state().updates() + ",\"completedEpochs\":" + parent.state().completedEpochs() + ",\"acceptedTestVersion\":" + accepted.id() + ",\"acceptedTestSha\":" + q(accepted.sha())
+			+ (cycle013 ? ",\"schemaVersion\":13,\"featureSchemaSha\":" + q(org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.SCHEMA) : "") + ",\"productionPromotion\":false}";
+		final Path directory = root.resolve(cycle013 ? "autonomous/v13" : "autonomous/v1"); requirePhysicalDirectory(root, directory); final Path temporary = directory.resolve("checkpoint." + UUID.randomUUID() + ".pending");
+		if (cycle013)
+		{
+			final Path selected = directory.resolve("models").resolve(Long.toString(model.id())); requirePhysicalDirectory(root, selected);
+			atomicBlob013(selected.resolve("selected.bin"), model.model().bytes()); atomicBlob013(selected.resolve("terminal-adam.bin"), parent.state().bytes());
+			final Path best = directory.resolve("models").resolve(Long.toString(accepted.id())); requirePhysicalDirectory(root, best);
+			atomicBlob013(best.resolve("selected.bin"), accepted.model().bytes());
+		}
 		Files.writeString(temporary, body, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-		final Path pointer = directory.resolve("cold-checkpoint.json"); if (Files.exists(pointer) && !pointer.equals(pointer.toRealPath())) { throw new IllegalStateException("AUTONOMOUS_CHECKPOINT_PATH"); }
+		final Path pointer = directory.resolve(cycle013 ? "sql-checkpoint.json" : "cold-checkpoint.json"); if (Files.exists(pointer) && !pointer.equals(pointer.toRealPath())) { throw new IllegalStateException("AUTONOMOUS_CHECKPOINT_PATH"); }
 		Files.move(temporary, pointer, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 		System.out.println("AUTONOMOUS_COLD_CHECKPOINT " + body);
+	}
+	private static void atomicBlob013(Path path, byte[] bytes) throws Exception
+	{
+		if (Files.exists(path))
+		{
+			if (!path.equals(path.toRealPath()) || !java.util.Arrays.equals(Files.readAllBytes(path), bytes)) { throw new IllegalStateException("TRAIN013_COLD_BLOB_CHANGED"); }
+			return;
+		}
+		final Path pending = path.resolveSibling(path.getFileName() + "." + UUID.randomUUID() + ".pending");
+		try { Files.write(pending, bytes, StandardOpenOption.CREATE_NEW); Files.move(pending, path, StandardCopyOption.ATOMIC_MOVE); }
+		finally { Files.deleteIfExists(pending); }
 	}
 	private static void evaluateNative(Path root, Path attempt, TrainingConfig config) throws Exception
 	{
@@ -551,6 +580,67 @@ public final class PhantomAutonomousTrainingNative
 		if (!before.equals(PhantomLearning005Native.trainingState(root, true))) { throw new IllegalStateException("EVAL012_CHANGED_TRAINING_STATE"); }
 		PhantomEvaluationReplayV2.publish(directory, PhantomEvaluationOutcomeV2.campaign(pairs), allSettled && !requested(attempt)); immutable(attempt.resolve("batch.complete"), "schemaVersion=9\nevaluationOnly=true\ntrainingStateUnchanged=true\n");
 		if (allSettled && !requested(attempt)) { immutable(directory.resolve("evaluation-v2.complete"), "{\"schema\":\"EVAL_COMPLETE_V2\",\"trainingStateUnchanged\":true,\"trainingCredit\":false,\"productionPromotion\":false,\"verdict\":\"INCONCLUSIVE\"}"); }
+	}
+	private static List<Source> trainingSources013(Path root, List<Source> sources, TrainingConfig config) throws Exception
+	{
+		if (config.integer("autonomous013Version", 0, 0, 1) != 1 || config.text("autonomous009EvaluationOnly", "false").equals("true")) { return sources; }
+		final var fence = historicalFence013(root, sources.stream().map(Source::image).toList());
+		return sources.stream().filter(s -> !fence.hashes().contains(s.image().sha()) && !fence.actorIds().contains(s.image().sourceId()) && !fence.physical().contains(s.image().physicalFingerprint())).toList();
+	}
+	static record SourceFence013(Set<String> hashes, Set<Integer> actorIds, Set<String> physical) { }
+	static SourceFence013 historicalFence013(Path root, List<PhantomTrainingActors.SavedActor> current) throws Exception
+	{
+		final var held = new HashSet<String>(); final var heldActors = new HashSet<Integer>();
+		final var historicalPhysical = new HashSet<String>();
+		final Path campaigns = root.resolve("autonomous/v1/campaigns");
+		if (!Files.isDirectory(campaigns)) { return new SourceFence013(Set.of(), Set.of(), Set.of()); }
+		try (var history = Files.list(campaigns))
+		{
+			final var entries = history.filter(Files::isDirectory).toList(); if (entries.size() > 256) { throw new IllegalStateException("TRAIN013_HISTORY_CAPACITY"); }
+			for (Path campaign : entries)
+			{
+				final Path evaluations = campaign.resolve("evaluations"); if (!Files.isDirectory(evaluations)) { continue; }
+				try (var runs = Files.list(evaluations))
+				{
+					for (Path run : runs.filter(Files::isDirectory).toList())
+					{
+						final Path cells = run.resolve("cells.tsv"); if (!Files.isRegularFile(cells)) { continue; }
+						if (!cells.equals(cells.toRealPath())) { throw new IllegalStateException("TRAIN013_HISTORY_REPARSE"); }
+						for (String line : Files.readAllLines(cells).stream().skip(1).toList())
+						{
+							final var fields = line.split("\t", -1); if (fields.length != 16) { throw new IllegalStateException("TRAIN013_HISTORY_CELL_CODEC"); }
+							for (String sha : fields[1].split(","))
+							{
+								if (!sha.matches("[a-f0-9]{64}")) { throw new IllegalStateException("TRAIN013_HISTORY_SOURCE_SHA"); }
+								held.add(sha); final Path image = run.resolve(sha + ".source.json");
+								if (!image.equals(image.toRealPath()) || !NeuralPolicy.sha256(Files.readAllBytes(image)).equals(sha)) { throw new IllegalStateException("TRAIN013_HISTORY_SOURCE_CHANGED"); }
+								final var snapshot = historicalSnapshot013(PhantomEvaluationReplayV2.object(image));
+								if (!snapshot.sha().equals(sha)) { throw new IllegalStateException("TRAIN013_HISTORY_SNAPSHOT_CODEC"); }
+								heldActors.add(snapshot.sourceId()); historicalPhysical.add(snapshot.physicalFingerprint());
+							}
+						}
+					}
+				}
+			}
+		}
+		final var physical = current.stream().filter(s -> held.contains(s.sha()) || heldActors.contains(s.sourceId())).map(PhantomTrainingActors.SavedActor::physicalFingerprint).collect(java.util.stream.Collectors.toSet());
+		physical.addAll(historicalPhysical);
+		return new SourceFence013(Set.copyOf(held), Set.copyOf(heldActors), Set.copyOf(physical));
+	}
+	private static PhantomTrainingActors.SavedActor historicalSnapshot013(Map<String, Object> raw)
+	{
+		if (!"AUTONOMOUS_SAVED_ACTOR_V1".equals(raw.get("schema"))) { throw new IllegalStateException("TRAIN013_HISTORY_SNAPSHOT_VERSION"); }
+		final var tables = new ArrayList<PhantomTrainingActors.SavedTable>();
+		for (var item : PhantomEvaluationReplayV2.list(raw.get("tables")))
+		{
+			final var table = PhantomEvaluationReplayV2.map(item);
+			final var columns = PhantomEvaluationReplayV2.list(table.get("columns")).stream().map(value -> (String) value).toList();
+			final var types = PhantomEvaluationReplayV2.list(table.get("jdbcTypes")).stream().map(value -> ((Number) value).intValue()).toList();
+			final var rows = new ArrayList<List<String>>();
+			for (var row : PhantomEvaluationReplayV2.list(table.get("rows"))) { rows.add(PhantomEvaluationReplayV2.list(row).stream().map(value -> (String) value).toList()); }
+			tables.add(new PhantomTrainingActors.SavedTable(PhantomEvaluationReplayV2.string(table, "table"), PhantomEvaluationReplayV2.string(table, "identity"), columns, types, rows));
+		}
+		return new PhantomTrainingActors.SavedActor(PhantomEvaluationReplayV2.integer(raw, "sourceActorId"), tables);
 	}
 	private static List<Source> evaluationSources(Path root, Path directory, List<Source> sources, TrainingConfig config) throws Exception
 	{
@@ -892,7 +982,12 @@ public final class PhantomAutonomousTrainingNative
 		for (int warm = 0; warm < 2048; warm++) { model.model().score(new float[128], new float[64]); }
 		try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 		{
-			final var sources = discoverSources(root, directory, config, authority, () -> requested(attempt)); final var cells = planCells(directory, sources, config, authority, () -> requested(attempt));
+			final var sources = trainingSources013(root, discoverSources(root, directory, config, authority, () -> requested(attempt)), config); final var cells = planCells(directory, sources, config, authority, () -> requested(attempt));
+			if (config.integer("autonomous013Version", 0, 0, 1) == 1)
+			{
+				final var admission = PhantomEvaluationReplayV2.object(directory.resolve("training-admission013.json"));
+				if (!config.sha256().equals(admission.get("configSha")) || !hash(Files.readString(directory.resolve("cells.tsv"))).equals(admission.get("cellsSha"))) { throw new IllegalStateException("TRAIN013_PREPARED_COHORT_CHANGED"); }
+			}
 			final String jar = NeuralPolicy.sha256(Files.readAllBytes(root.resolve("game/libs/GameServer.jar")));
 			immutable(directory.resolve("protocol.json"), "{\"version\":" + q(AutonomousTrainingV1.VERSION) + ",\"objective\":\"ACQUIRED_ACTION_ADVANTAGE_V2\",\"configSha\":" + q(org.l2jmobius.gameserver.phantoms.learning.ActionAdvantageV2.CONFIG_SHA)
 				+ ",\"comparator\":" + q(AutonomousTrainingV1.COMPARATOR) + ",\"jarSha\":" + q(jar) + ",\"modelVersion\":" + model.id() + ",\"modelSha\":" + q(model.sha()) + ",\"parentAdamSha\":" + q(parent.sha()) + ",\"cellsSha\":" + q(NeuralPolicy.sha256(Files.readAllBytes(directory.resolve("cells.tsv")))) + ",\"explorationEpsilon\":0.25,\"nativeRng\":\"UNMODIFIED\",\"episodeSeconds\":" + config.episodeSeconds() + ",\"episodeBudget\":" + config.integer("episodesPerBatch", 48, 48, 256) + ",\"productionPromotion\":false}");
@@ -1219,10 +1314,11 @@ public final class PhantomAutonomousTrainingNative
 	{
 		try
 		{
+			if ((args.length == 2 || args.length == 3) && args[0].equals("verify-eval013")) { verifyEvaluation013(Path.of(args[1]), args.length == 3 ? Path.of(args[2]) : null); return; }
 			if (args.length == 1 && args[0].equals("source-contract")) { sourceContract(); return; }
 			if (args.length == 2 && args[0].equals("diagnose-cohort")) { diagnoseCohort(Path.of(args[1])); return; }
-			if (args.length != 2 || !List.of("inspect", "prepare", "admit-eval", "checkpoint").contains(args[0])) { throw new IllegalArgumentException("Ожидается inspect/prepare/admit-eval/checkpoint <собственная установка>."); }
-			if (args[0].equals("prepare") || args[0].equals("admit-eval")) { prepareSources(Path.of(args[1]), args[0].equals("admit-eval")); } else if (args[0].equals("checkpoint")) { checkpoint(Path.of(args[1])); } else { inspect(Path.of(args[1])); }
+			if (args.length != 2 || !List.of("inspect", "prepare", "admit-eval", "checkpoint", "checkpoint013").contains(args[0])) { throw new IllegalArgumentException("Ожидается inspect/prepare/admit-eval/checkpoint/checkpoint013 <собственная установка>."); }
+			if (args[0].equals("prepare") || args[0].equals("admit-eval")) { prepareSources(Path.of(args[1]), args[0].equals("admit-eval")); } else if (args[0].startsWith("checkpoint")) { checkpoint(Path.of(args[1]), args[0].equals("checkpoint013")); } else { inspect(Path.of(args[1])); }
 			if (args[0].equals("admit-eval")) { System.exit(0); }
 		}
 		catch (Exception failure)
@@ -1233,6 +1329,62 @@ public final class PhantomAutonomousTrainingNative
 				.limit(8).forEach(frame -> System.err.println("AUTONOMOUS_FAILURE_SITE " + frame));
 			System.exit(2);
 		}
+	}
+	/** Re-read genuine raw receipts through the existing V2 typed codec before a cycle credit. */
+	private static void verifyEvaluation013(Path installation, Path configuration) throws Exception
+	{
+		final Path root = PhantomTrainingActors.physicalRoot(installation); final Path configPath = configuration == null ? root.resolve("TRAIN_CONFIG.ini") : configuration.toAbsolutePath().normalize();
+		if (!configPath.equals(configPath.toRealPath())) { throw new IllegalStateException("TRAIN013_REPLAY_CONFIG_PATH"); }
+		final var config = TrainingConfig.load(configPath);
+		if (!outcomeV2(config)) { throw new IllegalStateException("TRAIN013_V2_READBACK_REQUIRED"); }
+		final Path directory = root.resolve("autonomous/v1/campaigns").resolve(config.text("autonomous009Campaign", "")).resolve("evaluations")
+			.resolve(config.text("outcome006DatasetId", "") + "-" + config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE));
+		if (!directory.equals(directory.toRealPath()) || !Files.isRegularFile(directory.resolve("evaluation-v2.complete"))) { throw new IllegalStateException("TRAIN013_V2_READBACK_INCOMPLETE"); }
+		final var protocol = PhantomEvaluationReplayV2.object(directory.resolve("protocol-v2.json"));
+		final var pin = new PhantomEvaluationOutcomeV2.Authority(PhantomEvaluationReplayV2.string(protocol, "sourceSha"), PhantomEvaluationReplayV2.string(protocol, "buildSha"),
+			PhantomEvaluationReplayV2.string(protocol, "configSha"), PhantomEvaluationReplayV2.number(protocol, "modelVersion"), PhantomEvaluationReplayV2.string(protocol, "modelSha"), PhantomEvaluationReplayV2.string(protocol, "trainingStateSha"));
+		if (!pin.configSha().equals(config.sha256()) || !pin.modelSha().equals(config.text("autonomous009ModelSha", "")) || pin.modelVersion() != config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE)) { throw new IllegalStateException("TRAIN013_V2_READBACK_AUTHORITY"); }
+		final var raw = PhantomEvaluationReplayV2.object(directory.resolve("evaluation-pairs-v2.json")); final var pairs = new ArrayList<PhantomEvaluationOutcomeV2.Pair>(); final var proofFiles = new java.util.TreeMap<String, String>();
+		for (var value : PhantomEvaluationReplayV2.list(raw.get("pairs")))
+		{
+			final var row = PhantomEvaluationReplayV2.map(value); final String cell = PhantomEvaluationReplayV2.string(row, "cell"), direction = PhantomEvaluationReplayV2.string(row, "direction"), tier = PhantomEvaluationReplayV2.string(row, "stratum");
+			final String first = PhantomEvaluationReplayV2.string(row, "order").equals("STOCK_LEARNED") ? "STOCK" : "LEARNED";
+			final var arms = new ArrayList<PhantomEvaluationOutcomeV2.Arm>();
+			for (String side : List.of("STOCK", "LEARNED"))
+			{
+				final Path work = directory.resolve(hash("EVAL/" + config.text("outcome006DatasetId", "") + "/" + cell + "/" + side));
+				final var arm = PhantomEvaluationReplayV2.readArm(work, cell, direction, side.equals(first) ? 0 : 1, config.seed(), pin, tier, false, side);
+				if (!PhantomEvaluationOutcomeV2.decode(Files.readAllBytes(work.resolve("evaluation-arm-v2.bin"))).equals(arm)
+					|| !PhantomEvaluationOutcomeV2.decode(Files.readAllBytes(directory.resolve(cell + "." + side + ".eval-arm-v2.bin"))).equals(arm)) { throw new IllegalStateException("TRAIN013_V2_TYPED_ARM_CHANGED"); }
+				for (var entry : arm.sourceHashes().entrySet())
+				{
+					final Path file = work.resolve(entry.getKey());
+					if (!file.equals(file.toRealPath()) || !NeuralPolicy.sha256(Files.readAllBytes(file)).equals(entry.getValue())) { throw new IllegalStateException("TRAIN013_V2_RAW_SOURCE_CHANGED"); }
+					proofFiles.put(directory.relativize(file).toString().replace('\\', '/'), entry.getValue());
+				}
+				proofFiles.put(directory.relativize(work.resolve("evaluation-arm-v2.bin")).toString().replace('\\', '/'), NeuralPolicy.sha256(Files.readAllBytes(work.resolve("evaluation-arm-v2.bin"))));
+				proofFiles.put(cell + "." + side + ".eval-arm-v2.bin", NeuralPolicy.sha256(PhantomEvaluationOutcomeV2.encode(arm)));
+				arms.add(arm);
+			}
+			if (!Files.isRegularFile(directory.resolve(cell + ".eval-pair-v2.json"))) { throw new IllegalStateException("TRAIN013_V2_PAIR_MISSING"); }
+			pairs.add(PhantomEvaluationOutcomeV2.compare(arms.getFirst(), arms.getLast()));
+		}
+		final var checked = PhantomEvaluationOutcomeV2.campaign(pairs);
+		if (checked.size() < 4 || checked.stream().anyMatch(p -> !p.comparable())) { throw new IllegalStateException("TRAIN013_V2_TYPED_COVERAGE"); }
+		for (var pair : checked)
+		{
+			final String name = pair.stock().pairId() + ".eval-pair-v2.json";
+			final byte[] expected = PhantomEvaluationOutcomeV2.pairJson(pair).getBytes(StandardCharsets.UTF_8);
+			if (!java.util.Arrays.equals(Files.readAllBytes(directory.resolve(name)), expected)) { throw new IllegalStateException("TRAIN013_V2_PAIR_BYTES_CHANGED"); }
+			proofFiles.put(name, NeuralPolicy.sha256(expected));
+		}
+		final String aggregate = "{\"schema\":\"EVAL_PAIRS_V2\",\"terminalComparablePairs\":" + checked.stream().filter(PhantomEvaluationOutcomeV2.Pair::comparable).count()
+			+ ",\"pairs\":[" + checked.stream().map(PhantomEvaluationOutcomeV2::pairJson).collect(java.util.stream.Collectors.joining(",")) + "],\"statistics\":" + PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.statistics(checked)) + ",\"trainingCredit\":false,\"verdict\":\"INCONCLUSIVE\"}";
+		if (!java.util.Arrays.equals(Files.readAllBytes(directory.resolve("evaluation-pairs-v2.json")), aggregate.getBytes(StandardCharsets.UTF_8))) { throw new IllegalStateException("TRAIN013_V2_AGGREGATE_CHANGED"); }
+		for (String name : List.of("protocol-v2.json", "evaluation-v2.complete", "evaluation-pairs-v2.json"))
+		{ final Path file = directory.resolve(name); if (!file.equals(file.toRealPath())) { throw new IllegalStateException("TRAIN013_V2_PROOF_PATH"); } proofFiles.put(name, NeuralPolicy.sha256(Files.readAllBytes(file))); }
+		System.out.println("TRAIN013_TYPED_EVAL_PROOF " + PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schemaVersion", 13, "directory", directory.toString(), "modelVersion", pin.modelVersion(), "modelSha", pin.modelSha(), "proofFiles", proofFiles, "trainingCredit", false)));
+		System.out.println("TRAIN013_TYPED_EVAL_READBACK pairs=" + checked.size() + " paid=" + checked.stream().flatMap(p -> java.util.stream.Stream.of(p.stock(), p.learned())).mapToInt(a -> a.paid().size()).sum() + " trainingCredit=false");
 	}
 	/** Bounded native Player ingress before GameServer collection; originals are never loaded. */
 	private static void admitEvaluation(Path root, Path directory, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority) throws Exception
@@ -1426,6 +1578,22 @@ public final class PhantomAutonomousTrainingNative
 						Files.writeString(slot.resolve("result.json"), record + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW); records.add(record);
 					}
 					finally { if (player != null) { player.stopAllTasks(); player.deleteMe(); } }
+				}
+				if (config.integer("autonomous013Version", 0, 0, 1) == 1)
+				{
+					final Path planned = cohort(root, config); final var tactical = new TacticalStoreV3(root);
+					final var model = tactical.candidate(config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE));
+					if (model == null || !model.sha().equals(config.text("autonomous009ModelSha", ""))) { throw new IllegalStateException("TRAIN013_PREPARE_MODEL_CHANGED"); }
+					final var stock = new LearningStore(settings.getProperty("URL"), settings.getProperty("Login"), settings.getProperty("Password"), root.resolve("game")).accepted(1);
+					final var sources = trainingSources013(root, discoverSources(root, planned, config, authority, () -> requested(planned)), config);
+					final var cells = planCells(planned, sources, config, authority, () -> requested(planned),
+						(cell, ordinal) -> admitHeadlessCell(root, planned, config, authority, tactical, model, stock.model(), cell, ordinal));
+					final int minimum = config.integer("episodesPerBatch", 48, 48, 256) >= 51 ? 3 : 4;
+					final long classes = cells.stream().map(c -> c.proposal().actor().classId()).distinct().count();
+					final long scopes = cells.stream().map(Cell::party).distinct().count();
+					immutable(planned.resolve("training-admission013.json"), "{\"schema\":\"TRAIN_ADMISSION_V13\",\"configSha\":" + q(config.sha256()) + ",\"cellsSha\":" + q(hash(Files.readString(planned.resolve("cells.tsv"))))
+						+ ",\"cells\":" + cells.size() + ",\"classes\":" + classes + ",\"scopes\":" + scopes + ",\"minimumCells\":" + minimum + ",\"historicalEvaluationExcluded\":true,\"trainingCredit\":false,\"gameServerStarted\":false}");
+					if (cells.size() < minimum || classes < 2 || scopes < 2) { throw new IllegalStateException("TRAIN013_INSUFFICIENT_LEGAL_COHORT"); }
 				}
 			}
 			final String indexBody = String.join("\n", sourceIndex) + "\n";

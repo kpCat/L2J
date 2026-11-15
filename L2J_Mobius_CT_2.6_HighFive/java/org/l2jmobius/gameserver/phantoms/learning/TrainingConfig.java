@@ -126,6 +126,7 @@ public final class TrainingConfig
 	public boolean autonomousConfigured() { return _values.containsKey("autonomous009Version"); }
 	private void validateAutonomous()
 	{
+		final boolean loop013 = integer("autonomous013Version", 0, 0, 1) == 1;
 		integer("autonomous009Version", 1, 1, 1);
 		if (!text("autonomous009Comparator", "").equals(AutonomousTrainingV1.COMPARATOR) || !text("v3Enabled", "false").equals("true")
 			|| !Set.of("OFF", "PREPARE", "COLLECT", "FIT", "EVAL").contains(text("autonomous009Phase", "OFF")))
@@ -166,6 +167,7 @@ public final class TrainingConfig
 		if (text("autonomous009AcceptanceSmoke", "false").equals("true"))
 		{
 			if (evaluationOnly) { integer("autonomous009SmokeMaxStarts", 3, 1, 5); integer("autonomous009SmokeMaxNativeMinutes", 45, 1, 45); }
+			else if (loop013) { integer("autonomous009SmokeMaxStarts", 4, 1, 4); integer("autonomous009SmokeMaxNativeMinutes", 80, 1, 80); }
 			else { integer("autonomous009SmokeMaxStarts", 6, 6, 10); integer("autonomous009SmokeMaxNativeMinutes", 90, 90, 90); }
 		}
 		autonomousClassWeights(); autonomousFamilies();

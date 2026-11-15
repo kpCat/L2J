@@ -32,6 +32,7 @@ public final class AutonomousTrainingChecks
 			case "catalog" -> { catalog(); return; }
 			case "objective" -> objective();
 			case "config" -> configuration();
+			case "config013" -> configuration013();
 			case "curriculum" -> curriculum();
 			case "encounter" -> encounter();
 			default -> throw new IllegalArgumentException("Unknown autonomous contract group");
@@ -203,6 +204,25 @@ public final class AutonomousTrainingChecks
 		final String block = split.equals("TRAIN") ? "block" + (i % 16) : split + i;
 		final var selection = new TrainExplorationV1.Selection(id, block, (classId == 88 ? "c" : "d").repeat(64), split, experimental, observation, List.of(stock, other), stock, selected, experimental ? .25 : 1, experimental ? .9 : 0, experimental ? "EXPLORATION_ALTERNATIVE" : "CONTROL_STOCK", "", 12, "f".repeat(64));
 		return new ActionAdvantageV2.Sample(selection, terminal);
+	}
+
+	private static void configuration013() throws Exception
+	{
+		final var path = java.nio.file.Files.createTempFile("goal013-config-", ".ini");
+		final String body = "schemaVersion=1\nautonomous009Version=1\nautonomous013Version=1\nautonomous009Enabled=false\nautonomous009Phase=OFF\nautonomous009Comparator=" + AutonomousTrainingV1.COMPARATOR
+			+ "\nclasses=auto\nlevels=auto\nv3Enabled=true\nmaxHeapMb=4096\nautonomous009MemoryBudgetMb=8192\nautonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=4\nautonomous009SmokeMaxNativeMinutes=80\n";
+		try
+		{
+			java.nio.file.Files.writeString(path, body, java.nio.charset.StandardCharsets.UTF_8);
+			check(TrainingConfig.load(path).integer("autonomous013Version", 0, 0, 1) == 1, "Goal013 bounded TRAIN4/80 rejected");
+			for (String invalid : List.of(body.replace("MaxStarts=4", "MaxStarts=5"), body.replace("NativeMinutes=80", "NativeMinutes=81"), body.replace("autonomous013Version=1", "autonomous013Version=2")))
+			{
+				java.nio.file.Files.writeString(path, invalid, java.nio.charset.StandardCharsets.UTF_8);
+				boolean rejected = false; try { TrainingConfig.load(path); } catch (IllegalArgumentException expected) { rejected = true; }
+				check(rejected, "Goal013 invalid version or budget accepted");
+			}
+		}
+		finally { java.nio.file.Files.deleteIfExists(path); }
 	}
 
 	private static void configuration() throws Exception

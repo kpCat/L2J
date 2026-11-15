@@ -1,0 +1,64 @@
+{
+  "schema": "PHANTOM_LEARNING013_READ_ONLY_SAFETY_V1",
+  "status": "PLAN_REVIEW_REQUIRED",
+  "scope": "Read-only continuation of G0 before owner plan approval",
+  "G0": "IN_PROGRESS_FRESH_SQL_AND_SOURCE_JAR_PARITY_NOT_RUN",
+  "sourceHead": "52aac9e0274a63906a9fe5053611b8daf1aac778",
+  "sourceTrackedChanges": false,
+  "sourceUntracked": "Only exact task013 documents",
+  "preflight": {
+    "cwd": "D:\\Codex\\repos\\L2J-learning-006",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\L2J_Mobius_CT_2.6_HighFive\\tools\\phantom-runtime\\training\\Training.ps1 -Action Preflight -Root 'D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train' -Autonomous",
+    "exitCode": 0,
+    "canonicalRouteReadBeforeExecution": true,
+    "configValidated": true,
+    "jdk25Validated": true,
+    "mariadb114DependencyValidated": true,
+    "geo203ActualHashesVerified": true,
+    "protected207ActualHashesVerified": true,
+    "portsVerifiedFree": [33357, 18001, 19301],
+    "buildExecuted": false,
+    "sqlStarted": false,
+    "gameServerStarted": false,
+    "output": "Предварительная проверка пройдена: config, JDK25, MariaDB11.4, Geo203, protected207 и свободные порты. Сборок и запусков серверов не было."
+  },
+  "ownSqlIdentity": {
+    "receipt": "sql/owned-process.json",
+    "pid": 81268,
+    "created": 134391776149362602,
+    "absent": true,
+    "method": "existing Initialize-TrainWin32, Get-TrainLayout, Assert-TrainInstallation, Read-TrainJson, Test-TrainProcessAbsent",
+    "exitCode": 0,
+    "sqlStarted": false
+  },
+  "diagnosticInvocationCorrections": [
+    {
+      "operation": "Preflight invoked with source004 script and TEST006 Root",
+      "exitCode": 1,
+      "reason": "TRAIN002_EXACT_OWN_ROOT_REQUIRED",
+      "resolution": "Existing Get-TrainLayout intentionally binds Root to the script checkout. Re-ran the byte-identical script from TEST006; no guard/code/config changes.",
+      "source004AndTest006TrainingPs1Sha": "eb35030adeca6428981bde41bfe53af74e99d5f5b7278ae045b227903fe8d2a9"
+    },
+    {
+      "operation": "Direct SQL absence helper invocation without Initialize-TrainWin32",
+      "exitCode": 1,
+      "reason": "Win32SqlIdentity type not initialized; TRAIN002_PROCESS_VISIBILITY_UNKNOWN",
+      "resolution": "Initialized existing Win32 helper and re-ran; exact own SQL receipt process absent. This was a diagnostic caller error, not a product defect."
+    }
+  ],
+  "remainingBeforeG0Pass": [
+    "Fresh cold SQL SELECT/export and exact historical rows/applications readback",
+    "Full source/JAR composition parity",
+    "Plan approval before source edits, SQL starts or native execution"
+  ],
+  "native013": {"starts": 0, "nativeMillis": 0, "maximumStarts": 4, "maximumNativeMillis": 4800000},
+  "trainingPerformed": false,
+  "commitCreated": false,
+  "pushExecuted": false,
+  "goalComplete": false,
+  "planApproved": false,
+  "nextGoalStarted": false,
+  "gitCommandsThisContinuation": ["git rev-parse HEAD", "git status --short"],
+  "gitAuthorization": "TASK013 and root AGENTS.md bounded read-only scope/branch audit",
+  "approvalRequest": "One pending async owner question for exact10 implementation plan and versioned filesystem cycle protocol. Automated goal continuation is not treated as owner approval."
+}

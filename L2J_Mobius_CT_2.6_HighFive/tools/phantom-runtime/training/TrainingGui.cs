@@ -173,8 +173,20 @@ namespace PhantomTraining
                         report.AppendLine("Начало текущего сеанса: " + FactText(journal, "sessionStartedUtc"));
                         report.AppendLine("Цикл: " + FactText(journal, "cycle") + " · завершено: " + FactText(journal, "completedCycles") + " · fit: " + FactText(journal, "fits"));
                         report.AppendLine("Запуски GameServer: " + FactText(journal, "starts") + " · native, мс: " + FactText(journal, "nativeMillis"));
+                        report.AppendLine("Незавершённый запуск: " + FactText(journal, "pending") + " · начало: " + FactText(journal, "pendingStartedUtc"));
                         report.AppendLine("Последний checkpoint: " + FactText(journal, "lastCheckpoint"));
-                        report.AppendLine("Улучшение TUNING: " + (Convert.ToBoolean(journal["improved"]) ? "наблюдалось; это не native verdict" : "не подтверждено"));
+                        if (Convert.ToInt32(journal["schemaVersion"]) == 13)
+                        {
+                            report.AppendLine("Лучшая проверенная TEST: " + FactText(journal, "bestVersion") + " · решение: " + FactText(journal, "bestDecision"));
+                            report.AppendLine("Циклов без подтверждённого улучшения: " + FactText(journal, "patience") + " / 3 · причина: " + FactText(journal, "reason"));
+                            var fit = Object(journal, "lastEvaluation");
+                            var metrics = fit == null ? null : Object(fit, "metrics");
+                            if (metrics != null) report.AppendLine("Selected epoch: " + FactText(metrics, "epochs") + " · terminal Adam updates: " + FactText(metrics, "optimizerUpdates") + " · эпохи Adam: " + FactText(metrics, "completedEpochs"));
+                            var v2 = Object(journal, "lastV2");
+                            report.AppendLine("V2 EVAL: " + (v2 == null ? "не завершена; подтверждённого результата нет" : "завершена · SHA " + FactText(v2, "pairsSha")));
+                            report.AppendLine("Улучшение игровой модели: " + (Convert.ToBoolean(journal["improved"]) ? "подтверждено независимой оценкой" : "не подтверждено"));
+                        }
+                        else report.AppendLine("Улучшение TUNING: " + (Convert.ToBoolean(journal["improved"]) ? "наблюдалось; это не native verdict" : "не подтверждено"));
                     }
                     var checkpoint = Object(facts, "checkpoint");
                     if (checkpoint != null)
@@ -208,11 +220,12 @@ namespace PhantomTraining
             {
                 case "IDLE": return "Ожидание"; case "PREFLIGHT": return "Предварительная проверка";
                 case "STARTING": case "NATIVE_BOOT": return "Запуск"; case "BUILDING": return "Сборка";
-                case "SQL_PREPARE": return "Подготовка SQL"; case "COLLECTING": case "NATIVE": return "Сбор опыта";
-                case "FITTING": return "Обучение"; case "TUNING": return "Проверка TUNING"; case "AUDITING": return "Независимая оценка";
-                case "CHECKPOINTING": return "Сохранение checkpoint"; case "PAUSED": return "Пауза"; case "STOPPED": return "Остановлен";
-                case "STOPPING": case "DRAINING": return "Безопасная остановка"; case "FAILED": return "Ошибка";
-                case "RESOURCE_LIMIT": return "Лимит ресурсов"; case "INSUFFICIENT_EVIDENCE": return "Недостаточно независимых данных"; case "STALE": return "Состояние устарело";
+                case "SQL_PREPARE": return "Подготовка SQL"; case "COLLECTING": case "NATIVE": case "FITTING": return "ОБУЧАЕТСЯ";
+                case "TUNING": case "AUDITING": return "ПРОВЕРЯЕТ"; case "IMPROVEMENT_SUPPORTED": return "УЛУЧШЕНИЕ";
+                case "PAUSED_NO_MEASURABLE_PROGRESS": return "ЗАСТОЙ";
+                case "CHECKPOINTING": return "Сохранение checkpoint"; case "PAUSED": case "PAUSED_BY_OWNER": return "Пауза"; case "STOPPED": case "STOPPED_BY_OWNER": return "ОСТАНОВЛЕН";
+                case "STOPPING": case "DRAINING": return "Безопасная остановка"; case "FAILED": case "FAILED_FAIL_CLOSED": case "PAUSED_REGRESSION_OBSERVED": return "ОШИБКА";
+                case "RESOURCE_LIMIT": return "Лимит ресурсов"; case "INSUFFICIENT_EVIDENCE": case "PAUSED_EVAL_COVERAGE_GAP": return "НЕДОСТАТОЧНО ДАННЫХ"; case "STALE": return "Состояние устарело";
                 case "GUI_HOLD": return "Проверка интерфейса до native";
                 default: return value;
             }

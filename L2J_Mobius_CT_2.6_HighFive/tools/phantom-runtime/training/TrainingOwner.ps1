@@ -212,6 +212,8 @@ function Read-TrainConfig([string]$Path) {
     return $values
 }
 function Assert-TrainAutonomousConfig($Values) {
+    $loop013=$Values.ContainsKey('autonomous013Version') -and $Values.autonomous013Version -ceq '1'
+    if($Values.ContainsKey('autonomous013Version') -and $Values.autonomous013Version -cnotin @('0','1')){throw 'TRAIN013_PROTOCOL_VERSION'}
     foreach($entry in @{autonomous009Enabled='false';autonomous009Exploration='true';autonomous009AcceptanceSmoke='false';autonomous009Phase='OFF';autonomous009MinLevel='1';autonomous009MaxLevel='85';autonomous009MemoryBudgetMb='8192';autonomous009DurationMinutes='1440';autonomous009CheckpointMinutes='15';autonomous009ReplayCapacity='128';autonomous009EvaluationEveryCycles='1';autonomous009StagnationLimit='3';autonomous009NoDataLimit='3';autonomous009CycleLimit='0';autonomous009SourceCursor='0';autonomous009ClassWeights='auto';autonomous009Families='DAMAGE,HEAL';autonomous009SmokeMaxStarts='6';autonomous009SmokeMaxNativeMinutes='90'}.GetEnumerator()){
         if(!$Values.ContainsKey($entry.Key)){$Values[$entry.Key]=$entry.Value}
     }
@@ -257,8 +259,149 @@ function Assert-TrainAutonomousConfig($Values) {
         if($Values.autonomous009EvaluationOnly -ceq 'true'){
             $minutes=0
             if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 1 -or $starts -gt 5 -or ![int]::TryParse([string]$Values.autonomous009SmokeMaxNativeMinutes,[ref]$minutes) -or $minutes -lt 1 -or $minutes -gt 45){throw 'TRAIN010_EVALUATION_BUDGET'}
+        }elseif($loop013){
+            $minutes=0
+            if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 1 -or $starts -gt 4 -or ![int]::TryParse([string]$Values.autonomous009SmokeMaxNativeMinutes,[ref]$minutes) -or $minutes -lt 1 -or $minutes -gt 80){throw 'TRAIN013_ACCEPTANCE_BUDGET'}
         }elseif(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 6 -or $starts -gt 10 -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90'){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
     }
+}
+function Get-TrainNativeBudget013([string]$Path) {
+    if(!(Test-Path -LiteralPath $Path)){
+        if(Test-Path -LiteralPath ($Path+'.issued.json')){throw 'TRAIN013_GLOBAL_BUDGET_MISSING_NO_RESET'}
+        Write-TrainJson ($Path+'.issued.json') @{schemaVersion=13;goal='PHANTOM-LEARNING-013';maximumStarts=4;maximumNativeMillis=4800000L}
+        Write-TrainJson $Path @{schemaVersion=13;goal='PHANTOM-LEARNING-013';maximumStarts=4;maximumNativeMillis=4800000L;starts=0;nativeMillis=0L;pending='';reservations=@()}
+    }
+    $budget=Read-TrainJson $Path
+    if($budget.schemaVersion -ne 13 -or $budget.goal -cne 'PHANTOM-LEARNING-013' -or $budget.maximumStarts -ne 4 -or [long]$budget.maximumNativeMillis -ne 4800000L){throw 'TRAIN013_GLOBAL_BUDGET_PIN_CHANGED'}
+    $rows=@($budget.reservations);$sum=0L
+    if($rows.Count -gt 4 -or $budget.starts -ne $rows.Count -or @($rows|Group-Object attemptId|Where-Object {$_.Count -ne 1}).Count){throw 'TRAIN013_GLOBAL_RESERVATIONS_CHANGED'}
+    foreach($row in $rows){
+        if($row.attemptId -cnotmatch '^[a-f0-9]{32}$' -or $row.scope -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$'){throw 'TRAIN013_GLOBAL_RESERVATION_IDENTITY'}
+        if($null -ne $row.chargedMillis){if([long]$row.chargedMillis -lt 0 -or $row.proof -cne 'OWN_HELD_HANDLE_EXIT_TIME'){throw 'TRAIN013_GLOBAL_CHARGE_UNPROVEN'};$sum+=[long]$row.chargedMillis}
+        elseif($budget.pending -cne $row.attemptId){throw 'TRAIN013_GLOBAL_UNCHARGED_RESERVATION'}
+    }
+    if([long]$budget.nativeMillis -ne $sum -or ($budget.pending -and @($rows|Where-Object {$_.attemptId -ceq $budget.pending -and $null -eq $_.chargedMillis}).Count -ne 1)){throw 'TRAIN013_GLOBAL_CHARGE_SUM_CHANGED'}
+    return $budget
+}
+function Reserve-TrainNativeBudget013([string]$Path,[string]$Scope,[bool]$Evaluation,[long]$DrainReserve) {
+    $budget=Get-TrainNativeBudget013 $Path
+    if($budget.pending){throw 'TRAIN013_PENDING_NATIVE_REQUIRES_RECOVERY'}
+    if($Scope -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$' -or $DrainReserve -lt 0){throw 'TRAIN013_RESERVATION_SCOPE'}
+    if([int]$budget.starts -ge 4 -or [long]$budget.nativeMillis+$DrainReserve -ge 4800000L){throw 'TRAIN013_RESOURCE_GLOBAL_NATIVE_BUDGET'}
+    $scoped=@($budget.reservations|Where-Object {$_.scope -ceq $Scope});$scopeMillis=0L
+    foreach($row in $scoped){if([bool]$row.evaluation -ne $Evaluation){throw 'TRAIN013_RESERVATION_MODE_CHANGED'};$scopeMillis+=[long]$row.chargedMillis}
+    if($Evaluation -and ($scoped.Count -ge 2 -or $scopeMillis+$DrainReserve -ge 2100000L)){throw 'TRAIN013_RESOURCE_CHILD_NATIVE_BUDGET'}
+    $id=[guid]::NewGuid().ToString('N')
+    $row=[pscustomobject]@{attemptId=$id;scope=$Scope;evaluation=$Evaluation;startedUtc=[DateTime]::UtcNow.ToString('o');ordinal=([int]$budget.starts+1);priorNativeMillis=$budget.nativeMillis;chargedMillis=$null;proof=''}
+    $budget.reservations=@($budget.reservations)+@($row);$budget.starts=[int]$budget.starts+1;$budget.pending=$id
+    Write-TrainJson $Path $budget
+    return Get-TrainNativeBudget013 $Path
+}
+function Complete-TrainNativeBudget013([string]$Path,[string]$Attempt,[long]$Millis,[string]$Proof) {
+    $budget=Get-TrainNativeBudget013 $Path
+    $rows=@($budget.reservations|Where-Object {$_.attemptId -ceq $Attempt})
+    if($rows.Count -ne 1 -or $Millis -lt 0 -or $Proof -cne 'OWN_HELD_HANDLE_EXIT_TIME'){throw 'TRAIN013_NATIVE_CHARGE_IDENTITY_OR_PROOF'}
+    $row=$rows[0]
+    if($null -ne $row.chargedMillis){if([long]$row.chargedMillis -ne $Millis){throw 'TRAIN013_DUPLICATE_CHARGE_CHANGED'};return $budget}
+    if($budget.pending -cne $Attempt){throw 'TRAIN013_NATIVE_CHARGE_RESERVATION_MISSING'}
+    $row.chargedMillis=$Millis;$row.proof=$Proof;$budget.nativeMillis=[long]$budget.nativeMillis+$Millis;$budget.pending=''
+    Write-TrainJson $Path $budget
+    return Get-TrainNativeBudget013 $Path
+}
+function Assert-TrainEvaluationReceipt013($Receipt,[string]$CycleId,[long]$Version,[string]$ModelSha,[string]$SummaryPath,[string]$SummarySha) {
+    if($Receipt.schemaVersion -ne 13 -or $Receipt.cycleId -cne $CycleId -or [long]$Receipt.modelVersion -ne $Version -or $Receipt.modelSha -cne $ModelSha){throw 'TRAIN013_EVALUATION_CYCLE_OR_MODEL_CHANGED'}
+    Assert-TrainHash $SummaryPath $SummarySha;$saved=Read-TrainJson $SummaryPath
+    if($saved.cycleId -cne $CycleId -or [long]$saved.modelVersion -ne $Version -or $saved.modelSha -cne $ModelSha -or
+       ($saved.proofFiles|ConvertTo-Json -Compress -Depth 6) -cne ($Receipt.proofFiles|ConvertTo-Json -Compress -Depth 6)){throw 'TRAIN013_EVALUATION_SUMMARY_CHANGED'}
+    Assert-TrainDirectory $Receipt.directory
+    Assert-TrainHash (Join-Path $Receipt.directory 'evaluation-v2.complete') $Receipt.completeSha
+    Assert-TrainHash (Join-Path $Receipt.directory 'evaluation-pairs-v2.json') $Receipt.pairsSha
+    Assert-TrainHash (Join-Path $Receipt.directory 'protocol-v2.json') $Receipt.protocolSha
+    $entries=@($Receipt.proofFiles.PSObject.Properties)
+    if($entries.Count -lt 4 -or $entries.Count -gt 4096){throw 'TRAIN013_EVALUATION_RAW_CLOSURE'}
+    foreach($name in @('protocol-v2.json','evaluation-v2.complete','evaluation-pairs-v2.json')){if(!$Receipt.proofFiles.PSObject.Properties[$name]){throw 'TRAIN013_EVALUATION_ROOT_PROOF_MISSING'}}
+    $prefix=[IO.Path]::GetFullPath($Receipt.directory).TrimEnd('\')+'\'
+    foreach($entry in $entries){
+        if($entry.Name -cnotmatch '^[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?$' -or $entry.Name -cmatch '(^|/)\.\.?(/|$)' -or [string]$entry.Value -cnotmatch '^[a-fA-F0-9]{64}$'){throw 'TRAIN013_EVALUATION_RAW_PATH_OR_SHA'}
+        $file=[IO.Path]::GetFullPath((Join-Path $Receipt.directory $entry.Name))
+        if(!$file.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){throw 'TRAIN013_EVALUATION_RAW_SCOPE'}
+        Assert-TrainHash $file ([string]$entry.Value)
+    }
+}
+function Save-TrainCycleState013([string]$Path,$Journal) {
+    if($Journal.schemaVersion -ne 13 -or [int]$Journal.cycle -lt 1 -or [int]$Journal.cycle -gt 1000000 -or $Journal.phase -cnotmatch '^[A-Z_]{1,32}$'){throw 'TRAIN013_STATE_VERSION_OR_PHASE'}
+    $parent=Split-Path $Path -Parent;Assert-TrainDirectory $parent
+    $events=Join-Path $parent ('cycles\c{0:D6}\phases' -f [int]$Journal.cycle);$null=[IO.Directory]::CreateDirectory($events);Assert-TrainDirectory $events
+    $entered=Join-Path $events ($Journal.phase+'.entered.json')
+    if(!(Test-Path -LiteralPath $entered)){Write-TrainJson $entered @{schemaVersion=13;cycle=$Journal.cycle;phase=$Journal.phase;dataset=$Journal.dataset;enteredUtc=[DateTime]::UtcNow.ToString('o');sourceSha=$Journal.sourceSha;jarSha=$Journal.jarSha}}
+    if(Test-Path -LiteralPath $Path){
+        $previous=Read-TrainJson $Path
+        if($previous.phase -cne $Journal.phase -or [int]$previous.cycle -ne [int]$Journal.cycle){
+            $previousEvents=Join-Path $parent ('cycles\c{0:D6}\phases' -f [int]$previous.cycle);$null=[IO.Directory]::CreateDirectory($previousEvents);Assert-TrainDirectory $previousEvents
+            $exit=Join-Path $previousEvents ($previous.phase+'.exited.json')
+            if(!(Test-Path -LiteralPath $exit)){Write-TrainJson $exit @{schemaVersion=13;cycle=$previous.cycle;phase=$previous.phase;nextPhase=$Journal.phase;exitedUtc=[DateTime]::UtcNow.ToString('o');completedCycles=$Journal.completedCycles;patience=$Journal.patience}}
+        }
+    }
+    Write-TrainJson $Path $Journal
+    Write-TrainJson (Join-Path (Split-Path $events -Parent) 'cycle-status.json') $Journal
+}
+function Complete-TrainCycle013([string]$JournalPath,$Journal,[string]$CheckpointPath,[string]$CampaignDirectory) {
+    $checkpoint=Read-TrainJson $CheckpointPath
+    if($Journal.schemaVersion -ne 13 -or $checkpoint.schemaVersion -ne 13 -or $checkpoint.completed -ne $true){throw 'TRAIN013_CHECKPOINT_COMMIT_MARKER'}
+    if($Journal.phase -ceq 'NEW' -and $Journal.lastCheckpoint -ceq $CheckpointPath){return $Journal}
+    if($Journal.phase -cne 'CHECKPOINT' -or !$Journal.pendingDecision -or $checkpoint.cycleId -cne $Journal.dataset -or $Journal.pendingDecision.cycleId -cne $Journal.dataset -or [int]$checkpoint.patience -ne [int]$Journal.pendingDecision.patience){throw 'TRAIN013_CHECKPOINT_PENDING_DECISION_CHANGED'}
+    $cycleDirectory=Split-Path $CheckpointPath -Parent
+    foreach($name in @('fit-result.json','eval-v2.json','decision.json')){
+        $sha=if($name -ceq 'fit-result.json'){$checkpoint.fitSha}elseif($name -ceq 'eval-v2.json'){$checkpoint.evalSha}else{$checkpoint.decisionSha}
+        Assert-TrainHash (Join-Path $cycleDirectory $name) $sha
+    }
+    $decision=$Journal.pendingDecision
+    if($decision.improved){
+        $best=@{schemaVersion=13;modelVersion=$decision.bestVersion;modelSha=$decision.bestSha;authority='INDEPENDENT_MATCHED_SUPPORTED';evaluationSha=$checkpoint.evalSha;decisionSha=$checkpoint.decisionSha;productionPromotion=$false}
+        Write-TrainJson (Join-Path $CampaignDirectory ('best-verified-'+$decision.bestVersion+'.json')) $best;Write-TrainJson (Join-Path $CampaignDirectory 'best-verified-test.json') $best
+    }
+    foreach($key in @('patience','creditedCycles','bestVersion','bestSha','bestDecision','improved')){$Journal.$key=$decision.$key}
+    $Journal.reason=$decision.reason;$Journal.lastCheckpoint=$CheckpointPath;$Journal.completedCycles=[int]$Journal.completedCycles+1;$Journal.cycle=[int]$Journal.cycle+1;$Journal.phase='NEW';$Journal.dataset='';$Journal.pendingDecision=$null
+    Write-TrainJson (Join-Path $CampaignDirectory 'next-plan.json') @{schemaVersion=13;cycle=$Journal.cycle;dataset=($Journal.campaign+('-c{0:D6}' -f [int]$Journal.cycle));sourceCursor=([int]$Journal.cycle-1);planned=$true;previousCheckpointSha=(Get-FileHash -LiteralPath $CheckpointPath).Hash;requiresCodexCommand=$false}
+    Save-TrainCycleState013 $JournalPath $Journal
+    return $Journal
+}
+function Get-TrainCycleDecision013($Receipt,$Prior) {
+    foreach($key in @('schemaVersion','cycleId','fitCommitted','optimizerDelta','selectedEpoch','candidateVersion','candidateSha','evalValid','coverage','terminalPairs','paidDivergences','stockWins','learnedWins','stockDeaths','learnedDeaths','resourceComparable','resourceRegression','bestComparison','supportedGain','criticalRegression','reason')){
+        if(!$Receipt.PSObject.Properties[$key]){throw ('TRAIN013_DECISION_FIELD_'+$key)}
+    }
+    if($Receipt.schemaVersion -ne 13 -or $Receipt.cycleId -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$' -or $Receipt.candidateSha -cnotmatch '^[a-f0-9]{64}$' -or
+       [long]$Receipt.optimizerDelta -lt 0 -or [int]$Receipt.selectedEpoch -lt 0 -or [int]$Receipt.terminalPairs -lt 0 -or [int]$Prior.patience -lt 0){throw 'TRAIN013_DECISION_IDENTITY_OR_RANGE'}
+    $credited=@($Prior.creditedCycles);if(@($credited|Select-Object -Unique).Count -ne $credited.Count -or $credited.Count -gt 1000000){throw 'TRAIN013_CYCLE_CREDIT_CORRUPT'}
+    if($credited -ccontains $Receipt.cycleId){return $Prior}
+    $result=[pscustomobject]@{schemaVersion=13;cycleId=$Receipt.cycleId;phase='NEXT';reason='';patience=[int]$Prior.patience;creditedCycles=$credited;bestVersion=[long]$Prior.bestVersion;bestSha=$Prior.bestSha;bestDecision='UNRESOLVED';improved=$false;confidence='INSUFFICIENT';gameVerdict='INCONCLUSIVE'}
+    $reason=[string]$Receipt.reason
+    if(!$reason){
+        if(!$Receipt.fitCommitted -or [long]$Receipt.optimizerDelta -le 0){$reason='NO_DATA'}
+        elseif(!$Receipt.coverage){$reason='EVAL_COVERAGE_GAP'}
+        elseif(!$Receipt.evalValid){$reason='INVALID_EVAL'}
+        elseif([int]$Receipt.terminalPairs -lt 4 -or !$Receipt.resourceComparable){$reason='EVAL_COVERAGE_GAP'}
+    }
+    if($reason){
+        $phases=@{NO_DATA='INSUFFICIENT_EVIDENCE';EVAL_COVERAGE_GAP='PAUSED_EVAL_COVERAGE_GAP';INVALID_EVAL='FAILED_FAIL_CLOSED';FAILED_FAIL_CLOSED='FAILED_FAIL_CLOSED';RESOURCE_LIMIT='RESOURCE_LIMIT';PAUSED_BY_OWNER='PAUSED_BY_OWNER';STOPPED_BY_OWNER='STOPPED_BY_OWNER'}
+        if(!$phases.ContainsKey($reason)){throw 'TRAIN013_UNKNOWN_STOP_REASON'}
+        $result.phase=$phases[$reason];$result.reason=$reason;return $result
+    }
+    $result.creditedCycles=@($credited)+@([string]$Receipt.cycleId)
+    # Neither a fitted loss nor candidate-vs-stock is evidence of candidate-vs-best.
+    $gain=$Receipt.supportedGain -eq $true -and [int]$Receipt.selectedEpoch -gt 0 -and [int]$Receipt.paidDivergences -gt 0 -and
+        [int]$Receipt.terminalPairs -ge 32 -and $Receipt.bestComparison -ceq 'INDEPENDENT_MATCHED_SUPPORTED' -and
+        $Receipt.PSObject.Properties['bestEvidenceSha'] -and $Receipt.bestEvidenceSha -cmatch '^[a-f0-9]{64}$' -and
+        $Receipt.PSObject.Properties['qualityLower95'] -and [double]$Receipt.qualityLower95 -gt 0 -and [double]$Receipt.qualityLower95 -le 1 -and
+        [int]$Receipt.learnedDeaths -le [int]$Receipt.stockDeaths -and !$Receipt.resourceRegression -and !$Receipt.criticalRegression
+    if($gain){$result.patience=0;$result.improved=$true;$result.bestVersion=[long]$Receipt.candidateVersion;$result.bestSha=$Receipt.candidateSha;$result.bestDecision='IMPROVEMENT_SUPPORTED';$result.reason='IMPROVEMENT_SUPPORTED';$result.confidence='SUPPORTED';$result.gameVerdict='ADVANTAGE_SUPPORTED'}
+    else{
+        $result.patience++;$result.reason='NO_SUPPORTED_GAIN_LOW_POWER'
+        if([int]$Receipt.paidDivergences -eq 0){$result.gameVerdict='NO_POLICY_DIVERGENCE'}
+        if($Receipt.criticalRegression -or $Receipt.resourceRegression -or ($Receipt.PSObject.Properties['regressionObserved'] -and $Receipt.regressionObserved)){$result.reason='REGRESSION_OBSERVED';$result.bestDecision='REJECTED';$result.gameVerdict='REGRESSION_OBSERVED'}
+        if($Receipt.criticalRegression){$result.phase='PAUSED_REGRESSION_OBSERVED'}elseif($result.patience -ge 3){$result.phase='PAUSED_NO_MEASURABLE_PROGRESS'}
+    }
+    return $result
 }
 function Assert-TrainConfig($Values) {
     foreach($entry in @{maxTrainingCohorts=32;maxStoredActors=4096;maxStoredProfiles=4096;cpuBudgetPercent=75;maxAdaptiveIdleSeconds=300}.GetEnumerator()){
