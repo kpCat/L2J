@@ -1,0 +1,90 @@
+{
+  "schema": "PHANTOM013_SOURCE_GITHUB_READBACK_V1",
+  "status": "SOURCE_VERIFIED_NATIVE_NOT_RUN",
+  "sourceHead": "d12a506a520b958e2bac82c247c4da95c43d5b16",
+  "sourceParent": "4e349e25f80771457cbf6db382fde7085241dd1f",
+  "initialHead": "52aac9e0274a63906a9fe5053611b8daf1aac778",
+  "branch": "feature/phantom-world",
+  "sourceCount": 10,
+  "method": "Independent GitHub connector full base64 file fetch; all10 bodies decoded and Git SHA1(blob length NUL body) recomputed and matched local ls-tree. Eight unchanged bodies fetched at a954c16; two modified bodies fetched at d12a506. Parents independently read through public GitHub REST because connector omits them.",
+  "fullBodyHashesVerified": 10,
+  "files": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "gitBlobSha": "c2604470a5f6839687aebea29118226d2fce492b",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 450774
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "gitBlobSha": "3cae687fd61abe5b1770d44825e0fe2a64d75e25",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 22993
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "gitBlobSha": "b66022eaa271d20bfc2c446b1f477710ad76150b",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 41363
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "gitBlobSha": "6060b69a2e04a6e2a38aa122e035a7e55835f1c3",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 266038
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+      "gitBlobSha": "6fe98acad329c65aa7ef8d4acd2f829399a03b37",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 31537
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+      "gitBlobSha": "a88b4382d62dbf519524c76d2c671465f1941b92",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 3738
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "gitBlobSha": "1c21c0d7f4ee2dfd588b56a331d3a82784710f20",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 101793
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "gitBlobSha": "d9d25f6e90f624d2056973325b7b1b28aa1e6a0d",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 186327
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+      "gitBlobSha": "5265d28114bcd26940b63706585ed22c60932466",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 23258
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "gitBlobSha": "0f48066eb0e5144b917c6d1a76c03297e25ad642",
+      "encoding": "base64",
+      "fullBodyRetrieved": true,
+      "base64Characters": 78821
+    }
+  ],
+  "sourceCompare": {
+    "aheadBy": 3,
+    "behindBy": 0,
+    "fileCount": 28
+  },
+  "nativeStarts": 0,
+  "full013": false
+}

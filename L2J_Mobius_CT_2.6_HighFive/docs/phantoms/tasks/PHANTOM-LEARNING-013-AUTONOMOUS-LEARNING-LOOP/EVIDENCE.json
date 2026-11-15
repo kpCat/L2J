@@ -1,0 +1,345 @@
+{
+  "schema": "PHANTOM_LEARNING013_EVIDENCE_V1",
+  "status": "PARTIAL013_PRE_NATIVE_ADMISSION_UNFINISHED",
+  "full013": false,
+  "trainingWorked013": false,
+  "selectedWeightsChanged013": false,
+  "gameVerdict": "NO_EVAL",
+  "gameImprovementSupported": false,
+  "productionPromotion": false,
+  "nightReady": false,
+  "taskCounter": {
+    "number": 7,
+    "total": 13,
+    "remaining": 6,
+    "nextGoalStarted": false
+  },
+  "manualGates": {
+    "goal013": "REQUIRED",
+    "historical012": "REQUIRED"
+  },
+  "source": {
+    "branch": "feature/phantom-world",
+    "baseline": "52aac9e0274a63906a9fe5053611b8daf1aac778",
+    "implementationHead": "d12a506a520b958e2bac82c247c4da95c43d5b16",
+    "commits": [
+      "a954c16b652be9ca67426d3ed2cfa9a0d1b26b16",
+      "4e349e25f80771457cbf6db382fde7085241dd1f",
+      "d12a506a520b958e2bac82c247c4da95c43d5b16"
+    ],
+    "exactSourceCount": 10,
+    "files": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "bytes": 332536,
+        "sha256": "C58E8FCBCFBE92FC5BA6A5C29D7DC7B6F3F592C60110F1179DD6DF8F3B7E3648",
+        "gitBlobSha": "c2604470a5f6839687aebea29118226d2fce492b"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+        "bytes": 17203,
+        "sha256": "2A186F06C43957099E0B4D9AA0B25F6FBFF47888ADF3001320168B8E29719BE1",
+        "gitBlobSha": "3cae687fd61abe5b1770d44825e0fe2a64d75e25"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+        "bytes": 30835,
+        "sha256": "956EA4CE2FE3CDBDE90EBD240E7942D535B45400C6B56AC41330A3E7DFF4B2B3",
+        "gitBlobSha": "b66022eaa271d20bfc2c446b1f477710ad76150b"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "bytes": 198315,
+        "sha256": "86F882E20842245C277EEAD82067F0E6D978A0B8EA042D86743FFC1AB41AC0BA",
+        "gitBlobSha": "6060b69a2e04a6e2a38aa122e035a7e55835f1c3"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+        "bytes": 23265,
+        "sha256": "F4ECBAEBB624102ADB273C764CD8F9C6DCE59314FC25FD3560B52611BDE3CE74",
+        "gitBlobSha": "6fe98acad329c65aa7ef8d4acd2f829399a03b37"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+        "bytes": 2847,
+        "sha256": "AAAC434749E0851F0C71BF325D4A507134A97D7A4266F455B7BF1D99A49F5662",
+        "gitBlobSha": "a88b4382d62dbf519524c76d2c671465f1941b92"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+        "bytes": 75846,
+        "sha256": "66B9E58460CC46C0BFF403BF954C84437FB808CEB8D948940BF44ADDF2A52BC5",
+        "gitBlobSha": "1c21c0d7f4ee2dfd588b56a331d3a82784710f20"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "bytes": 138915,
+        "sha256": "5DE9FD3C332F88FF6F53D2FD3955A989D298D30091C87F82994DDD6AAD635D86",
+        "gitBlobSha": "d9d25f6e90f624d2056973325b7b1b28aa1e6a0d"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+        "bytes": 17391,
+        "sha256": "6322F676707CB273EC360BB61EF4FC78AFD8110DA64F268134B7034A62AC2D2F",
+        "gitBlobSha": "5265d28114bcd26940b63706585ed22c60932466"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+        "bytes": 58786,
+        "sha256": "EF6F4197AE7A57799592F4524416AB0639173B741C6E684C7F8B2A5A3A414646",
+        "gitBlobSha": "0f48066eb0e5144b917c6d1a76c03297e25ad642"
+      }
+    ],
+    "physicalHashesCheckout": "source004; Git blob SHA is canonical across checkout EOL normalization",
+    "independentFullSourceBodiesVerified": 10,
+    "bodyGitShaRecomputed": true,
+    "sourceReadback": "READBACK_SOURCE.json",
+    "deliveryReadback": "READBACK_DELIVERY.json after final evidence push; no pre-publication success claim"
+  },
+  "implementation": {
+    "owner": "existing Training Director",
+    "trainer": "existing TacticalTrainerV3",
+    "store": "existing TacticalStoreV3",
+    "evaluation": "existing EVAL V2",
+    "filesystemProtocolVersion": 13,
+    "defaultEnabled": false,
+    "sqlModelRewardObjectiveSchemaChanged": false,
+    "secondSupervisorAdded": false,
+    "experimentalSelectedTerminalBestSeparate": true,
+    "realCycleNativeVerified": false
+  },
+  "budget": {
+    "maximumStarts": 4,
+    "maximumNativeMillis": 4800000,
+    "starts": 0,
+    "nativeMillis": 0,
+    "newNativeAttemptDirectories": 0,
+    "runtimeLedgerCreated": false,
+    "childMaximumStarts": 2,
+    "childMaximumNativeMillis": 2100000,
+    "trainingCuts": 0,
+    "fits": 0,
+    "optimizerDelta": 0,
+    "newModels": 0,
+    "freshV2Pairs": 0
+  },
+  "preflight": {
+    "seed": 183,
+    "sourceCursor": 0,
+    "campaigns": [
+      {
+        "campaign": "autonomous009-goal013-gui-20261115",
+        "wrapperExit": 1,
+        "workerExit": 2,
+        "reason": "AUTONOMOUS_PRE_CUT_SUPPORTED_STOCK_HEAL_OFFERS",
+        "admissionOnly": 0,
+        "cuts": 0,
+        "sealedCohorts": 0
+      },
+      {
+        "campaign": "autonomous009-goal013-gui-r1-20261115",
+        "wrapperExit": 1,
+        "workerExit": 2,
+        "reason": "AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED",
+        "actualWait": "WAIT_GROUP_MP",
+        "requiredMp": 3060,
+        "availableMp": 2806,
+        "admissionOnly": 2,
+        "cuts": 0,
+        "sealedCohorts": 0
+      },
+      {
+        "campaign": "autonomous009-goal013-gui-r2-20261115",
+        "wrapperExit": 1,
+        "workerExit": "UNKNOWN_NO_HELD_EXIT_RECEIPT_AFTER_TIMEOUT",
+        "reason": "TRAIN002_WORKER_TIMEOUT_NO_FORCE",
+        "workerDeadlineSeconds": 600,
+        "cooperativeDrainAtSeconds": 626,
+        "terminalDiagnostic": "AUTONOMOUS_PREPARATION_REQUESTED_DRAIN",
+        "workerAbsentAfterDrain": true,
+        "admissionOnly": 2,
+        "cuts": 0,
+        "sealedCohorts": 0
+      }
+    ],
+    "finalProofHashes": [
+      {
+        "file": "cohorts/autonomous009-goal013-gui-r2-20261115-c000001/3e2216fc95126beb95dcf085026b19e5529c9c20bb0058e1dfe0d82f4610d9ad/admission-only.json",
+        "bytes": 109,
+        "sha256": "DF0447968142323842EEFE9ABAF737CFA1D34FA67D18EA341AC3A5B237FA2E27"
+      },
+      {
+        "file": "cohorts/autonomous009-goal013-gui-r2-20261115-c000001/a43b778066a339352619c415a3b1c28c071051ff7cc533b804dee2fa6224cd80/admission-only.json",
+        "bytes": 109,
+        "sha256": "DF0447968142323842EEFE9ABAF737CFA1D34FA67D18EA341AC3A5B237FA2E27"
+      }
+    ],
+    "sufficientTrainAdmission": false,
+    "independentV2Admission": false,
+    "minimumCells": 3,
+    "minimumClasses": 2,
+    "minimumScopes": 2,
+    "absenceOfAllLegalScenesProven": false,
+    "technicalTimeoutCountsAsStagnation": false,
+    "directBlockerFixes": 2,
+    "additionalBlocker": "HEADLESS_PREPARATION_TIMEOUT_AND_COHORT_CANCELLATION",
+    "additionalBlockerFixed": false,
+    "diagnosis": "BLOCKER013.md"
+  },
+  "lineage": {
+    "acceptedTest": 2,
+    "acceptedWeightsSha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "workingModel": 14,
+    "workingStatus": "DRAFT",
+    "selectedEpoch": 0,
+    "selectedWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "terminalOptimizerSha": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+    "terminalWeightsSha": "f830a1cc4ead23f36dd6153fd1d818bbb0ae3b830d9e666f1988a4c82f05e9bf",
+    "updates": 903,
+    "completedEpochs": 223,
+    "applications": 48,
+    "gradientEpisodes": 16,
+    "freshSqlRows": 183,
+    "beforeAndFinalSqlSha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+    "fiveSelectEquality": true,
+    "pointer12Sha256": "ACC21BED707B518FB58E23FEC006E7D658723763C73C237A039D950E14C9B010",
+    "newTrainingCredits": 0,
+    "historicalApplicationsUntouched": true,
+    "gradientNorm013": null,
+    "saturation013": null,
+    "newAuditLoss013": null
+  },
+  "validation": {
+    "targetedAntExit": 0,
+    "targetedAntSeconds": 275,
+    "targets": [
+      "phantom-learning013-test",
+      "phantom-learning012-test",
+      "phantom-learning011-test",
+      "phantom-autonomous-training-test",
+      "phantom-learning008-test",
+      "phantom-learning007-test",
+      "jar"
+    ],
+    "cycleConfigPowerShell51Exit": 0,
+    "syntheticCycleOnly": true,
+    "patienceThreeDistinctSufficientCycles": true,
+    "noDataErrorResourceOwnerDoNotIncrement": true,
+    "duplicateCheckpointCreditRejected": true,
+    "globalCampaignBudgetResetRejected": true,
+    "childTwoStartsThirtyFiveMinutesEnforced": true,
+    "evidenceTamperNegativeCases": 3,
+    "postFixWholeV2SuiteExit": 0,
+    "currentTestCompileAndJarExit": 0,
+    "powershellParserErrors": 0,
+    "guiCompileExit": 0,
+    "newGuiLifecycle": "NOT_RUN",
+    "designerRoundTrip": "NOT_RUN",
+    "realColdStopResume013": "NOT_RUN",
+    "replay012": {
+      "exit": 0,
+      "readOnly": true,
+      "pairs": 4,
+      "paidEffects": 43,
+      "trainingCredit": false,
+      "newIndependentEvaluation": false
+    },
+    "mojibakeFullMarkers": "NO_MATCH",
+    "escapedCyrillicIncludingXml": "NO_MATCH",
+    "strictUtf8": true,
+    "exactDiffCheckExit": 0
+  },
+  "safety": {
+    "finalState": "STOPPED",
+    "enabled": false,
+    "phase": "OFF",
+    "outcome006Enabled": false,
+    "explicitOwnOffAfterStandaloneStop": true,
+    "ownedProcesses": 0,
+    "portsFree": [
+      33357,
+      18001,
+      19301
+    ],
+    "finalCanonicalPreflightExit": 0,
+    "geoFilesVerified": 203,
+    "protectedFilesVerified": 207,
+    "geoManifestSha": "A8A4B73BC7B53BED28F545CD889F489492B585B369F8E84988F8DB8A91C973D5",
+    "protectedManifestSha": "246AC12CD718E698B18E6AB2B338622B24D505F75BA492EB1CD348BCA2E335CD",
+    "finalConfigSha": "D0A2BC8B59597B289AEDA6672AC8AF400D57B9F0B0299ABEFB0D1A0A2BA2FC54",
+    "testSourceFingerprint": "1e25bb1e168c4367174ce2ec18c746f3c0b6729261053a054dd6c7e3560e8436",
+    "testBuiltAndStagedJarSha": "284582564CD6E9E7F65E622B57120E204F55F8F86452F6A981DEB150311BB1B7",
+    "builtStagedJarEquality": true,
+    "initialJarShaPreservedInExternalBackup": "41072AD6AEF484C6135E15F80D1D460DA5C638819C7342945129A1A7B748F05C",
+    "mainHeadUnchanged": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+    "mainTrackedChanges": 0,
+    "mainUntrackedAtFinal": 111,
+    "mainWorkingFilesWritten": false,
+    "mainPlayChanged": false,
+    "foreignSqlPidObserved": 8692,
+    "foreignSqlQueriedOrChanged": false,
+    "forceKillUsed": false,
+    "newBranchesClonesWorktrees": false
+  },
+  "resources": {
+    "r1Headless": {
+      "elapsedMillis": 466418,
+      "cpuSeconds": 139.109375,
+      "peakWorkingSetBytes": 4634562560,
+      "exitObserved": true
+    },
+    "r2Headless": {
+      "lastObservedCpuSeconds": 116.5625,
+      "peakWorkingSetBytes": null,
+      "completeResourceReceipt": false
+    },
+    "finalFreeDiskBytes": 420254294016,
+    "nativeResourceMeasurements": "NOT_APPLICABLE_NO_GS"
+  },
+  "externalLogs": [
+    {
+      "file": "FIX-REGRESSION013.log",
+      "bytes": 54882,
+      "sha256": "9AADAEE716D559C3807E2A273CF18300BF588D5EC99EF25CEF1F455BBFAD1B8B"
+    },
+    {
+      "file": "OFFLINE-REPLAY012.log",
+      "bytes": 53981,
+      "sha256": "56CD328CAA82EA304A101998FD2960937D296D307A967CA00FEE853555093DEC"
+    },
+    {
+      "file": "PREPARE013.log",
+      "bytes": 183,
+      "sha256": "4D2771889A9D7311A682FF6D7290D62AD8F9D26BDD3E1A104F309D2675E58B3B"
+    },
+    {
+      "file": "PREPARE013-R1.log",
+      "bytes": 183,
+      "sha256": "4D2771889A9D7311A682FF6D7290D62AD8F9D26BDD3E1A104F309D2675E58B3B"
+    },
+    {
+      "file": "PREPARE013-R2.log",
+      "bytes": 189,
+      "sha256": "9547F7EA0A8E861AAFB6797EB70E96636B045D2B3CA290467F9159B7EC5312C6"
+    },
+    {
+      "file": "FINAL-EXPORT013.log",
+      "bytes": 130,
+      "sha256": "F16EBA023C15C9927E0A4C029C2F294D685D323475C75417EF17061E0BAAE318"
+    },
+    {
+      "file": "POST-HEAL013-V2.log",
+      "bytes": 50,
+      "sha256": "F4B78DEEB726D954D2913BDD8A13F084B1AF24FB4598DC600AB747585E99C25B"
+    }
+  ],
+  "privateSqlModelActorGeoLogsIncludedInGit": false,
+  "approvalReview": {
+    "initialWriteCapableHistoricalReplayRejected": true,
+    "rejectedCommandExecuted": false,
+    "safePureReadAlternativeExecuted": true,
+    "safeAlternativeExit": 0
+  },
+  "acceptanceMatrix": "ACCEPTANCE_RESULT.md",
+  "goalTechnicalObjectiveAchieved": false
+}

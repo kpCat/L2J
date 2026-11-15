@@ -1,3 +1,7 @@
+<!-- GOAL013_COUNTER -->
+013 — задача **№7 из13**, осталось **6**. **PARTIAL013_PRE_NATIVE_ADMISSION_UNFINISHED**: control/recovery/budget/V2 integration offline PASS, полный native TRAIN→FIT→new V2→checkpoint не выполнен.0GS/0native ms,0CUT/0optimizer delta/NO_EVAL. Headless R2 достиг600s deadline без sufficient cohort; третий timeout/cancellation blocker передан на review, budget/guards не расширялись. Исторические2/14/903/223/apps48/pointer12/183SQL rows сохранены; TEST OFF/owned0/portsfree, Geo203/protected207 PASS. Manual gate013 REQUIRED, следующий Goal не начат. [Итог013](tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/RESULT.md), [блокер](tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/BLOCKER013.md). Исторические статусы ниже не переписаны.
+<!-- GOAL013_COUNTER_END -->
+
 <!-- GOAL012_COUNTER -->
 012 — задача **№6 из13**, осталось **7**. ДополнениеR1: **FULL012_OUTCOME_AWARE_EVAL**,4native terminal-comparable pairs;gameINCONCLUSIVE. Manual gate REQUIRED;следующийGoalне начат. [Итог012R1](tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/R1_RESULT.md). Исторические статусы ниже не изменены.
 <!-- GOAL012_COUNTER_END -->
