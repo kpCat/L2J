@@ -1,5 +1,13 @@
 # BLOCKER013 — HEADLESS_PREPARATION_TIMEOUT
 
+## Продолжение F3 — разрешено владельцем 15 ноября 2026
+
+Владелец явно разрешил третье и последнее исправление в этом же Goal, только Training.ps1/существующий Native adapter/Test-Training.ps1. Новый deadline1200s включает210s cooperative drain и подтверждение exit; один новый combined TRAIN+independent V2 readiness pass, без четвёртого исправления. Native4GS/80min и игровые/SQL/model/objective guards прежние. Исходный PARTIAL ниже сохранён как исторический результат до этого разрешения.
+
+Offline F3: behavioral RED HEADLESS013_TIMEOUT_MUST_REQUEST_COHORT_DRAIN→GREEN; timeout/cancellation/restart/terminal credit guard и три real owned OS children с held exit, включая orphan-controller takeover. Дополнительно проверены combined READY iff complete, admission provenance, shared deadline/no reset и Native self-deadline/cancel contract. Synthetic/OS fixtures — не игровые данные. Targeted Ant013/012/011/009/008/007/JAR exit0 (4m), PS5.1 regressions exit0.
+
+Независимый read-only review F3 нашёл5 Important в новой реализации: public recovery до wait/config rewrite; terminal provenance existing admission; false combined READY; bounded SQL-admin; dead-controller cleanup. В одном fix pass закрыты внутри тех же трёх файлов и повторных focused tests. MariaDB11.4 --connect-timeout/--shutdown-timeout подтверждены actual --help. Runtime readiness ещё NOT_RUN; native0. Итог продолжения будет в F3_RESULT/F3_EVIDENCE, прежние расходы и checkpoints не сбрасываются.
+
 Статус: **PARTIAL013_PRE_NATIVE_ADMISSION_UNFINISHED**. Расход native0/4GS и0/4800000ms. Новый Goal не создан. Это технический timeout подготовки, не доказанный застой и не доказательство отсутствия всех законных сцен.
 
 ## Наблюдение

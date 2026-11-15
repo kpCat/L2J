@@ -26,6 +26,10 @@ $script:NativeRecord=$null
 $script:WorkerRecord=$null
 $script:Config=$null
 $script:AutonomousCheckpointContext=$null
+$script:HeadlessCleanupDeadline013=$null
+$script:ReadinessOnly013=$false
+$script:ReadinessDeadline013=$null
+$script:HeadlessAdoption013=$null
 function Test-TrainOutcomeV2($Values) {
     if(!$Values.ContainsKey('evaluationOutcomeVersion') -or $Values.evaluationOutcomeVersion -ceq '1'){return $false}
     if($Values.evaluationOutcomeVersion -cne '2' -or $Values.autonomous009EvaluationOnly -cne 'true' -or $Values.autonomous009Exploration -cne 'false' -or
@@ -255,11 +259,216 @@ function Ensure-TrainStage([string]$JarSha,$Assets) {
     Set-TrainIni $layout.Game 'Server.ini' @{LoginHost='127.0.0.1';LoginPort=$script:Config.loginPort;GameserverHostname='127.0.0.1';GameserverPort=$script:Config.gamePort;DatapackRoot='.'}
     Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json') $script:Config
 }
+function Open-TrainHeadless013([string]$Installation,$Values,[string]$Operation,[string]$ConfigSha,[datetime]$Now=[DateTime]::UtcNow) {
+    if($Operation -cnotin @('prepare','admit-eval') -or $Values.autonomous009Campaign -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,64}$' -or $Values.outcome006DatasetId -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$' -or $ConfigSha -cnotmatch '^[a-f0-9]{64}$'){throw 'TRAIN013_HEADLESS_IDENTITY'}
+    $relative=if($Operation -ceq 'prepare'){'cohorts\'+$Values.outcome006DatasetId}else{'evaluations\'+$Values.outcome006DatasetId+'-'+$Values.autonomous009ModelVersion}
+    $scope=Join-Path $Installation ('autonomous\v1\campaigns\'+$Values.autonomous009Campaign+'\'+$relative)
+    $null=[IO.Directory]::CreateDirectory($scope);Assert-TrainDirectory $scope;$path=Join-Path $scope 'headless-operation013.json';$recovered=Test-Path -LiteralPath $path
+    if($recovered){
+        $j=Read-TrainJson $path
+        foreach($field in @('issuedUtc','workDeadlineUtc','hardDeadlineUtc')){$j.$field=([datetime]$j.$field).ToUniversalTime().ToString('o')}
+        if($j.schemaVersion -ne 13 -or $j.operation -cne $Operation -or $j.configSha -cne $ConfigSha -or $j.scope -cne $scope -or $j.trainingCredit -ne $false -or $j.nonce -cnotmatch '^[a-f0-9]{32}$' -or
+           ([DateTime]::Parse($j.hardDeadlineUtc)-[DateTime]::Parse($j.issuedUtc)).TotalSeconds -ne 1200 -or ([DateTime]::Parse($j.workDeadlineUtc)-[DateTime]::Parse($j.issuedUtc)).TotalSeconds -ne 990){throw 'TRAIN013_HEADLESS_COLD_PIN_CHANGED'}
+    }else{
+        $pass=Get-Variable -Name ReadinessDeadline013 -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+        $issued=if($pass){[DateTime]::Parse($pass.issuedUtc).ToUniversalTime()}else{$Now.ToUniversalTime()}
+        $j=[pscustomobject]@{schemaVersion=13;operation=$Operation;scope=$scope;configSha=$ConfigSha;nonce=[guid]::NewGuid().ToString('N');issuedUtc=$issued.ToString('o');workDeadlineUtc=$issued.AddSeconds(990).ToString('o');hardDeadlineUtc=$issued.AddSeconds(1200).ToString('o');drainDeadlineUtc='';status='RUNNING';reason='';worker=$null;exitCode=$null;exitProven=$false;resultSha='';trainingCredit=$false}
+        Write-TrainJson $path $j
+    }
+    return [pscustomobject]@{scope=$scope;path=$path;journal=$j;recovered=$recovered;terminal=($j.status -cin @('READY','TIMEOUT','CANCELLED','INSUFFICIENT_EVIDENCE','ERROR','DRAIN_UNCONFIRMED'))}
+}
+function Update-TrainHeadless013($Context,[datetime]$Now,[bool]$Cancelled) {
+    $j=$Context.journal;if($Context.terminal){return $Context}
+    $stop=Join-Path $Context.scope 'stop.request'
+    if(!$j.reason){
+        if($Now.ToUniversalTime() -ge [DateTime]::Parse($j.workDeadlineUtc).ToUniversalTime()){$j.reason='TIMEOUT'}
+        elseif($Cancelled -or (Test-Path -LiteralPath $stop)){$j.reason='CANCELLED'}
+    }
+    if($j.reason){
+        if(!$j.drainDeadlineUtc){$drain=$Now.ToUniversalTime().AddSeconds(210);$hard=[DateTime]::Parse($j.hardDeadlineUtc).ToUniversalTime();if($drain -gt $hard){$drain=$hard};$j.drainDeadlineUtc=$drain.ToString('o')}
+        if(!(Test-Path -LiteralPath $stop)){Write-TrainText $stop $j.nonce}
+        if([IO.File]::ReadAllText($stop) -cne $j.nonce){throw 'TRAIN013_HEADLESS_STOP_IDENTITY'}
+        $j.status='DRAINING'
+        if($Now.ToUniversalTime() -ge ([datetime]$j.drainDeadlineUtc).ToUniversalTime()){$j.status='DRAIN_UNCONFIRMED'}
+        Write-TrainJson $Context.path $j
+    }
+    return $Context
+}
+function Close-TrainHeadless013($Context,[int]$ExitCode,[string]$NativeStatus,[bool]$ExitProven,[datetime]$Now=[DateTime]::UtcNow) {
+    $j=$Context.journal;$j.exitCode=$ExitCode;$j.exitProven=$ExitProven
+    $j.status=if(!$ExitProven){'ERROR'}elseif($j.reason){$j.reason}elseif($ExitCode -eq 0 -and $NativeStatus -ceq 'READY'){'READY'}elseif($NativeStatus -cin @('TIMEOUT','CANCELLED','INSUFFICIENT_EVIDENCE')){$NativeStatus}else{'ERROR'}
+    $j.reason=if($j.status -ceq 'READY'){''}else{$j.status}
+    Write-TrainJson $Context.path $j;$Context.terminal=$true
+}
+function Get-TrainHeadlessActive013 {
+    $activePath=Join-Path $layout.Root 'headless-active013.json';if(!(Test-Path -LiteralPath $activePath)){return $null}
+    $active=Read-TrainJson $activePath;$prefix=(Join-Path $layout.Root 'autonomous\v1\campaigns')+'\'
+    $scope=[IO.Path]::GetFullPath([string]$active.scope)
+    if(!$scope.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or $scope.Substring($prefix.Length) -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,64}\\(?:cohorts|evaluations)\\autonomous009-[A-Za-z0-9_-]{1,100}$'){throw 'TRAIN013_HEADLESS_CANCEL_SCOPE'}
+    $j=Read-TrainJson (Join-Path $scope 'headless-operation013.json')
+    if($j.nonce -cne $active.nonce -or $j.scope -cne $scope){throw 'TRAIN013_HEADLESS_CANCEL_IDENTITY'}
+    return [pscustomobject]@{scope=$scope;path=(Join-Path $scope 'headless-operation013.json');journal=$j;recovered=$true;terminal=($j.status -cnotin @('RUNNING','DRAINING'))}
+}
+function Test-TrainHeadlessController013($Record) {
+    $parent=Get-Process -Id $Record.parentProcessId -ErrorAction SilentlyContinue
+    if(!$parent){return $false}
+    try{return !$parent.HasExited -and $parent.StartTime.ToUniversalTime().ToFileTimeUtc() -eq [long]$Record.parentCreated}finally{$parent.Dispose()}
+}
+function Request-TrainHeadlessCancel013 {
+    $context=Get-TrainHeadlessActive013;if(!$context){return $false};$j=$context.journal;$scope=$context.scope
+    if($context.terminal -or !$j.worker){return $false}
+    if(Test-TrainExitReceipt $layout $j.worker){return $false}
+    if(Test-TrainProcessAbsent $j.worker){return $false}
+    Assert-TrainProcess $j.worker -Kind Worker
+    if($j.worker.nonce -cne $j.nonce){throw 'TRAIN013_HEADLESS_CANCEL_WORKER'}
+    Write-TrainText (Join-Path $scope 'stop.request') $j.nonce
+    return $true
+}
+function Get-TrainHeadlessCleanup013($Values) {
+    $copy=@{};foreach($key in $Values.Keys){$copy[$key]=$Values[$key]}
+    if($script:HeadlessCleanupDeadline013){$remaining=[Math]::Floor(($script:HeadlessCleanupDeadline013-[DateTime]::UtcNow).TotalSeconds);$copy.shutdownTimeoutSeconds=[string][Math]::Max(0,[Math]::Min([int]$copy.shutdownTimeoutSeconds,$remaining))}
+    return $copy
+}
+function Get-TrainHeadlessReadinessVerdict013([bool]$Complete,[string]$LastStatus,[bool]$WithinCap) {
+    if(!$WithinCap){return 'TIMEOUT'}
+    if($Complete){return 'READY'}
+    if($LastStatus -cin @('TIMEOUT','CANCELLED','INSUFFICIENT_EVIDENCE','ERROR','DRAIN_UNCONFIRMED')){return $LastStatus}
+    return 'ERROR'
+}
+function Assert-TrainHeadlessAdmission013([string]$Scope,[string]$Admission) {
+    if((Test-Path -LiteralPath $Admission) -and !(Test-Path -LiteralPath (Join-Path $Scope 'headless-operation013.json'))){throw 'TRAIN013_HEADLESS_ADMISSION_WITHOUT_PROVENANCE'}
+}
+function Throw-TrainHeadless013($Context) {
+    $failure=[InvalidOperationException]::new('TRAIN013_HEADLESS_'+$Context.journal.status);$failure.Data['headlessOperation']=$Context.journal.operation;throw $failure
+}
+function Stop-TrainHeadlessSql013($Values,$Record) {
+    if(!$script:HeadlessCleanupDeadline013){Stop-TrainSql $layout $Values $Record;return}
+    if(Test-TrainExitReceipt $layout $Record){return}
+    Assert-TrainSqlOptions $layout $Values $Record;Assert-TrainProcess $Record -Kind Sql -Port ([int]$Values.sqlPort)
+    $remaining=[Math]::Floor(($script:HeadlessCleanupDeadline013-[DateTime]::UtcNow).TotalSeconds)
+    if($remaining -lt 4){throw 'TRAIN013_HEADLESS_SQL_DRAIN_UNCONFIRMED'}
+    $sqlProcess=Get-Process -Id $Record.pid -ErrorAction Stop;$sqlHeld=Hold-ProcessHandle $sqlProcess
+    if($sqlProcess.StartTime.ToUniversalTime().ToFileTimeUtc() -ne [long]$Record.created){$sqlProcess.Dispose();throw 'TRAIN013_HEADLESS_SQL_IDENTITY'}
+    $adminNonce=[guid]::NewGuid().ToString('N');$directory=Join-Path $layout.Root ('workers\'+$adminNonce);$null=[IO.Directory]::CreateDirectory($directory);Assert-TrainDirectory $directory
+    $original=Join-Path $layout.Sql 'admin.client.ini';Assert-G0PhysicalFile $original;$lines=[IO.File]::ReadAllLines($original)
+    if($lines.Count -ne 5 -or ($lines[0..3] -join '|') -cne ('[client]|host=127.0.0.1|port='+$Values.sqlPort+'|user=root') -or $lines[4] -cnotmatch '^password=[0-9a-f]{64}$'){$sqlProcess.Dispose();throw 'TRAIN002_ADMIN_OPTIONS'}
+    $client=Join-Path $layout.Sql ('headless-stop.'+$adminNonce+'.client.ini');[IO.File]::Copy($original,$client,$false);Assert-TrainHash $client (Get-FileHash -LiteralPath $original).Hash
+    $connect=[Math]::Max(1,[Math]::Min(5,[Math]::Floor(($remaining-2)/2)));$shutdown=[Math]::Max(1,[Math]::Min([int]$Values.shutdownTimeoutSeconds,$remaining-$connect-2))
+    $adminArgs=@(('"--defaults-file='+$client+'"'),'--protocol=tcp','--host=127.0.0.1',('--port='+$Values.sqlPort),'--user=root',('--connect-timeout='+$connect),('--shutdown-timeout='+$shutdown),'shutdown')
+    $adminProcess=$null
+    try{
+        $adminProcess=Start-Process -FilePath $layout.Admin -ArgumentList $adminArgs -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $directory 'admin.out') -RedirectStandardError (Join-Path $directory 'admin.err');$adminHeld=Hold-ProcessHandle $adminProcess
+        $adminRecord=@{pid=$adminProcess.Id;created=$adminProcess.StartTime.ToUniversalTime().ToFileTimeUtc()}
+        Write-TrainJson (Join-Path $directory 'process.json') @{schemaVersion=13;pid=$adminRecord.pid;created=$adminRecord.created;nonce=$adminNonce;image=$layout.Admin;imageSha=(Get-FileHash -LiteralPath $layout.Admin).Hash;clientSha=(Get-FileHash -LiteralPath $client).Hash;kind='OWN_SQL_ADMIN'}
+        $timer=[Diagnostics.Stopwatch]::StartNew()
+        while(!$adminProcess.WaitForExit(100) -and [DateTime]::UtcNow -lt $script:HeadlessCleanupDeadline013 -and $timer.ElapsedMilliseconds -lt $remaining*1000L){}
+        if(!$adminProcess.HasExited){throw 'TRAIN013_HEADLESS_SQL_ADMIN_UNCONFIRMED'}
+        Write-TrainJson (Join-Path $directory 'admin-exit.json') (Get-TrainHeldExitProof $adminRecord $adminProcess $adminHeld)
+        if((Get-TrackedProcessExitCode $adminProcess $adminHeld) -ne 0){throw 'TRAIN013_HEADLESS_SQL_SHUTDOWN_ERROR'}
+        while(!(Test-TrainProcessAbsent $Record $sqlProcess $sqlHeld) -and [DateTime]::UtcNow -lt $script:HeadlessCleanupDeadline013 -and $timer.ElapsedMilliseconds -lt $remaining*1000L){Start-Sleep -Milliseconds 100}
+        if(!(Test-TrainProcessAbsent $Record $sqlProcess $sqlHeld)){throw 'TRAIN013_HEADLESS_SQL_DRAIN_UNCONFIRMED'}
+        Write-TrainExitReceipt $layout $Record $sqlProcess $sqlHeld;Assert-TrainPortsFree @([int]$Values.sqlPort)
+        Write-TrainJson (Join-Path $layout.Sql 'headless-stop013.json') @{schemaVersion=13;adminNonce=$adminNonce;adminExitProven=$true;sqlExitProven=$true;hardDeadlineUtc=$script:HeadlessCleanupDeadline013.ToString('o');finishedUtc=[DateTime]::UtcNow.ToString('o')}
+    }finally{if($adminProcess){$adminProcess.Dispose()};$sqlProcess.Dispose()}
+}
+function Assert-TrainHeadlessResult013($Context,[string]$Installation) {
+    $result=Read-TrainJson (Join-Path $Context.scope 'headless-result013.json')
+    if($result.nonce -cne $Context.journal.nonce -or $result.configSha -cne $Context.journal.configSha -or $result.trainingCredit -ne $false){throw 'TRAIN013_HEADLESS_RESULT_IDENTITY'}
+    if($result.status -ceq 'READY'){
+        $proofRoot=if($Context.journal.operation -ceq 'prepare'){$Context.scope}else{Join-Path $Installation ('autonomous\v1\prepared\'+$Context.journal.configSha+'\'+(Get-FileHash -LiteralPath (Join-Path $Installation 'game\libs\GameServer.jar')).Hash.ToLowerInvariant())}
+        $names=@('cells.tsv',$(if($Context.journal.operation -ceq 'prepare'){'training-admission013.json'}else{'headless.complete'}))
+        $entries=@($result.proofFiles.PSObject.Properties);if($entries.Count -ne 2){throw 'TRAIN013_HEADLESS_PROOF_COUNT'}
+        foreach($name in $names){$file=Join-Path $proofRoot $name;$relative=$file.Substring($Installation.Length+1).Replace('\','/');$entry=$result.proofFiles.PSObject.Properties[$relative];if(!$entry){throw 'TRAIN013_HEADLESS_PROOF_PATH'};Assert-TrainHash $file ([string]$entry.Value)}
+    }
+    return $result
+}
+function Recover-TrainHeadless013($Context) {
+    $record=$Context.journal.worker
+    if(!$Context.recovered -or !$record -or $record.nonce -cne $Context.journal.nonce){throw 'TRAIN013_HEADLESS_RECOVERY_START_UNPROVEN'}
+    if(Test-TrainExitReceipt $layout $record){return @{process=$null;exitFact=(Read-TrainJson (Get-TrainExitReceiptPath $layout $record))}}
+    if(Test-TrainProcessAbsent $record){
+        throw 'TRAIN013_HEADLESS_RECOVERY_EXIT_UNPROVEN'
+    }
+    Assert-TrainProcess $record -Kind Worker
+    $process=Get-Process -Id $record.pid -ErrorAction Stop
+    if($process.StartTime.ToUniversalTime().ToFileTimeUtc() -ne [long]$record.created){$process.Dispose();throw 'TRAIN013_HEADLESS_RECOVERY_IDENTITY'}
+    return @{process=$process;exitFact=$null}
+}
+function Restore-TrainHeadlessConfig013 {
+    $raw=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
+    if(!$raw.ContainsKey('autonomous013Version') -or $raw.autonomous013Version -cne '1'){return}
+    $campaign=if($raw.ContainsKey('autonomous013ParentCampaign')){$raw.autonomous013ParentCampaign}else{$raw.autonomous009Campaign}
+    $directory=Join-Path $layout.Root ('autonomous\v13\campaigns\'+$campaign);$basePath=Join-Path $directory 'base-config.json'
+    if(Test-Path -LiteralPath $basePath){$j=Read-TrainJson (Join-Path $directory 'director-state.json');Assert-TrainHash $basePath $j.configSha;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') (Copy-TrainConfig013 (Read-TrainJson $basePath))}
+}
+function Recover-TrainHeadlessControl013($Dependencies,[switch]$Cancel) {
+    $context=Get-TrainHeadlessActive013;if(!$context -or !$context.journal.worker){return $false}
+    $configPath=Join-Path $layout.Root 'TRAIN_CONFIG.ini';$raw=Read-TrainConfig $configPath
+    if(!$raw.ContainsKey('autonomous013Version') -or $raw.autonomous013Version -cne '1'){return $false}
+    $scopeCampaign=$context.scope.Substring(((Join-Path $layout.Root 'autonomous\v1\campaigns')+'\').Length).Split('\')[0]
+    if($raw.autonomous009Campaign -cne $scopeCampaign){return $false}
+    if(Test-TrainHeadlessController013 $context.journal.worker){return $false}
+    if($context.terminal){Restore-TrainHeadlessConfig013;return $false}
+    if((Get-FileHash -LiteralPath $configPath).Hash.ToLowerInvariant() -cne $context.journal.configSha){throw 'TRAIN013_HEADLESS_RECOVERY_CONFIG_CHANGED'}
+    $previous=$script:Config;$script:Config=$raw;$deadline=([datetime]$context.journal.hardDeadlineUtc).ToUniversalTime()
+    $adoption=Recover-TrainHeadless013 $context
+    if($adoption.process){$script:HeadlessAdoption013=@{nonce=$context.journal.nonce;process=$adoption.process;handle=(Hold-ProcessHandle $adoption.process)}}
+    try{
+        if($Cancel){$null=Update-TrainHeadless013 $context ([DateTime]::UtcNow) $true}
+        Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @($context.journal.operation,$layout.Root)
+    }catch{
+        if(!$Cancel -or $_.Exception.Message -cnotmatch '^TRAIN013_HEADLESS_(CANCELLED|TIMEOUT)$'){throw}
+    }finally{
+        $script:HeadlessAdoption013=$null;if($adoption.process){$adoption.process.Dispose()}
+        if(!$script:HeadlessCleanupDeadline013 -or $script:HeadlessCleanupDeadline013 -gt $deadline){$script:HeadlessCleanupDeadline013=$deadline}
+        $sqlPath=Join-Path $layout.Sql 'owned-process.json'
+        if(Test-Path -LiteralPath $sqlPath){$sql=Read-TrainJson $sqlPath;if(!(Test-TrainExitReceipt $layout $sql) -and !(Test-TrainProcessAbsent $sql)){Stop-TrainHeadlessSql013 $raw $sql}}
+        Restore-TrainHeadlessConfig013
+        $state=Read-TrainJson $context.path
+        if($Cancel -or $state.status -cne 'READY'){$off=Read-TrainConfig $configPath;$off.autonomous009Enabled='false';$off.autonomous009Phase='OFF';$off.outcome006Enabled='false';Write-TrainConfig $configPath $off}
+        Write-TrainJson (Join-Path $context.scope 'headless-recovery013.json') @{schemaVersion=13;nonce=$state.nonce;status=$state.status;workerExitProven=$state.exitProven;finishedUtc=[DateTime]::UtcNow.ToString('o');trainingCredit=$false}
+        $script:Config=$previous
+    }
+    return $true
+}
 function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int]$TimeoutSeconds=600) {
+    $script:WorkerRecord=$null
     if($script:Config.ContainsKey('autonomous009EvaluationOnly') -and $script:Config.autonomous009EvaluationOnly -ceq 'true' -and $Class -ceq 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' -and $Arguments[0] -ceq 'train'){throw 'TRAIN010_EVAL_TRAINING_REFUSED'}
-    $workerId=[guid]::NewGuid().ToString('N');$directory=Join-Path $layout.Root ('workers\'+$workerId)
+    $headless=$null
+    if($script:Config.ContainsKey('autonomous013Version') -and $script:Config.autonomous013Version -ceq '1' -and $Class -ceq 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' -and $Arguments[0] -cin @('prepare','admit-eval')){
+        $headless=Open-TrainHeadless013 $layout.Root $script:Config $Arguments[0] (Get-FileHash -LiteralPath (Join-Path $layout.Root 'TRAIN_CONFIG.ini')).Hash.ToLowerInvariant()
+        $script:HeadlessCleanupDeadline013=[DateTime]::Parse($headless.journal.hardDeadlineUtc).ToUniversalTime()
+        if($script:ReadinessOnly013 -and !$script:ReadinessDeadline013){$script:ReadinessDeadline013=$headless.journal}
+        if($headless.terminal){
+            if($headless.journal.status -cne 'READY'){Throw-TrainHeadless013 $headless}
+            Assert-TrainHash (Join-Path $headless.scope 'headless-result013.json') $headless.journal.resultSha
+            $null=Assert-TrainHeadlessResult013 $headless $layout.Root
+            if(!$headless.journal.worker -or !(Test-TrainExitReceipt $layout $headless.journal.worker)){throw 'TRAIN013_HEADLESS_RECOVERY_EXIT_UNPROVEN'}
+            if(!$script:ReadinessOnly013){$script:HeadlessCleanupDeadline013=$null};return
+        }
+        $recovery=$null
+        if($headless.recovered){
+            if($script:HeadlessAdoption013 -and $script:HeadlessAdoption013.nonce -ceq $headless.journal.nonce){
+                $tracked=$script:HeadlessAdoption013;$held=Get-TrainHeldExitProof $headless.journal.worker $tracked.process $tracked.handle
+                if($held.exited){Write-TrainExitReceipt $layout $headless.journal.worker $tracked.process $tracked.handle $Class;$recovery=@{process=$null;exitFact=(Read-TrainJson (Get-TrainExitReceiptPath $layout $headless.journal.worker))}}
+                else{$recovery=@{process=$tracked.process;exitFact=$null}}
+            }else{$recovery=Recover-TrainHeadless013 $headless}
+            if($recovery.exitFact){
+                $resultPath=Join-Path $headless.scope 'headless-result013.json';$nativeResult=if(Test-Path -LiteralPath $resultPath){Assert-TrainHeadlessResult013 $headless $layout.Root}else{[pscustomobject]@{status='ERROR'}}
+                if(Test-Path -LiteralPath $resultPath){$headless.journal.resultSha=(Get-FileHash -LiteralPath $resultPath).Hash}
+                if(!$headless.journal.reason -and ([datetime]$recovery.exitFact.terminatedUtc).ToUniversalTime() -gt [DateTime]::Parse($headless.journal.workDeadlineUtc).ToUniversalTime()){$headless.journal.reason='TIMEOUT'}
+                Close-TrainHeadless013 $headless ([int]$recovery.exitFact.exitCode) $nativeResult.status $true
+                if($headless.journal.status -cne 'READY'){Throw-TrainHeadless013 $headless}
+                if(!$script:ReadinessOnly013){$script:HeadlessCleanupDeadline013=$null};return
+            }
+        }
+        $null=Update-TrainHeadless013 $headless ([DateTime]::UtcNow) $false
+        if(!$headless.recovered -and $headless.journal.reason){Close-TrainHeadless013 $headless -1 $headless.journal.reason $true;Throw-TrainHeadless013 $headless}
+    }
+    $workerId=if($headless){$headless.journal.nonce}else{[guid]::NewGuid().ToString('N')};$directory=Join-Path $layout.Root ('workers\'+$workerId)
     $null=[IO.Directory]::CreateDirectory($directory)
     $javaArguments=@(Get-TrainJavaArguments $Class $Arguments $layout.ClassPath $workerId ([int]$script:Config.cpuCount) ([int]$script:Config.maxHeapMb))
+    if($headless){$javaArguments=@('-Dphantom.training.headless013=true')+$javaArguments}
     if($script:Config.ContainsKey('autonomous009FaultOnce') -and $script:Config.autonomous009FaultOnce -ceq 'true' -and $Class -ceq 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' -and $Arguments[0] -ceq 'train'){
         if($script:Config.autonomous009Phase -cne 'FIT'){throw 'TRAIN009_FAULT_OFFLINE_FIT_ONLY'}
         $javaArguments=@('-Dphantom.learning009.preCommitFault=true')+$javaArguments
@@ -268,15 +477,21 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
         if($script:Config.exploration007Phase -cne 'FIT'){throw 'TRAIN007_FAULT_OFFLINE_FIT_ONLY'}
         $javaArguments=@('-Dphantom.learning007.preCommitFault=true')+$javaArguments
     }
-    $process=Start-Process -FilePath $Dependencies.Java -ArgumentList $javaArguments -WorkingDirectory $layout.Game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $directory 'worker.out') -RedirectStandardError (Join-Path $directory 'worker.err')
+    if($headless -and $headless.recovered){
+        $process=$recovery.process
+    }else{$process=Start-Process -FilePath $Dependencies.Java -ArgumentList $javaArguments -WorkingDirectory $layout.Game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $directory 'worker.out') -RedirectStandardError (Join-Path $directory 'worker.err')}
     $handle=Hold-ProcessHandle $process
+    $record=$null
     $workerResources=Get-TrainProcessResources $process
     try{
-    $record=New-TrainProcessRecord $process $Dependencies.Java $workerId Worker (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
+    $record=if($headless -and $headless.recovered){$headless.journal.worker}else{New-TrainProcessRecord $process $Dependencies.Java $workerId Worker (Join-Path $layout.Root 'TRAIN_CONFIG.ini')}
     $script:WorkerRecord=$record
     Write-TrainJson (Join-Path $directory 'process.json') $record
     Write-TrainJson (Join-Path $layout.Root 'worker-process.json') $record
+    if($headless){$headless.journal.worker=$record;Write-TrainJson $headless.path $headless.journal;Write-TrainJson (Join-Path $layout.Root 'headless-active013.json') @{scope=$headless.scope;nonce=$workerId}}
     $deadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    $timer=[Diagnostics.Stopwatch]::StartNew();$remainingWork=if($headless){[Math]::Max(0,([DateTime]::Parse($headless.journal.workDeadlineUtc).ToUniversalTime()-[DateTime]::UtcNow).TotalMilliseconds)}else{0}
+    $remainingHard=if($headless){[Math]::Max(0,($script:HeadlessCleanupDeadline013-[DateTime]::UtcNow).TotalMilliseconds)}else{0};$drainElapsed=-1L
     while(!$process.WaitForExit(1000)){
         $workerResources=Get-TrainProcessResources $process $workerResources
         Assert-TrainAutonomousResources
@@ -294,7 +509,14 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
             throw
         }
         if($script:State){Publish-TrainState $script:State.phase}
-        if([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_WORKER_TIMEOUT_NO_FORCE'}
+        if($headless){
+            $cancelled=(Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')
+            $now=[DateTime]::UtcNow
+            if($timer.ElapsedMilliseconds -ge $remainingWork -and !$headless.journal.reason){$now=[DateTime]::Parse($headless.journal.workDeadlineUtc).ToUniversalTime()}
+            $null=Update-TrainHeadless013 $headless $now $cancelled
+            if($headless.journal.reason -and $drainElapsed -lt 0){$drainElapsed=$timer.ElapsedMilliseconds;$script:HeadlessCleanupDeadline013=([datetime]$headless.journal.drainDeadlineUtc).ToUniversalTime()}
+            if([DateTime]::UtcNow -ge $script:HeadlessCleanupDeadline013 -or $timer.ElapsedMilliseconds -ge $remainingHard -or ($drainElapsed -ge 0 -and $timer.ElapsedMilliseconds-$drainElapsed -ge 210000) -or $headless.journal.status -ceq 'DRAIN_UNCONFIRMED'){throw 'TRAIN013_HEADLESS_DRAIN_UNCONFIRMED'}
+        }elseif([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_WORKER_TIMEOUT_NO_FORCE'}
     }
     $exit=Get-TrackedProcessExitCode $process $handle
     $workerResources=Get-TrainProcessResources $process $workerResources
@@ -302,12 +524,33 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
     Assert-TrainHash $record.image $record.imageHash
     Assert-TrainHash $record.configPath $record.configHash
     Write-TrainExitReceipt $layout $record $process $handle $Class
+    if($headless){
+        $null=Update-TrainHeadless013 $headless ([DateTime]::UtcNow) $false
+        $resultPath=Join-Path $headless.scope 'headless-result013.json';$nativeStatus='ERROR'
+        if(Test-Path -LiteralPath $resultPath){$nativeResult=Assert-TrainHeadlessResult013 $headless $layout.Root;$nativeStatus=$nativeResult.status;$headless.journal.resultSha=(Get-FileHash -LiteralPath $resultPath).Hash}
+        Close-TrainHeadless013 $headless $exit $nativeStatus (Test-TrainExitReceipt $layout $record)
+        if($headless.journal.status -cne 'READY'){Throw-TrainHeadless013 $headless}
+        if(!$script:ReadinessOnly013){$script:HeadlessCleanupDeadline013=$null}
+    }
     if($exit -ne 0){throw ('TRAIN002_WORKER_FAILED:'+ $Class)}
     $script:WorkerRecord=$null
     }catch{
-        if(!$_.Exception.Data.Contains('pid')){$_.Exception.Data['pid']=$process.Id}
-        $null=Save-TrainFailure $layout $script:State $_ 'WORKER'
-        throw
+        $primary=$_
+        if($headless -and !$headless.terminal){
+            try{
+                $headless.journal.reason=if($headless.journal.reason){$headless.journal.reason}else{'ERROR'};$null=Update-TrainHeadless013 $headless ([DateTime]::UtcNow) $false
+                $script:HeadlessCleanupDeadline013=([datetime]$headless.journal.drainDeadlineUtc).ToUniversalTime();$drainTimer=[Diagnostics.Stopwatch]::StartNew()
+                while(!$process.HasExited -and [DateTime]::UtcNow -lt $script:HeadlessCleanupDeadline013 -and $drainTimer.ElapsedMilliseconds -lt 210000){$null=$process.WaitForExit(250)}
+                if($process.HasExited -and $record){
+                    Write-TrainExitReceipt $layout $record $process $handle $Class
+                    Write-TrainJson (Join-Path $directory 'resources.json') (Get-TrainProcessResources $process $workerResources)
+                    Close-TrainHeadless013 $headless (Get-TrackedProcessExitCode $process $handle) 'ERROR' (Test-TrainExitReceipt $layout $record)
+                }else{$headless.journal.status='DRAIN_UNCONFIRMED';Write-TrainJson $headless.path $headless.journal}
+            }catch{$null=Save-TrainFailure $layout $script:State $_ 'HEADLESS_CLEANUP'}
+        }
+        if(!$primary.Exception.Data.Contains('pid')){$primary.Exception.Data['pid']=$process.Id}
+        $null=Save-TrainFailure $layout $script:State $primary 'WORKER'
+        throw $primary
     }finally{$process.Dispose()}
 }
 function Wait-TrainWorker([int]$Seconds) {
@@ -710,10 +953,11 @@ function Invoke-TrainEvaluation013($Dependencies,[string]$Jar,$Journal,[string]$
         $script:Config=$child;Assert-TrainConfig $child;$null=Test-TrainOutcomeV2 $child;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $child
         $evaluationDirectory=Join-Path $layout.Root ('autonomous\v1\campaigns\'+$child.autonomous009Campaign+'\evaluations\'+$child.outcome006DatasetId+'-'+$candidate.candidateVersion)
         $admission=Join-Path $CycleDirectory ('child'+$suffix+'-admitted.json')
+        if($VerifyOnly -and !(Test-Path -LiteralPath $admission)){throw 'TRAIN013_EVALUATION_ADMISSION_MISSING'}
+        Assert-TrainHeadlessAdmission013 $evaluationDirectory $admission
+        Publish-TrainState 'AUDITING' 'Проверка независимых законных V2 сцен и terminal provenance до GameServer.'
+        Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('admit-eval',$layout.Root)
         if(!(Test-Path -LiteralPath $admission)){
-            if($VerifyOnly){throw 'TRAIN013_EVALUATION_ADMISSION_MISSING'}
-            Publish-TrainState 'AUDITING' 'Проверка независимых законных V2 сцен до GameServer.'
-            Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('admit-eval',$layout.Root)
             Write-TrainJson $admission @{schemaVersion=13;cycleId=$Journal.dataset;modelVersion=$candidate.candidateVersion;modelSha=$candidate.candidateSha;configSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'TRAIN_CONFIG.ini')).Hash;prepared=$true;nativeEvidence=$false;trainingCredit=$false}
         }
         if($PrepareOnly){return $null}
@@ -791,15 +1035,22 @@ function Invoke-TrainAutonomousDirector013($Dependencies,[string]$Jar) {
         if($journal.phase -ceq 'COLLECT'){
             $config.autonomous009Phase='COLLECT';$script:Config=$config;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $config
             try{
-                if(!(Test-Path -LiteralPath (Join-Path $cohort 'training-admission013.json'))){Publish-TrainState 'COLLECTING' 'Проверка законного TRAIN cohort до GS.';Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('prepare',$layout.Root)}
+                Assert-TrainHeadlessAdmission013 $cohort (Join-Path $cohort 'training-admission013.json')
+                Publish-TrainState 'COLLECTING' 'Проверка законного TRAIN cohort и terminal provenance до GS.';Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('prepare',$layout.Root)
                 $admission=Read-TrainJson (Join-Path $cohort 'training-admission013.json')
                 if([int]$admission.cells -lt [int]$admission.minimumCells -or [int]$admission.classes -lt 2 -or [int]$admission.scopes -lt 2){$journal.reason='NO_DATA';Save-TrainCycleState013 $path $journal;continue}
                 if(!(Test-Path -LiteralPath (Join-Path $cycleDirectory 'child-probe-admitted.json'))){$null=Invoke-TrainEvaluation013 $Dependencies $Jar $journal $path $cycleDirectory $true}
             }catch{
-                $cause=Get-TrainAdmissionFailure013
+                $cause=if($_.Exception.Message -ceq 'TRAIN013_HEADLESS_INSUFFICIENT_EVIDENCE'){$(if($_.Exception.Data['headlessOperation'] -ceq 'prepare'){'TRAIN013_INSUFFICIENT_LEGAL_COHORT'}else{'EVAL012_INSUFFICIENT_COVERAGE'})}else{Get-TrainAdmissionFailure013}
                 if(!$cause){throw}
                 $journal.reason=if($cause -ceq 'TRAIN013_INSUFFICIENT_LEGAL_COHORT'){'NO_DATA'}else{'EVAL_COVERAGE_GAP'};Save-TrainCycleState013 $path $journal;continue
             }
+            if($script:ReadinessOnly013){
+                Write-TrainJson (Join-Path $directory 'readiness-complete013.json') @{schemaVersion=13;campaign=$campaign;cycleId=$journal.dataset;trainAdmissionSha=(Get-FileHash -LiteralPath (Join-Path $cohort 'training-admission013.json')).Hash;independentProbeSha=(Get-FileHash -LiteralPath (Join-Path $cycleDirectory 'child-probe-admitted.json')).Hash;nativeStarted=$false;trainingCredit=$false;requiresCodexPhaseCommand=$false}
+                return
+            }
+            $readinessResult=Join-Path $directory 'readiness-result013.json'
+            if((Test-Path -LiteralPath $readinessResult) -and (Read-TrainJson $readinessResult).status -cne 'READY'){throw 'TRAIN013_READINESS_NOT_READY_NO_NATIVE'}
             if(!(Test-Path -LiteralPath (Join-Path $cohort 'collection.complete'))){Publish-TrainState 'COLLECTING' 'Реальные TRAIN/TUNING/AUDIT бои.';Invoke-TrainAutonomousNative $Dependencies $Jar $journal $path}
             if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){continue}
             $journal.phase='FIT';Save-TrainCycleState013 $path $journal
@@ -1055,6 +1306,8 @@ function Invoke-TrainDirector {
         if(Test-TrainBootstrapCancelled $layout $record){return}
         $dependencies=Get-TrainDependencies
         # Recover the prior own JVM before touching SQL, config, actors or source JAR.
+        $null=Recover-TrainHeadlessControl013 $dependencies
+        $script:Config=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
         Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
         Wait-TrainWorker ([int]$script:Config.shutdownTimeoutSeconds)
         if($previous){Write-TrainJson (Join-Path $layout.Root 'recovery.json') @{previousGeneration=$previous.generation;generation=$script:State.generation;previousPhase=$previous.phase;recoveredUtc=[DateTime]::UtcNow.ToString('o')}}
@@ -1240,8 +1493,8 @@ function Invoke-TrainDirector {
         $clean=$false
         try{
             if($script:Config){Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)}
-            if($script:Config){Wait-TrainWorker ([int]$script:Config.shutdownTimeoutSeconds)}
-            if($script:SqlRecord -and !(Test-TrainProcessAbsent $script:SqlRecord)){Stop-TrainSql $layout $script:Config $script:SqlRecord}
+            if($script:Config){Wait-TrainWorker ([int](Get-TrainHeadlessCleanup013 $script:Config).shutdownTimeoutSeconds)}
+            if($script:SqlRecord -and !(Test-TrainProcessAbsent $script:SqlRecord)){Stop-TrainHeadlessSql013 (Get-TrainHeadlessCleanup013 $script:Config) $script:SqlRecord}
             if($script:Config){Assert-TrainPortsFree @([int]$script:Config.sqlPort,[int]$script:Config.gamePort,[int]$script:Config.loginPort)}
             if(Test-Path -LiteralPath (Join-Path $layout.Root 'protected207.json')){Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json') $script:Config}
             $clean=$true
@@ -1271,6 +1524,19 @@ try {
         exit 0
     }
     if($Action -eq 'Run'){Invoke-TrainDirector;exit 0}
+    if($Action -cin @('Stop','Pause') -and (Test-Path -LiteralPath $layout.Root)){
+        $active=Get-TrainHeadlessActive013
+        if($active -and !$active.terminal -and $active.journal.worker -and !(Get-TrainLiveDirector)){
+            if(!(Test-TrainHeadlessController013 $active.journal.worker)){
+                $initialization=Enter-TrainInitialization $layout
+                try{$null=Recover-TrainHeadlessControl013 (Get-TrainDependencies) -Cancel}finally{$initialization.ReleaseMutex();$initialization.Dispose()}
+                Write-Host 'Отмена headless обработана: собственные worker и SQL завершены, receipts сохранены.';exit 0
+            }
+            $null=Request-TrainHeadlessCancel013
+            Write-Host 'Отмена headless запрошена. Собственный controller завершит worker и SQL в сохранённом drain deadline; это ещё не подтверждение STOPPED.'
+            exit 0
+        }
+    }
     if(!(Test-Path -LiteralPath $layout.Root) -and $Action -notin @('Start','Resume')){
         if($Action -eq 'Stop'){Write-Host 'Тренажёр уже остановлен и ещё не установлен.';exit 0}
         throw 'TRAIN002_START_REQUIRED'
@@ -1301,6 +1567,7 @@ try {
             else{$pendingStopped=Stop-TrainPendingBootstrap $layout ([int]$script:Config.shutdownTimeoutSeconds+30)}
             $live=Get-TrainLiveDirector
         }
+        if($Action -cin @('Start','Resume','Prepare') -and !$live){$null=Recover-TrainHeadlessControl013 (Get-TrainDependencies);$script:Config=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')}
         if($Action -in @('Start','Resume')){
             if($live){
                 if($Action -eq 'Resume'){Request-TrainBoundary 'resume' $live.nonce;Write-Host 'Продолжение запрошено; committed история сохранена.'}
@@ -1432,9 +1699,23 @@ try {
                     $null=Test-TrainOutcomeV2 $script:Config
                     $jar=Ensure-TrainBuild $dependencies
                     $assets=Get-TrainAssets;Ensure-TrainStage $jar $assets
+                    $script:ReadinessOnly013=$Action -ceq 'Prepare' -and $script:Config.ContainsKey('autonomous013Version') -and $script:Config.autonomous013Version -ceq '1' -and $script:Config.autonomous009EvaluationOnly -cne 'true'
+                    if($script:ReadinessOnly013){
+                        $passRoot=Join-Path $layout.Root ('autonomous\v13\campaigns\'+$script:Config.autonomous009Campaign);$null=[IO.Directory]::CreateDirectory($passRoot);Assert-TrainDirectory $passRoot
+                        Restore-TrainHeadlessConfig013;$script:Config=Read-TrainSourceConfig;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config
+                        $passPath=Join-Path $passRoot 'readiness-issued013.json';$configSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'TRAIN_CONFIG.ini')).Hash
+                        if(Test-Path -LiteralPath $passPath){$pass=Read-TrainJson $passPath;if($pass.configSha -cne $configSha -or $pass.jarSha -cne $jar){throw 'TRAIN013_READINESS_COLD_PIN'}}
+                        else{$issued=[DateTime]::UtcNow;$pass=[pscustomobject]@{schemaVersion=13;nonce=[guid]::NewGuid().ToString('N');issuedUtc=$issued.ToString('o');hardDeadlineUtc=$issued.AddSeconds(1200).ToString('o');configSha=$configSha;jarSha=$jar;maximumSeconds=1200;drainReserveSeconds=210;trainingCredit=$false};Write-TrainJson $passPath $pass}
+                        if($pass.schemaVersion -ne 13 -or $pass.nonce -cnotmatch '^[a-f0-9]{32}$' -or $pass.maximumSeconds -ne 1200 -or $pass.drainReserveSeconds -ne 210 -or $pass.trainingCredit -ne $false -or (([datetime]$pass.hardDeadlineUtc).ToUniversalTime()-([datetime]$pass.issuedUtc).ToUniversalTime()).TotalSeconds -ne 1200){throw 'TRAIN013_READINESS_DEADLINE_PIN'}
+                        $script:ReadinessDeadline013=$pass;$script:HeadlessCleanupDeadline013=([datetime]$pass.hardDeadlineUtc).ToUniversalTime()
+                        if([DateTime]::UtcNow -ge $script:HeadlessCleanupDeadline013){throw 'TRAIN013_HEADLESS_TIMEOUT'}
+                        $script:DirectorNonce=$pass.nonce
+                        $script:State=[ordered]@{schemaVersion=1;runId=$pass.nonce;generation=0;nonce=$pass.nonce;phase='PREPARING';reason='Bounded headless readiness only; GS/FIT/credit disabled.';heartbeatUtc='';attemptId='';batchesCompleted=0;cpuSeconds=0;workingSetBytes=0;primaryFailureId='';primaryFailureCode='';primaryFailurePhase='';cleanupFailureId='';readinessOnly=$true}
+                    }
                     $script:SqlRecord=Start-TrainSql $dependencies
                     $operation=if($Action -eq 'Prepare' -and $script:Config.autonomous009EvaluationOnly -ceq 'true'){'admit-eval'}elseif($Action -eq 'Prepare'){'prepare'}else{'inspect'}
-                    Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @($operation,$layout.Root)
+                    if($script:ReadinessOnly013){Invoke-TrainAutonomousDirector013 $dependencies $jar;if(!(Test-Path -LiteralPath (Join-Path $passRoot 'readiness-complete013.json'))){throw 'TRAIN013_HEADLESS_INSUFFICIENT_EVIDENCE'}}
+                    else{Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @($operation,$layout.Root)}
                 }elseif($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){
                     Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @($Action.ToLowerInvariant(),$layout.Root)
                 }else{
@@ -1442,8 +1723,15 @@ try {
                     Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @($Action.ToLowerInvariant(),$layout.Root)
                 }
             }finally{
-                Wait-TrainWorker ([int]$script:Config.shutdownTimeoutSeconds)
-                if($script:SqlRecord -and !(Test-TrainProcessAbsent $script:SqlRecord)){Stop-TrainSql $layout $script:Config $script:SqlRecord}
+                Wait-TrainWorker ([int](Get-TrainHeadlessCleanup013 $script:Config).shutdownTimeoutSeconds)
+                if($script:SqlRecord -and !(Test-TrainProcessAbsent $script:SqlRecord)){Stop-TrainHeadlessSql013 (Get-TrainHeadlessCleanup013 $script:Config) $script:SqlRecord}
+                if($script:ReadinessOnly013){
+                    $finished=[DateTime]::UtcNow;$ready=Test-Path -LiteralPath (Join-Path $passRoot 'readiness-complete013.json');$within=$finished -le ([datetime]$pass.hardDeadlineUtc).ToUniversalTime();$lastStatus=if(Test-Path -LiteralPath (Join-Path $layout.Root 'headless-active013.json')){(Read-TrainJson (Join-Path (Read-TrainJson (Join-Path $layout.Root 'headless-active013.json')).scope 'headless-operation013.json')).status}else{'ERROR'};$result=Get-TrainHeadlessReadinessVerdict013 $ready $lastStatus $within
+                    Write-TrainJson (Join-Path $passRoot 'readiness-result013.json') @{schemaVersion=13;status=$result;finishedUtc=$finished.ToString('o');elapsedMillis=[long]($finished-([datetime]$pass.issuedUtc).ToUniversalTime()).TotalMilliseconds;withinCap=($finished -le ([datetime]$pass.hardDeadlineUtc).ToUniversalTime());ownedWorkerAbsent=$true;sqlAbsent=(!$script:SqlRecord -or (Test-TrainProcessAbsent $script:SqlRecord));nativeStarted=$false;trainingCredit=$false}
+                    $script:Config.autonomous009Enabled='false';$script:Config.autonomous009Phase='OFF';$script:Config.outcome006Enabled='false';Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config
+                    Publish-TrainState $(if($result -ceq 'READY'){'STOPPED'}elseif($result -ceq 'CANCELLED'){'STOPPED_BY_OWNER'}elseif($result -ceq 'INSUFFICIENT_EVIDENCE'){'INSUFFICIENT_EVIDENCE'}elseif($result -ceq 'TIMEOUT'){'RESOURCE_LIMIT'}else{'FAILED_FAIL_CLOSED'}) ('TRAIN013_HEADLESS_'+$result)
+                    if(!$within){throw 'TRAIN013_HEADLESS_TOTAL_DEADLINE_EXCEEDED'}
+                }
                 $guard.Dispose()
             }
             Write-Host ('Команда '+$Action+' завершена. Результаты: '+$layout.Root)
@@ -1456,7 +1744,7 @@ try {
         try{$null=Save-TrainFailure $layout $script:State $controlFailure 'CONTROL'}catch{Write-TrainSafeError $_}
     }
     Write-TrainSafeError $controlFailure
-    $reason=if($controlFailure.Exception.Message -match 'TRAIN002_[A-Z0-9_:]+'){$Matches[0]}else{$controlFailure.Exception.GetType().Name}
+    $reason=if($controlFailure.Exception.Message -match 'TRAIN(?:002|009|013)_[A-Z0-9_:]+'){$Matches[0]}else{$controlFailure.Exception.GetType().Name}
     Write-Host ('Команда не завершена: '+$reason+'. Данные сохранены; смотрите TRAIN_STATUS и приватные логи установки.')
     exit 1
 }

@@ -338,7 +338,80 @@ public final class PhantomAutonomousTrainingNative
 		{ if (!path.equals(path.toRealPath()) || !java.util.Arrays.equals(Files.readAllBytes(path), body)) { throw new IllegalStateException("AUTONOMOUS_IMMUTABLE_CHANGED"); } }
 		else { Files.write(path, body, StandardOpenOption.CREATE_NEW); }
 	}
-	private static boolean requested(Path attempt) { return Files.exists(attempt.resolve("stop.request")) || Files.exists(attempt.resolve("pause.request")); }
+	private static Path headlessScope013;
+	private static String headlessNonce013, headlessConfigSha013, headlessReason013 = "";
+	private static long headlessWorkDeadline013;
+	private static void initializeHeadless013(Path root, TrainingConfig config, boolean evaluation) throws Exception
+	{
+		if (config.integer("autonomous013Version", 0, 0, 1) != 1) { return; }
+		if (!Boolean.getBoolean("phantom.training.headless013")) { throw new IllegalStateException("TRAIN013_HEADLESS_OWNER_REQUIRED"); }
+		headlessScope013 = evaluation ? root.resolve("autonomous/v1/campaigns").resolve(config.text("autonomous009Campaign", "")).resolve("evaluations")
+			.resolve(config.text("outcome006DatasetId", "") + "-" + config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE)) : cohort(root, config);
+		if (!headlessScope013.equals(headlessScope013.toRealPath())) { throw new IllegalStateException("TRAIN013_HEADLESS_SCOPE"); }
+		final var j = PhantomEvaluationReplayV2.object(headlessScope013.resolve("headless-operation013.json"));
+		headlessNonce013 = System.getProperty("phantom.training.worker", ""); headlessConfigSha013 = config.sha256();
+		if (!headlessNonce013.matches("[a-f0-9]{32}") || !headlessNonce013.equals(j.get("nonce")) || !headlessConfigSha013.equals(j.get("configSha"))
+			|| !headlessScope013.toString().equals(j.get("scope")) || !Boolean.FALSE.equals(j.get("trainingCredit"))
+			|| !(evaluation ? "admit-eval" : "prepare").equals(j.get("operation"))) { throw new IllegalStateException("TRAIN013_HEADLESS_OWNER_PIN"); }
+		final var issued = java.time.Instant.parse((String) j.get("issuedUtc")); final var work = java.time.Instant.parse((String) j.get("workDeadlineUtc"));
+		final var hard = java.time.Instant.parse((String) j.get("hardDeadlineUtc"));
+		if (!java.time.Duration.between(issued, work).equals(java.time.Duration.ofSeconds(990)) || !java.time.Duration.between(issued, hard).equals(java.time.Duration.ofSeconds(1200)))
+		{ throw new IllegalStateException("TRAIN013_HEADLESS_DEADLINE_PIN"); }
+		final long remaining = java.time.Duration.between(java.time.Instant.now(), work).toNanos();
+		if (remaining > java.time.Duration.ofSeconds(990).toNanos()) { throw new IllegalStateException("TRAIN013_HEADLESS_CLOCK_PIN"); }
+		headlessWorkDeadline013 = System.nanoTime() + Math.max(0, remaining);
+	}
+	private static boolean headlessRequested013()
+	{
+		if (headlessScope013 == null) { return false; }
+		if (System.nanoTime() >= headlessWorkDeadline013) { headlessReason013 = "TIMEOUT"; return true; }
+		final Path stop = headlessScope013.resolve("stop.request");
+		if (Files.exists(stop))
+		{
+			try
+			{
+				if (!Files.readString(stop).equals(headlessNonce013)) { throw new IllegalStateException("TRAIN013_HEADLESS_STOP_IDENTITY"); }
+				final var j = PhantomEvaluationReplayV2.object(headlessScope013.resolve("headless-operation013.json"));
+				headlessReason013 = "TIMEOUT".equals(j.get("reason")) ? "TIMEOUT" : "CANCELLED"; return true;
+			}
+			catch (Exception failure) { throw new IllegalStateException("TRAIN013_HEADLESS_STOP_READ", failure); }
+		}
+		return false;
+	}
+	private static boolean requested(Path attempt) { return headlessRequested013() || Files.exists(attempt.resolve("stop.request")) || Files.exists(attempt.resolve("pause.request")); }
+	private static void headlessContract013() throws Exception
+	{
+		final Path scope = Files.createTempDirectory("headless013-contract-");
+		try
+		{
+			headlessScope013 = scope; headlessNonce013 = "a".repeat(32); headlessWorkDeadline013 = System.nanoTime() + 60_000_000_000L;
+			Files.writeString(scope.resolve("headless-operation013.json"), "{\"reason\":\"\"}");
+			if (headlessRequested013()) { throw new AssertionError("HEADLESS013_PREMATURE_TIMEOUT"); }
+			Files.writeString(scope.resolve("stop.request"), headlessNonce013);
+			if (!headlessRequested013() || !headlessReason013.equals("CANCELLED")) { throw new AssertionError("HEADLESS013_CANCEL_NOT_OBSERVED"); }
+			Files.delete(scope.resolve("stop.request")); headlessWorkDeadline013 = System.nanoTime() - 1;
+			if (!headlessRequested013() || !headlessReason013.equals("TIMEOUT")) { throw new AssertionError("HEADLESS013_OWNER_CRASH_DEADLINE_NOT_OBSERVED"); }
+			headlessWorkDeadline013 = System.nanoTime() + 60_000_000_000L; Files.writeString(scope.resolve("stop.request"), "b".repeat(32));
+			boolean refused = false; try { headlessRequested013(); } catch (IllegalStateException expected) { refused = true; }
+			if (!refused) { throw new AssertionError("HEADLESS013_FOREIGN_STOP_ACCEPTED"); }
+			System.out.println("HEADLESS013_NATIVE_CONTRACT_GREEN timeout=1 cancel=1 ownerCrash=1 foreignStop=1 SQL=0 GS=0 SYNTHETIC_CONTROL_ONLY");
+		}
+		finally { headlessScope013 = null; headlessNonce013 = null; headlessReason013 = ""; }
+	}
+	private static void finishHeadless013(Path root, TrainingConfig config, String status) throws Exception
+	{
+		if (headlessScope013 == null) { return; }
+		if (headlessRequested013()) { status = headlessReason013; }
+		final var proofs = new java.util.TreeMap<String, String>();
+		if (status.equals("READY"))
+		{
+			final Path proofRoot = config.text("autonomous009EvaluationOnly", "false").equals("true") ? preparedDirectory(root, config) : headlessScope013;
+			for (String name : List.of("cells.tsv", config.text("autonomous009EvaluationOnly", "false").equals("true") ? "headless.complete" : "training-admission013.json"))
+			{ final Path file = proofRoot.resolve(name); if (!file.equals(file.toRealPath())) { throw new IllegalStateException("TRAIN013_HEADLESS_PROOF_SCOPE"); } proofs.put(root.relativize(file).toString().replace('\\', '/'), NeuralPolicy.sha256(Files.readAllBytes(file))); }
+		}
+		immutable(headlessScope013.resolve("headless-result013.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schemaVersion", 13,
+			"nonce", headlessNonce013, "configSha", headlessConfigSha013, "status", status, "proofFiles", proofs, "trainingCredit", false, "gameServerStarted", false)));
+	}
 	private static List<AutonomousTrainingV1.ActionPool> pools(Player player, PhantomSkillInventory.Snapshot inventory)
 	{
 		final var result = new ArrayList<AutonomousTrainingV1.ActionPool>();
@@ -1319,14 +1392,25 @@ public final class PhantomAutonomousTrainingNative
 		try
 		{
 			if ((args.length == 2 || args.length == 3) && args[0].equals("verify-eval013")) { verifyEvaluation013(Path.of(args[1]), args.length == 3 ? Path.of(args[2]) : null); return; }
+			if (args.length == 1 && args[0].equals("headless-contract")) { headlessContract013(); return; }
 			if (args.length == 1 && args[0].equals("source-contract")) { sourceContract(); return; }
 			if (args.length == 2 && args[0].equals("diagnose-cohort")) { diagnoseCohort(Path.of(args[1])); return; }
 			if (args.length != 2 || !List.of("inspect", "prepare", "admit-eval", "checkpoint", "checkpoint013").contains(args[0])) { throw new IllegalArgumentException("Ожидается inspect/prepare/admit-eval/checkpoint/checkpoint013 <собственная установка>."); }
-			if (args[0].equals("prepare") || args[0].equals("admit-eval")) { prepareSources(Path.of(args[1]), args[0].equals("admit-eval")); } else if (args[0].startsWith("checkpoint")) { checkpoint(Path.of(args[1]), args[0].equals("checkpoint013")); } else { inspect(Path.of(args[1])); }
+			if (args[0].equals("prepare") || args[0].equals("admit-eval")) { prepareSources(Path.of(args[1]), args[0].equals("admit-eval")); final Path root = PhantomTrainingActors.physicalRoot(Path.of(args[1])); finishHeadless013(root, TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini")), "READY"); if (headlessScope013 != null) { System.exit(0); } } else if (args[0].startsWith("checkpoint")) { checkpoint(Path.of(args[1]), args[0].equals("checkpoint013")); } else { inspect(Path.of(args[1])); }
 			if (args[0].equals("admit-eval")) { System.exit(0); }
 		}
 		catch (Exception failure)
 		{
+			if (headlessScope013 != null)
+			{
+				try
+				{
+					final Path root = PhantomTrainingActors.physicalRoot(Path.of(args[1])); final String reason = safeReason(failure);
+					final String status = reason.equals("TRAIN013_INSUFFICIENT_LEGAL_COHORT") || reason.equals("AUTONOMOUS_BLOCKED_EVAL_NO_LAWFUL_SCENE") || reason.matches("EVAL012_.*(?:COVERAGE|INSUFFICIENT|NO_ELIGIBLE).*") ? "INSUFFICIENT_EVIDENCE" : "ERROR";
+					finishHeadless013(root, TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini")), status);
+				}
+				catch (Exception receiptFailure) { System.err.println("TRAIN013_HEADLESS_RESULT_WRITE_FAILED"); }
+			}
 			// JDBC/vendor messages can include credentials. Keep the normal safe worker diagnostic contract.
 			System.err.println("AUTONOMOUS_NATIVE_FAILED " + safeReason(failure));
 			java.util.Arrays.stream(failure.getStackTrace()).filter(frame -> frame.getClassName().startsWith("org.l2jmobius."))
@@ -1494,6 +1578,8 @@ public final class PhantomAutonomousTrainingNative
 	{
 		final var root = PhantomTrainingActors.physicalRoot(installation);
 		final var config = TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini"));
+		initializeHeadless013(root, config, admissionOnly);
+		PhantomTrainingScenarios.requirePlanningActive(() -> headlessRequested013());
 		new TrainingStore(root).requireStopped();
 		final var settings = PhantomTrainingActors.settings(root);
 		final var sourceIds = new ArrayList<int[]>();
@@ -1534,6 +1620,7 @@ public final class PhantomAutonomousTrainingNative
 				if (admissionOnly) { admitEvaluation(root, session, config, authority); return; }
 				for (var header : sourceIds)
 				{
+					PhantomTrainingScenarios.requirePlanningActive(() -> headlessRequested013());
 					final int sourceId = header[0], classId = header[1];
 					if (records.size() >= 64 || attempts.getOrDefault(classId, 0) >= 8 || accepted.getOrDefault(classId, 0) >= 2) { continue; }
 					attempts.merge(classId, 1, Integer::sum);

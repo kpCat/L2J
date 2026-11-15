@@ -2,6 +2,7 @@
 param(
     [ValidateSet('Test-Cycle013','Test-Config','Test-Arguments','Test-Atomic','Test-ColdBaseline','Test-ExportAdmission','Test-PrivateBootstrap','Test-EmptyBootstrapRecovery','Test-ErrorHistory','Test-CimExitRace','Test-AdaptiveIdle','Test-StartupHandshake','Test-JobLifetime','Test-Broker','Test-Crash','Test-Isolation','Test-Generate','Test-Native','Test-Detached','Test-Resume','Test-Training','Test-Export','Test-GuiOwner')][string]$Action='Test-Config',
     [string]$Root,
+    [switch]$Headless013,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -14,6 +15,104 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($Headless013){
+    $tokens=$null;$errors=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
+    Require ($errors.Count -eq 0) 'HEADLESS013_SOURCE_PARSE'
+    $functions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and ($n.Name -match 'Headless.*013$' -or $n.Name -cin @('Invoke-TrainJava','Test-TrainRequest','Publish-TrainState','Copy-TrainConfig013'))},$false)
+    . ([scriptblock]::Create(($functions|ForEach-Object {$_.Extent.Text}) -join "`n"))
+    Require ([bool](Get-Command Open-TrainHeadless013 -ErrorAction SilentlyContinue)) 'HEADLESS013_CONTRACT_MISSING'
+    $script:HeadlessAdoption013=$null;$script:ReadinessOnly013=$false;$script:HeadlessCleanupDeadline013=$null;$script:ReadinessDeadline013=$null;$script:State=$null;$script:DirectorNonce='';$script:Config=$null;$script:WorkerRecord=$null
+    $root013=Join-Path ([IO.Path]::GetTempPath()) ('Training013-headless-'+[guid]::NewGuid().ToString('N'));$null=[IO.Directory]::CreateDirectory($root013)
+    $config=@{autonomous009Campaign='autonomous009-contract013';outcome006DatasetId='autonomous009-contract013-c000001';autonomous009ModelVersion='14'}
+    $now=[DateTime]::UtcNow;$ctx=Open-TrainHeadless013 $root013 $config 'prepare' ('a'*64) $now
+    Require (([DateTime]::Parse($ctx.journal.hardDeadlineUtc).ToUniversalTime()-$now).TotalSeconds -eq 1200 -and ([DateTime]::Parse($ctx.journal.workDeadlineUtc).ToUniversalTime()-$now).TotalSeconds -eq 990) 'HEADLESS013_TOTAL_CAP_AND_DRAIN_RESERVE'
+    $null=Update-TrainHeadless013 $ctx $now $false
+    Require ($ctx.journal.status -ceq 'RUNNING' -and !(Test-Path -LiteralPath (Join-Path $ctx.scope 'stop.request'))) 'HEADLESS013_PREMATURE_DRAIN'
+    $null=Update-TrainHeadless013 $ctx $now.AddSeconds(991) $false
+    Require ($ctx.journal.status -ceq 'DRAINING' -and $ctx.journal.reason -ceq 'TIMEOUT' -and (Test-Path -LiteralPath (Join-Path $ctx.scope 'stop.request'))) 'HEADLESS013_TIMEOUT_MUST_REQUEST_COHORT_DRAIN'
+    $resumed=Open-TrainHeadless013 $root013 $config 'prepare' ('a'*64) $now.AddSeconds(992)
+    Require ($resumed.journal.nonce -ceq $ctx.journal.nonce -and $resumed.journal.hardDeadlineUtc -ceq $ctx.journal.hardDeadlineUtc -and $resumed.recovered) 'HEADLESS013_RESTART_RESET_IDENTITY_OR_BUDGET'
+    Close-TrainHeadless013 $ctx 2 'ERROR' $true $now.AddSeconds(993)
+    Require ($ctx.journal.status -ceq 'TIMEOUT' -and !$ctx.journal.trainingCredit) 'HEADLESS013_TIMEOUT_BECAME_SUCCESS_OR_CREDIT'
+    foreach($kind in @('CANCELLED','INSUFFICIENT_EVIDENCE','ERROR')){
+        $config.outcome006DatasetId='autonomous009-contract013-'+$kind
+        $case=Open-TrainHeadless013 $root013 $config 'prepare' ('a'*64) $now
+        if($kind -ceq 'CANCELLED'){$null=Update-TrainHeadless013 $case $now $true}
+        Close-TrainHeadless013 $case 2 $kind $true $now.AddSeconds(1)
+        Require ($case.journal.status -ceq $kind -and !$case.journal.trainingCredit) ('HEADLESS013_REASON_COLLAPSED_'+$kind)
+        $cold=Open-TrainHeadless013 $root013 $config 'prepare' ('a'*64) $now.AddSeconds(2)
+        Require ($cold.terminal -and $cold.journal.nonce -ceq $case.journal.nonce) 'HEADLESS013_TERMINAL_RESTART_REEXECUTES'
+    }
+    $config.outcome006DatasetId='autonomous009-contract013-unproven';$case=Open-TrainHeadless013 $root013 $config 'prepare' ('a'*64) $now
+    Close-TrainHeadless013 $case 0 'READY' $false $now
+    Require ($case.journal.status -ceq 'ERROR') 'HEADLESS013_UNKNOWN_EXIT_ACCEPTED'
+    Require ((Get-TrainHeadlessReadinessVerdict013 $false 'READY' $true) -ceq 'ERROR') 'HEADLESS013_PARTIAL_TRAIN_READY_IS_NOT_COMBINED_READY'
+    Require ((Get-TrainHeadlessReadinessVerdict013 $true 'READY' $false) -ceq 'TIMEOUT') 'HEADLESS013_COMPLETION_AFTER_CAP_ACCEPTED'
+    $fakeAdmission=Join-Path $case.scope 'training-admission013.json';Write-TrainText $fakeAdmission '{}';$orphanScope=Join-Path $root013 'unproven';$null=[IO.Directory]::CreateDirectory($orphanScope)
+    $rejected=$false;try{Assert-TrainHeadlessAdmission013 $orphanScope $fakeAdmission}catch{$rejected=$true};Require $rejected 'HEADLESS013_ADMISSION_WITHOUT_TERMINAL_PROVENANCE_ACCEPTED'
+    $script:ReadinessDeadline013=$ctx.journal;$config.outcome006DatasetId='autonomous009-contract013-child';$shared=Open-TrainHeadless013 $root013 $config 'admit-eval' ('a'*64) $now.AddSeconds(100)
+    Require ($shared.journal.hardDeadlineUtc -ceq $ctx.journal.hardDeadlineUtc) 'HEADLESS013_CHILD_RESET_COMBINED_CAP';$script:ReadinessDeadline013=$null
+    Initialize-TrainWin32
+    $fixture=@{};foreach($key in $layout.Keys){$fixture[$key]=$layout[$key]};$fixture.Root=Join-Path $root013 'owned';New-TrainPrivateRoot $fixture
+    foreach($name in @('workers','commands','attempts','logs')){$null=[IO.Directory]::CreateDirectory((Join-Path $fixture.Root $name))}
+    $layout=$fixture;$stub=Join-Path $fixture.Root 'cooperative.ps1'
+    [IO.File]::WriteAllText($stub,'param([string]$Stop,[string]$Ready,[string]$Nonce) [IO.File]::WriteAllText($Ready,$Nonce);$end=[DateTime]::UtcNow.AddSeconds(15);while(![IO.File]::Exists($Stop) -and [DateTime]::UtcNow -lt $end){Start-Sleep -Milliseconds 25};exit 7',[Text.UTF8Encoding]::new($false))
+    foreach($kind in @('TIMEOUT','CANCELLED')){
+        $config.outcome006DatasetId='autonomous009-contract013-os-'+$kind;$now=[DateTime]::UtcNow;$case=Open-TrainHeadless013 $fixture.Root $config 'prepare' ('a'*64) $now
+        $ready=Join-Path $fixture.Root ($case.journal.nonce+'.ready');$stop=Join-Path $case.scope 'stop.request'
+        $argsLine='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$stub+'" -Stop "'+$stop+'" -Ready "'+$ready+'" -Nonce '+$case.journal.nonce
+        $child=Start-Process -FilePath $fixture.PowerShell -ArgumentList $argsLine -WindowStyle Hidden -PassThru;$held=Hold-ProcessHandle $child
+        try{
+            $end=[DateTime]::UtcNow.AddSeconds(10);while(!(Test-Path -LiteralPath $ready) -and !$child.HasExited -and [DateTime]::UtcNow -lt $end){Start-Sleep -Milliseconds 25}
+            Require (Test-Path -LiteralPath $ready) 'HEADLESS013_OS_FIXTURE_NOT_READY'
+            $record=New-TrainProcessRecord $child $fixture.PowerShell $case.journal.nonce Worker
+            $case.journal.worker=$record;Write-TrainJson $case.path $case.journal;$null=[IO.Directory]::CreateDirectory((Join-Path $fixture.Root ('workers\'+$record.nonce)))
+            Write-TrainJson (Join-Path $fixture.Root 'headless-active013.json') @{scope=$case.scope;nonce=$record.nonce}
+            $adopted=Open-TrainHeadless013 $fixture.Root $config 'prepare' ('a'*64) ([DateTime]::UtcNow)
+            Require ($adopted.recovered -and $adopted.journal.worker.pid -eq $record.pid -and $adopted.journal.nonce -ceq $record.nonce) 'HEADLESS013_RECOVERY_STARTED_SECOND_WORKER'
+            $recovery=Recover-TrainHeadless013 $adopted;Require ($recovery.process.Id -eq $child.Id -and !$recovery.exitFact) 'HEADLESS013_LIVE_HANDOFF_CHANGED_PID';$recovery.process.Dispose()
+            if($kind -ceq 'TIMEOUT'){$null=Update-TrainHeadless013 $case $now.AddSeconds(991) $false}
+            else{Require (Request-TrainHeadlessCancel013) 'HEADLESS013_EXTERNAL_CANCEL_NOT_SENT';$null=Update-TrainHeadless013 $case ([DateTime]::UtcNow) $true}
+            Require ($child.WaitForExit(10000)) 'HEADLESS013_COOPERATIVE_CHILD_DID_NOT_EXIT'
+            Write-TrainExitReceipt $fixture $record $child $held 'headless013-contract-child'
+            $recovery=Recover-TrainHeadless013 $adopted;Require (!$recovery.process -and $recovery.exitFact.exitCode -eq 7) 'HEADLESS013_EXIT_BEFORE_JOURNAL_NOT_RECOVERED'
+            Close-TrainHeadless013 $case (Get-TrackedProcessExitCode $child $held) 'ERROR' (Test-TrainExitReceipt $fixture $record)
+            Require ($case.journal.status -ceq $kind -and (Test-TrainProcessAbsent $record $child $held)) 'HEADLESS013_EXIT_OR_REASON_NOT_PROVEN'
+        }finally{if(!$child.HasExited){Write-TrainText $stop $case.journal.nonce;$null=$child.WaitForExit(20000)};$child.Dispose()}
+    }
+    $orphan=@{};foreach($key in $fixture.Keys){$orphan[$key]=$fixture[$key]};$orphan.Root=Join-Path $root013 'orphan-owned';$orphan.Sql=Join-Path $orphan.Root 'sql';$orphan.Game=Join-Path $orphan.Root 'game';New-TrainPrivateRoot $orphan
+    foreach($name in @('workers','commands','attempts','logs','sql','game')){$null=[IO.Directory]::CreateDirectory((Join-Path $orphan.Root $name))}
+    $full=Read-TrainConfig (Join-Path $PSScriptRoot 'AutonomousTraining.ini');$full.autonomous013Version='1';$full.autonomous009Campaign='autonomous009-orphan013';$full.outcome006DatasetId='autonomous009-orphan013-c000001'
+    Write-TrainConfig (Join-Path $orphan.Root 'TRAIN_CONFIG.ini') $full;$layout=$orphan
+    $case=Open-TrainHeadless013 $orphan.Root $full 'prepare' (Get-FileHash -LiteralPath (Join-Path $orphan.Root 'TRAIN_CONFIG.ini')).Hash.ToLowerInvariant()
+    $parentScript=Join-Path $orphan.Root 'controller.ps1';$ready=Join-Path $orphan.Root 'child.ready'
+    $parentSource=@'
+param([string]$OwnerPath,[string]$RootPath,[string]$ScopePath,[string]$ChildPath,[string]$PowerShellPath,[string]$ReadyPath)
+$ErrorActionPreference='Stop';. $OwnerPath;Initialize-TrainWin32
+$j=Read-TrainJson (Join-Path $ScopePath 'headless-operation013.json')
+$a='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$ChildPath+'" -Stop "'+(Join-Path $ScopePath 'stop.request')+'" -Ready "'+$ReadyPath+'" -Nonce '+$j.nonce
+$p=Start-Process -FilePath $PowerShellPath -ArgumentList $a -WindowStyle Hidden -PassThru
+$end=[DateTime]::UtcNow.AddSeconds(8);while(!(Test-Path -LiteralPath $ReadyPath) -and !$p.HasExited -and [DateTime]::UtcNow -lt $end){Start-Sleep -Milliseconds 25}
+if(!(Test-Path -LiteralPath $ReadyPath)){throw 'CHILD_NOT_READY'}
+$j.worker=New-TrainProcessRecord $p $PowerShellPath $j.nonce Worker (Join-Path $RootPath 'TRAIN_CONFIG.ini')
+$null=[IO.Directory]::CreateDirectory((Join-Path $RootPath ('workers\'+$j.nonce)))
+Write-TrainJson (Join-Path $ScopePath 'headless-operation013.json') $j
+Write-TrainJson (Join-Path $RootPath 'headless-active013.json') @{scope=$ScopePath;nonce=$j.nonce}
+$p.Dispose();exit 0
+'@
+    [IO.File]::WriteAllText($parentScript,$parentSource,[Text.UTF8Encoding]::new($false))
+    $parentArgs='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$parentScript+'" -OwnerPath "'+$owner+'" -RootPath "'+$orphan.Root+'" -ScopePath "'+$case.scope+'" -ChildPath "'+$stub+'" -PowerShellPath "'+$orphan.PowerShell+'" -ReadyPath "'+$ready+'"'
+    $launcher=Start-Process -FilePath $orphan.PowerShell -ArgumentList $parentArgs -WindowStyle Hidden -PassThru
+    try{Require ($launcher.WaitForExit(12000)) 'HEADLESS013_CONTROLLER_FIXTURE_HUNG';Require ($launcher.ExitCode -eq 0) 'HEADLESS013_CONTROLLER_FIXTURE_FAILED'}finally{$launcher.Dispose()}
+    $pending=Read-TrainJson $case.path;Require (!(Test-TrainHeadlessController013 $pending.worker)) 'HEADLESS013_DEAD_CONTROLLER_TREATED_LIVE'
+    function Assert-TrainAutonomousResources {}
+    $null=Recover-TrainHeadlessControl013 @{Java=$orphan.PowerShell} -Cancel
+    $completed=Read-TrainJson $case.path;Require ($completed.status -ceq 'CANCELLED' -and $completed.exitProven -and !$completed.trainingCredit) 'HEADLESS013_PUBLIC_RECOVERY_DID_NOT_DRAIN'
+    Require (Test-TrainExitReceipt $orphan $completed.worker) 'HEADLESS013_PUBLIC_RECOVERY_EXIT_MISSING'
+    Write-Output ('HEADLESS013_GREEN timeout=1 cancellation=1 restart=1 recovery=1 distinctReasons=4 unprovenExit=1 realHeldExit=3 publicOrphanTakeover=1 combinedReadyGuard=1 admissionProvenance=1 sharedCap=1 cap=1200 reserve=210 SQL=0 GS=0 SYNTHETIC_CONTROL_AND_OS_CHILD_ONLY evidence='+$root013)
+    return
+}
 if($Action -eq 'Test-Cycle013'){
     $config=Read-TrainConfig (Join-Path $PSScriptRoot 'AutonomousTraining.ini')
     $config.autonomous013Version='1';$config.autonomous009AcceptanceSmoke='true';$config.autonomous009SmokeMaxStarts='4';$config.autonomous009SmokeMaxNativeMinutes='80'
