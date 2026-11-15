@@ -72,6 +72,29 @@ public final class PhantomAutonomousTrainingNative
 	static String comparisonCellKey(int ordinal, String sourcePhysical, String pool, boolean party, String scene, List<String> roster, boolean v2)
 	{ return hash((v2 ? "cell/v2/" : "cell/" + ordinal + "/") + sourcePhysical + "/" + pool + "/" + party + "/" + scene + (v2 ? "/roster/" + roster : "")); }
 	static <T> List<T> nativeProbePage(List<T> seedOrdered, boolean v2) { return v2 ? seedOrdered.stream().limit(2).toList() : seedOrdered; }
+	static int remainingProbeBudget(int priorAttempts)
+	{ if (priorAttempts < 0 || priorAttempts > 12) { throw new IllegalArgumentException("EVAL012_PRIOR_PROBE_BUDGET"); } return 12 - priorAttempts; }
+	private static int priorNativeFirstProbes(Path directory) throws Exception
+	{
+		int result = 0;
+		try (var sessions = Files.list(directory.getParent()))
+		{
+			for (Path prior : sessions.filter(p -> !p.equals(directory) && Files.isDirectory(p, java.nio.file.LinkOption.NOFOLLOW_LINKS)).toList())
+			{
+				if (!prior.equals(prior.toRealPath())) { throw new IllegalStateException("EVAL012_PRIOR_PROBE_PATH"); }
+				boolean nativeFirst = false;
+				try (var catalogs = Files.newDirectoryStream(prior, "curriculum-candidates-v2.*.json"))
+				{ for (Path catalog : catalogs) { if ("EVAL_CURRICULUM_PROPOSALS_V2".equals(PhantomEvaluationReplayV2.object(catalog).get("schema"))) { nativeFirst = true; break; } } }
+				if (!nativeFirst) { continue; }
+				try (var files = Files.walk(prior))
+				{ if (files.anyMatch(p -> Set.of("cut.json", "reserved.json").contains(p.getFileName().toString()))) { throw new IllegalStateException("EVAL012_PRIOR_PROBE_NOT_PRE_CUT"); } }
+				final var budget = PhantomEvaluationReplayV2.object(prior.resolve("headless-candidate-budget.json"));
+				if (PhantomEvaluationReplayV2.number(budget, "maximum") != 12 || !Boolean.FALSE.equals(budget.get("afterCut"))) { throw new IllegalStateException("EVAL012_PRIOR_PROBE_COUNTER_INVALID"); }
+				result = Math.addExact(result, PhantomEvaluationReplayV2.integer(budget, "attempts"));
+			}
+		}
+		remainingProbeBudget(result); return result;
+	}
 	private static final class HeadlessBudget
 	{
 		private final int maximum; private int attempts; private final Set<String> seen = new HashSet<>();
@@ -95,11 +118,15 @@ public final class PhantomAutonomousTrainingNative
 	static String preCutSelectionRefusal(Map<String, Object> admission, boolean v2)
 	{
 		final String wait = String.valueOf(admission.get("wait"));
-		return v2 && Boolean.FALSE.equals(admission.get("admitted")) && wait.startsWith("WAIT_GROUP_MP:") && String.valueOf(admission.get("reasons")).equals("[" + wait + "]")
-			? "AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED" : partyAdmissionFailure(admission);
+		if (v2 && Boolean.FALSE.equals(admission.get("admitted")) && String.valueOf(admission.get("reasons")).equals("[" + wait + "]"))
+		{
+			if (wait.startsWith("WAIT_GROUP_MP:")) { return "AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED"; }
+			if (wait.startsWith("WAIT_TANK_AGGRO:")) { return "AUTONOMOUS_PRE_CUT_PARTY_RISK_REFUSED"; }
+		}
+		return partyAdmissionFailure(admission);
 	}
 	static boolean retryableSelectionRefusal(String reason, boolean v2)
-	{ return retryableHeadlessRefusal(reason) || v2 && reason.equals("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED"); }
+	{ return retryableHeadlessRefusal(reason) || v2 && Set.of("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED", "AUTONOMOUS_PRE_CUT_PARTY_RISK_REFUSED").contains(reason); }
 	private static final class Refusals
 	{
 		private final List<String> samples = new ArrayList<>();
@@ -169,7 +196,7 @@ public final class PhantomAutonomousTrainingNative
 			final var features = PhantomEvaluationReplayV2.object(directory.resolve(work).resolve("curriculum-native-facts-v2.json"));
 			if (!Boolean.TRUE.equals(admitted.get("admitted")) || !Boolean.FALSE.equals(admitted.get("afterCut")) || !Boolean.FALSE.equals(admitted.get("gameServerStarted"))
 				|| !Boolean.FALSE.equals(admitted.get("trainingCredit")) || PhantomEvaluationReplayV2.number(admitted, "nativeActionsObserved") != 0
-				|| !EncounterAdmissionV1.VERSION.equals(encounter.get("schema")) || !"HEADLESS_READY".equals(encounter.get("stage")) || !Boolean.TRUE.equals(encounter.get("sealable"))
+				|| !EncounterAdmissionV1.VERSION.equals(encounter.get("schema")) || !"HEADLESS_READY".equals(encounter.get("stage")) || !Boolean.FALSE.equals(encounter.get("sealable"))
 				|| !Boolean.FALSE.equals(encounter.get("afterCut")) || !Boolean.FALSE.equals(encounter.get("trainingCredit")) || !proposal.equals(encounter.get("proposalSha"))
 				|| !physical.equals(encounter.get("physicalSha")) || !physical.equals(precut.get("comparisonCellSha"))
 				|| !physical.equals(hash(PhantomLearning005Evaluation.mapJson(PhantomEvaluationReplayV2.map(precut.get("facts")))))
@@ -1218,7 +1245,8 @@ public final class PhantomAutonomousTrainingNative
 		final var settings = PhantomTrainingActors.settings(root); final var stock = new LearningStore(settings.getProperty("URL"), settings.getProperty("Login"), settings.getProperty("Password"), root.resolve("game")).accepted(1);
 		if (stock == null) { throw new IllegalStateException("AUTONOMOUS_STOCK_OBSERVER_UNAVAILABLE"); }
 		final var sources = evaluationSources(root, directory, discoverSources(root, directory, config, authority, () -> requested(directory)), config);
-		final var budget = new HeadlessBudget(12); final boolean[] nativeProbed = { false };
+		final int priorProbes = outcomeV2(config) ? priorNativeFirstProbes(directory) : 0;
+		final var budget = new HeadlessBudget(outcomeV2(config) ? remainingProbeBudget(priorProbes) : 12); final boolean[] nativeProbed = { false };
 		final List<Cell> cells;
 		try
 		{
@@ -1236,7 +1264,7 @@ public final class PhantomAutonomousTrainingNative
 		}
 		finally
 		{
-			if (outcomeV2(config)) { immutable(directory.resolve("headless-candidate-budget.json"), "{\"attempts\":" + budget.attempts + ",\"maximum\":12,\"uniqueOnly\":true,\"afterCut\":false}"); }
+			if (outcomeV2(config)) { immutable(directory.resolve("headless-candidate-budget.json"), "{\"attempts\":" + budget.attempts + ",\"priorAttempts\":" + priorProbes + ",\"totalAttempts\":" + (priorProbes + budget.attempts) + ",\"maximum\":12,\"uniqueOnly\":true,\"afterCut\":false}"); }
 		}
 		try { requireEvaluationCoverage(cells); if (outcomeV2(config)) { requireV2Coverage(directory, cells, config); } }
 		catch (IllegalStateException failure)
@@ -1245,7 +1273,7 @@ public final class PhantomAutonomousTrainingNative
 			{
 				immutable(directory.resolve("unsatisfiable-native-v2.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", "EVAL_BOUNDED_UNSATISFIABLE_V2",
 					"scope", "CURRENT_BOUNDED_SOURCE_AND_CANDIDATE_CATALOG", "reason", failure.getMessage(), "seed", config.seed(), "sourceCursor", config.longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE),
-					"attempts", budget.attempts, "maximum", 12, "selectedScenes", cells.size(), "afterCut", false, "gameServerStartAllowed", false, "globalPveImpossible", false,
+					"attempts", budget.attempts, "priorAttempts", priorProbes, "totalAttempts", priorProbes + budget.attempts, "maximum", 12, "selectedScenes", cells.size(), "afterCut", false, "gameServerStartAllowed", false, "globalPveImpossible", false,
 					"sources", sources.stream().map(s -> PhantomEvaluationOutcomeV2.fields("sourceSha", s.image().sha(), "inventorySha", s.inventory().fingerprint(), "classId", s.seed().classId(), "level", s.seed().level(),
 						"hp", Double.parseDouble(s.image().field("curHp")), "mp", Double.parseDouble(s.image().field("curMp")), "learned", s.seed().acquired().stream().map(ref -> PhantomEvaluationOutcomeV2.fields("id", ref.skillId(), "canonicalLevel", ref.skillLevel())).toList(),
 						"supportedPools", s.seed().supported().stream().map(pool -> PhantomEvaluationOutcomeV2.fields("family", pool.family().name(), "mode", pool.mode() == null ? null : pool.mode().name(),
@@ -1681,7 +1709,7 @@ public final class PhantomAutonomousTrainingNative
 				final Path work = Files.createDirectory(headless.resolve(workId)); final int actor = 1 + sideIndex * 2, target = actor + 1;
 				Files.writeString(work.resolve("admission-only.json"), "{\"admitted\":true,\"afterCut\":false,\"gameServerStarted\":false,\"nativeActionsObserved\":0,\"trainingCredit\":false}");
 				Files.writeString(work.resolve("native-admission.json"), "{\"admitted\":true,\"scope\":\"SOLO\",\"target\":" + target + ",\"requestTimeoutMillis\":120000,\"sessions\":[{profile=1, generation=1, target=" + target + "}]}");
-				Files.writeString(work.resolve("encounter-admission.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", EncounterAdmissionV1.VERSION, "stage", "HEADLESS_READY", "proposalSha", proposalSha, "physicalSha", physical, "sealable", true, "afterCut", false, "trainingCredit", false)));
+				Files.writeString(work.resolve("encounter-admission.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", EncounterAdmissionV1.VERSION, "stage", "HEADLESS_READY", "proposalSha", proposalSha, "physicalSha", physical, "sealable", false, "afterCut", false, "trainingCredit", false)));
 				Files.writeString(work.resolve("precut.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("comparisonCellSha", physical, "facts", facts, "actorProfile", 1)));
 				Files.writeString(work.resolve("incarnations.tsv"), "role\tobjectId\tepoch\tinstance\nACTOR\t" + actor + "\t1\t0\nTARGET\t" + target + "\t1\t0\n");
 				Files.writeString(work.resolve("curriculum-native-facts-v2.json"), PhantomEvaluationOutcomeV2.json(feature));

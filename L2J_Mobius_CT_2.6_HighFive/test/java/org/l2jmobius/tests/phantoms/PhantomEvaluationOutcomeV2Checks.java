@@ -156,7 +156,14 @@ public final class PhantomEvaluationOutcomeV2Checks
 	}
 	static void nativeFirstReview() throws Exception
 	{
-		final var failures = new java.util.ArrayList<>(PhantomAutonomousTrainingNative.pairedArtifactRegressions());
+		final var failures = new java.util.ArrayList<String>();
+		try { failures.addAll(PhantomAutonomousTrainingNative.pairedArtifactRegressions()); }
+		catch (IllegalStateException expected) { failures.add("CANONICAL_HEADLESS_NON_SEALABLE_PROOF_REFUSED"); }
+		final String riskWait = "WAIT_TANK_AGGRO:target=12:actor=13:incoming=12305.0:HP=6492.0";
+		final var riskRefusal = Map.<String, Object>of("admitted", false, "wait", riskWait, "reasons", "[" + riskWait + "]");
+		final String riskReason = PhantomAutonomousTrainingNative.preCutSelectionRefusal(riskRefusal, true);
+		if (!riskReason.equals("AUTONOMOUS_PRE_CUT_PARTY_RISK_REFUSED") || !PhantomAutonomousTrainingNative.retryableSelectionRefusal(riskReason, true)) { failures.add("PURE_NATIVE_RISK_REFUSAL_IS_INELIGIBLE_CANDIDATE"); }
+		if (PhantomAutonomousTrainingNative.remainingProbeBudget(4) != 8 || PhantomAutonomousTrainingNative.remainingProbeBudget(12) != 0) { failures.add("PRIOR_HEADLESS_PROBES_MUST_NOT_RESET_CAP12"); }
 		try
 		{
 			final var oneSkill = new PhantomEvaluationCurriculumV2.Facts(SHA, 0, 1000, 100, 100, 200, 300, 500, 400, 1, 20, SHA);
