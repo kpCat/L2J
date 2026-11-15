@@ -3,6 +3,7 @@ package org.l2jmobius.tests.phantoms;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
 
 /** Behavioral contracts: actual deaths stay in the denominator; unverifiable outcomes do not. */
@@ -132,14 +133,69 @@ public final class PhantomEvaluationOutcomeV2Checks
 		check(PhantomAutonomousTrainingNative.preCutSelectionRefusal(refusal, false).equals("AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED") && !PhantomAutonomousTrainingNative.retryableSelectionRefusal(reason, false), "V1_REFUSAL_CONTRACT_UNCHANGED");
 		check(PhantomAutonomousTrainingNative.preCutSelectionRefusal(Map.of("admitted", false, "wait", wait, "reasons", "[" + wait + ", OWNER]"), true).equals("AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED"), "MIXED_OWNER_REFUSAL_MUST_STAY_FATAL");
 	}
+	static void nativeFirstCurriculum()
+	{
+		final var low = new PhantomEvaluationCurriculumV2.Facts(SHA, 0, 1000, 100, 100, 200, 300, 500, 400, 2, 20, SHA);
+		final var middle = new PhantomEvaluationCurriculumV2.Facts("e".repeat(64), 0, 2000, 100, 100, 200, 300, 500, 400, 2, 20, SHA);
+		final var rejectedHigh = new PhantomEvaluationCurriculumV2.Facts(OTHER, 0, 3000, 100, 100, 200, 300, 500, 400, 2, 20, SHA);
+		final var directions = Map.of(low.key(), "PARTY_HEAL", middle.key(), "PARTY_HEAL", rejectedHigh.key(), "PARTY_HEAL");
+		final var selected = PhantomEvaluationCurriculumV2.selectAdmitted(List.of(rejectedHigh, middle, low), Set.of(low.key(), middle.key()), directions, 183);
+		final var failures = new java.util.ArrayList<String>();
+		if (!"LOWER_PRECUT_BURDEN".equals(selected.get(low.key())) || !"HIGHER_PRECUT_BURDEN".equals(selected.get(middle.key())) || selected.containsKey(rejectedHigh.key()))
+		{ failures.add("REJECTED_THEORETICAL_HIGHER_MUST_NOT_REMOVE_ADMITTED_HIGHER"); }
+		final String raw = PhantomEvaluationCurriculumV2.proposals(List.of(low, middle, rejectedHigh), 183);
+		if (raw.contains("LOWER_PRECUT_BURDEN") || raw.contains("HIGHER_PRECUT_BURDEN") || !raw.contains("\"fullNativeAdmission\":false"))
+		{ failures.add("NO_STRATA_OR_LAWFUL_CLAIM_BEFORE_PAIRED_NATIVE_ADMISSION"); }
+		if (!PhantomEvaluationCurriculumV2.selectAdmitted(List.of(low, middle), Set.of(low.key()), Map.of(low.key(), "PARTY_HEAL", middle.key(), "PARTY_HEAL"), 183).isEmpty())
+		{ failures.add("ONE_COMPLETE_PAIR_CANNOT_PROVE_DIFFICULTY_COVERAGE"); }
+		final var masks = PhantomEvaluationCurriculumV2.rosterMasks(4, 2);
+		if (masks.size() != 4 || masks.stream().distinct().count() != masks.size() || masks.stream().anyMatch(m -> (m & 4) == 0 || Integer.bitCount(m) < 3 || (m >>> 4) != 0))
+		{ failures.add("REAL_ROSTER_SUBSETS_MUST_KEEP_LEARNER_AND_BOUND"); }
+		check(failures.isEmpty(), "NATIVE_FIRST012_" + failures);
+		check(selected.equals(PhantomEvaluationCurriculumV2.selectAdmitted(List.of(low, rejectedHigh, middle), Set.of(middle.key(), low.key()), directions, 183)), "NATIVE_FIRST_SELECTION_ORDER_DETERMINISTIC");
+	}
+	static void nativeFirstReview() throws Exception
+	{
+		final var failures = new java.util.ArrayList<>(PhantomAutonomousTrainingNative.pairedArtifactRegressions());
+		try
+		{
+			final var oneSkill = new PhantomEvaluationCurriculumV2.Facts(SHA, 0, 1000, 100, 100, 200, 300, 500, 400, 1, 20, SHA);
+			final String raw = PhantomEvaluationCurriculumV2.proposals(List.of(oneSkill), 183);
+			if (raw.contains("LOWER_PRECUT_BURDEN") || raw.contains("HIGHER_PRECUT_BURDEN")) { failures.add("ONE_SKILL_PROPOSAL_CLAIMED_STRATA"); }
+		}
+		catch (IllegalArgumentException expected) { failures.add("ONE_HEAL_SKILL_REFUSED_BEFORE_NATIVE_OFFERS"); }
+		final String first = PhantomAutonomousTrainingNative.comparisonCellKey(0, SHA, "HEAL", true, OTHER, List.of(SHA, OTHER), true);
+		if (!first.equals(PhantomAutonomousTrainingNative.comparisonCellKey(9, SHA, "HEAL", true, OTHER, List.of(SHA, OTHER), true))) { failures.add("SAME_PHYSICAL_CANDIDATE_CONSUMES_BUDGET_TWICE"); }
+		check(failures.isEmpty(), "REVIEW012_R1_" + failures);
+		check(!first.equals(PhantomAutonomousTrainingNative.comparisonCellKey(0, SHA, "HEAL", true, OTHER, List.of(OTHER, SHA), true)), "ROSTER_LEADER_IS_PHYSICAL_IDENTITY");
+		check(!PhantomAutonomousTrainingNative.comparisonCellKey(0, SHA, "HEAL", true, OTHER, List.of(SHA, OTHER), false).equals(PhantomAutonomousTrainingNative.comparisonCellKey(9, SHA, "HEAL", true, OTHER, List.of(SHA, OTHER), false)), "V1_CELL_IDENTITY_UNCHANGED");
+	}
+	static void nativeProbeFairness()
+	{
+		final var proposals = List.of("p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7"); final var rostersSeen = new java.util.HashSet<Integer>(); int probes = 0;
+		outer: for (int roster = 0; roster < 6; roster++)
+		{
+			for (String ignored : PhantomAutonomousTrainingNative.nativeProbePage(proposals, true))
+			{ if (probes == 12) { break outer; } probes++; rostersSeen.add(roster); }
+		}
+		check(probes == 12 && rostersSeen.size() == 6, "ONE_INELIGIBLE_ROSTER_MUST_NOT_CONSUME_SHARED_CAP12");
+		check(PhantomAutonomousTrainingNative.nativeProbePage(proposals, true).equals(proposals.subList(0, 2)), "NATIVE_PROBE_PAGE_KEEPS_SEALED_SEED_ORDER");
+		check(PhantomAutonomousTrainingNative.nativeProbePage(proposals, false).equals(proposals), "V1_PROBE_PAGE_UNCHANGED");
+	}
 	public static void main(String[] args) throws Exception
 	{
 		if (args.length > 0 && args[0].equals("review")) { reviewRegressions(); return; }
 		if (args.length > 0 && args[0].equals("reader")) { authenticReaderMutations(); return; }
 		if (args.length > 0 && args[0].equals("resource")) { resourceSelection(); return; }
+		if (args.length > 0 && args[0].equals("native-first")) { nativeFirstCurriculum(); return; }
+		if (args.length > 0 && args[0].equals("r1-review")) { nativeFirstReview(); return; }
+		if (args.length > 0 && args[0].equals("probe-fairness")) { nativeProbeFairness(); return; }
 		outcomes(); invalidEvidence(); codecAndStatistics(); curriculum();
 		reviewRegressions(); authenticReaderMutations();
 		resourceSelection();
+		nativeFirstCurriculum();
+		nativeFirstReview();
+		nativeProbeFairness();
 		System.out.println("EVAL012_OUTCOMES_NEGATIVE_CODEC_STATISTICS_GREEN");
 	}
 }
