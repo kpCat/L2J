@@ -89,3 +89,13 @@ Preflight до/после exit0. Prepare exit1 wrapper /Java held exit2, шта�
 ## Scope и текст
 
 Final exact allowlist guard и входной MANIFEST11 проверяются перед commit. Две отдельные `rg -n` проверки по всему изменённому scope: полный набор mojibake markers и regex escaped Cyrillic/XML. Exit1 без matches — PASS, не ошибка продукта. Результаты хранятся во внешнем scope receipt и в EVIDENCE/READBACK. Final report не приравнивает ни source GREEN, ни pre-CUT к настоящему бою.
+
+## Фактическая публикация и independent readback
+
+`git commit -m "feat(phantoms): add guarded incremental TRAIN016 protocol"` → `a69953c76cb75389b6666fbd867902bc2671d5ef`, parent `591c5261ed52f9b3f62d9a146513935fda503afb`;30paths,2596insertions/54deletions. `git push origin HEAD:refs/heads/feature/phantom-world` exit0, ordinary fast-forward. `git rev-parse HEAD` и `git status --short --untracked-files=all` подтвердили HEAD/чистоту SOURCE. `git ls-tree -r HEAD -- <exact30>` дал30blob identities; external `Build-Readback016.ps1` сверил их SHA1 с полными локальными bytes (raw или штатно нормализованный LF), затем SHA256.
+
+GitHub connector независимо прочитал branch ref и Git commit parents/tree, `compare_commits(591c5261,a69953c7)` подтвердил ровно30paths. `fetch_file(encoding=base64,ref=a69953c7,path=...)` прочитал полные тела всех30файлов,1 228 453bytes. Декодированные bytes/SHA256 и remote blob SHA совпали с локальными Git blobs. Это не проверка только metadata. Начальный generic fetch contents вернул raw XML вместо API JSON; parser failure не стал PASS, чтение выполнено purpose-built fetch_file.
+
+Receipt commit: `git add --` только три точных пути READBACK.json/EVIDENCE.json/COMMANDS.md текущего task; `git diff --check --cached -- <exact3>`; `git commit -m "docs(phantoms): record Goal016 GitHub readback and partial result"`; тот же ordinary `git push origin HEAD:refs/heads/feature/phantom-world`. Финальный HEAD/parent, compare и полные изменённые receipt bodies повторно читаются connector; внешний FINAL_GITHUB_READBACK016.json фиксирует фактический final SHA без self-reference. SOURCE status/HEAD и final frozen59/protected3 guards также проверяются. Никакого code/runtime изменения в receipt commit нет.
+
+External scope script вначале получил parser error на типографском символе в literal regex, затем неверный count из-за PowerShell array concatenation; оба отказа до staging. Regex перенесён в here-string, exact30 count и обе проверки реально прошли. Это ошибки оркестрации, не product regression и не behavioral RED.

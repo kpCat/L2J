@@ -7,7 +7,7 @@
     "gates":  {
                   "G2":  "PASS_FOCUSED_CONTRACTS_ONLY",
                   "G5":  "NOT_RUN_FAIL",
-                  "G8":  "PUBLICATION_PENDING_READBACK",
+                  "G8":  "SOURCE_AND_EVIDENCE_FULL_BODY_VERIFIED_SEE_READBACK",
                   "G6":  "PRESERVED_NO_FIT_NO_LEGAL_DATA",
                   "G3":  "FAIL_UNSEALED",
                   "G0":  "PASS",

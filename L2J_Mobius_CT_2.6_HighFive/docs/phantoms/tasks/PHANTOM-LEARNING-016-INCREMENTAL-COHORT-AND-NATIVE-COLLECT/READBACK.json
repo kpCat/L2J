@@ -1,9 +1,515 @@
 {
   "schema": "PHANTOM_LEARNING_016_GITHUB_READBACK_V1",
-  "status": "PENDING_PUBLICATION",
+  "status": "SOURCE_AND_EVIDENCE_FULL_BODY_VERIFIED",
   "branch": "feature/phantom-world",
-  "expectedParent": "591c5261ed52f9b3f62d9a146513935fda503afb",
+  "repository": "kpCat/L2J",
+  "sourceHead": "a69953c76cb75389b6666fbd867902bc2671d5ef",
+  "parent": "591c5261ed52f9b3f62d9a146513935fda503afb",
+  "tree": "f2dea57c3e7d0cf027577778ab6a061710709cf0",
+  "observedUtc": "2026-11-15 22:59:34 UTC",
+  "ordinaryPush": true,
+  "changedPaths": 30,
+  "fullBodies": 30,
+  "fullBytes": 1228453,
+  "method": "GitHub fetch_file(base64, immutable ref) complete bodies; decoded SHA256 and bytes compared to SHA1-validated local Git blobs",
+  "files": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "sha256": "3ab59ed064225080ef6d1af3450eaea0c86a6093356b761e9e0274f6d74acf10",
+      "bytes": 335899,
+      "blobSha": "1639034c4ad7928d5ef3d1d7d7c846f4919dcaad",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/build.xml"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "sha256": "e37aafe3ceaf43fcce105addb09f3c6ebb5419bb2585f53c49bde35af65ec161",
+      "bytes": 15951,
+      "blobSha": "5314d840cf0aad7753174430624e26a14932cea4",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-016.md",
+      "sha256": "0ea5f5036fc6f38d1fce2afd7752b1ca8a9fefb4d88791dc4a30a980fe20895d",
+      "bytes": 1646,
+      "blobSha": "bdf2c73223f612cd7698a73fb0b9aed48a457c1a",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-016.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ACCEPTANCE.md",
+      "sha256": "52ea990ec5da11903674fb30e30bef9b80196dec02c745e406d287323470b51e",
+      "bytes": 3742,
+      "blobSha": "8f08f44fe2bdbd2b92ad945735279a7fec1a1b10",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ACCEPTANCE.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ACCEPTANCE_RESULT.md",
+      "sha256": "b9df95e83db4110df026b405a20411353e03bcf0233f848989ad0e5ac091acde",
+      "bytes": 1212,
+      "blobSha": "8b73cea9776b89c2b033ade0e4d1a36c94dfc656",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ACCEPTANCE_RESULT.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ARCHITECTURE.md",
+      "sha256": "40a9ba014a693334e64df6039529fd1991607f94c515edee766a86e8744e2027",
+      "bytes": 5033,
+      "blobSha": "c43b111c3a8b5724637bd2ad5acf7e30ba771923",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ARCHITECTURE.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/COMMANDS.md",
+      "sha256": "fcbbe4dbc830c72cd686b493aab2c52a4840bf75fac975fbf2d2bac4cc7faa51",
+      "bytes": 9802,
+      "blobSha": "d5019bc758a6b07da6ba6549a90c813aac94bf6c",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/COMMANDS.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/EVIDENCE.json",
+      "sha256": "e8e07c39c070a39677cb677dae01491b6499f299aa3bdd9031197a1be7caccb6",
+      "bytes": 77055,
+      "blobSha": "e7b12608060017f51918b21ecfd1c798251165d1",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/EVIDENCE.json"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/GIT_AND_PRESERVATION.md",
+      "sha256": "27eaa9e82a71e1b2ef3df051b6aae23df1e69c3635939d0ab9683476de659fa5",
+      "bytes": 3957,
+      "blobSha": "5b6436b98c4bf4cbe0b706c9a515e558303a7f54",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/GIT_AND_PRESERVATION.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/HANDOFF.md",
+      "sha256": "3be72eeb72095f894be07a239082f023927f7df11340a140e2a4cc19c6ac458b",
+      "bytes": 2075,
+      "blobSha": "26242214001216a6c8fae2943484415be7baf7e4",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/HANDOFF.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/HANDOFF_RESULT.md",
+      "sha256": "26c008a71a7e9291279f3c82fda5233b829e508a1bf8588b7856460beb4fd018",
+      "bytes": 2462,
+      "blobSha": "a1fa02f044936edcb50946ff67a6dc70400f9edb",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/HANDOFF_RESULT.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/IMPLEMENTATION_PLAN016.md",
+      "sha256": "a2a386af2374fc57bd01778ac4a99e91f811152f05b0a8cd5119dce02432ed43",
+      "bytes": 29826,
+      "blobSha": "968c6e3faaee78261a3e267bd88815838380aa84",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/IMPLEMENTATION_PLAN016.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/INCREMENTAL_PROTOCOL.md",
+      "sha256": "315dd920d9467ba193e1e5c3597cfdde080819bd86b3ccded7bf62150b6d2040",
+      "bytes": 6816,
+      "blobSha": "e8dda8aa60c5e81b32ed07b1344dd0d6ff3c80bc",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/INCREMENTAL_PROTOCOL.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/MANIFEST.sha256",
+      "sha256": "5365e2079a317e7a719d4a7554694a11090e0aebb2d13312a2bb318ee2054f2c",
+      "bytes": 892,
+      "blobSha": "c4f540de49fc0ae897b965fa1986f7a3cb122a6e",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/MANIFEST.sha256"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/NEGATIVE_TESTS.md",
+      "sha256": "d35bd8718f50abd2cdb1b0a07088e54165f85c4068da80c3ad0cf8ab91000931",
+      "bytes": 3683,
+      "blobSha": "b77ff93e3434b722d097d99a0b678ad7102cdfa5",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/NEGATIVE_TESTS.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PLAN.md",
+      "sha256": "ef3a3a7b0b811175dc840bc047500a6b98f030747755c983e2ac88ef24914009",
+      "bytes": 5196,
+      "blobSha": "80e442f2cf0ae06ae7e6aafb89d3bceb140eeb36",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PLAN.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PRE_AUDIT.md",
+      "sha256": "3d5e2933fe2d3396bb06900319e6a80cdb9564e609cf6762b31af4e4a5af4a56",
+      "bytes": 3894,
+      "blobSha": "ef86d23d1f43b87f526554321c3072037cf6592d",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PRE_AUDIT.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PROFILING.md",
+      "sha256": "51beaed0e4d561de4b067b79242f648eadf735051bf1ca9eb6c0697d106364f3",
+      "bytes": 2769,
+      "blobSha": "972c1edbd3443072a6807926cb7ea175cc843a40",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PROFILING.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/READBACK.json",
+      "sha256": "c47939bce46d7785563bb7e6f9068a71e58831ae84d234efb1528636c1d46556",
+      "bytes": 377,
+      "blobSha": "d4cd478e4fa8a2b639fb57ce2afe38531d4aad07",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/READBACK.json"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/REPORT_CONTRACT.md",
+      "sha256": "2237276ee92c3027963e5778e9970dfa1aabbd8da865a4ec105894aef3b65848",
+      "bytes": 3276,
+      "blobSha": "c5ad24a5a44c16c1e3604258151932a4a69932de",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/REPORT_CONTRACT.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/RESULT.md",
+      "sha256": "de2cd32e71e4574f3b5688c08b15f2297156a8f31d9f7884e381602c88640008",
+      "bytes": 6391,
+      "blobSha": "e07b63d94de061795b44cdffbc429869394b2e11",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/RESULT.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/START_HERE.md",
+      "sha256": "071d6f28a339bba01c7a9b59191383e109aa11894079a4dc231c1ba4d39d06f0",
+      "bytes": 2546,
+      "blobSha": "d5bd26ca0238bbc4d33a34a2223ce02f77392ecc",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/START_HERE.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/TASK.md",
+      "sha256": "fde09a48b9ea057b9d39aa71a0342db82fa556c9df9bea06f080e9a1eea57206",
+      "bytes": 7390,
+      "blobSha": "7da4db3690da55d27c6fb9ee3463f84722f760a7",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/TASK.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/TEST_MATRIX.md",
+      "sha256": "6fdb92f27ca4b583e583e42099140a4f697ba66054889f4c7b3db88b46b28e4a",
+      "bytes": 4426,
+      "blobSha": "0927f1b491deb2075a8b4d1bff2c071256211409",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/TEST_MATRIX.md"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "sha256": "39e5b0bc8bdae1839a832a10cc1ff09ecc7346a116650913c75c87813ac476d3",
+      "bytes": 17998,
+      "blobSha": "6a02294455e0638aa22eb6087d16eb9e6cd727d4",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "sha256": "3f7d93a678d82218358521e6682f78d0e9439862e45da1d527ae9df0ab01abd6",
+      "bytes": 44852,
+      "blobSha": "aa1810e6331b373a9224f434f7ac158cd41fd921",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "sha256": "336e5dcf4d0ff7af2d46e88174503f51a43377f3c069df33c0d9c9a02be3283a",
+      "bytes": 271175,
+      "blobSha": "f5c6b3667c7c154464a9bcc8ea6f1825ed552c2f",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "sha256": "afc334bb74769a10421cd20e37f8f4ef31387621858317670e6010e55e1d4a8e",
+      "bytes": 111578,
+      "blobSha": "78e9ff4ccc8838c538ff903cbe04d31318c143c2",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "sha256": "1f534d02783b6d702e767922af96e792b42b1144ee876731399da2a5a78b128d",
+      "bytes": 186643,
+      "blobSha": "5e4bb752e24ac40697e95686786e26ed96aad9e8",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "sha256": "c788be4baa18206644f9ac8d27e933b2c983bc5b1a00323d82687d8eacff9441",
+      "bytes": 59891,
+      "blobSha": "40b06c5c0c7bc0fb98275749651e5dcc85dbfd7e",
+      "wholeBodyVerified": true,
+      "url": "https://github.com/kpCat/L2J/blob/a69953c76cb75389b6666fbd867902bc2671d5ef/L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1"
+    }
+  ],
+  "diff": [
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "status": "modified",
+      "additions": 9,
+      "deletions": 0,
+      "changes": 9,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "status": "modified",
+      "additions": 6,
+      "deletions": 0,
+      "changes": 6,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-016.md",
+      "status": "added",
+      "additions": 7,
+      "deletions": 0,
+      "changes": 7,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ACCEPTANCE.md",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "changes": 19,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ACCEPTANCE_RESULT.md",
+      "status": "added",
+      "additions": 9,
+      "deletions": 0,
+      "changes": 9,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/ARCHITECTURE.md",
+      "status": "added",
+      "additions": 31,
+      "deletions": 0,
+      "changes": 31,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/COMMANDS.md",
+      "status": "added",
+      "additions": 91,
+      "deletions": 0,
+      "changes": 91,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/EVIDENCE.json",
+      "status": "added",
+      "additions": 1050,
+      "deletions": 0,
+      "changes": 1050,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/GIT_AND_PRESERVATION.md",
+      "status": "added",
+      "additions": 11,
+      "deletions": 0,
+      "changes": 11,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/HANDOFF.md",
+      "status": "added",
+      "additions": 8,
+      "deletions": 0,
+      "changes": 8,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/HANDOFF_RESULT.md",
+      "status": "added",
+      "additions": 11,
+      "deletions": 0,
+      "changes": 11,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/IMPLEMENTATION_PLAN016.md",
+      "status": "added",
+      "additions": 128,
+      "deletions": 0,
+      "changes": 128,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/INCREMENTAL_PROTOCOL.md",
+      "status": "added",
+      "additions": 35,
+      "deletions": 0,
+      "changes": 35,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/MANIFEST.sha256",
+      "status": "added",
+      "additions": 11,
+      "deletions": 0,
+      "changes": 11,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/NEGATIVE_TESTS.md",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "changes": 19,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PLAN.md",
+      "status": "added",
+      "additions": 16,
+      "deletions": 0,
+      "changes": 16,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PRE_AUDIT.md",
+      "status": "added",
+      "additions": 13,
+      "deletions": 0,
+      "changes": 13,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/PROFILING.md",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "changes": 19,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/READBACK.json",
+      "status": "added",
+      "additions": 9,
+      "deletions": 0,
+      "changes": 9,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/REPORT_CONTRACT.md",
+      "status": "added",
+      "additions": 16,
+      "deletions": 0,
+      "changes": 16,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/RESULT.md",
+      "status": "added",
+      "additions": 32,
+      "deletions": 0,
+      "changes": 32,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/START_HERE.md",
+      "status": "added",
+      "additions": 13,
+      "deletions": 0,
+      "changes": 13,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/TASK.md",
+      "status": "added",
+      "additions": 30,
+      "deletions": 0,
+      "changes": 30,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-016-INCREMENTAL-COHORT-AND-NATIVE-COLLECT/TEST_MATRIX.md",
+      "status": "added",
+      "additions": 27,
+      "deletions": 0,
+      "changes": 27,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "status": "modified",
+      "additions": 11,
+      "deletions": 1,
+      "changes": 12,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "status": "modified",
+      "additions": 29,
+      "deletions": 0,
+      "changes": 29,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "status": "modified",
+      "additions": 625,
+      "deletions": 19,
+      "changes": 644,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "status": "modified",
+      "additions": 141,
+      "deletions": 2,
+      "changes": 143,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "status": "modified",
+      "additions": 143,
+      "deletions": 19,
+      "changes": 162,
+      "previous_filename": null
+    },
+    {
+      "filename": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "status": "modified",
+      "additions": 27,
+      "deletions": 13,
+      "changes": 40,
+      "previous_filename": null
+    }
+  ],
   "result": "PARTIAL016_UNSEALED",
   "manualGate": "REQUIRED",
-  "note": "Independent GitHub HEAD, parent, exact diff and complete file bodies will be recorded after ordinary push."
+  "receiptScope": [
+    "READBACK.json",
+    "EVIDENCE.json",
+    "COMMANDS.md"
+  ],
+  "receiptNote": "Проверены полные тела исходного source/evidence commit. Этот receipt публикуется отдельным commit; его конечный HEAD/parent и все изменённые receipt bodies независимо проверяются после push и фиксируются во внешнем FINAL_GITHUB_READBACK016.json. Self-referential hash не создаётся.",
+  "liveResult": {
+    "G3": "FAIL_UNSEALED",
+    "GS": 0,
+    "FIT": 0,
+    "EVAL": 0,
+    "production": "OFF",
+    "nextGoalStarted": false
+  }
 }
