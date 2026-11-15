@@ -1,0 +1,289 @@
+{
+  "schema": "PHANTOM013_DELIVERY_READBACK_V1",
+  "status": "PASS_INDEPENDENT_SOURCE_AND_EVIDENCE_READBACK",
+  "technicalResult": "PARTIAL013_PRE_NATIVE_ADMISSION_UNFINISHED",
+  "full013": false,
+  "branch": "feature/phantom-world",
+  "baseline": "52aac9e0274a63906a9fe5053611b8daf1aac778",
+  "verifiedDeliveryHead": "ba5c5ace00a528818af1f8e8fbcdfc84d7782419",
+  "headReadThrough": "Independent GitHub connector branch fetch_commit",
+  "parentsReadThrough": "Independent public GitHub REST; exact linear chain verified",
+  "parents": [
+    {
+      "sha": "a954c16b652be9ca67426d3ed2cfa9a0d1b26b16",
+      "parents": [
+        "52aac9e0274a63906a9fe5053611b8daf1aac778"
+      ]
+    },
+    {
+      "sha": "4e349e25f80771457cbf6db382fde7085241dd1f",
+      "parents": [
+        "a954c16b652be9ca67426d3ed2cfa9a0d1b26b16"
+      ]
+    },
+    {
+      "sha": "d12a506a520b958e2bac82c247c4da95c43d5b16",
+      "parents": [
+        "4e349e25f80771457cbf6db382fde7085241dd1f"
+      ]
+    },
+    {
+      "sha": "ba5c5ace00a528818af1f8e8fbcdfc84d7782419",
+      "parents": [
+        "d12a506a520b958e2bac82c247c4da95c43d5b16"
+      ]
+    }
+  ],
+  "compare": {
+    "aheadBy": 4,
+    "behindBy": 0,
+    "exactChangedPaths": 38,
+    "sourcePaths": 10,
+    "docPaths": 28,
+    "unexpectedPaths": 0
+  },
+  "bodyVerification": "All38 full base64 bodies independently retrieved, decoded, SHA1(blob length NUL body) recomputed and matched connector SHA and local exact git ls-tree; not a metadata-only check.",
+  "fullBodies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 332536,
+      "gitBlobSha": "c2604470a5f6839687aebea29118226d2fce492b",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "bytes": 11482,
+      "gitBlobSha": "35f97c77e922ed28aa4681452150e1b31bd8cf2e",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP.md",
+      "bytes": 2509,
+      "gitBlobSha": "0a94052abb1b7ea0a4ff64f0ec3e53982958337f",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/ACCEPTANCE.md",
+      "bytes": 2843,
+      "gitBlobSha": "cbabcb1558d849d6cc30adb0acd23d0d0d07ab04",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/ACCEPTANCE_RESULT.md",
+      "bytes": 3617,
+      "gitBlobSha": "b2a36db6c6aef75808d8e94966edf867352f9f9a",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/ARCHITECTURE.md",
+      "bytes": 4530,
+      "gitBlobSha": "74eab4e7d8f62facc9cf6edb03daddc35cd2dd47",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/AUTO_STOP.md",
+      "bytes": 4270,
+      "gitBlobSha": "f68ff544901fd998baa960e6357211386e9a1823",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/BLOCKER013.md",
+      "bytes": 4853,
+      "gitBlobSha": "843bf25d9ca842f68c8a6fe80c3619bfae07c9a4",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/COMMANDS.md",
+      "bytes": 8938,
+      "gitBlobSha": "d0000f25e04f93d8f75447a2915b614500dbbaf0",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/DELIVERY_HANDOFF.md",
+      "bytes": 2361,
+      "gitBlobSha": "a5e8e3a904cdc42b9c855c1d50a15d319e644f78",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/EVIDENCE.json",
+      "bytes": 12650,
+      "gitBlobSha": "4699980855456c5cbbd439eb0a6d441aef8cf035",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/EXECUTION_LEDGER.md",
+      "bytes": 10844,
+      "gitBlobSha": "ce45ae6cdc6e6a10dc4c5d62d4460b801ba2382f",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/FINAL_SCOPE.json",
+      "bytes": 4966,
+      "gitBlobSha": "3fcb72b41d406556ef02731855e2816f2a13f1c9",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/GIT_POLICY.md",
+      "bytes": 1983,
+      "gitBlobSha": "43610dd115ccc8f3ed851c403d242b6b1ba4db08",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/HANDOFF.md",
+      "bytes": 1984,
+      "gitBlobSha": "6748baaca939e1368fe3d72bc746e066dc451661",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/IMPLEMENTATION_PLAN.md",
+      "bytes": 20890,
+      "gitBlobSha": "ddbfa2c59d277931a55a4c09b768c1cbadae4246",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/LEARNING_AND_EVAL.md",
+      "bytes": 4421,
+      "gitBlobSha": "295b3578d7798004a3d6f08fbd7e18de7b6324b2",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/MANIFEST.sha256",
+      "bytes": 872,
+      "gitBlobSha": "9bd362dda08e80fe0d6a51bb102c6bc286789e1a",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/PLAN.md",
+      "bytes": 3936,
+      "gitBlobSha": "cea203e1e1b3bc4b298db87137fa12eb738efe8d",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/PRE_AUDIT.md",
+      "bytes": 3881,
+      "gitBlobSha": "0facdd6d46292e0dd29b9fbd5d9a4104293b4c42",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/READBACK_SOURCE.json",
+      "bytes": 3543,
+      "gitBlobSha": "582466b2363d1212629609d26adfc7d556f0302a",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/README_RU.md",
+      "bytes": 2197,
+      "gitBlobSha": "0ee1a1e4647e27393890724215620eeeeb22f612",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/READ_ONLY_AUDIT.json",
+      "bytes": 6689,
+      "gitBlobSha": "ff4b6fe468f70344be0359d7cc0607fe00ac2e08",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/READ_ONLY_SAFETY.json",
+      "bytes": 3357,
+      "gitBlobSha": "e578b1e6d99b57003cfa314dc0ba39fb4a2746a8",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/RESULT.md",
+      "bytes": 5204,
+      "gitBlobSha": "d53e1f62a8256e9a8233b77d96545a2f97a336c7",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/REVIEW_FIXES.md",
+      "bytes": 3505,
+      "gitBlobSha": "d98e4e3ea0906ef89208fdda68b4f956e7ada193",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/SOURCE_STAGE.json",
+      "bytes": 3255,
+      "gitBlobSha": "e7f0144c5e8d98d0684e29c93ed9c461b2fd7ee7",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/TASK.md",
+      "bytes": 14576,
+      "gitBlobSha": "f83cda48454e1f69459948538518eaef5aa52eb9",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-013-AUTONOMOUS-LEARNING-LOOP/TEST_MATRIX.md",
+      "bytes": 3746,
+      "gitBlobSha": "a289afb9f90055e05b56484eb4d7ae9651238c87",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "bytes": 16960,
+      "gitBlobSha": "3cae687fd61abe5b1770d44825e0fe2a64d75e25",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "bytes": 30513,
+      "gitBlobSha": "b66022eaa271d20bfc2c446b1f477710ad76150b",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 196255,
+      "gitBlobSha": "6060b69a2e04a6e2a38aa122e035a7e55835f1c3",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+      "bytes": 23265,
+      "gitBlobSha": "6fe98acad329c65aa7ef8d4acd2f829399a03b37",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+      "bytes": 2755,
+      "gitBlobSha": "a88b4382d62dbf519524c76d2c671465f1941b92",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "bytes": 75092,
+      "gitBlobSha": "1c21c0d7f4ee2dfd588b56a331d3a82784710f20",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "bytes": 137453,
+      "gitBlobSha": "d9d25f6e90f624d2056973325b7b1b28aa1e6a0d",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+      "bytes": 17157,
+      "gitBlobSha": "5265d28114bcd26940b63706585ed22c60932466",
+      "fullBodyHashVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "bytes": 58146,
+      "gitBlobSha": "0f48066eb0e5144b917c6d1a76c03297e25ad642",
+      "fullBodyHashVerified": true
+    }
+  ],
+  "remoteEvidenceSemantics": {
+    "full013": false,
+    "starts": 0,
+    "optimizerUpdates": 903,
+    "gameVerdict": "NO_EVAL",
+    "remainingTasks": 6,
+    "manualGate013": "REQUIRED"
+  },
+  "followUp": "This receipt itself is the39th explicitly allowed path and will be published by a receipt-only commit. Its parent, exact one-file diff, full body and final branch HEAD must be checked after that push; final SHA is reported to the owner. No recursive claim about this receipt's own commit.",
+  "sourceScopeExpanded": false,
+  "privateArtifactsPublished": false,
+  "nextGoalStarted": false,
+  "goalTechnicalObjectiveAchieved": false
+}
