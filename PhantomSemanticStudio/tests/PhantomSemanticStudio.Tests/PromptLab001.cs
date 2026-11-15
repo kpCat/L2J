@@ -13,7 +13,7 @@ internal static partial class Program
     private sealed record TargetedFamilyCase(string Family, string Case, V4GenerationRequest Request);
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed record TargetedFamilyArm(string Id, Dictionary<string, string> CategoryInstructions, Dictionary<string, string> FamilyInstructions,
-        Dictionary<string, PromptFamilyExample[]> Examples);
+        Dictionary<string, PromptFamilyExample[]> Examples, string? ContextPresentation = null);
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed record TargetedFamilySampler(string Id, PromptLabApiOptions Options);
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -46,6 +46,7 @@ internal static partial class Program
         {
             if (arm == null || !Label(arm.Id) || arm.CategoryInstructions == null || arm.FamilyInstructions == null || arm.Examples == null)
                 throw new InvalidDataException("TARGETED_SPEC_ARM");
+            V4Rules.Require(arm.ContextPresentation is null or "READABLE_SCENE", "TARGETED_SPEC_CONTEXT_PRESENTATION");
             V4Rules.Require(arm.CategoryInstructions.Keys.All(categories.Contains) && arm.FamilyInstructions.Keys.All(familyIds.Contains)
                 && arm.Examples.Keys.All(familyIds.Contains), "TARGETED_SPEC_UNUSED_OVERRIDE");
             foreach (var examples in arm.Examples)
@@ -78,6 +79,7 @@ internal static partial class Program
                 var scopes = frozen[(family, arm.Id)];
                 previous = store.SaveVersion(lab.PrepareVersion(new PromptLabVersion { ProfileId = previous?.ProfileId ?? "", ParentId = previous?.Id ?? "",
                     Name = "Сравнение по spec · " + family, System = scopes[0].Components!.FamilyInstruction,
+                    ContextPresentation = arm.ContextPresentation,
                     User = "Создай самостоятельные русские альтернативы одного следующего хода. Это не цепочка разговора.",
                     RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"], Scenario = scopes[0], AdditionalScenarios = scopes.Skip(1).ToArray(),
                     CategoryInstructions = scopes.Select(s => s.Components!.CategoryInstruction).ToArray() }));
@@ -546,6 +548,38 @@ internal static partial class Program
 
     private static async Task PromptLab001()
     {
+        await TestAsync("001 context presentation is immutable prompt data and readable rendering preserves the response contract", async () =>
+        {
+            using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "workspace"), f.Module);
+            var store = new PromptLabStore(workspace); using var lab = new PromptLabSession(store);
+            var scope = new V4GenerationRequest { Category = "social.friendship.support", Count = 1,
+                Style = new() { Category = "social.friendship.support", Situation = "Текстовый чат после трудного дня.", Dialogue = ["Игрок: Сил на разговор нет.", "Фантом: Понял.", "Игрок: Я пока просто посижу."] } };
+            var original = lab.CreateFamilyProfile(scope); store.AcceptVersion(original.Id); var hash = store.VersionHash(original.Id);
+            var json = JsonSerializer.Serialize(original, WorkspaceStore.JsonOptions); True(!json.Contains("ContextPresentation", StringComparison.Ordinal));
+            var node = JsonNode.Parse(json)!; node["Id"] = ""; node["ParentId"] = original.Id; node["ContextPresentation"] = "READABLE_SCENE";
+            var revision = store.SaveVersion(lab.PrepareVersion(JsonSerializer.Deserialize<PromptLabVersion>(node.ToJsonString(), WorkspaceStore.JsonOptions)!));
+            Equal(hash, store.VersionHash(original.Id)); Equal(original.Id, store.GetProfile(original.ProfileId).AcceptedVersionId);
+            var loaded = new CorpusLoadedModel("gemma-local", "instance-1", 65536, ["off", "on"]);
+            foreach (var transport in new[] { "LM_NATIVE", "OPENAI_COMPAT" })
+            {
+                const string body = "{\"header\":{},\"records\":[]}";
+                var handler = new RecordingHandler(transport == "LM_NATIVE" ? PromptLabSse(body, true) : PromptLabCompatSse(body, "stop", true), mediaType: "text/event-stream");
+                using var http = new HttpClient(handler); var client = new LmStudioClient(http);
+                var options = new PromptLabApiOptions { Transport = transport };
+                var plain = await client.GeneratePromptLabAsync(new(), "", loaded, original with { Generation = options }, CancellationToken.None);
+                var readable = await client.GeneratePromptLabAsync(new(), "", loaded, revision with { Generation = options }, CancellationToken.None);
+                Equal("", plain.Response.Rejection); Equal("", readable.Response.Rejection);
+                True(plain.EffectiveUser.Contains("\"Dialogue\":", StringComparison.Ordinal));
+                True(readable.EffectiveUser.Contains("Последние ходы", StringComparison.Ordinal));
+                True(readable.EffectiveUser.Contains("Игрок: \"Я пока просто посижу.\"", StringComparison.Ordinal));
+                True(!readable.EffectiveUser.Contains("\"Dialogue\":", StringComparison.Ordinal));
+                True(readable.EffectiveUser.Contains("pw-semantic-batch/1", StringComparison.Ordinal));
+                True(readable.EffectiveUser.Contains("social.friendship.support.reply", StringComparison.Ordinal));
+                Equal(plain.EffectiveSystem, readable.EffectiveSystem); Equal(2, handler.Calls);
+            }
+            node["ContextPresentation"] = "INVENTED";
+            Throws(() => JsonSerializer.Deserialize<PromptLabVersion>(node.ToJsonString(), WorkspaceStore.JsonOptions)!.Validate(false, store.EffectiveRegistry()));
+        });
         await TestAsync("001 data-defined trial freezes examples and rejects spec drift without HTTP", async () =>
         {
             using var f = new Fixture();

@@ -25,6 +25,9 @@ partial class PromptLabControl
         tabDescription = new System.Windows.Forms.TabPage();
         tabPack = new System.Windows.Forms.TabPage();
         promptSplit = new System.Windows.Forms.SplitContainer();
+        promptOptions = new System.Windows.Forms.FlowLayoutPanel();
+        cboContextPresentation = new System.Windows.Forms.ComboBox();
+        lblContextPresentation = new System.Windows.Forms.Label();
         resultsSplit = new System.Windows.Forms.SplitContainer();
         scopeLayout = new System.Windows.Forms.TableLayoutPanel();
         historyLayout = new System.Windows.Forms.TableLayoutPanel();
@@ -158,6 +161,15 @@ partial class PromptLabControl
         lblUser.Text = "USER — задача и ситуация; роли в API сохраняются раздельно"; lblUser.Dock = System.Windows.Forms.DockStyle.Top; lblUser.Height = 26;
         promptSplit.Panel1.Controls.Add(txtSystem); promptSplit.Panel1.Controls.Add(lblSystem);
         promptSplit.Panel2.Controls.Add(txtUser); promptSplit.Panel2.Controls.Add(lblUser); tabPrompt.Controls.Add(promptSplit);
+        promptOptions.Dock = System.Windows.Forms.DockStyle.Top; promptOptions.AutoSize = true; promptOptions.WrapContents = true;
+        lblContextPresentation.Text = "Входная сцена:"; lblContextPresentation.AutoSize = true; lblContextPresentation.Margin = new System.Windows.Forms.Padding(3, 7, 3, 3);
+        cboContextPresentation.Name = "cboContextPresentation"; cboContextPresentation.Width = 230;
+        cboContextPresentation.Enabled = false;
+        cboContextPresentation.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+        cboContextPresentation.Items.AddRange(new object[] { "JSON-сцена (прежний формат)", "Читаемый текст и цитаты" });
+        cboContextPresentation.SelectedIndex = 0;
+        promptOptions.Controls.AddRange(new System.Windows.Forms.Control[] { lblContextPresentation, cboContextPresentation });
+        tabPrompt.Controls.Add(promptOptions);
         scopeLayout.Dock = System.Windows.Forms.DockStyle.Fill; scopeLayout.ColumnCount = 1; scopeLayout.RowCount = 6;
         scopeLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 35F));
         scopeLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
@@ -258,6 +270,7 @@ partial class PromptLabControl
         btnSplitFamilies.Click += SplitFamilies_Click; btnGenerateFamilies.Click += Generate_Click;
         chkMeaning.CheckedChanged += Meaning_Changed;
         cboProfiles.SelectedIndexChanged += Profile_Changed; cboVersions.SelectedIndexChanged += Version_Changed;
+        cboContextPresentation.SelectedIndexChanged += Editor_Changed;
         txtName.TextChanged += Editor_Changed; txtSystem.TextChanged += Editor_Changed; txtUser.TextChanged += Editor_Changed;
         txtSituation.TextChanged += Editor_Changed; txtDialogue.TextChanged += Editor_Changed;
         txtCategoryInstruction.TextChanged += Editor_Changed;
@@ -286,10 +299,10 @@ partial class PromptLabControl
     private System.Windows.Forms.TabPage tabPrompt = null!, tabScope = null!, tabParameters = null!, tabResults = null!, tabHistory = null!, tabDescription = null!, tabPack = null!;
     private System.Windows.Forms.SplitContainer promptSplit = null!, resultsSplit = null!;
     private System.Windows.Forms.TextBox txtName = null!, txtModel = null!, txtSystem = null!, txtUser = null!, txtSituation = null!, txtDialogue = null!, txtFeedbackV1 = null!, txtFeedbackV2 = null!, txtHistory = null!, txtDescription = null!, txtPackReport = null!, txtCategoryInstruction = null!;
-    private System.Windows.Forms.ComboBox cboProfiles = null!, cboVersions = null!, cboRuns = null!;
+    private System.Windows.Forms.ComboBox cboProfiles = null!, cboVersions = null!, cboRuns = null!, cboContextPresentation = null!;
     private System.Windows.Forms.DataGridView gridScope = null!, gridParameters = null!, gridV1 = null!, gridV2 = null!;
     private System.Windows.Forms.Button btnNew = null!, btnCopy = null!, btnSave = null!, btnAccept = null!, btnGenerate = null!, btnRefine = null!, btnCompare = null!, btnCancel = null!, btnModels = null!, btnViewRun = null!, btnResume = null!, btnDescribe = null!, btnRoute = null!, btnProduction = null!;
-    private System.Windows.Forms.Label lblStatus = null!, lblVersions = null!, lblSystem = null!, lblUser = null!, lblV1 = null!, lblV2 = null!;
+    private System.Windows.Forms.Label lblStatus = null!, lblVersions = null!, lblSystem = null!, lblUser = null!, lblV1 = null!, lblV2 = null!, lblContextPresentation = null!;
     private System.Windows.Forms.Timer draftTimer = null!;
     private System.Windows.Forms.DataGridViewTextBoxColumn colParameter = null!, colGeneration = null!, colRefinement = null!;
     private System.Windows.Forms.DataGridViewTextBoxColumn colV1Number = null!, colV1Text = null!, colV1Vote = null!, colV1Comment = null!, colV1Flags = null!, colV2Number = null!, colV2Text = null!, colV2Vote = null!, colV2Comment = null!, colV2Flags = null!;
@@ -299,7 +312,7 @@ partial class PromptLabControl
     private System.Windows.Forms.DataGridViewTextBoxColumn colCount = null!, colEmotion = null!;
     private System.Windows.Forms.DataGridViewComboBoxColumn colStance = null!, colTone = null!;
     private System.Windows.Forms.Button btnApplyPlan = null!;
-    private System.Windows.Forms.FlowLayoutPanel scopeActions = null!, packActions = null!;
+    private System.Windows.Forms.FlowLayoutPanel scopeActions = null!, packActions = null!, promptOptions = null!;
     private System.Windows.Forms.Button btnAddScope = null!, btnRemoveScope = null!, btnTaxonomy = null!, btnImportPack = null!, btnBuildPack = null!, btnFamily = null!, btnSplitFamilies = null!, btnGenerateFamilies = null!;
     private System.Windows.Forms.CheckBox chkExperiment = null!, chkMeaning = null!;
 }

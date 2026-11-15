@@ -22,6 +22,7 @@ internal static partial class Program
             True((bool)Control("txtCategoryInstruction").Multiline);
             True(!(bool)Control("btnFamily").Enabled);
             True(!(bool)Control("btnGenerateFamilies").Enabled);
+            True(!(bool)Control("cboContextPresentation").Enabled);
         });
         Test("001 prompt control binds isolated history and restores an unfinished system draft without showing a window", () =>
         {
@@ -61,13 +62,20 @@ internal static partial class Program
                 dynamic ui = disposable; ui.SetContext(workspace, (Func<StudioSettings>)(() => new() { HighFiveRoot = f.Module }), (Func<string>)(() => ""));
                 dynamic Control(string name) => ui.Controls.Find(name, true)[0];
                 True((bool)Control("txtCategoryInstruction").Enabled);
+                True((bool)Control("cboContextPresentation").Enabled);
                 Control("txtCategoryInstruction").Text = "Только конкретная помощь без лозунгов.";
                 Control("gridScope").Rows[0].Cells["colEmotion"].Value = "устал";
+                Equal(0, (int)Control("cboContextPresentation").SelectedIndex);
+                Control("cboContextPresentation").SelectedIndex = 1;
                 True((bool)ui.TryClose());
             }
             var draft = store.GetDraft(version.Id)!; Equal("Только конкретная помощь без лозунгов.", draft.CategoryInstructions[0]);
             Equal("устал", draft.Scenario.Style.EmotionalState); Equal(hash, store.VersionHash(version.Id)); Equal(version.Id, store.GetProfile(version.ProfileId).AcceptedVersionId);
+            Equal("READABLE_SCENE", draft.ContextPresentation); True(store.GetVersion(version.Id).ContextPresentation == null);
             lab.PrepareVersion(draft).Validate(false, store.EffectiveRegistry());
+            using var restored = (IDisposable)Activator.CreateInstance(type)!; dynamic restoredUi = restored;
+            restoredUi.SetContext(workspace, (Func<StudioSettings>)(() => new() { HighFiveRoot = f.Module }), (Func<string>)(() => ""));
+            Equal(1, (int)restoredUi.Controls.Find("cboContextPresentation", true)[0].SelectedIndex);
         });
         Test("001 existing laboratory gains separate speech presets without changing a user profile or repeating migration", () =>
         {

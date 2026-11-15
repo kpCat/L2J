@@ -104,6 +104,7 @@ public partial class PromptLabControl : UserControl
         try
         {
             txtName.Text = display.Name; txtSystem.Text = display.System; txtUser.Text = display.User;
+            cboContextPresentation.SelectedIndex = display.ContextPresentation == "READABLE_SCENE" ? 1 : 0;
             txtDescription.Text = display.Description;
             colCategory.DataSource = Store.EffectiveRegistry().Categories.Select(c => new Choice(c.Key, c.Label + " · " + c.Key))
                 .Concat(display.CategorySuggestions.Where(s => !Store.EffectiveRegistry().Categories.Any(c => c.Key == s.Key)).Select(s => new Choice(s.Key, "На утверждение: " + s.Label + " · " + s.Key))).ToArray();
@@ -127,6 +128,7 @@ public partial class PromptLabControl : UserControl
         if (current == null || scopeRows.Count == 0) throw new InvalidDataException("Создайте или выберите профиль.");
         gridScope.EndEdit(); gridParameters.EndEdit(); SaveActiveScene(); var scopes = scopeRows.Select(r => r.ToRequest()).ToArray();
         return current with { Name = txtName.Text, System = txtSystem.Text, User = txtUser.Text, Scenario = scopes[0], AdditionalScenarios = scopes.Skip(1).ToArray(),
+            ContextPresentation = cboContextPresentation.SelectedIndex == 1 ? "READABLE_SCENE" : null,
             CategoryInstructions = scopeRows.Select(row => row.CategoryInstruction).ToArray(), Generation = ReadOptions(1), Refinement = ReadOptions(2), Description = txtDescription.Text };
     }
 
@@ -451,6 +453,7 @@ public partial class PromptLabControl : UserControl
         btnNew.Enabled = lab != null && idle; btnCopy.Enabled = ready && idle; btnCompare.Enabled = ready && idle && leftRun != null;
         btnRefine.Enabled = ready && idle && (leftRun != null || rightRun != null); btnCancel.Enabled = Busy; btnResume.Enabled = ready && idle && cboRuns.Items.Count > 0;
         cboProfiles.Enabled = cboVersions.Enabled = !Busy; txtModel.Enabled = !Busy;
+        cboContextPresentation.Enabled = ready && idle;
         txtSystem.ReadOnly = txtUser.ReadOnly = txtName.ReadOnly = txtSituation.ReadOnly = txtDialogue.ReadOnly = Busy;
         txtDescription.ReadOnly = txtFeedbackV1.ReadOnly = txtFeedbackV2.ReadOnly = Busy;
         txtCategoryInstruction.ReadOnly = Busy;

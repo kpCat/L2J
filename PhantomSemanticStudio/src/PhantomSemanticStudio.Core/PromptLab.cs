@@ -48,6 +48,8 @@ public sealed record PromptLabVersion
     public string Name { get; init; } = "Новый профиль";
     public string System { get; init; } = "Пиши живые русские игровые реплики с учётом ситуации и характера.";
     public string User { get; init; } = "Ответь на последний ход собеседника.";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ContextPresentation { get; init; }
     public string RefinerSystem { get; init; } = "Предложи редакцию промпта по фактическим репликам и отзывам редактора. Не принимай её автоматически.";
     public string Origin { get; init; } = "MANUAL";
     public string ProposedFromRunId { get; init; } = "";
@@ -77,6 +79,7 @@ public sealed record PromptLabVersion
         V4Rules.Require(!string.IsNullOrWhiteSpace(Name) && Name.Length <= 120 && !Name.Any(char.IsControl)
             && Origin is "MANUAL" or "MODEL_PROPOSAL" or "COPY", "PROMPT_LAB_VERSION_METADATA");
         CheckPrompt(System, 12 * 1024); CheckPrompt(User, 12 * 1024); CheckPrompt(RefinerSystem, 8 * 1024);
+        V4Rules.Require(ContextPresentation is null or "READABLE_SCENE", "PROMPT_LAB_CONTEXT_PRESENTATION");
         V4Rules.Require(V4Rules.Utf8.GetByteCount(System) + V4Rules.Utf8.GetByteCount(User) <= 16 * 1024, "PROMPT_LAB_EDITOR_TEXT_BUDGET");
         V4Rules.Require(Generation != null && Refinement != null && Scenario != null, "PROMPT_LAB_OPTIONS_REQUIRED");
         Generation!.Validate(); Refinement!.Validate();
