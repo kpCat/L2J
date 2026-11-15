@@ -1,0 +1,31 @@
+{
+  "v1CodecBlocks": [
+    {
+      "method": "incarnationText",
+      "byteIdentical": true,
+      "sha256": "49df0ccda91d63bdcc0e12548b97fca7517e2030a2cdf74fe29a692adad0fcbd"
+    },
+    {
+      "method": "decodeIncarnation",
+      "byteIdentical": true,
+      "sha256": "ceb4e7a796adb0e6caefe8f7ef323b1c69ac5ed2e2932114f3cebc86439288f9"
+    },
+    {
+      "method": "encodeArm",
+      "byteIdentical": true,
+      "sha256": "2e607a606b49e054b58a89d84923183dfc2386680e758d573f16a99a5f75ea41"
+    },
+    {
+      "method": "decodeArm",
+      "byteIdentical": true,
+      "sha256": "2146a58f3b95f5cdfbbc880dbd966a85b2841265e892adc8f2a266a4886499d6"
+    },
+    {
+      "method": "pairStatus",
+      "byteIdentical": true,
+      "sha256": "c87a62a3429e1a80db7cce7ff108e065f113f8f50756721a029a2752df791363"
+    }
+  ],
+  "unchangedOtherApprovedSources": 4,
+  "sourcePathsWithinOriginalAllowlist": true
+}

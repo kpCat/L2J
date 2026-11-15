@@ -1,0 +1,24 @@
+{
+  "head": "5ee7af44caa70c62fbf044ac755f14d65c7e9c3f",
+  "parent": "e5af135316cbff14cbdeca3f550c0c13ffd12e92",
+  "tree": "e0cb66ba339f26e00841929237486c8470e076f1",
+  "exactDiffPaths": [
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+  ],
+  "fullBodies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 180295,
+      "gitBlobSha": "f8109c70dfb4277f1da11e006815d330fd8f2a1f",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+      "bytes": 19838,
+      "gitBlobSha": "91f05cdaab3c4f21356826eb2313d979ab003805",
+      "fullBodyVerified": true
+    }
+  ],
+  "independentGitHubReadback": "PASS"
+}

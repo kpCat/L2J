@@ -1,5 +1,5 @@
 <!-- GOAL012_COUNTER -->
-012 — выданная задача **№6 из13**, после выдачи осталось **7**. Manual gate REQUIRED; следующий Goal не начат. [Итог012](tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/RESULT.md). Исторические статусы ниже не изменены.
+012 — задача **№6 из13**, осталось **7**. ДополнениеR1: native4terminal-comparable pairs;финальнаяпубликацияG8required. Manual gate REQUIRED;следующийGoalне начат. [Итог012R1](tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/R1_RESULT.md). Исторические статусы ниже не изменены.
 <!-- GOAL012_COUNTER_END -->
 
 <!-- GOAL011_CURRENT -->

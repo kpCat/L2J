@@ -1,0 +1,80 @@
+{
+  "status": "G0_G7_PASS_G8_REQUIRED",
+  "gates": {
+    "G0": "PASS",
+    "G1": "PASS",
+    "G2": "PASS",
+    "G3": "PASS",
+    "G4": "PASS",
+    "G5": "PASS",
+    "G6": "PASS",
+    "G7": "PASS",
+    "G8": "REQUIRED"
+  },
+  "gameVerdict": "INCONCLUSIVE",
+  "manualGate": "REQUIRED",
+  "codeHead": "5ee7af44caa70c62fbf044ac755f14d65c7e9c3f",
+  "counter": {
+    "number": 6,
+    "total": 13,
+    "remaining": 7
+  },
+  "native012": {
+    "attempt": "8126542e69eb4e74b10248dc3da89b5d",
+    "exit": {
+      "proof": "OWN_HELD_HANDLE_EXIT",
+      "exitCode": 0,
+      "pid": 77296,
+      "created": 134391770245229346,
+      "nativeElapsedMillis": 284206,
+      "kind": "Native",
+      "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+      "finishedUtc": "2026-11-15T00:48:29.1366527Z"
+    },
+    "charge": {
+      "chargedMillis": 284206,
+      "attemptId": "8126542e69eb4e74b10248dc3da89b5d",
+      "maximumNativeMillis": 2100000,
+      "campaign": "autonomous009-goal012-20261115",
+      "created": 134391770245229346,
+      "priorNativeMillis": 0,
+      "pid": 77296,
+      "monotonicUpperMillis": 286082,
+      "proof": "OWN_HELD_HANDLE_EXIT_TIME"
+    },
+    "resources": {
+      "cpuSeconds": 175.265625,
+      "peakWorkingSetBytes": 4727451648,
+      "elapsedMillis": 284206,
+      "exitObserved": true
+    }
+  },
+  "nativeStarts": 1,
+  "nativeMillis": 284206,
+  "maximumStarts": 2,
+  "maximumNativeMillis": 2100000,
+  "terminalComparablePairs": 4,
+  "typedArms": 8,
+  "includedPaidEffects": 43,
+  "r1Headless": {
+    "firstKernelMillis": 69131,
+    "continuationKernelMillis": 94921,
+    "cpuSeconds": 306.28125,
+    "maxPeakBytes": 4652732416,
+    "totalProbes": 12,
+    "negativeCandidates": 5
+  },
+  "frozenParity": true,
+  "legacy011Untouched": true,
+  "old012ReceiptsUntouched": true,
+  "mainHeadUnchanged": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+  "protectedGeoPreflight": {
+    "Geo": 203,
+    "protected": 207,
+    "exitCode": 0
+  },
+  "coverageArtifact": "evidence/r1/PRE-CUT-COVERAGE.json",
+  "nativeArtifact": "evidence/r1/NATIVE-EVAL-V2.json",
+  "frozenArtifact": "evidence/r1/FROZEN-PARITY.json",
+  "safetyArtifact": "evidence/r1/SAFETY.json"
+}

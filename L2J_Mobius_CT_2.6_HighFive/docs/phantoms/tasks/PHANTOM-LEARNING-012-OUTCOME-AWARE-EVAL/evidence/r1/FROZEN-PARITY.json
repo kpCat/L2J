@@ -1,0 +1,185 @@
+{
+  "schema": "GOAL012_R1_FROZEN_POST_NATIVE",
+  "frozenPayloadsEqual011": true,
+  "manifestChangedKeys": [
+    "createdUtc"
+  ],
+  "payloads": [
+    {
+      "name": "weights.bin",
+      "bytes": 4741580,
+      "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+      "equal011": true
+    },
+    {
+      "name": "manifest.json",
+      "bytes": 2290,
+      "sha256": "3516d938cdf166a16d97af71b41947854825544e5407c4ea3e09f87b303214c2",
+      "equal011": false
+    },
+    {
+      "name": "events.bin",
+      "bytes": 555348,
+      "sha256": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+      "equal011": true
+    },
+    {
+      "name": "optimizer.bin",
+      "bytes": 14224664,
+      "sha256": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+      "equal011": true
+    },
+    {
+      "name": "replay.bin",
+      "bytes": 1286917,
+      "sha256": "a04ff79daa82e61debcfce46807ae484fffd97af9e7a1e7e4a4a32ed16038947",
+      "equal011": true
+    },
+    {
+      "name": "autonomous-targets.bin",
+      "bytes": 2048395,
+      "sha256": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987",
+      "equal011": true
+    },
+    {
+      "name": "autonomous-applications.jsonl",
+      "bytes": 22649,
+      "sha256": "dd62b00a43e1cb7ff76a1f37c9b693edb3c33f2f123d959cbd79b729b4ba487d",
+      "equal011": true
+    },
+    {
+      "name": "autonomous-labels.jsonl",
+      "bytes": 14549,
+      "sha256": "5eedb7e61036c1df9fc5c64770ca39ce22109ba4ba49c80afffe276e4ef81f71",
+      "equal011": true
+    },
+    {
+      "name": "context-replay.bin",
+      "bytes": 28874,
+      "sha256": "8ff1e3e9fbb36e03cff2575115efaed8f632ffcb2772af95fa9692c3780f7746",
+      "equal011": true
+    },
+    {
+      "name": "working-weights.bin",
+      "bytes": 4741580,
+      "sha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "equal011": true
+    },
+    {
+      "name": "working-metrics.json",
+      "bytes": 1560,
+      "sha256": "5179722f41d9afdba3172e974a8f15e0aada360b4e519e804912b4420b304cfe",
+      "equal011": true
+    },
+    {
+      "name": "dataset.jsonl",
+      "bytes": 903822,
+      "sha256": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39",
+      "equal011": true
+    }
+  ],
+  "pointerSha256": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
+  "journals": [
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113/director-state.json",
+      "sha256": "18ab1aca2b01290bd5352dc5c82472767e8eac8fec2d7e2ea1524412746c9db3",
+      "starts": 2,
+      "nativeMillis": 478022
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-b/director-state.json",
+      "sha256": "61931738db1bc10cb494cf185c0ef37c8c76a766a02225a2e97d4d06834e85f6",
+      "starts": 4,
+      "nativeMillis": 1008655
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-c/director-state.json",
+      "sha256": "fc32ac2c69aa4ae4944f8bdd78148d161f5781ce1318b11b240b3682a897f9b8",
+      "starts": 5,
+      "nativeMillis": 2136280
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-d/director-state.json",
+      "sha256": "d42ea834555b9e44d4dbc3fc62743aab2347c57ade726beb9bf848632fcf8a10",
+      "starts": 6,
+      "nativeMillis": 2231818
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal009-20261114-e/director-state.json",
+      "sha256": "8aa2f13469cf0e98bac1294973fde4a3ccc395a79f4b2c6556310a8c488f986a",
+      "starts": 8,
+      "nativeMillis": 3773996
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal009-20261114-f/director-state.json",
+      "sha256": "235e5cb30422c09dc9fb2f4ae7f7af627fe75074416c71b09cb4709ef14a04ed",
+      "starts": 10,
+      "nativeMillis": 5803240
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114/director-state.json",
+      "sha256": "ca3bf09de604205b136c99ce2256680ed6c808d686f3585e1ce701d7e143684f",
+      "starts": 1,
+      "nativeMillis": 265981
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-b/director-state.json",
+      "sha256": "f03984fef6b0d8bc603167d353d27db0742db416af6992fdc8b473a01d5e65c0",
+      "starts": 2,
+      "nativeMillis": 487025
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-c/director-state.json",
+      "sha256": "f7f3a2e6f4e6928d286e45567b6e9a71ba4a3d0ad39e9386a6217248073a3172",
+      "starts": 3,
+      "nativeMillis": 601015
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/director-state.json",
+      "sha256": "5a779a4102b1d6f64082f09c98534e3f3e2d10812d71a7d57aaa1f484fd79228",
+      "starts": 4,
+      "nativeMillis": 715447
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/director-state.json",
+      "sha256": "4059c8a16dc410999161afa5aa57bca44f654f3318e72713218d17cb51363eaa",
+      "starts": 1,
+      "nativeMillis": 328635
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/director-state.json",
+      "sha256": "d067b67c5667253518cc0db60b09d3e1e688741948e5d560863f88ff40df1007",
+      "starts": 1,
+      "nativeMillis": 284206
+    }
+  ],
+  "nativeStarts012": 1,
+  "nativeMillis012": 284206,
+  "state": "STOPPED",
+  "configSha256": "36635d7aa0b4c44629db5f02786dde2176cc90fb31019101777679fefb859a76",
+  "gameServerJarSha256": "41072ad6aef484c6135e15f80d1d460da5c638819c7342945129a1a7b748f05c",
+  "modelMutation": false,
+  "sql": {
+    "rows": 183,
+    "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+    "readOnly": true,
+    "equalBefore": true,
+    "observedUtc": "2026-11-15T00:53:38.3415812Z"
+  },
+  "draft14": {
+    "status": "DRAFT",
+    "sha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "adamUpdates": 903,
+    "completedEpochs": 223,
+    "selectedModelApplications": 48,
+    "gradientApplications": 16,
+    "acceptedTestVersion": 2,
+    "cyclePointer": 12
+  },
+  "coldZip": {
+    "name": "model-2-c62a992e979743c2941644b0f7d326c2.zip",
+    "sha256": "56e2ca8b2d0333c5ce5c51334e73a12617a824fca8a67699944d73e68291a6e8",
+    "crcPassed": true,
+    "binaryPublished": false
+  }
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+    "beforeSha256": "d01d825eccbf3d9117fe32a7c0085af52d504c2f749f9b7b90279791e603cdd1",
+    "currentSha256": "2443474809f7a2de49c3b17fe0cd05ffa474d24359c9aa67c58db0a2ae9e3c64",
+    "changed": true
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2.java",
+    "beforeSha256": "37445fda6f5c2c7d265e2a4c0a6baabb817831a3744a9c35f35d08b9f17e00c4",
+    "currentSha256": "37445fda6f5c2c7d265e2a4c0a6baabb817831a3744a9c35f35d08b9f17e00c4",
+    "changed": false
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationReplayV2.java",
+    "beforeSha256": "6dcdd4fc2c6f47b992162afc437e233d3ac5a9a6bf6775fc0874729c9078aaed",
+    "currentSha256": "6dcdd4fc2c6f47b992162afc437e233d3ac5a9a6bf6775fc0874729c9078aaed",
+    "changed": false
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+    "beforeSha256": "3f983f5df48429a9f21f724b032a94255d120e3e1f1b463f90d2c4074aa9a254",
+    "currentSha256": "5be5d651166212417dba5c3b6ccf81dd4bd4dc255d15fde42f089aaa3c282a2c",
+    "changed": true
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+    "beforeSha256": "0a665080cbdf5256ff03a7f7a8d4453ac6485cbfb6b77b273d3f4aa288f1c234",
+    "currentSha256": "5f84169ad829994dd833c477e8ea61065e9c34165d145a5baf32dca6007efdc1",
+    "changed": true
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+    "beforeSha256": "3dab222ae29e14bea976f713f8c0b64f87cc10acd7293d8ded4b3202fcf0a6b3",
+    "currentSha256": "3dab222ae29e14bea976f713f8c0b64f87cc10acd7293d8ded4b3202fcf0a6b3",
+    "changed": false
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+    "beforeSha256": "eb35030adeca6428981bde41bfe53af74e99d5f5b7278ae045b227903fe8d2a9",
+    "currentSha256": "eb35030adeca6428981bde41bfe53af74e99d5f5b7278ae045b227903fe8d2a9",
+    "changed": false
+  }
+]

@@ -1,0 +1,831 @@
+{
+  "schema": "EVAL012_R1_REAL_PRE_CUT_SOURCES",
+  "historicalSession": "f4664eb7f3ea4b0dbc28a1a1c9de7de0",
+  "sourceCursor": 0,
+  "seed": 183,
+  "sources": [
+    {
+      "sourceSnapshotSha": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+      "sourceFileSha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+      "inventoryFileSha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0",
+      "classId": 94,
+      "level": 76,
+      "currentHp": 5439.0,
+      "currentMp": 3901.0,
+      "inventoryFingerprint": "4de4374eb697766182f605c76495aee319fe2557ba908171e4cb2f3efd4cfd31",
+      "learnedAbilities": 60,
+      "supportedDamageAndHeal": [
+        {
+          "id": 1147,
+          "canonicalLevel": 6,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 40.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 32.0,
+          "castMillis": 4000,
+          "reuseMillis": 3000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1172,
+          "canonicalLevel": 8,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 30.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 36.0,
+          "castMillis": 1500,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1177,
+          "canonicalLevel": 5,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 15.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 21.0,
+          "castMillis": 4000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1220,
+          "canonicalLevel": 8,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 30.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 44.0,
+          "castMillis": 4000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1230,
+          "canonicalLevel": 101,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 69.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 109.0,
+          "castMillis": 4000,
+          "reuseMillis": 1200,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1274,
+          "canonicalLevel": 4,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 15.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 22.0,
+          "castMillis": 2000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1275,
+          "canonicalLevel": 14,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 35.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 54.0,
+          "castMillis": 2000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1288,
+          "canonicalLevel": 1,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 250.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 150.0,
+          "castMillis": 4000,
+          "reuseMillis": 300000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1292,
+          "canonicalLevel": 1,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 250.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 200.0,
+          "castMillis": 4000,
+          "reuseMillis": 300000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceSnapshotSha": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+      "sourceFileSha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+      "inventoryFileSha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800",
+      "classId": 90,
+      "level": 76,
+      "currentHp": 7905.0,
+      "currentMp": 1666.0,
+      "inventoryFingerprint": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+      "learnedAbilities": 40,
+      "supportedDamageAndHeal": [
+        {
+          "id": 3,
+          "canonicalLevel": 9,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 17.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": false,
+          "physical": true,
+          "power": 84.0,
+          "castMillis": 1800,
+          "reuseMillis": 3000,
+          "definitionSources": [
+            "data/stats/skills/00000-00099.xml"
+          ]
+        },
+        {
+          "id": 49,
+          "canonicalLevel": 26,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 35.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 87.0,
+          "castMillis": 1900,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/00000-00099.xml"
+          ]
+        },
+        {
+          "id": 56,
+          "canonicalLevel": 9,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 34.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": false,
+          "physical": true,
+          "power": 187.0,
+          "castMillis": 4000,
+          "reuseMillis": 6000,
+          "definitionSources": [
+            "data/stats/skills/00000-00099.xml"
+          ]
+        },
+        {
+          "id": 70,
+          "canonicalLevel": 13,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 22.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 40.0,
+          "castMillis": 3000,
+          "reuseMillis": 4000,
+          "definitionSources": [
+            "data/stats/skills/00000-00099.xml"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceSnapshotSha": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+      "sourceFileSha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+      "inventoryFileSha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79",
+      "classId": 105,
+      "level": 76,
+      "currentHp": 5799.0,
+      "currentMp": 3927.0,
+      "inventoryFingerprint": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+      "learnedAbilities": 53,
+      "supportedDamageAndHeal": [
+        {
+          "id": 1011,
+          "canonicalLevel": 18,
+          "category": "HEAL",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 52.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 0.0,
+          "castMillis": 5000,
+          "reuseMillis": 3000,
+          "definitionSources": [
+            "data/stats/skills/01000-01099.xml"
+          ]
+        },
+        {
+          "id": 1015,
+          "canonicalLevel": 15,
+          "category": "HEAL",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 78.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 0.0,
+          "castMillis": 2000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01000-01099.xml"
+          ]
+        },
+        {
+          "id": 1020,
+          "canonicalLevel": 27,
+          "category": "HEAL",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 144.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 0.0,
+          "castMillis": 3000,
+          "reuseMillis": 3000,
+          "definitionSources": [
+            "data/stats/skills/01000-01099.xml"
+          ]
+        },
+        {
+          "id": 1028,
+          "canonicalLevel": 19,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 69.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 87.0,
+          "castMillis": 2500,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01000-01099.xml"
+          ]
+        },
+        {
+          "id": 1031,
+          "canonicalLevel": 8,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 30.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 36.0,
+          "castMillis": 2500,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01000-01099.xml"
+          ]
+        },
+        {
+          "id": 1177,
+          "canonicalLevel": 5,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 15.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 21.0,
+          "castMillis": 4000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1217,
+          "canonicalLevel": 33,
+          "category": "HEAL",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 120.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 0.0,
+          "castMillis": 5000,
+          "reuseMillis": 3000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1401,
+          "canonicalLevel": 11,
+          "category": "HEAL",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 80.0,
+          "hpCost": 0,
+          "itemId": 3031,
+          "itemCount": 1,
+          "magic": true,
+          "physical": false,
+          "power": 0.0,
+          "castMillis": 5000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01400-01499.xml"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceSnapshotSha": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d",
+      "sourceFileSha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d",
+      "inventoryFileSha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2",
+      "classId": 110,
+      "level": 77,
+      "currentHp": 5407.0,
+      "currentMp": 3872.0,
+      "inventoryFingerprint": "6cc150b64b5cc242940ab8ffd5f84f6b58ebacccda4fb9800d27ec8420eb7c9c",
+      "learnedAbilities": 64,
+      "supportedDamageAndHeal": [
+        {
+          "id": 1147,
+          "canonicalLevel": 6,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 40.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 32.0,
+          "castMillis": 4000,
+          "reuseMillis": 3000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1148,
+          "canonicalLevel": 13,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 50.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 108.0,
+          "castMillis": 4000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1172,
+          "canonicalLevel": 8,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 30.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 36.0,
+          "castMillis": 1500,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1177,
+          "canonicalLevel": 5,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 15.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 21.0,
+          "castMillis": 4000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1178,
+          "canonicalLevel": 8,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 30.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 44.0,
+          "castMillis": 4000,
+          "reuseMillis": 1000,
+          "definitionSources": [
+            "data/stats/skills/01100-01199.xml"
+          ]
+        },
+        {
+          "id": 1234,
+          "canonicalLevel": 28,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 123.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 108.0,
+          "castMillis": 4000,
+          "reuseMillis": 3000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1239,
+          "canonicalLevel": 28,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 69.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 108.0,
+          "castMillis": 4000,
+          "reuseMillis": 1200,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1266,
+          "canonicalLevel": 3,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 38.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 55.0,
+          "castMillis": 5000,
+          "reuseMillis": 8000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1267,
+          "canonicalLevel": 14,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 85.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 135.0,
+          "castMillis": 5000,
+          "reuseMillis": 8000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1288,
+          "canonicalLevel": 1,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 250.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 150.0,
+          "castMillis": 4000,
+          "reuseMillis": 300000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        },
+        {
+          "id": 1294,
+          "canonicalLevel": 1,
+          "category": "SINGLE_TARGET_DAMAGE",
+          "support": [
+            "DISCOVERED",
+            "SUPPORTED_FOR_SELECTION",
+            "SUPPORTED_FOR_TRAIN",
+            "SUPPORTED_FOR_NATIVE_EXECUTION"
+          ],
+          "targetType": "ONE",
+          "mpCost": 250.0,
+          "hpCost": 0,
+          "itemId": 0,
+          "itemCount": 0,
+          "magic": true,
+          "physical": false,
+          "power": 200.0,
+          "castMillis": 4000,
+          "reuseMillis": 300000,
+          "definitionSources": [
+            "data/stats/skills/01200-01299.xml"
+          ]
+        }
+      ]
+    }
+  ],
+  "usesBattleResults": false,
+  "grantingOrMutation": false,
+  "independenceSha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890"
+}

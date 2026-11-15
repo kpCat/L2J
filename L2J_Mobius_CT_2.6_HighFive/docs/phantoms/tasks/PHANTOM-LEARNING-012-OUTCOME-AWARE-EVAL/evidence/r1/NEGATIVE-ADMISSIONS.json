@@ -1,0 +1,86 @@
+{
+  "scope": "NATIVE_FIRST012_R1",
+  "totalProbes": 12,
+  "firstPassProbes": 4,
+  "continuationProbes": 8,
+  "negativeCandidates": [
+    {
+      "session": "023c2246b2f24d3cb7a64877c1fac28c",
+      "work": "31c19b80df4f6ec5b53182f13908849c6f675a0f2037237926272b91d818090d",
+      "refusal": {
+        "reason": "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED",
+        "stage": "PRE_CUT",
+        "npc": 20966,
+        "requestTimeoutMillis": 60000,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "nativeWaitRedacted": "WAIT_GROUP_DAMAGE:targetSha=2953452330b5822d:durationMillis=Infinity:DPS=118.0022137887413:HP=12476.0",
+      "afterCut": false,
+      "admissionOnly": false
+    },
+    {
+      "session": "023c2246b2f24d3cb7a64877c1fac28c",
+      "work": "74fdb051dcc2f33a0526117c9a08ca524021da9ea2cd47bb4a6cb3152c4be5b8",
+      "refusal": {
+        "reason": "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED",
+        "stage": "PRE_CUT",
+        "npc": 20970,
+        "requestTimeoutMillis": 60000,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "nativeWaitRedacted": "WAIT_GROUP_DAMAGE:targetSha=c5e35f3f49af2481:durationMillis=Infinity:DPS=123.99810246679316:HP=8173.0",
+      "afterCut": false,
+      "admissionOnly": false
+    },
+    {
+      "session": "023c2246b2f24d3cb7a64877c1fac28c",
+      "work": "a0df3cf3340a480736928450a07a95335f4cfa87289009195798d892e385fdbf",
+      "refusal": {
+        "reason": "AUTONOMOUS_PRE_CUT_PARTY_RISK_REFUSED",
+        "stage": "PRE_CUT",
+        "npc": 20965,
+        "requestTimeoutMillis": 60000,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "nativeWaitRedacted": "WAIT_TANK_AGGRO:targetSha=43ce56dc071e130b:actorSha=8823b6b1deb59e73:incoming=12305.38748327822:HP=6492.0:durationMillis=45651.42018704294:exposureMillis=45651.42018704294:supportCastMillis=0:riskLimitPercent=77:otherThreats=0:openingAssists=[]:heal=0",
+      "afterCut": false,
+      "admissionOnly": false
+    },
+    {
+      "session": "023c2246b2f24d3cb7a64877c1fac28c",
+      "work": "cf39a4b481ea33b4f4d3ae69a3b3f9fea12ce86a6ad583c0af1ecf89cb5e4c43",
+      "refusal": {
+        "reason": "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED",
+        "stage": "PRE_CUT",
+        "npc": 20966,
+        "requestTimeoutMillis": 60000,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "nativeWaitRedacted": "WAIT_GROUP_DAMAGE:targetSha=4d074374b25aaa5a:durationMillis=Infinity:DPS=172.1018416060702:HP=12476.0",
+      "afterCut": false,
+      "admissionOnly": false
+    },
+    {
+      "session": "de438939bc1644f6bd85884a915d1d8c",
+      "work": "2f38f5afbf5fe54d3db945fd121e957cf97b9f999f1d112a9109cc697a961bce",
+      "refusal": {
+        "reason": "AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED",
+        "stage": "PRE_CUT",
+        "npc": 20965,
+        "requestTimeoutMillis": 60000,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "nativeWaitRedacted": "WAIT_TANK_AGGRO:targetSha=b9936c9d154a96ce:actorSha=7faf3f60bcc77bc4:incoming=12305.38748327822:HP=6492.0:durationMillis=45651.42018704294:exposureMillis=45651.42018704294:supportCastMillis=0:riskLimitPercent=77:otherThreats=0:openingAssists=[]:heal=0",
+      "afterCut": false,
+      "admissionOnly": false
+    }
+  ],
+  "gameDeathsOrLossesCountedFromPreCutRefusals": false,
+  "nativeRulesRelaxed": false,
+  "seedRerolled": false
+}

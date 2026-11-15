@@ -1,0 +1,50 @@
+{
+  "historicalBudgetHashesUnchanged": true,
+  "native012": {
+    "nativeMillis": 284206,
+    "maxNativeMillis": 2100000,
+    "maxStarts": 2,
+    "starts": 1
+  },
+  "records": [
+    {
+      "created": 134391770063458289,
+      "pid": 43988,
+      "absent": true,
+      "kind": "Director"
+    },
+    {
+      "created": 134391770245229346,
+      "pid": 77296,
+      "absent": true,
+      "kind": "Native"
+    },
+    {
+      "created": 134391776192027371,
+      "pid": 75752,
+      "absent": true,
+      "kind": "Worker"
+    },
+    {
+      "created": 134391776149362602,
+      "pid": 81268,
+      "absent": true,
+      "kind": "Sql"
+    }
+  ],
+  "ownedProcesses": 0,
+  "pointerSha256": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
+  "portsFree": [
+    33357,
+    18001,
+    19301
+  ],
+  "stopped": true,
+  "off": true,
+  "foreignSql": {
+    "pid": 8692,
+    "unchanged": true,
+    "createdUtc": "2026-10-28T15:34:43.9827010Z"
+  },
+  "fullHistoricalAssetInventoryRehashed": false
+}

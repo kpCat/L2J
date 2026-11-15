@@ -1,0 +1,250 @@
+{
+  "runs": [
+    {
+      "label": "RED012-R1-NATIVE-FIRST",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T23:43:52.630829+00:00",
+      "seconds": 31.718999999808148,
+      "exitCode": 1,
+      "logSha256": "a1ac3c035d148a9c6b736ed13ea36726a790ead487e3229c0a218e3f4719e815"
+    },
+    {
+      "label": "RED012-R1-BEHAVIOR",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T23:45:17.423572+00:00",
+      "seconds": 31.843000000109896,
+      "exitCode": 1,
+      "logSha256": "5c1d01ddff1851eba22eeed0f83ce79723cde1098f8e0a6d0b12af220539ff42"
+    },
+    {
+      "label": "GREEN012-R1-NATIVE-FIRST",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "phantom-learning008-test",
+        "phantom-learning007-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T23:49:39.731000+00:00",
+      "seconds": 29.0,
+      "exitCode": 1,
+      "logSha256": "ea39846978933900b4f0a47638c344135fcc9df5a12a37276cfc40f9b3359bc7"
+    },
+    {
+      "label": "ANT012-R1-OFFLINE",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "phantom-learning008-test",
+        "phantom-learning007-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T23:52:08.124123+00:00",
+      "seconds": 177.64000000013039,
+      "exitCode": 0,
+      "logSha256": "2a352ae54300809f5fa3a9819f209ebb3f41524b361f7d822f31b1d56164bad5"
+    },
+    {
+      "label": "RED012-R1-REVIEW",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-15T00:01:56.909111+00:00",
+      "seconds": 36.15599999995902,
+      "exitCode": 1,
+      "logSha256": "4df1d06c3363ea238f5ead410c4507c66e8403baef25806e327e09502824e2c2"
+    },
+    {
+      "label": "ANT012-R1-REVIEW-GREEN",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "phantom-learning008-test",
+        "phantom-learning007-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-15T00:04:57.329560+00:00",
+      "seconds": 194.125,
+      "exitCode": 0,
+      "logSha256": "d22167a60faba038f4b06c0cc19538a113693bebd7d89faa851f34271521aca9"
+    },
+    {
+      "label": "RED012-R1-FAIRNESS",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-15T00:09:58.337607+00:00",
+      "seconds": 30.953999999910593,
+      "exitCode": 1,
+      "logSha256": "0def8077f21127aa5427612a3b11cc38b78b49a0569e93e1e77a441fa2bf18ec"
+    },
+    {
+      "label": "ANT012-R1-FINAL",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "phantom-learning008-test",
+        "phantom-learning007-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-15T00:11:22.990876+00:00",
+      "seconds": 240.7029999999795,
+      "exitCode": 0,
+      "logSha256": "e42ab2af3401f3d76a1ec211228e078eb90b13598597093fd4121d3292b87d16"
+    },
+    {
+      "label": "RED012-R1-CANONICAL",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-15T00:28:05.795694+00:00",
+      "seconds": 31.358999999938533,
+      "exitCode": 1,
+      "logSha256": "62452f317f620b4d886963cbdfeb67dd1a3064d76ce9469ad08d422a47e71d86"
+    },
+    {
+      "label": "ANT012-R1-CANONICAL-GREEN",
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-15T00:30:19.547776+00:00",
+      "seconds": 147.68699999991804,
+      "exitCode": 0,
+      "logSha256": "57864f74c70d95138f5089c556f8229b14e1882b782064dd1636681b73c56041"
+    },
+    {
+      "label": "TYPED011-R1",
+      "argv": [
+        "java",
+        "-cp",
+        "build/phantom-test/bin;build/bin;L2J_Mobius_CT_2.6_HighFive/dist/libs/*",
+        "org.l2jmobius.tests.phantoms.PhantomEvaluationReplayV2",
+        "legacy011",
+        "D:\\Codex\\repos\\L2J-learning-006/.phantom-local/learning002/train",
+        "D:\\Codex\\repos\\L2J-learning-004/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation",
+        "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\14\\01a1db01-6116-7f50-81e0-2c7043f906e9\\goal011\\final-active-config.ini",
+        "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\14\\01a1dbfb-ba96-7fe0-971b-8d0db34ab00b\\r1-012\\derived011-v2"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T23:56:39.449171+00:00",
+      "seconds": 0.6089999999385327,
+      "exitCode": 0,
+      "logSha256": "5b0010e545a0208603f7dc34a1bb68556931fed7f9a1b133eee7ffa534c6ea75"
+    },
+    {
+      "label": "NATIVE012-R1-RAW-REPLAY",
+      "argv": [
+        "java",
+        "-cp",
+        "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\14\\01a1dbfb-ba96-7fe0-971b-8d0db34ab00b\\r1-012\\check-bin;build/phantom-test/bin;build/bin;L2J_Mobius_CT_2.6_HighFive/dist/libs/*",
+        "org.l2jmobius.tests.phantoms.CheckNative012",
+        "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train",
+        "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\14\\01a1dbfb-ba96-7fe0-971b-8d0db34ab00b\\r1-012\\native-replay-final"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-15T00:53:17.464618+00:00",
+      "seconds": 0.5470000000204891,
+      "exitCode": 0,
+      "logSha256": "a0a07bfce36f4622b37dce31ba816198a61a7de355cd93c027c40799bedc25f1"
+    }
+  ],
+  "encoding": {
+    "mojibakePatterns": 27,
+    "escapedCyrillicPatterns": 6,
+    "files": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "sha256": "2443474809f7a2de49c3b17fe0cd05ffa474d24359c9aa67c58db0a2ae9e3c64",
+        "mojibake": [],
+        "escapedCyrillic": []
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+        "sha256": "5f84169ad829994dd833c477e8ea61065e9c34165d145a5baf32dca6007efdc1",
+        "mojibake": [],
+        "escapedCyrillic": []
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+        "sha256": "5be5d651166212417dba5c3b6ccf81dd4bd4dc255d15fde42f089aaa3c282a2c",
+        "mojibake": [],
+        "escapedCyrillic": []
+      }
+    ],
+    "mojibakeMatches": 0,
+    "escapedCyrillicMatches": 0
+  },
+  "helperSourceSha256": "8f87c0df557baba89d80cf9b22dceb7d738dc47f3a29b57f1f603ed6bb26e963",
+  "helperCompilesOutsideRepository": true
+}

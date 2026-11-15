@@ -1,3 +1,8 @@
+<!-- GOAL012_R1_CURRENT -->
+Актуальное дополнение012R1: **G0–G7PASS;G8REQUIRED до независимого docsreadback**. Native4сравнимые пары;1GS/284206ms;gameINCONCLUSIVE. Manual gate REQUIRED.
+[РезультатR1](R1_RESULT.md). №6/13, осталось7. Ниже сохранён первоначальный PARTIAL012доR1; его исторические данные не переписаны.
+<!-- GOAL012_R1_CURRENT_END -->
+
 # Результат012 — оценщик V2 проверен offline, новая native EVAL не запущена
 
 **PARTIAL012_PRE_CUT_PARTY_DIFFICULTY_COVERAGE_GAP. FULL012 запрещён.** `EVAL_PROTOCOL_V2=IMPLEMENTED_OFFLINE_VERIFIED`, `NEW_NATIVE_V2=NOT_RUN_PRE_CUT_COVERAGE_GAP`, `MODEL_GAMEPLAY_QUALITY=INCONCLUSIVE` при новом native n=0. Финальная manual acceptance владельца **REQUIRED**.012 — **№6 из13**, после выдачи осталось **7**; следующий Goal не начинался.

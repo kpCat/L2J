@@ -1,0 +1,260 @@
+{
+  "authorization": "Explicit Goal012 plus final bounded R1 authorization; ordinary scoped publication only feature/phantom-world.",
+  "sourcePublications": [
+    {
+      "base": "90cad0ad361fbe8620b1fca78d1926674b2eddcb",
+      "head": "e5af135316cbff14cbdeca3f550c0c13ffd12e92",
+      "branch": "feature/phantom-world",
+      "paths": [
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+      ],
+      "treeRows": [
+        "100644 blob 736a0e6073e6f94baca9b9b424c0a24903212cec  178196\tL2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "100644 blob 6d411d6c3a4e27e1a88283e2bd5f9ccbaff944bd    6496\tL2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+        "100644 blob f7c942850d0f65e956d96b5918e63b6872426160   18967\tL2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+      ],
+      "commit": [
+        "[feature/phantom-world e5af135316c] fix(learning012): stratify fully admitted native candidate pairs",
+        " 3 files changed, 331 insertions(+), 18 deletions(-)"
+      ],
+      "pushExit": 0,
+      "independentGitHubReadback": "PENDING"
+    },
+    {
+      "base": "e5af135316cbff14cbdeca3f550c0c13ffd12e92",
+      "head": "5ee7af44caa70c62fbf044ac755f14d65c7e9c3f",
+      "branch": "feature/phantom-world",
+      "paths": [
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+      ],
+      "treeRows": [
+        "100644 blob f8109c70dfb4277f1da11e006815d330fd8f2a1f  180295\tL2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "100644 blob 91f05cdaab3c4f21356826eb2313d979ab003805   19838\tL2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+      ],
+      "commit": [
+        "[feature/phantom-world 5ee7af44caa] fix(learning012): preserve native headless authority and cumulative probe cap",
+        " 2 files changed, 44 insertions(+), 9 deletions(-)"
+      ],
+      "pushExit": 0,
+      "independentGitHubReadback": "PENDING"
+    }
+  ],
+  "testFastForwards": [
+    {
+      "commands": [
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "symbolic-ref",
+            "--short",
+            "HEAD"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "rev-parse",
+            "HEAD"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=no"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "fetch",
+            "origin",
+            "feature/phantom-world"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "rev-parse",
+            "origin/feature/phantom-world"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "merge",
+            "--ff-only",
+            "origin/feature/phantom-world"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "rev-parse",
+            "HEAD"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=no"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        }
+      ],
+      "privateRuntimePreserved": true,
+      "head": "e5af135316cbff14cbdeca3f550c0c13ffd12e92",
+      "trackedClean": true,
+      "base": "90cad0ad361fbe8620b1fca78d1926674b2eddcb"
+    },
+    {
+      "commands": [
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "symbolic-ref",
+            "--short",
+            "HEAD"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "rev-parse",
+            "HEAD"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=no"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "fetch",
+            "origin",
+            "feature/phantom-world"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "rev-parse",
+            "origin/feature/phantom-world"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "merge",
+            "--ff-only",
+            "5ee7af44caa70c62fbf044ac755f14d65c7e9c3f"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "rev-parse",
+            "HEAD"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        },
+        {
+          "exitCode": 0,
+          "argv": [
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=no"
+          ],
+          "cwd": "D:\\Codex\\repos\\L2J-learning-006"
+        }
+      ],
+      "privateRuntimePreserved": true,
+      "head": "5ee7af44caa70c62fbf044ac755f14d65c7e9c3f",
+      "trackedClean": true,
+      "base": "e5af135316cbff14cbdeca3f550c0c13ffd12e92"
+    }
+  ],
+  "readOnlyAuditArgv": [
+    [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    [
+      "git",
+      "symbolic-ref",
+      "--short",
+      "HEAD"
+    ],
+    [
+      "git",
+      "status",
+      "--porcelain",
+      "--untracked-files=all"
+    ],
+    [
+      "git",
+      "status",
+      "--porcelain",
+      "--untracked-files=no"
+    ]
+  ],
+  "publicationGuardArgv": [
+    "symbolic-ref --short HEAD",
+    "rev-parse HEAD",
+    "diff --cached --name-only",
+    "status --porcelain --untracked-files=all",
+    "fetch origin feature/phantom-world",
+    "rev-parse origin/feature/phantom-world",
+    "diff --check -- <exact paths>",
+    "add -- <exact paths>",
+    "diff --cached --name-only",
+    "diff --cached --check",
+    "commit -m <exact subject>",
+    "push origin feature/phantom-world",
+    "ls-tree -r -l HEAD -- <exact paths>"
+  ],
+  "exactExpandedFinalArgvInDeliveryArchive": true,
+  "forceOrHistoryRewrite": false,
+  "newBranches": false
+}
