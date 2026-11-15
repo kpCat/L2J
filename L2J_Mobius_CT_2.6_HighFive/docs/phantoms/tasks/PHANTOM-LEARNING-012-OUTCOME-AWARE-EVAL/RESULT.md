@@ -1,5 +1,5 @@
 <!-- GOAL012_R1_CURRENT -->
-Актуальное дополнение012R1: **G0–G7PASS;G8REQUIRED до независимого docsreadback**. Native4сравнимые пары;1GS/284206ms;gameINCONCLUSIVE. Manual gate REQUIRED.
+Актуальный результат012R1: **FULL012_OUTCOME_AWARE_EVAL — G0–G8PASS**. Native4сравнимые пары;1GS/284206ms;gameINCONCLUSIVE. Manual gate REQUIRED.
 [РезультатR1](R1_RESULT.md). №6/13, осталось7. Ниже сохранён первоначальный PARTIAL012доR1; его исторические данные не переписаны.
 <!-- GOAL012_R1_CURRENT_END -->
 

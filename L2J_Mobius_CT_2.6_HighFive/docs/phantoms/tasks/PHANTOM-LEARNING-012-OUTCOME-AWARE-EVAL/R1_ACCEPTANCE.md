@@ -10,6 +10,6 @@
 |G5|PASS|newn2+2/deaths/unknowns/INCONCLUSIVE|
 |G6|PASS|183SQL/11coldpayloads/frozen/pointer12/creditFITpromotion0|
 |G7|PASS|REDGREEN/Ant/JAR/1GS284206ms/STOPPEDOFFowned0|
-|G8|REQUIRED|independent readback текущих docs после ordinarypush|
+|G8|PASS|GitHub 20cbb237506cc0e6ec32c861cf025bbb29dc418f parent/exactdiff/full25docs+7source/scope65|
 
-FULL только послеG8PASS. Manual owner gate REQUIRED. №6/13, осталось7; следующее задание не начинать.
+FULL012_OUTCOME_AWARE_EVAL: G0–G8PASS. Manual owner gate REQUIRED. №6/13, осталось7; следующее задание не начинать.

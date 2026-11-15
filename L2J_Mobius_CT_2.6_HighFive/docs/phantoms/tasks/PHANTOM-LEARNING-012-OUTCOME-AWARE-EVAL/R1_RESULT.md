@@ -1,6 +1,6 @@
 # Результат012 после разрешённого R1
 
-**G0–G7 PASS; G8 REQUIRED до независимого readback этой документации.** FULL012 присваивается только после G8. Игровой verdict **INCONCLUSIVE**. Manual gate владельца REQUIRED. Задача№6/13, осталось7; следующую не начинать.
+**FULL012_OUTCOME_AWARE_EVAL — G0–G8 PASS.** Независимый GitHub readback docs 20cbb237506cc0e6ec32c861cf025bbb29dc418f подтвердил exact25docs/full7source/cumulative65paths. Текущий [delivery status](R1_DELIVERY_STATUS.json) дополняет pre-publication R1_EVIDENCE. Игровой verdict **INCONCLUSIVE**. Manual gate владельца REQUIRED. Задача№6/13, осталось7; следующую не начинать.
 
 Native V2 EVAL завершена:8новых reserved/CUT/settled arms,4terminal-comparable pairs,2Solo+2Party, LOWER/HIGHER и AB/BA в каждом направлении. Повторный DB-free read реальных файлов существующими typed reader/codec повторил4пары и43included paid effects, проверил authority/source hashes и отсутствие cross-pair identity/event reuse. Подготовительные отказы не вошли в игровые исходы.
 
