@@ -1275,6 +1275,15 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning014-test" depends="compile-tests" description="Run recovery viability and bounded headless deadline contracts without database access.">
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="preparation014" />
+		</java>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<arg value="headless-contract" />
+		</java>
+	</target>
+
 	<target name="phantom-learning013-test" depends="compile-tests" description="Run bounded autonomous013 configuration contracts without database access.">
 		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
 			<arg value="config013" />

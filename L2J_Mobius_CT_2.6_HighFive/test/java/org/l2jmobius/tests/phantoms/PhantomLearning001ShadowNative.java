@@ -473,6 +473,25 @@ public final class PhantomLearning001ShadowNative
 		}
 		private PhantomCombatMode acquiredMode;
 		private List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> acquiredActions = List.of();
+		private java.util.function.Consumer<java.util.Map<String, Object>> preparationObserver014 = _ -> { };
+		void preparationObserver014(java.util.function.Consumer<java.util.Map<String, Object>> observer) { preparationObserver014 = java.util.Objects.requireNonNull(observer); }
+		private <T> T measuredPreparation014(String phase, int classId, java.util.concurrent.Callable<T> action) throws Exception
+		{
+			final long started = System.nanoTime(); final String utc = java.time.Instant.now().toString();
+			final double hp = trainingPlayers.stream().mapToDouble(p -> p.getMaxHp() - p.getCurrentHp()).sum();
+			final double mp = trainingPlayers.stream().mapToDouble(p -> p.getMaxMp() - p.getCurrentMp()).sum();
+			String result = "READY", reason = "";
+			try { return action.call(); }
+			catch (Exception failure)
+			{
+				result = "REFUSED"; reason = PhantomAutonomousTrainingNative.safeReason(failure); throw failure;
+			}
+			finally
+			{
+				preparationObserver014.accept(java.util.Map.of("phase", phase, "classId", classId, "startedUtc", utc, "startedNanos", started,
+					"elapsedNanos", System.nanoTime() - started, "result", result, "reason", reason, "initialHpDeficit", hp, "initialMpDeficit", mp));
+			}
+		}
 		/** Separate acquired-state admission; historical fixture provisioning/recovery branches are not called. */
 		String prepareAcquired(PhantomTrainingScenarios.Scene scene, List<String[]> roster, boolean grouped, PhantomCombatMode mode,
 			List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> frozenActions, java.util.Map<Long, String> inventories,
@@ -482,27 +501,27 @@ public final class PhantomLearning001ShadowNative
 			acquiredTraining = true; acquiredMode = mode; acquiredActions = List.copyOf(frozenActions);
 			trainingAdmission = false; coordinator.installLogicalFarmAdmission(_ -> trainingAdmission);
 			trainingScene = scene; trainingParty = grouped; trainingRows = grouped ? List.copyOf(roster) : List.<String[]>of(roster.getFirst());
-			await(() -> progression.findCatalog().isPresent(), Duration.ofSeconds(preparationSeconds), "AUTONOMOUS_CATALOG_NOT_READY");
+			measuredPreparation014("CATALOG", 0, () -> { await(() -> progression.findCatalog().isPresent(), Duration.ofSeconds(preparationSeconds), "AUTONOMOUS_CATALOG_NOT_READY"); return null; });
 			final var players = new java.util.ArrayList<Player>();
 			for (var row : trainingRows)
 			{
-				final var player = materialize(row); players.add(player); trainingPlayers = List.copyOf(players);
+				final var player = measuredPreparation014("MATERIALIZATION", Integer.parseInt(row[4]), () -> materialize(row)); players.add(player); trainingPlayers = List.copyOf(players);
 				final long profile = Long.parseLong(row[2]);
 				check(!player.isAlikeDead() && inventories.containsKey(profile), "AUTONOMOUS_SOURCE_NOT_ATTESTED");
 				final var inventory = org.l2jmobius.gameserver.phantoms.combat.PhantomSkillInventory.acquired(player, progression.findCatalog().orElseThrow());
 				check(inventory.fingerprint().equals(inventories.get(profile)), "AUTONOMOUS_ACQUIRED_STATE_CHANGED");
 				check(players.stream().map(Player::getActiveClass).distinct().count() == players.size(), "AUTONOMOUS_CLASS_ONLY_RESOLVER_ROSTER_COLLISION");
-				returnToPartyAnchor(row, player);
+				measuredPreparation014("ANCHOR_TRAVEL", player.getActiveClass(), () -> { returnToPartyAnchor(row, player); return null; });
 				final var root = goals.load(profile).orElseThrow().goal();
 				check(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", scene.source()).equals(PhantomAutonomousFarmParty.farmSource(root)), "AUTONOMOUS_SOURCE_GOAL_CHANGED");
 			}
-			await(() ->
+			measuredPreparation014("NATURAL_RECOVERY", 0, () -> { await(() ->
 			{
 				check(!requested.getAsBoolean(), "AUTONOMOUS_PREPARATION_REQUESTED_DRAIN");
 				boolean ready = true;
 				for (var player : trainingPlayers) { check(!preflightThreatened(player), "AUTONOMOUS_PREPARATION_NATIVE_THREAT"); ready &= !recoverAcquired(player); }
 				return ready;
-			}, Duration.ofSeconds(preparationSeconds), "AUTONOMOUS_NATURAL_RECOVERY_DEADLINE");
+			}, Duration.ofSeconds(preparationSeconds), "AUTONOMOUS_NATURAL_RECOVERY_DEADLINE"); return null; });
 			return trainingFacts();
 		}
 		private boolean recoverAcquired(Player player)
@@ -557,13 +576,13 @@ public final class PhantomLearning001ShadowNative
 			if (trainingParty)
 			{
 				final var profiles = trainingRows.stream().map(row -> Long.parseLong(row[2])).toList();
-				await(() ->
+				measuredPreparation014("PARTY_FORMATION", 0, () -> { await(() ->
 				{
 					check(!trainingAdmission && trainingPlayers.stream().noneMatch(PhantomLearning001ShadowNative::preflightThreatened), "AUTONOMOUS_PARTY_PRE_CUT_THREAT");
 					autonomous.onPulse(); coordinator.onPulse();
 					return trainingPlayers.getFirst().getParty() != null && trainingPlayers.getFirst().getParty().getMembers().containsAll(trainingPlayers)
 						&& profiles.stream().allMatch(coordinator::committed) && trainingPlayers.stream().noneMatch(p -> p.isCastingNow() || p.isAttackingNow());
-				}, Duration.ofSeconds(60), "AUTONOMOUS_PARTY_FORMATION_REFUSED");
+				}, Duration.ofSeconds(60), "AUTONOMOUS_PARTY_FORMATION_REFUSED"); return null; });
 			}
 			observeOutcome006(target);
 		}
@@ -1486,6 +1505,7 @@ public final class PhantomLearning001ShadowNative
 		@Override
 		public void close() throws Exception
 		{
+			measuredPreparation014("DRAIN", 0, () -> {
 			coordinator.beginStop();
 			combat.beginStop();
 			if (acquiredDispatchGate != null) { acquiredDispatchGate.abort(); }
@@ -1497,6 +1517,7 @@ public final class PhantomLearning001ShadowNative
 			progression.beginStop();
 			await(progression::finishStop, Duration.ofSeconds(30), "PROGRESSION_STOP");
 			System.out.println("LEARNING001_NATIVE_OWNERS_STOP " + policy.counters());
+			return null; });
 		}
 	}
 

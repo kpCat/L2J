@@ -341,6 +341,31 @@ public final class PhantomAutonomousTrainingNative
 	private static Path headlessScope013;
 	private static String headlessNonce013, headlessConfigSha013, headlessReason013 = "";
 	private static long headlessWorkDeadline013;
+	private static int headlessMaximum014(Map<String, Object> journal)
+	{
+		if (!journal.containsKey("goalVersion")) { return 1200; }
+		final long maximum = PhantomEvaluationReplayV2.number(journal, "maximumSeconds");
+		if (PhantomEvaluationReplayV2.number(journal, "goalVersion") != 14 || maximum != 480 && maximum != 720) { throw new IllegalStateException("TRAIN014_HEADLESS_CAP"); }
+		return (int) maximum;
+	}
+	private static void preparationCost014(Path work, Map<String, Object> context, Map<String, Object> phase)
+	{
+		final var row = new LinkedHashMap<String, Object>(context); row.putAll(phase); row.put("schemaVersion", 14); row.put("trainingCredit", false);
+		try { Files.writeString(work.resolve("preparation-cost014.jsonl"), PhantomEvaluationOutcomeV2.json(row) + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND); }
+		catch (java.io.IOException failure) { throw new java.io.UncheckedIOException(failure); }
+	}
+	private static <T> T measured014(Path work, Map<String, Object> context, String phase, java.util.concurrent.Callable<T> action) throws Exception
+	{
+		final long started = System.nanoTime(); final String utc = java.time.Instant.now().toString(); String result = "READY", reason = "";
+		try
+		{
+			final T value = action.call();
+			if (value instanceof Map<?, ?> admission && Boolean.FALSE.equals(admission.get("admitted"))) { result = "REFUSED"; reason = String.valueOf(admission.get("wait")).split(":", 2)[0]; }
+			return value;
+		}
+		catch (Exception failure) { result = "REFUSED"; reason = safeReason(failure); throw failure; }
+		finally { preparationCost014(work, context, Map.of("phase", phase, "startedUtc", utc, "startedNanos", started, "elapsedNanos", System.nanoTime() - started, "result", result, "reason", reason)); }
+	}
 	private static void initializeHeadless013(Path root, TrainingConfig config, boolean evaluation) throws Exception
 	{
 		if (config.integer("autonomous013Version", 0, 0, 1) != 1) { return; }
@@ -355,10 +380,11 @@ public final class PhantomAutonomousTrainingNative
 			|| !(evaluation ? "admit-eval" : "prepare").equals(j.get("operation"))) { throw new IllegalStateException("TRAIN013_HEADLESS_OWNER_PIN"); }
 		final var issued = java.time.Instant.parse((String) j.get("issuedUtc")); final var work = java.time.Instant.parse((String) j.get("workDeadlineUtc"));
 		final var hard = java.time.Instant.parse((String) j.get("hardDeadlineUtc"));
-		if (!java.time.Duration.between(issued, work).equals(java.time.Duration.ofSeconds(990)) || !java.time.Duration.between(issued, hard).equals(java.time.Duration.ofSeconds(1200)))
+		final int maximum = headlessMaximum014(j);
+		if (!java.time.Duration.between(issued, work).equals(java.time.Duration.ofSeconds(maximum - 210)) || !java.time.Duration.between(issued, hard).equals(java.time.Duration.ofSeconds(maximum)))
 		{ throw new IllegalStateException("TRAIN013_HEADLESS_DEADLINE_PIN"); }
 		final long remaining = java.time.Duration.between(java.time.Instant.now(), work).toNanos();
-		if (remaining > java.time.Duration.ofSeconds(990).toNanos()) { throw new IllegalStateException("TRAIN013_HEADLESS_CLOCK_PIN"); }
+		if (remaining > java.time.Duration.ofSeconds(maximum - 210).toNanos()) { throw new IllegalStateException("TRAIN013_HEADLESS_CLOCK_PIN"); }
 		headlessWorkDeadline013 = System.nanoTime() + Math.max(0, remaining);
 	}
 	private static boolean headlessRequested013()
@@ -381,6 +407,10 @@ public final class PhantomAutonomousTrainingNative
 	private static boolean requested(Path attempt) { return headlessRequested013() || Files.exists(attempt.resolve("stop.request")) || Files.exists(attempt.resolve("pause.request")); }
 	private static void headlessContract013() throws Exception
 	{
+		if (headlessMaximum014(Map.of()) != 1200 || headlessMaximum014(Map.of("goalVersion", 14L, "maximumSeconds", 480L)) != 480
+			|| headlessMaximum014(Map.of("goalVersion", 14L, "maximumSeconds", 720L)) != 720) { throw new AssertionError("TRAIN014_SHORTER_DEADLINE_LOST"); }
+		boolean overCap = false; try { headlessMaximum014(Map.of("goalVersion", 14L, "maximumSeconds", 1200L)); } catch (IllegalStateException expected) { overCap = true; }
+		if (!overCap) { throw new AssertionError("TRAIN014_SESSION_CAP_INCREASED"); }
 		final Path scope = Files.createTempDirectory("headless013-contract-");
 		try
 		{
@@ -402,6 +432,16 @@ public final class PhantomAutonomousTrainingNative
 	{
 		if (headlessScope013 == null) { return; }
 		if (headlessRequested013()) { status = headlessReason013; }
+		final var costs = new ArrayList<String>();
+		try (var files = Files.walk(headlessScope013))
+		{
+			for (var file : files.filter(p -> p.getFileName().toString().equals("preparation-cost014.jsonl")).sorted().toList())
+			{
+				if (!file.equals(file.toRealPath()) || Files.size(file) > 1_048_576) { throw new IllegalStateException("TRAIN014_COST_SCOPE_OR_SIZE"); }
+				costs.addAll(Files.readAllLines(file)); if (costs.size() > 8192) { throw new IllegalStateException("TRAIN014_COST_RECORD_CAP"); }
+			}
+		}
+		immutable(headlessScope013.resolve("preparation-cost014.json"), "{\"schemaVersion\":14,\"status\":" + q(status) + ",\"trainingCredit\":false,\"records\":[" + String.join(",", costs) + "]}");
 		final var proofs = new java.util.TreeMap<String, String>();
 		if (status.equals("READY"))
 		{
@@ -802,6 +842,16 @@ public final class PhantomAutonomousTrainingNative
 			visits.merge("class/" + source.seed().classId(), 1L, Long::sum); visits.merge("class/" + source.seed().classId() + "/family/" + proposal.pool().key(), 1L, Long::sum);
 			visits.merge("source/" + source.seed().sourceSnapshotSha(), 1L, Long::sum); cursors.put(proposal.shortlistKey(), proposal.shortlist().nextCursor());
 			if (!config.autonomousFamilies().contains(proposal.pool().family())) { continue; }
+			if (nativeAdmission != null && !outcomeV2(config) && config.integer("autonomous013Version", 0, 0, 1) == 1 && proposal.pool().family() == LegalActionV3.Family.HEAL)
+			{
+				final long viabilityStarted = System.nanoTime();
+				// prepareAcquired guarantees full natural HP before the passive, threat-free opening.
+				// Stock PartyTactics cannot offer HEAL there. Waiting for recovery cannot make this contract satisfiable.
+				final String reason = "FULL_RECOVERY_HAS_NO_WOUNDED_HEAL_RECIPIENT"; refusals.add(reason);
+				preparationCost014(directory, Map.of("classId", source.seed().classId(), "scope", "PARTY", "family", "HEAL", "sequence", sequence),
+					Map.of("phase", "IMMUTABLE_VIABILITY", "startedUtc", java.time.Instant.now().toString(), "startedNanos", viabilityStarted, "elapsedNanos", System.nanoTime() - viabilityStarted, "result", "REFUSED", "reason", reason));
+				continue;
+			}
 			final boolean party = proposal.pool().family() == LegalActionV3.Family.HEAL || planned.size() % 2 == 1;
 			final var roster = new ArrayList<Source>(); roster.add(source);
 			if (party)
@@ -1187,10 +1237,12 @@ public final class PhantomAutonomousTrainingNative
 		List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> frozenActions = proposal.shortlist().candidates();
 		try (var runtime = new PhantomLearning001ShadowNative.Runtime(authority, root.resolve("game"), policy, attempt.resolve("stop.request"), true, config.maxActiveActors(), tactical, true, source))
 		{
+			final var costContext = PhantomEvaluationOutcomeV2.fields("classId", cell.proposal().actor().classId(), "learnerClassId", cell.proposal().actor().classId(), "scope", cell.party() ? "PARTY" : "SOLO", "family", family.name(), "side", evaluationSide == null ? "TRAIN" : evaluationSide, "cell", cell.key());
+			runtime.preparationObserver014(row -> preparationCost014(work, costContext, row));
 			java.util.function.Supplier<TacticalEpisodeV3> terminal = null;
 			try
 			{
-				final var roster = reproduceRoster(authority, cell, work, slot.split(), config, evaluation && cell.party() ? directory.resolve(cell.key() + ".risk.tsv") : null); final var inventories = new HashMap<Long, String>();
+				final var roster = measured014(work, costContext, "ROSTER_REPRODUCTION", () -> reproduceRoster(authority, cell, work, slot.split(), config, evaluation && cell.party() ? directory.resolve(cell.key() + ".risk.tsv") : null)); final var inventories = new HashMap<Long, String>();
 				for (int i = 0; i < roster.size(); i++) { inventories.put(Long.parseLong(roster.get(i)[2]), cell.roster().get(i).inventory().fingerprint()); }
 				final var localSource = PhantomEncounterLocalSource.resolve(authority, scene,
 					new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(cell.x(), cell.y(), cell.z(), 0));
@@ -1258,11 +1310,11 @@ public final class PhantomAutonomousTrainingNative
 				}
 				if (cell.party())
 				{
-					final var admission = runtime.acquiredPartyAdmission(); immutable(work.resolve("party-admission.json"), PhantomLearning005Evaluation.mapJson(admission));
+					final var admission = measured014(work, costContext, "PARTY_ADMISSION", runtime::acquiredPartyAdmission); immutable(work.resolve("party-admission.json"), PhantomLearning005Evaluation.mapJson(admission));
 					if (!Boolean.TRUE.equals(admission.get("admitted"))) { throw new IllegalStateException(preCutSelectionRefusal(admission, evaluation && outcomeV2(config), admissionOnly && config.integer("autonomous013Version", 0, 0, 1) == 1)); }
 					if (evaluation && !Boolean.TRUE.equals(admission.get("combatRequestValidated"))) { throw new IllegalStateException("AUTONOMOUS_PARTY_REQUEST_PREFLIGHT_REQUIRED"); }
 				}
-				final var nativeAdmission = runtime.acquiredEncounterAdmission(config.episodeSeconds() * 1000L);
+				final var nativeAdmission = measured014(work, costContext, "NATIVE_ADMISSION", () -> runtime.acquiredEncounterAdmission(config.episodeSeconds() * 1000L));
 				immutable(work.resolve("native-admission.json"), PhantomLearning005Evaluation.mapJson(nativeAdmission));
 				facts.put("encounterContract", EncounterAdmissionV1.VERSION);
 				facts.put("nativeOpeningAdmission", "ACCEPTED/" + encounterProposal(cell, config).requestTimeoutMillis());
@@ -1676,7 +1728,7 @@ public final class PhantomAutonomousTrainingNative
 					final var model = tactical.candidate(config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE));
 					if (model == null || !model.sha().equals(config.text("autonomous009ModelSha", ""))) { throw new IllegalStateException("TRAIN013_PREPARE_MODEL_CHANGED"); }
 					final var stock = new LearningStore(settings.getProperty("URL"), settings.getProperty("Login"), settings.getProperty("Password"), root.resolve("game")).accepted(1);
-					final var sources = trainingSources013(root, discoverSources(root, planned, config, authority, () -> requested(planned)), config);
+					final var sources = measured014(planned, Map.of("scope", "COHORT"), "SOURCE_DISCOVERY", () -> trainingSources013(root, discoverSources(root, planned, config, authority, () -> requested(planned)), config));
 					final var cells = planCells(planned, sources, config, authority, () -> requested(planned),
 						(cell, ordinal) -> admitHeadlessCell(root, planned, config, authority, tactical, model, stock.model(), cell, ordinal));
 					final int minimum = config.integer("episodesPerBatch", 48, 48, 256) >= 51 ? 3 : 4;

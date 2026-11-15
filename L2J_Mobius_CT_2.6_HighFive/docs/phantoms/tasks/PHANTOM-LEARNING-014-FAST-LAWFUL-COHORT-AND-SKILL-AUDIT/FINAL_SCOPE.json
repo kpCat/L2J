@@ -1,0 +1,218 @@
+{
+    "schemaVersion":  14,
+    "baseline":  "42d6b675a9cf57faa4df8a74cc52a8b4adda97fa",
+    "sourceCount":  6,
+    "sourceAllowlist":  [
+                            "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+                            "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+                            "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+                            "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+                            "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+                            "L2J_Mobius_CT_2.6_HighFive/build.xml"
+                        ],
+    "allowed":  [
+                    "L2J_Mobius_CT_2.6_HighFive/build.xml",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/ACCEPTANCE.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/ACCEPTANCE_RESULT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/BUFF_AUDIT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/BUFF_AUDIT_RESULT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/COMMANDS.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/DELIVERY_HANDOFF.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/EVIDENCE.json",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/FINAL_SCOPE.json",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/GIT_AND_SAFETY.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/HANDOFF.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/IMPLEMENTATION_PLAN014.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/MANIFEST.sha256",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PLAN.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PRE_AUDIT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PREPARATION014-S1.json",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PREPARATION014-S2.json",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROFILING_AND_PIPELINE.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROFILING_RESULT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROGRESS.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/READBACK.json",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/RESULT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/SKILL_AUDIT_RESULT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/SKILL_TARGET_CONTRACT.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/START_HERE.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/TASK.md",
+                    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/TEST_MATRIX.md",
+                    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+                    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+                    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+                    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+                    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+                ],
+    "unexpectedPaths":  0,
+    "mojibakeFullMarkerSet":  "NO_MATCH",
+    "escapedCyrillicAndXml":  "NO_MATCH",
+    "strictUtf8":  33,
+    "originalTaskManifestVerified":  11,
+    "diffCheckExit":  0,
+    "workingByteHashes":  [
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/build.xml",
+                                  "bytes":  333168,
+                                  "physicalWorkingSha256":  "EFCBB23CB12D893A97486F842EBFED8D1266BCE17CED5274951D3125EB7856FA"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+                                  "bytes":  13183,
+                                  "physicalWorkingSha256":  "78F7DCE38712781FA716F98A0794FA0B3874CFCC210975A1E112AF5BBC216E01"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT.md",
+                                  "bytes":  2294,
+                                  "physicalWorkingSha256":  "D1A252A90628387422E3CD2AB8EB132032D1C9ABCED01AE71BA46859533B2EF8"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/ACCEPTANCE.md",
+                                  "bytes":  2732,
+                                  "physicalWorkingSha256":  "3D745B61A28583835CAF9F9654A676E6CB00BBA755C8CAC80BEA10EEF749D267"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/ACCEPTANCE_RESULT.md",
+                                  "bytes":  2406,
+                                  "physicalWorkingSha256":  "BE288E7ED6B7422FE141AFA432AD14DEF03D5E07A292850EB285C3FEE41FD434"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/BUFF_AUDIT.md",
+                                  "bytes":  3593,
+                                  "physicalWorkingSha256":  "8187F49DF7AEC98C1DAAC7D2E5606DCFE956645202ABB833E80B1DDF163B597D"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/BUFF_AUDIT_RESULT.md",
+                                  "bytes":  5001,
+                                  "physicalWorkingSha256":  "FA06F92CF93D326F777F3461939A3ED14D68DFC44041FC61098DC9A88DD8610C"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/COMMANDS.md",
+                                  "bytes":  8228,
+                                  "physicalWorkingSha256":  "7477F5FD0D22EE2FEE53F53CD350C5C5618A17CF1979D93EB500F6469B95E275"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/DELIVERY_HANDOFF.md",
+                                  "bytes":  3182,
+                                  "physicalWorkingSha256":  "B4038AE97868910D1D21984B6125661C4570EA87C585C8D3B96BFBB670929F91"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/EVIDENCE.json",
+                                  "bytes":  7707,
+                                  "physicalWorkingSha256":  "7E31EEDB84542AEBBE2B550C28CEEF8CFDF7E7C983ED1E6C804B9329CE7715F3"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/GIT_AND_SAFETY.md",
+                                  "bytes":  3132,
+                                  "physicalWorkingSha256":  "4659A79B683FC7E96C86E22CB9AB7A620BA1DF3F0DE0164A6B20603EE2F342FA"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/HANDOFF.md",
+                                  "bytes":  1901,
+                                  "physicalWorkingSha256":  "C3A79A88C533489D10504B3B2E221400C0231F8A6EE2F0EB33E2306D39B93860"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/IMPLEMENTATION_PLAN014.md",
+                                  "bytes":  11641,
+                                  "physicalWorkingSha256":  "6288036563D39575B3C1B1D95666D12F1D37831858344863E913C0DC00DF082A"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/MANIFEST.sha256",
+                                  "bytes":  892,
+                                  "physicalWorkingSha256":  "843DEEB57C9F80D4DDA2273B6999B53739DDA669CD150008C10743D354A369B3"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PLAN.md",
+                                  "bytes":  2694,
+                                  "physicalWorkingSha256":  "3614F0CE791194C07E12589085861F3BFA7EA0AD2E89D83548B3576D6AAD38D4"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PRE_AUDIT.md",
+                                  "bytes":  4350,
+                                  "physicalWorkingSha256":  "ED2BDCBD8619A5A18FC2D20A73D87101F60BD82E398E84A221813C02BA269D79"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PREPARATION014-S1.json",
+                                  "bytes":  4016,
+                                  "physicalWorkingSha256":  "44F57E1B5ABC40E7BAAC05F8CF2469BCC3C3D194CDFD614096243BF8E854FEC9"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PREPARATION014-S2.json",
+                                  "bytes":  5648,
+                                  "physicalWorkingSha256":  "975BD4CA614DBAA20A2AB65C6C7600816CD227B7CE98EE8A7952D14A6C81D6CD"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROFILING_AND_PIPELINE.md",
+                                  "bytes":  4403,
+                                  "physicalWorkingSha256":  "6B6A8FE198EB2A74B00EDE5B0BC38F9458BA7327F707E9B2F217AE727E8B18C8"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROFILING_RESULT.md",
+                                  "bytes":  4366,
+                                  "physicalWorkingSha256":  "C17AD3C3EE1C577C3FD06B9979F3EEF38EB903996F029E1ABD51688B59A8815F"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/PROGRESS.md",
+                                  "bytes":  7189,
+                                  "physicalWorkingSha256":  "148178814EBE5E7C4A7410BD7B5E2672B907C009D017CBAF210A6AE9CBA79323"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/RESULT.md",
+                                  "bytes":  9115,
+                                  "physicalWorkingSha256":  "28DD4FB6824B39E39996E838BB8A0A5ECCE62B33587C8CFCD1DCB7B0650ACB84"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/SKILL_AUDIT_RESULT.md",
+                                  "bytes":  4062,
+                                  "physicalWorkingSha256":  "617E584869D3476F61D532455D63DA7F7E7C70430093542EB7E76EEDC369ACD7"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/SKILL_TARGET_CONTRACT.md",
+                                  "bytes":  4041,
+                                  "physicalWorkingSha256":  "384F880E05C20C40D4486B54EF0E251624D717E2AB5AE6424B1CC3865EDB8917"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/START_HERE.md",
+                                  "bytes":  1212,
+                                  "physicalWorkingSha256":  "1DA4256E5E949259A39D7DCAA88D75C0C34FE9A4393F1B390F715485717E2DE0"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/TASK.md",
+                                  "bytes":  12662,
+                                  "physicalWorkingSha256":  "AB5CBCABD53DC880DCA6EE58386E0E606C5632C6064EA0B3E1ABDAA7FF2EC70F"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-014-FAST-LAWFUL-COHORT-AND-SKILL-AUDIT/TEST_MATRIX.md",
+                                  "bytes":  2916,
+                                  "physicalWorkingSha256":  "A97E16D94DF48B760E227B6BDFF40128C21CE6FAF629AD8FF459438DB207245B"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+                                  "bytes":  32938,
+                                  "physicalWorkingSha256":  "DC3FF440F4E60AA429499958AFE16F54BB4EA1EF6207763A8B91694BB1E9BF86"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+                                  "bytes":  210026,
+                                  "physicalWorkingSha256":  "542D036F71430E5DFB17AD2EB92118C1CEB38363220D0F121FEF9130882AF48E"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+                                  "bytes":  104705,
+                                  "physicalWorkingSha256":  "FDAF8DE830A3891B7D7575FD7585820D058B94801E8C0CB7FEAA966C747042C0"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+                                  "bytes":  89609,
+                                  "physicalWorkingSha256":  "6A744AF4B7B8A2F7989A509E23B3AAAE5244CD28029626D650F33D4C8AA5358E"
+                              },
+                              {
+                                  "path":  "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+                                  "bytes":  173395,
+                                  "physicalWorkingSha256":  "0A7EAA5404FC6851D737A9EB2880A1E5A619616B0F38021E09017497334C2EC7"
+                              }
+                          ],
+    "hashNote":  "Physical build-source bytes; Git canonical LF blob bytes are independently checked via ls-tree and full GitHub body hashes. Self and future readback excluded from recursive SHA."
+}

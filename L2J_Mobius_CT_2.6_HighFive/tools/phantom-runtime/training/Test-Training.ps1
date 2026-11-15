@@ -3,6 +3,7 @@ param(
     [ValidateSet('Test-Cycle013','Test-Config','Test-Arguments','Test-Atomic','Test-ColdBaseline','Test-ExportAdmission','Test-PrivateBootstrap','Test-EmptyBootstrapRecovery','Test-ErrorHistory','Test-CimExitRace','Test-AdaptiveIdle','Test-StartupHandshake','Test-JobLifetime','Test-Broker','Test-Crash','Test-Isolation','Test-Generate','Test-Native','Test-Detached','Test-Resume','Test-Training','Test-Export','Test-GuiOwner')][string]$Action='Test-Config',
     [string]$Root,
     [switch]$Headless013,
+    [switch]$Readiness014,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -15,6 +16,25 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($Readiness014){
+    $tokens=$null;$errors=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
+    Require ($errors.Count -eq 0) 'READINESS014_SOURCE_PARSE'
+    $functions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Get-TrainReadinessWindow014'},$false)
+    . ([scriptblock]::Create(($functions|ForEach-Object {$_.Extent.Text}) -join "`n"))
+    Require ([bool](Get-Command Get-TrainReadinessWindow014 -ErrorAction SilentlyContinue)) 'READINESS014_SHARED_BUDGET_MISSING'
+    $now=[DateTime]::UtcNow;$first=Get-TrainReadinessWindow014 1 $null $now
+    Require ($first.maximumSeconds -eq 480 -and (([datetime]$first.hardDeadlineUtc).ToUniversalTime()-$now).TotalSeconds -eq 480) 'READINESS014_BASELINE_CAP'
+    $prior=[pscustomobject]@{schemaVersion=14;session=1;elapsedMillis=470000L;finishedUtc=$now.AddSeconds(470).ToString('o');ownedWorkerAbsent=$true;sqlAbsent=$true;withinCap=$true}
+    $second=Get-TrainReadinessWindow014 2 $prior $now.AddSeconds(500)
+    Require ($second.maximumSeconds -eq 720 -and [long]$prior.elapsedMillis+720000L -le 1200000L) 'READINESS014_TOTAL_CAP_RESET'
+    foreach($case in @(@{session=1;prior=$prior},@{session=2;prior=$null},@{session=3;prior=$prior})){
+        $refused=$false;try{$null=Get-TrainReadinessWindow014 $case.session $case.prior $now.AddSeconds(500)}catch{$refused=$true};Require $refused 'READINESS014_REPLAY_OR_THIRD_SESSION'
+    }
+    $prior.ownedWorkerAbsent=$false;$refused=$false;try{$null=Get-TrainReadinessWindow014 2 $prior $now.AddSeconds(500)}catch{$refused=$true};Require $refused 'READINESS014_UNPROVEN_EXIT'
+    Write-Output 'READINESS014_GREEN sessions=2 wallCap=1200 startupAndCleanupIncluded=1 replayRejected=1 thirdRejected=1 unprovenExitRejected=1 SQL=0 GS=0'
+    return
+}
 if($Headless013){
     $tokens=$null;$errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)

@@ -35,6 +35,7 @@ public final class AutonomousTrainingChecks
 			case "config013" -> configuration013();
 			case "curriculum" -> curriculum();
 			case "encounter" -> encounter();
+			case "preparation014" -> preparation014();
 			default -> throw new IllegalArgumentException("Unknown autonomous contract group");
 		}
 		System.out.println("AUTONOMOUS_TRAINING_GREEN " + args[0]);
@@ -69,6 +70,26 @@ public final class AutonomousTrainingChecks
 		check(!actual.maximumTargets().known() && actual.maximumTargets().value() == null, "Unknown max-target bound became zero or an RNG draw");
 		reject(() -> PhantomSkillInventory.capture(103, 0, "a".repeat(64), List.of(hydro, hydro), _ -> null), "Duplicate learned identity admitted");
 		check(PhantomSkillInventory.capture(103, 0, "A".repeat(64), List.of(hydro), _ -> null).catalogHash().equals("A".repeat(64)), "Canonical progression builder uses uppercase SHA; inventory rejected or rewrote its identity");
+	}
+	private static void preparation014()
+	{
+		final var healer = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(1, 101);
+		final var ally = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(2, 102);
+		final var other = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(3, 103);
+		final var heal = new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability("combat.heal", "fixture.learned", 100, 1217, 1, "SINGLE_TARGET", true, true, true, "ready", 100, "CONTRACT_ONLY");
+		final var snapshots = new java.util.LinkedHashMap<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot>();
+		final var roster = List.of(healer, ally, other);
+		final var tactics = new org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics(null, null);
+		for (var member : roster)
+		{
+			snapshots.put(member, new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), member.equals(healer) ? List.of(heal) : List.of(), "0".repeat(64)));
+		}
+		check(tactics.plan(healer, roster, snapshots).stream().noneMatch(d -> d.kind() == org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind.HEAL_MEMBER), "Full natural recovery unexpectedly admits stock HEAL without a wounded recipient");
+		for (var member : List.of(ally, other))
+		{
+			snapshots.put(member, new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot(member, 0, 0, 0, 0, 0, 50, 100, 100, false, false, false, false, 0, List.of(), List.of(), "0".repeat(64)));
+		}
+		check(tactics.plan(healer, roster, snapshots).stream().filter(d -> d.kind() == org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind.HEAL_MEMBER).count() == 2, "Preparation denial accidentally removed lawful stock friendly healing");
 	}
 
 	private static void shortlist()

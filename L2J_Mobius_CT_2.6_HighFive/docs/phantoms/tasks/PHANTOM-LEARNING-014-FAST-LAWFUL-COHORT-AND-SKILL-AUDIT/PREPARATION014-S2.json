@@ -1,0 +1,144 @@
+{
+    "schemaVersion":  14,
+    "session":  2,
+    "status":  "TIMEOUT",
+    "elapsedMillis":  515549,
+    "maximumSeconds":  720,
+    "withinCap":  true,
+    "ownedWorkerAbsent":  true,
+    "sqlAbsent":  true,
+    "workerExit":  2,
+    "workerElapsedMillis":  473427,
+    "workerCpuSeconds":  120.484375,
+    "peakWorkingSetBytes":  4656578560,
+    "partialArmProofs":  3,
+    "sealedCellRows":  0,
+    "trainingAdmissionPresent":  false,
+    "phases":  [
+                   {
+                       "phase":  "SOURCE_DISCOVERY",
+                       "count":  1,
+                       "totalMillis":  1007.2317,
+                       "minMillis":  1007.2317,
+                       "medianMillis":  1007.2317,
+                       "p95Millis":  1007.2317,
+                       "maxMillis":  1007.2317,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "IMMUTABLE_VIABILITY",
+                       "count":  1,
+                       "totalMillis":  0.1742,
+                       "minMillis":  0.1742,
+                       "medianMillis":  0.1742,
+                       "p95Millis":  0.1742,
+                       "maxMillis":  0.1742,
+                       "refused":  1
+                   },
+                   {
+                       "phase":  "ROSTER_REPRODUCTION",
+                       "count":  6,
+                       "totalMillis":  2204.5666,
+                       "minMillis":  150.0334,
+                       "medianMillis":  360.0026,
+                       "p95Millis":  703.616,
+                       "maxMillis":  703.616,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "CATALOG",
+                       "count":  6,
+                       "totalMillis":  2.5509000000000004,
+                       "minMillis":  0.0453,
+                       "medianMillis":  0.0777,
+                       "p95Millis":  2.1272,
+                       "maxMillis":  2.1272,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "MATERIALIZATION",
+                       "count":  22,
+                       "totalMillis":  668.8447000000001,
+                       "minMillis":  23.3066,
+                       "medianMillis":  29.5513,
+                       "p95Millis":  32.9133,
+                       "maxMillis":  64.0714,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "ANCHOR_TRAVEL",
+                       "count":  22,
+                       "totalMillis":  2.8928000000000003,
+                       "minMillis":  0.0423,
+                       "medianMillis":  0.0783,
+                       "p95Millis":  0.1826,
+                       "maxMillis":  1.0793,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "NATURAL_RECOVERY",
+                       "count":  6,
+                       "totalMillis":  413013.7767,
+                       "minMillis":  0.2689,
+                       "medianMillis":  9522.5351,
+                       "p95Millis":  134543.5587,
+                       "maxMillis":  134543.5587,
+                       "refused":  1
+                   },
+                   {
+                       "phase":  "DRAIN",
+                       "count":  6,
+                       "totalMillis":  20.918599999999998,
+                       "minMillis":  0.4477,
+                       "medianMillis":  3.6524,
+                       "p95Millis":  7.869,
+                       "maxMillis":  7.869,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "NATIVE_ADMISSION",
+                       "count":  3,
+                       "totalMillis":  29.573999999999998,
+                       "minMillis":  0.9526,
+                       "medianMillis":  11.9165,
+                       "p95Millis":  16.7049,
+                       "maxMillis":  16.7049,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "PARTY_FORMATION",
+                       "count":  3,
+                       "totalMillis":  1039.7071,
+                       "minMillis":  325.6571,
+                       "medianMillis":  340.6342,
+                       "p95Millis":  373.4158,
+                       "maxMillis":  373.4158,
+                       "refused":  0
+                   },
+                   {
+                       "phase":  "PARTY_ADMISSION",
+                       "count":  3,
+                       "totalMillis":  23.8754,
+                       "minMillis":  4.9305,
+                       "medianMillis":  5.2688,
+                       "p95Millis":  13.6761,
+                       "maxMillis":  13.6761,
+                       "refused":  2
+                   }
+               ],
+    "refusals":  [
+                     {
+                         "count":  1,
+                         "reason":  "AUTONOMOUS_PREPARATION_REQUESTED_DRAIN"
+                     },
+                     {
+                         "count":  2,
+                         "reason":  "AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED"
+                     }
+                 ],
+    "privateCostSha":  "B28A5630D74B8243A200778E9D5C6E41145B44FC547DFC10188E14050C16D99B",
+    "rawRows":  79,
+    "nativeStarts":  0,
+    "fits":  0,
+    "trainingCredit":  false
+}
