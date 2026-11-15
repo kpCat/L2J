@@ -3,21 +3,31 @@ using System.Text.RegularExpressions;
 namespace PhantomSemanticStudio.Core;
 
 public sealed record CorpusQualityIssue(string Code, int Record, string Detail);
+public sealed record CorpusSpeechIndicators(int Records, int StrongIndicators, int MildIndicators, int AdultIndicators, int IntimacyTopicIndicators);
 
 /// <summary>Conservative editorial triage. No score here is a human judgement or an approval.</summary>
 public static class CorpusQuality
 {
-    private static readonly Regex Strong = new(@"(?i)\b(?:бля(?:д|т|\b)|пизд|ёб|ебан|ебуч|заеб|наху|нахер|хуй|хуя|хуе)", RegexOptions.CultureInvariant);
+    private static readonly Regex Strong = new(@"(?i)\b(?:бля(?:д|т|\b)|пизд|(?:вы|до|за|на|от|по|про|раз|у)?[её]б(?:а|е|ё|и|л|н|у|ы)|наху|нахер|ниху|оху|аху|(?:не)?хуй|хули\b|хуя|хуе)", RegexOptions.CultureInvariant);
     private static readonly Regex Mild = new(@"(?i)\b(?:блин|чёрт|черт|хрен|фигня|задолбал)\b", RegexOptions.CultureInvariant);
     private static readonly Regex Sexual = new(@"(?i)\b(?:секс|трах|оргазм|раздевай|постель|постели|девствен|целк|сиськ|оральн|анальн|пизд(?:а|у|ы|е|ой|ою|ам|ами|ах)\b)", RegexOptions.CultureInvariant);
+    private static readonly Regex IntimacyTopic = new(@"(?i)\b(?:близост|нежност|предпочтен|желани|границ|интим|смущ|стыд)", RegexOptions.CultureInvariant);
     private static readonly Regex FirstMaleBody = new(@"(?i)\b(?:мой|моего|моему|моим|моём)\s+член\b|\bу меня\s+(?:есть\s+)?член\b", RegexOptions.CultureInvariant);
     private static readonly Regex FirstFemaleBody = new(@"(?i)\b(?:моя|мою|моей|мои|моих)\s+(?:пизд|сиськ)|\bу меня\s+(?:есть\s+)?(?:пизд|сиськ)", RegexOptions.CultureInvariant);
     private static readonly Regex SecondMaleBody = new(@"(?i)\b(?:твой|твоего|твоему|твоим|твоём)\s+член\b|\bу тебя\s+(?:есть\s+)?член\b", RegexOptions.CultureInvariant);
     private static readonly Regex SecondFemaleBody = new(@"(?i)\b(?:твоя|твою|твоей|твои|твоих)\s+(?:пизд|сиськ)|\bу тебя\s+(?:есть\s+)?(?:пизд|сиськ)", RegexOptions.CultureInvariant);
     private static readonly Regex Cliche = new(@"(?i)(понимаю (?:твои|ваши) чувства|неприятно, когда|важно помнить|следует учитывать|не стоит расстраиваться|как (?:ии|языковая модель)|отличный вопрос)", RegexOptions.CultureInvariant);
+    public static CorpusSpeechIndicators MeasureSpeech(IEnumerable<string> texts)
+    {
+        var count = 0; var strong = 0; var mild = 0; var adult = 0; var intimate = 0;
+        foreach (var text in texts) { count++; if (Strong.IsMatch(text)) strong++; if (Mild.IsMatch(text)) mild++; if (Sexual.IsMatch(text)) adult++; if (IntimacyTopic.IsMatch(text)) intimate++; }
+        return new(count, strong, mild, adult, intimate);
+    }
     public static IReadOnlyList<CorpusQualityIssue> Check(IReadOnlyList<V4Entry> entries, V4GenerationRequest request, IReadOnlyList<V4Entry> peers)
     {
         var issues = new List<CorpusQualityIssue>();
+        if (request.Style.StyleId == "strong_profanity" && entries.Count > 0 && MeasureSpeech(entries.Select(e => e.Text)).StrongIndicators * 2 < entries.Count)
+            issues.Add(new("STRONG_PROFILE_DENSITY_REVIEW", 0, "Профиль крепкого мата: меньше половины строк содержат лексический индикатор. Метка STRONG не заменяет фактический текст."));
         var previous = peers.ToList();
         for (var i = 0; i < entries.Count; i++)
         {
@@ -39,7 +49,8 @@ public static class CorpusQuality
                 if (Strong.IsMatch(e.Text) && e.Profanity != "STRONG" || Mild.IsMatch(e.Text) && e.Profanity == "NONE")
                     Flag("PROFANITY_MARKING", "Лексический индикатор ругани не соответствует метке; нужен редактор.");
                 if (Sexual.IsMatch(e.Text) && e.Maturity != "MATURE") Flag("MATURE_MARKING_REVIEW", "Возможный взрослый подтекст без MATURE; индикатор не доказывает смысл.");
-                if (e.Maturity == "MATURE" && !Sexual.IsMatch(e.Text)) Flag("MATURE_SUBSTANCE_REVIEW", "Метка без явного взрослого лексического индикатора; проверить настоящий смысл, а не считать наличие контента по метке.");
+                if (e.Maturity == "MATURE" && !Sexual.IsMatch(e.Text) && !(request.Style.StyleId == "intimate_conversation" && IntimacyTopic.IsMatch(e.Text)))
+                    Flag("MATURE_SUBSTANCE_REVIEW", "Нет ожидаемого лексического индикатора профиля; смысл требует редактора. Двусмысленность и флирт не обязаны содержать прямую сексуальную лексику.");
                 if (e.Profanity != "NONE" && request.Style.Channel is not ("TELL" or "BOT_PRIVATE"))
                     Flag("JAVA_PUBLIC_PROFANITY_BLOCKED", "Текущий Java consumer допускает мат только в приватном согласном контексте; публичная запись недоступна.");
                 if (e.Stance is "FLIRT" or "AGGRESSIVE_BANTER" && (request.Style.Channel is not ("TELL" or "BOT_PRIVATE") || request.Style.Relation is not ("TRUSTED" or "FAMILIAR")))

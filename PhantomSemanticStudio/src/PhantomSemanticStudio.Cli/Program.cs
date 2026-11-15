@@ -9,7 +9,7 @@ catch (Exception error) when (error is IOException or InvalidDataException or Ar
 static int Run(string[] args)
 {
     var options = new Dictionary<string, string>(StringComparer.Ordinal); var positional = new List<string>();
-    var flags = new[] { "--dry-run", "--reviewed", "--mature", "--help", "--markdown", "--thinking", "--mature-pilot-consent", "--intimate-holdout", "--thinking-quality", "--batch-size-probe" };
+    var flags = new[] { "--dry-run", "--reviewed", "--mature", "--help", "--markdown", "--thinking", "--mature-pilot-consent", "--intimate-holdout", "--thinking-quality", "--batch-size-probe", "--matched-profile-probe" };
     var valued = new[] { "--workspace", "--source", "--category", "--persona", "--relation", "--parent", "--key", "--label", "--act", "--intent", "--proposal", "--hash", "--lab", "--model", "--transport", "--reasoning", "--thinking-control", "--limit", "--profiles", "--endpoint", "--model-file", "--thinking-budget" };
     for (var i = 0; i < args.Length; i++)
     {
@@ -23,6 +23,15 @@ static int Run(string[] args)
     string Opt(string key, string? fallback = null) => options.TryGetValue(key, out var value) ? value : fallback ?? throw new InvalidDataException("Нужна опция " + key);
     string Input() => positional.Count == 2 ? Path.GetFullPath(positional[1]) : throw new InvalidDataException("Укажите один путь к файлу/папке.");
     if (positional.Count == 0 || options.ContainsKey("--help")) { Help(); return 0; }
+    if (positional.Count == 1 && positional[0] == "prompt-coverage")
+    {
+        var hierarchy = PromptHierarchy.Default;
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { Schema = "pw-prompt-coverage/1", RegistryHash = V4Registry.Default.Hash,
+            ConfigHash = hierarchy.Hash, CanonicalCategories = V4Registry.Default.Categories.Count, Families = hierarchy.Families.Select(f => new { f.Id, f.Label, f.Revision }),
+            Rows = hierarchy.Coverage(V4Registry.Default), Note = "Назначение не подтверждает качество. Нужны отдельные family/category эксперименты и отзывы." },
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
+        return 0;
+    }
     if (positional.Count == 1 && positional[0] == "corpus-inspect-gguf")
     {
         Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(InspectGguf(Path.GetFullPath(Opt("--model-file"))),
@@ -38,7 +47,7 @@ static int Run(string[] args)
         if (positional[0] == "corpus-plan")
         {
             if (!int.TryParse(Opt("--thinking-budget", "2048"), out var thinkingBudget)) throw new InvalidDataException("Нужен целый thinking budget 128..8192.");
-            var plan = lab.CreatePlan(options.ContainsKey("--thinking"), Opt("--transport", "OPENAI_COMPAT"), Opt("--reasoning", "default"), Opt("--thinking-control", "none"), options.ContainsKey("--mature-pilot-consent"), options.ContainsKey("--intimate-holdout"), options.ContainsKey("--thinking-quality"), thinkingBudget, options.ContainsKey("--batch-size-probe"));
+            var plan = lab.CreatePlan(options.ContainsKey("--thinking"), Opt("--transport", "OPENAI_COMPAT"), Opt("--reasoning", "default"), Opt("--thinking-control", "none"), options.ContainsKey("--mature-pilot-consent"), options.ContainsKey("--intimate-holdout"), options.ContainsKey("--thinking-quality"), thinkingBudget, options.ContainsKey("--batch-size-probe"), options.ContainsKey("--matched-profile-probe"));
             Console.WriteLine($"FROZEN_PLAN: {plan.Jobs.Length} запросов; {plan.Jobs.Sum(j => j.Request.Count)} кандидатов; registry={plan.RegistryHash}; profile={plan.ProfileHash}; approved=0. HTTP не вызывался."); return 0;
         }
         if (positional[0] == "corpus-status") { PrintCorpus(lab.GetStatus()); return 0; }
@@ -122,6 +131,8 @@ corpus-status | corpus-report --lab <dir> --source <HighFive>
 corpus-models --lab <dir> --source <HighFive> --model <owner-selected-id>
 corpus-inspect-gguf --model-file <local.gguf>  Read-only GGUF v3 metadata/template; tensor weights не читаются.
 Для corpus-plan: --transport OPENAI_COMPAT|LM_NATIVE --reasoning default|off|on
+prompt-coverage — офлайн JSON-карта142категорий,20семейств и неподтверждённых quality gaps; модель не нужна.
+--matched-profile-probe --mature-pilot-consent — 32 matched запроса: четыре стратегии × два sampler × PvP/ролевая бравада/спокойный контроль/взрослый неграфический юмор; по4 кандидата, cap2048.
 --thinking-control none|reasoning_effort|chat_template_kwargs; --profiles <directory>.
 --mature-pilot-consent — отдельное явное разрешение взрослой части синтетического приватного пилота; по умолчанию OFF.
 --intimate-holdout — отдельные 18 интимных QA-сцен; персональный пол/биография не переносятся в универсальный runtime.

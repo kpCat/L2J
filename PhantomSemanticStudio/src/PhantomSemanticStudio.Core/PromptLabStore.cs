@@ -35,6 +35,8 @@ public sealed partial class PromptLabStore
             var profileId = draft.ProfileId.Length > 0 ? draft.ProfileId : parent?.ProfileId ?? Guid.NewGuid().ToString("N");
             RequireId(profileId);
             V4Rules.Require(parent == null || parent.ProfileId == profileId, "PROMPT_LAB_PARENT_PROFILE_MISMATCH");
+            if (parent?.Scenario.Components != null && draft.ReadyForGeneration)
+                V4Rules.Require(draft.Scenario.Components?.FamilyId == parent.Scenario.Components.FamilyId, "HIERARCHY_NEW_FAMILY_REQUIRES_PROFILE_COPY");
             if (draft.Origin == "MODEL_PROPOSAL" && draft.ProposedFromRunId.Length > 0)
             {
                 var existing = ListVersions(profileId).SingleOrDefault(v => v.Origin == "MODEL_PROPOSAL" && v.ProposedFromRunId == draft.ProposedFromRunId);
@@ -60,7 +62,36 @@ public sealed partial class PromptLabStore
     public PromptLabVersion CopyVersion(string id, string name)
     {
         var source = GetVersion(id);
-        return SaveVersion(source with { Id = "", ParentId = "", ProfileId = "", Name = name, Origin = "COPY" });
+        return SaveVersion(source with { Id = "", ParentId = "", ProfileId = "", Name = name, Origin = "COPY", FamilyGroupId = "" });
+    }
+
+    public PromptLabFamilyGroup? FindFamilyGroup(string sourceVersionId)
+    {
+        RequireId(sourceVersionId);
+        return File.Exists(Local("family-groups/" + sourceVersionId + ".json")) ? GetFamilyGroup(sourceVersionId) : null;
+    }
+
+    public PromptLabFamilyGroup GetFamilyGroup(string sourceVersionId)
+    {
+        RequireId(sourceVersionId); var group = Read<PromptLabFamilyGroup>("family-groups/" + sourceVersionId + ".json", "FAMILY_GROUP");
+        V4Rules.Require(group.Id == sourceVersionId && group.SourceVersionHash == VersionHash(sourceVersionId) && group.CreatedAtUtc != default
+            && group.VersionIds != null && group.VersionIds.Count is >= 1 and <= 16 && group.VersionIds.Distinct(StringComparer.Ordinal).Count() == group.VersionIds.Count,
+            "PROMPT_LAB_FAMILY_GROUP");
+        var versions = group.VersionIds!.Select(GetVersion).ToArray();
+        V4Rules.Require(versions.All(v => v.FamilyGroupId == group.Id && v.Scenario.Components != null)
+            && versions.Select(v => v.ProfileId).Distinct().Count() == versions.Length
+            && versions.Select(v => v.Scenario.Components!.FamilyId).Distinct().Count() == versions.Length, "PROMPT_LAB_FAMILY_GROUP_MEMBERS");
+        return group;
+    }
+
+    internal PromptLabFamilyGroup SaveFamilyGroup(string sourceVersionId, IReadOnlyList<string> versions)
+    {
+        lock (sync)
+        {
+            var existing = FindFamilyGroup(sourceVersionId); if (existing != null) return existing;
+            var group = new PromptLabFamilyGroup(sourceVersionId, VersionHash(sourceVersionId), DateTimeOffset.UtcNow, versions);
+            Write("family-groups/" + sourceVersionId + ".json", "FAMILY_GROUP", group, false); return GetFamilyGroup(sourceVersionId);
+        }
     }
 
     public PromptLabVersion GetVersion(string id)

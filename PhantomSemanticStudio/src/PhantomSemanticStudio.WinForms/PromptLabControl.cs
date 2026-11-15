@@ -54,6 +54,9 @@ public partial class PromptLabControl : UserControl
             foreach (var strategy in PromptProfiles.Strategies)
                 Lab.CreateProfile(strategy switch { "situation-first" => "Ситуация и реакция", "persona-first" => "Характер и отношения", "dialogue-context" => "Живой диалог", _ => "Грубость и взрослый юмор" }, strategy, new PromptLabVersion().Scenario);
         }
+        var existingStyles = Store.ListProfiles().Select(profile => Store.GetVersion(profile.SelectedVersionId).Scenario.Style.StyleId).ToHashSet(StringComparer.Ordinal);
+        foreach (var style in new[] { "strong_profanity", "vulgar_humor", "double_meanings", "adult_flirt", "intimate_conversation" })
+            if (!existingStyles.Contains(style)) Lab.CreateSpeechProfile(style);
         LoadProfiles(); UpdateActions();
     }
 
@@ -64,6 +67,15 @@ public partial class PromptLabControl : UserControl
         {
             var choices = Store.ListProfiles().Select(p => new Choice(p.Id, p.Name)).ToArray(); cboProfiles.DataSource = choices;
             if (profileId != null) cboProfiles.SelectedValue = profileId;
+            else
+            {
+                var ordinary = choices.FirstOrDefault(choice =>
+                {
+                    var selected = Store.GetVersion(Store.GetProfile(choice.Id).SelectedVersionId);
+                    return selected.ReadyForGeneration && selected.Scenario.Style.StyleId == "ordinary" && !selected.Scenario.Style.MatureRequested && !selected.Scenario.Style.StrongProfanityRequested;
+                });
+                if (ordinary != null) cboProfiles.SelectedValue = ordinary.Id;
+            }
         }
         finally { binding = false; }
         if (cboProfiles.SelectedItem is Choice selected) LoadVersions(selected.Id, versionId);
@@ -95,12 +107,14 @@ public partial class PromptLabControl : UserControl
             txtDescription.Text = display.Description;
             colCategory.DataSource = Store.EffectiveRegistry().Categories.Select(c => new Choice(c.Key, c.Label + " · " + c.Key))
                 .Concat(display.CategorySuggestions.Where(s => !Store.EffectiveRegistry().Categories.Any(c => c.Key == s.Key)).Select(s => new Choice(s.Key, "На утверждение: " + s.Label + " · " + s.Key))).ToArray();
-            scopeRows = new(new[] { display.Scenario }.Concat(display.AdditionalScenarios).Select(ScopeView.From).ToList()); gridScope.DataSource = scopeRows;
+            scopeRows = new(new[] { display.Scenario }.Concat(display.AdditionalScenarios).Select((scope, index) => ScopeView.From(scope,
+                display.CategoryInstructions.Count > index ? display.CategoryInstructions[index] : null)).ToList()); gridScope.DataSource = scopeRows;
             activeScopeIndex = 0; LoadActiveScene();
             FillParameters(display.Generation, display.Refinement);
             var accepted = Store.GetProfile(saved.ProfileId).AcceptedVersionId;
             lblVersions.Text = "Открыта " + saved.Id[..8] + "; принята: " + (accepted.Length == 0 ? "нет" : accepted[..8]) + ". Экспериментальные реплики не утверждаются автоматически.";
             if (!saved.ReadyForGeneration) lblVersions.Text += " Требуется проверка плана партий.";
+            lblSystem.Text = display.Scenario.Components is { } component ? "SYSTEM семейства " + component.FamilyId + " / " + component.FamilyRevision : "SYSTEM — характер и правила речи";
             if (display.CategorySuggestions.Count > 0) txtPackReport.Text = "Предложения категорий требуют отдельного утверждения:\r\n" + JsonSerializer.Serialize(display.CategorySuggestions, WorkspaceStore.JsonOptions);
             dirty = draft?.Id == id;
         }
@@ -113,19 +127,21 @@ public partial class PromptLabControl : UserControl
         if (current == null || scopeRows.Count == 0) throw new InvalidDataException("Создайте или выберите профиль.");
         gridScope.EndEdit(); gridParameters.EndEdit(); SaveActiveScene(); var scopes = scopeRows.Select(r => r.ToRequest()).ToArray();
         return current with { Name = txtName.Text, System = txtSystem.Text, User = txtUser.Text, Scenario = scopes[0], AdditionalScenarios = scopes.Skip(1).ToArray(),
-            Generation = ReadOptions(1), Refinement = ReadOptions(2), Description = txtDescription.Text };
+            CategoryInstructions = scopeRows.Select(row => row.CategoryInstruction).ToArray(), Generation = ReadOptions(1), Refinement = ReadOptions(2), Description = txtDescription.Text };
     }
 
     private void SaveActiveScene()
     {
         if (activeScopeIndex < 0 || activeScopeIndex >= scopeRows.Count) return;
         var row = scopeRows[activeScopeIndex]; row.Situation = txtSituation.Text; row.Dialogue = txtDialogue.Lines.Where(t => !string.IsNullOrWhiteSpace(t)).ToArray(); row.Adults = chkAdult.Checked;
+        row.CategoryInstruction = txtCategoryInstruction.Text;
     }
     private void LoadActiveScene()
     {
         if (activeScopeIndex < 0 || activeScopeIndex >= scopeRows.Count) return;
         var previous = binding; binding = true;
-        try { var row = scopeRows[activeScopeIndex]; txtSituation.Text = row.Situation; txtDialogue.Text = string.Join(Environment.NewLine, row.Dialogue); chkAdult.Checked = row.Adults; }
+        try { var row = scopeRows[activeScopeIndex]; txtSituation.Text = row.Situation; txtDialogue.Text = string.Join(Environment.NewLine, row.Dialogue); chkAdult.Checked = row.Adults;
+            txtCategoryInstruction.Text = row.CategoryInstruction; txtCategoryInstruction.Enabled = row.IsComponent; }
         finally { binding = previous; }
     }
     private void Scope_SelectionChanged(object? sender, EventArgs e)
@@ -137,7 +153,7 @@ public partial class PromptLabControl : UserControl
     private PromptLabVersion SaveEditor()
     {
         if (!dirty && current != null) return current;
-        var draft = ReadEditor(); var saved = Store.SaveVersion(draft with { Id = "", ParentId = current!.Id, Origin = "MANUAL", ProposedFromRunId = "" });
+        var draft = Lab.PrepareVersion(ReadEditor()); var saved = Store.SaveVersion(draft with { Id = "", ParentId = current!.Id, Origin = "MANUAL", ProposedFromRunId = "" });
         DiscardEditorDraft(current!); dirty = false; current = saved; LoadProfiles(saved.ProfileId, saved.Id); return saved;
     }
     private void DiscardEditorDraft(PromptLabVersion version)
@@ -179,19 +195,24 @@ public partial class PromptLabControl : UserControl
 
     private void ShowRun(PromptLabRun run, bool right)
     {
+        var owner = Store.GetVersion(run.VersionId);
+        if (owner.ProfileId != current?.ProfileId) { FlushDraft(); LoadProfiles(owner.ProfileId, owner.Id); }
         var feedback = Store.LatestFeedback(run.Id);
         var rows = new BindingList<RowView>(run.Rows.Select(row => new RowView(row, feedback?.Ratings.SingleOrDefault(r => r.Number == row.Number))).ToList());
         binding = true;
         try
         {
             var metrics = PromptLabSession.MeasureRows(run.Rows);
+            var speech = CorpusQuality.MeasureSpeech(run.Rows.Select(r => r.Text));
             var label = run.State + " · " + run.VersionId[..8] + " · " + metrics.Records + " строк · дубли " + metrics.ExactDuplicates + "/" + metrics.NearDuplicatePairs
-                + " · разнообразие " + metrics.TokenDiversity.ToString("P0") + " · отклонено " + run.Rows.Count(r => !r.SchemaValid);
+                + " · разнообразие " + metrics.TokenDiversity.ToString("P0") + " · отклонено " + run.Rows.Count(r => !r.SchemaValid)
+                + " · мат: " + speech.StrongIndicators + " лекс. / " + run.Rows.Count(r => r.Profanity == "STRONG") + " меток";
             if (right) { rightRun = run; rightRows = rows; gridV2.DataSource = rows; txtFeedbackV2.Text = feedback?.BatchComment ?? ""; lblV2.Text = "V2: " + label; }
             else { rightRun = null; rightRows = new(); gridV2.DataSource = null; txtFeedbackV2.Clear(); lblV2.Text = "V2 — сравнение";
                 leftRun = run; leftRows = rows; gridV1.DataSource = rows; txtFeedbackV1.Text = feedback?.BatchComment ?? ""; lblV1.Text = "V1: " + label; }
             txtHistory.Text = "Run " + run.Id + "\r\n" + run.Purpose + " / " + run.State + "\r\n" + run.Failure + "\r\nModel: " + run.ModelId
                 + "\r\nНазначение: " + run.Scenario?.Category + " / " + run.Scenario?.Mode + "; experiment: " + run.ExperimentId
+                + (run.Scenario?.Components is { } component ? "\r\nСемейство: " + component.FamilyId + " / " + component.FamilyRevision + "; hash: " + component.FunctionalHash : "")
                 + "\r\n" + JsonSerializer.Serialize(run.Response?.Telemetry, WorkspaceStore.JsonOptions)
                 + "\r\nФактические параметры:\r\n" + JsonSerializer.Serialize(run.ApiOptions, WorkspaceStore.JsonOptions)
                 + $"\r\nЛексическое разнообразие {metrics.TokenDiversity:P1}. Исполнение речевого акта и естественность требуют вашей оценки."
@@ -246,13 +267,28 @@ public partial class PromptLabControl : UserControl
     private void New_Click(object? sender, EventArgs e) => Safe(() => { FlushDraft(); var created = Lab.CreateProfile("Новый профиль", "dialogue-context", new PromptLabVersion().Scenario); LoadProfiles(created.ProfileId, created.Id); });
     private void Copy_Click(object? sender, EventArgs e) => Safe(() => { FlushDraft(); var version = SaveEditor(); var copy = Store.CopyVersion(version.Id, version.Name + " — копия"); LoadProfiles(copy.ProfileId, copy.Id); });
     private void Save_Click(object? sender, EventArgs e) => Safe(() => { SaveEditor(); lblStatus.Text = "Новая неизменяемая версия сохранена."; });
+    private void Family_Click(object? sender, EventArgs e) => Safe(() =>
+    {
+        FlushDraft(); var draft = ReadEditor(); var scope = new[] { draft.Scenario }.Concat(draft.AdditionalScenarios).ElementAt(activeScopeIndex);
+        var created = Lab.CreateFamilyProfile(scope, draft.Name + " — семейство"); LoadProfiles(created.ProfileId, created.Id);
+        lblStatus.Text = "Создан независимый профиль выбранного семейства. Исходный профиль и его принятая версия сохранены.";
+    });
     private void Accept_Click(object? sender, EventArgs e) => Safe(() => { var version = SaveEditor(); Store.AcceptVersion(version.Id); LoadProfiles(version.ProfileId, version.Id); lblStatus.Text = "Принят только промпт. Реплики и импорт требуют отдельного решения."; });
     private void ApplyPlan_Click(object? sender, EventArgs e) => Safe(() =>
     {
+        if (current!.FamilyPrompts.Count > 0 || !current.ReadyForGeneration && txtDescription.Text.Length > 0) { SplitEditorPlan(); return; }
         var draft = ReadEditor() with { Id = "", ParentId = current!.Id, Origin = "MANUAL", ProposedFromRunId = "", ReadyForGeneration = true };
-        var saved = Store.SaveVersion(draft); DiscardEditorDraft(current!); dirty = false; LoadProfiles(saved.ProfileId, saved.Id);
+        var saved = Store.SaveVersion(Lab.PrepareVersion(draft)); DiscardEditorDraft(current!); dirty = false; LoadProfiles(saved.ProfileId, saved.Id);
         lblStatus.Text = "План проверен и закреплён: " + (saved.AdditionalScenarios.Count + 1) + " отдельных партий. Теперь можно генерировать.";
     });
+    private void SplitFamilies_Click(object? sender, EventArgs e) => Safe(SplitEditorPlan);
+    private void SplitEditorPlan()
+    {
+        var draft = ReadEditor() with { Id = "", ParentId = current!.Id, Origin = "MANUAL", ProposedFromRunId = "", ReadyForGeneration = false, FamilyGroupId = "" };
+        var source = Store.SaveVersion(draft); var group = Lab.SplitFamilyPlan(source.Id); var first = Store.GetVersion(group.VersionIds[0]);
+        DiscardEditorDraft(current!); dirty = false; LoadProfiles(first.ProfileId, first.Id);
+        lblStatus.Text = "Создано независимых профилей: " + group.VersionIds.Count + ". Проверьте SYSTEM каждого семейства; генерация запускается отдельно.";
+    }
     private void Profile_Changed(object? sender, EventArgs e) { if (!binding && !Busy) Safe(() => { FlushDraft(); if (cboProfiles.SelectedItem is Choice choice) LoadVersions(choice.Id); }); }
     private void Version_Changed(object? sender, EventArgs e) { if (!binding && !Busy) Safe(() => { FlushDraft(); if (cboVersions.SelectedItem is Choice choice) { Store.SelectVersion(choice.Id); LoadVersion(choice.Id); } }); }
     private void Editor_Changed(object? sender, EventArgs e) { if (!binding) { dirty = true; draftTimer.Start(); UpdateActions(); } }
@@ -272,7 +308,8 @@ public partial class PromptLabControl : UserControl
     private void AddScope_Click(object? sender, EventArgs e) => Safe(() =>
     {
         SaveActiveScene(); if (scopeRows.Count >= 16) throw new InvalidDataException("Не более 16 партий в эксперименте.");
-        scopeRows.Add(ScopeView.From(scopeRows[Math.Clamp(activeScopeIndex, 0, scopeRows.Count - 1)].ToRequest())); Editor_Changed(sender, e);
+        var source = scopeRows[Math.Clamp(activeScopeIndex, 0, scopeRows.Count - 1)];
+        scopeRows.Add(ScopeView.From(source.ToRequest(), source.CategoryInstruction)); Editor_Changed(sender, e);
     });
     private void RemoveScope_Click(object? sender, EventArgs e) => Safe(() =>
     {
@@ -342,7 +379,14 @@ public partial class PromptLabControl : UserControl
     });
     private async void Generate_Click(object? sender, EventArgs e) => await RunAsync(async token =>
     {
-        var version = SaveEditor(); var results = await Lab.GenerateExperimentAsync(version.Id, settingsProvider!(), keyProvider!(), txtModel.Text, token, Progress());
+        var version = SaveEditor(); IReadOnlyList<PromptLabRun> results;
+        if (ReferenceEquals(sender, btnGenerateFamilies))
+        {
+            var group = Store.GetFamilyGroup(version.FamilyGroupId);
+            var selected = group.VersionIds.Select(Store.GetVersion).Select(member => member.ProfileId == version.ProfileId ? version.Id : Store.GetProfile(member.ProfileId).SelectedVersionId).ToArray();
+            results = await Lab.GenerateFamilyExperimentAsync(selected, settingsProvider!(), keyProvider!(), txtModel.Text, token, Progress());
+        }
+        else results = await Lab.GenerateExperimentAsync(version.Id, settingsProvider!(), keyProvider!(), txtModel.Text, token, Progress());
         if (results.Count > 0) ShowRun(results[^1], false);
         txtPackReport.Text = "Эксперимент сохранён по отдельным категориям и режимам:\r\n" + string.Join("\r\n", results.GroupBy(r => (r.Scenario?.Category ?? "") + " / " + (r.Scenario?.Mode ?? "")).Select(g => g.Key + ": " + g.Sum(r => r.Rows.Count) + " строк; запросов " + g.Count()));
         LoadHistory();
@@ -351,7 +395,7 @@ public partial class PromptLabControl : UserControl
     {
         var version = SaveEditor(); var result = await Lab.DescribeAsync(version.Id, txtDescription.Text, settingsProvider!(), keyProvider!(), txtModel.Text, token, Progress());
         if (result.ProposedVersionId.Length > 0) { var proposed = Store.GetVersion(result.ProposedVersionId); LoadProfiles(proposed.ProfileId, proposed.Id); tabsLab.SelectedTab = tabScope; }
-        lblStatus.Text = result.Failure.Length == 0 ? "Предложение сохранено. Проверьте SYSTEM/USER, каждую партию и подтвердите план." : result.Failure; LoadHistory();
+        lblStatus.Text = result.Failure.Length == 0 ? "Предложение сохранено. Проверьте партии; подтверждение плана создаст независимые профили семейств для редактирования SYSTEM/USER." : result.Failure; LoadHistory();
     });
     private async void Refine_Click(object? sender, EventArgs e) => await RunAsync(async token =>
     {
@@ -399,6 +443,8 @@ public partial class PromptLabControl : UserControl
         btnGenerate.Enabled = ready && idle && current!.ReadyForGeneration; btnModels.Enabled = lab != null && idle; btnSave.Enabled = ready && idle; btnAccept.Enabled = ready && idle && current!.ReadyForGeneration;
         btnDescribe.Enabled = ready && idle; btnApplyPlan.Enabled = ready && idle;
         btnAddScope.Enabled = btnRemoveScope.Enabled = btnTaxonomy.Enabled = ready && idle;
+        btnFamily.Enabled = ready && idle;
+        btnSplitFamilies.Enabled = ready && idle; btnGenerateFamilies.Enabled = ready && idle && current!.FamilyGroupId.Length > 0;
         btnRoute.Enabled = ready && idle && (leftRun != null || rightRun != null); btnBuildPack.Enabled = lab != null && idle;
         btnImportPack.Enabled = idle && packPreview?.Validation.Success == true && chkMeaning.Checked;
         btnProduction.Enabled = ready && idle && (leftRun != null || rightRun != null);
@@ -407,6 +453,7 @@ public partial class PromptLabControl : UserControl
         cboProfiles.Enabled = cboVersions.Enabled = !Busy; txtModel.Enabled = !Busy;
         txtSystem.ReadOnly = txtUser.ReadOnly = txtName.ReadOnly = txtSituation.ReadOnly = txtDialogue.ReadOnly = Busy;
         txtDescription.ReadOnly = txtFeedbackV1.ReadOnly = txtFeedbackV2.ReadOnly = Busy;
+        txtCategoryInstruction.ReadOnly = Busy;
         gridV1.ReadOnly = gridV2.ReadOnly = Busy; chkAdult.Enabled = !Busy; cboRuns.Enabled = btnViewRun.Enabled = idle;
         gridScope.Enabled = gridParameters.Enabled = !Busy;
     }
@@ -417,18 +464,22 @@ public partial class PromptLabControl : UserControl
         public string Category { get; set; } = ""; public string Mode { get; set; } = "REPLY"; public string Voice { get; set; } = "ANY";
         public string Relation { get; set; } = "UNKNOWN"; public string Style { get; set; } = "ordinary"; public string Maturity { get; set; } = "GENERAL";
         public string Profanity { get; set; } = "NONE"; public string Channel { get; set; } = "ALL"; public int Count { get; set; } = 6; public string Event { get; set; } = "";
-        public string Stance { get; set; } = ""; public string Tone { get; set; } = "";
+        public string Stance { get; set; } = ""; public string Tone { get; set; } = ""; public string Emotion { get; set; } = "";
+        public string CategoryInstruction { get; set; } = "";
+        public bool IsComponent => template.Components != null;
         public string Situation { get; set; } = ""; public string[] Dialogue { get; set; } = []; public bool Adults { get; set; }
         private V4GenerationRequest template = new();
-        public static ScopeView From(V4GenerationRequest request) => new() { Category = request.Category, Mode = request.Mode, Voice = request.Style.Voice,
+        public static ScopeView From(V4GenerationRequest request, string? brief = null) => new() { Category = request.Category, Mode = request.Mode, Voice = request.Style.Voice,
             Relation = request.Style.Relation, Style = request.Style.StyleId, Maturity = request.Style.MatureRequested ? "MATURE" : "GENERAL",
             Profanity = request.ProfanityLimit ?? (request.Style.StrongProfanityRequested ? "STRONG" : "NONE"), Channel = request.Style.Channel, Count = request.Count, Event = request.RequiredEvent,
             Stance = request.DesiredStance ?? "", Tone = request.DesiredTone ?? "", Situation = request.Style.Situation, Dialogue = request.Style.Dialogue,
-            Adults = request.Style.OwnerMatureOptIn && request.Style.AdultsConsenting, template = request };
+            Adults = request.Style.OwnerMatureOptIn && request.Style.AdultsConsenting, Emotion = request.Style.EmotionalState ?? "",
+            CategoryInstruction = brief ?? request.Components?.CategoryInstruction ?? "", template = request };
         public V4GenerationRequest ToRequest() => template with { Category = Category, Mode = Mode, Count = Count, RequiredEvent = Mode == "INITIATIVE" ? Event : "",
             DesiredStance = Mode == "TRIGGER" || Stance.Length == 0 ? null : Stance, DesiredTone = Mode == "TRIGGER" || Tone.Length == 0 ? null : Tone, ProfanityLimit = Profanity,
             Style = template.Style with { Category = Category, Voice = Voice, Relation = Relation, StyleId = Style, Channel = Channel, StrongProfanityRequested = Profanity != "NONE",
-                MatureRequested = Maturity == "MATURE", OwnerMatureOptIn = Adults, AdultsConsenting = Adults, Situation = Situation, Dialogue = Dialogue } };
+                MatureRequested = Maturity == "MATURE", OwnerMatureOptIn = Adults, AdultsConsenting = Adults, Situation = Situation, Dialogue = Dialogue,
+                EmotionalState = string.IsNullOrWhiteSpace(Emotion) ? null : Emotion } };
     }
     private sealed class RowView(PromptLabRow row, PromptLabRating? rating)
     {

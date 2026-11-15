@@ -19,6 +19,8 @@ public sealed record GenerationStyleContext
     public bool OwnerMatureOptIn { get; init; }
     public bool AdultsConsenting { get; init; }
     public string Situation { get; init; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EmotionalState { get; init; }
     public string[] Dialogue { get; init; } = [];
 }
 
@@ -63,15 +65,14 @@ public sealed class PromptProfiles
             && new[] { "UNKNOWN", "VIRGIN", "NOT_VIRGIN" }.Contains(context.SpeakerVirginity)
             && (context.Voice == "ANY" || registry.Voices.Any(v => v.Key == context.Voice))
             && context.Situation.Length <= 2000 && context.Dialogue.Length <= 6
+            && (context.EmotionalState == null || context.EmotionalState.Length <= 200 && !context.EmotionalState.Any(char.IsControl))
             && context.Dialogue.All(t => t != null && t.Length is > 0 and <= 1000)
             && (!context.StrongProfanityRequested || style.AllowsStrong), "STYLE_SCOPE");
         if (context.Category.Length > 0) V4Rules.Require(registry.Categories.Any(c => c.Key == context.Category), "STYLE_CATEGORY");
         if (context.MatureRequested)
         {
-            var adultCategory = context.Category is "social.banter.double_meanings" or "social.flirt.bold" or "social.boundaries.sexual_humor"
-                or "hybrid.trade.romantic_barter" || context.Category.StartsWith("life.love.", StringComparison.Ordinal);
             V4Rules.Require(style.AllowsMature && context.OwnerMatureOptIn && context.AdultsConsenting && context.Relation == "TRUSTED"
-                && context.Channel is "TELL" or "BOT_PRIVATE" && adultCategory, "MATURE_CONTEXT_NOT_AUTHORIZED");
+                && context.Channel is "TELL" or "BOT_PRIVATE", "MATURE_CONTEXT_NOT_AUTHORIZED");
         }
     }
 
@@ -87,7 +88,7 @@ public sealed class PromptProfiles
             + "Девственность говорящего=" + context.SpeakerVirginity + ". UNKNOWN — отсутствие факта, не разрешение придумать биографию. Сохраняй явно заданный статус; уверенный флирт не доказывает опыт. "
             + ". " + (voice == null ? "ANY — нейтральный запасной ответ без смешения 24 характеров." : JsonSerializer.Serialize(voice, CompactJson))
             + "\n" + (context.StrongProfanityRequested ? "Разрешён осмысленный STRONG: крепкий мат как эмоция/подкол по ситуации; не добавляй ругань ради квоты. " : "Интенсивность NONE: без крепкой и мягкой ругани в этой порции. ")
-            + (context.MatureRequested ? "Разрешён MATURE: взрослые добровольные двусмысленности и неграфический флирт в подтверждённой приватной ситуации. " : "Maturity GENERAL: без сексуального подтекста в этой порции. ")
+            + (context.MatureRequested ? "Разрешён MATURE в подтверждённой приватной ситуации согласных взрослых. Вульгарный юмор, двусмысленность, флирт и прямой интимный разговор — разные профили; исполни выбранный, не подменяй один другим. " : "Maturity GENERAL: без сексуального подтекста в этой порции. ")
             + "Личные границы голоса независимы от roughness. Никаких несовершеннолетних в сексуальном контексте, принуждения, реальных угроз или графических описаний секса. "
             + "Не утверждай согласие реального игрока. Не изображай ассистента. Profile SHA256=" + Hash;
     }

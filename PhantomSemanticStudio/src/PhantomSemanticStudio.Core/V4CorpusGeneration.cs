@@ -28,6 +28,8 @@ public sealed record V4GenerationRequest
     public string? DesiredTone { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ProfanityLimit { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PromptFamilySnapshot? Components { get; init; }
     public bool QaOnly { get; init; }
     public void Validate(PromptProfiles profiles, V4Registry? registry = null)
     {
@@ -46,6 +48,12 @@ public sealed record V4GenerationRequest
         profiles.Validate(Style!, registry); V4Rules.Require(Style!.Category == Category, "STYLE_CATEGORY_MISMATCH");
         V4Rules.Require(QaOnly || Style.SpeakerSex == "ANY" && Style.AddresseeSex == "ANY" && Style.SpeakerVirginity == "UNKNOWN", "V4_GENDER_OR_PERSONAL_FACT_FILTER_UNAVAILABLE");
         V4Rules.Require(Mode == "INITIATIVE" ? registry.Events.Any(e => e.Code == RequiredEvent) && InitiativeCompatible(Category, RequiredEvent) : RequiredEvent == "", "INITIATIVE_EVENT_SCOPE");
+        if (Components != null)
+        {
+            PromptHierarchy.ValidateSnapshot(Components); var category = registry.Categories.Single(c => c.Key == Category);
+            V4Rules.Require(Components.Category == Category && Components.Mode == Mode && Components.Act == category.Act && Components.Intent == category.Intent
+                && Components.StyleFingerprint == PromptHierarchy.StyleFingerprint(this), "HIERARCHY_REQUEST_SCOPE_CHANGED");
+        }
     }
     internal static bool InitiativeCompatible(string category, string ev) => ev == "pvp.help.received" ? category == "social.friendship.support"
         : ev is "pvp.attack.received" or "pvp.death.suffered" or "pvp.kill.caused" && category == "lineage.pvp.trash_talk";
@@ -251,17 +259,39 @@ public sealed class CorpusLab
     private static string JobId(string caseId, V4GenerationRequest request, string profileHash, string registryHash)
         => V4Rules.Hash(Serialize(new { caseId, request, profileHash, registryHash }));
 
-    public CorpusPilotPlan CreatePlan(bool thinking = false, string transport = "OPENAI_COMPAT", string reasoning = "default", string compatibleThinkingControl = "none", bool ownerMaturePilotConsent = false, bool intimateHoldout = false, bool thinkingQuality = false, int thinkingBudget = 2048, bool batchSizeProbe = false)
+    public CorpusPilotPlan CreatePlan(bool thinking = false, string transport = "OPENAI_COMPAT", string reasoning = "default", string compatibleThinkingControl = "none", bool ownerMaturePilotConsent = false, bool intimateHoldout = false, bool thinkingQuality = false, int thinkingBudget = 2048, bool batchSizeProbe = false, bool matchedProfileProbe = false)
     {
         using var held = Lock(); var registry = RegistryHash();
         V4Rules.Require(!thinking || !intimateHoldout, "PLAN_KIND_CONFLICT");
         V4Rules.Require(!thinkingQuality || !thinking && !intimateHoldout && ownerMaturePilotConsent, "THINKING_QUALITY_CONSENT_OR_KIND");
         V4Rules.Require(thinkingBudget is >= 128 and <= 8192 && (!batchSizeProbe || !thinking && !thinkingQuality && !intimateHoldout), "COMPARATIVE_PLAN_SCOPE");
+        V4Rules.Require(!matchedProfileProbe || ownerMaturePilotConsent && !thinking && !thinkingQuality && !intimateHoldout && !batchSizeProbe, "MATCHED_PROBE_CONSENT_OR_KIND");
         var cases = V4CorpusGeneration.LoadPilotCases(profiles.DirectoryPath, profiles, ownerMaturePilotConsent, intimateHoldout); var samplers = V4CorpusGeneration.LoadSamplers(profiles.DirectoryPath);
         var jobs = new List<CorpusPilotJob>();
         void Add(string id, V4GenerationRequest request)
         { request.Validate(profiles); jobs.Add(new(JobId(id, request, profiles.Hash, registry), id, request)); }
-        if (batchSizeProbe)
+        if (matchedProfileProbe)
+        {
+            var pvp = cases.First(c => c.Request.Mode == "REPLY" && c.Request.Category == "lineage.pvp.trash_talk");
+            var calm = cases.First(c => c.Request.Mode == "REPLY" && c.Request.Category == "life.work.burnout");
+            var adult = cases.First(c => c.Request.Mode == "REPLY" && c.Request.Style.MatureRequested);
+            var roleplay = new CorpusPilotCase("roleplay.theatrical", pvp.Request with
+            {
+                Category = "social.banter.rough",
+                Style = pvp.Request.Style with { Category = "social.banter.rough", StyleId = "roleplay_conflict", Voice = "rough_joker", Relation = "FAMILIAR", Channel = "BOT_PRIVATE",
+                    Situation = "Синтетическая ролевая сцена двух знакомых вымышленных взрослых персонажей. После игрового спора они дурачатся, изображая дворовую разборку. "
+                        + "Театральная бравада и мат допустимы; это не реальное намерение искать человека или нападать вне игры. Без адресов, личных данных, плана насилия и утверждений о выполненных действиях. "
+                        + "Не объясняй шутку и не повторяй в каждой строке слово 'ролевой': сам ответ должен звучать как характерная сценическая реплика.",
+                    Dialogue = ["Игрок: Ну ты грозный, прямо весь двор дрожит.", "Фантом: Ещё бы, я ж тут самый страшный.", "Игрок: Ага, особенно когда тапки потерял. Ну давай, напугай ещё."] }
+            });
+            var probeCases = new[] { pvp, roleplay, calm, adult };
+            for (var arm = 0; arm < PromptProfiles.Strategies.Count * samplers.Count; arm++)
+                for (var i = 0; i < probeCases.Length; i++)
+                    Add("matched." + probeCases[i].Id, probeCases[i].Request with { Count = 4, MaxOutputTokens = 2048,
+                        Strategy = PromptProfiles.Strategies[(arm + i) % PromptProfiles.Strategies.Count], Sampler = samplers[(arm / PromptProfiles.Strategies.Count + i) % samplers.Count],
+                        Transport = transport, Reasoning = reasoning, CompatibleThinkingControl = compatibleThinkingControl });
+        }
+        else if (batchSizeProbe)
         {
             var budgetCase = cases.First(c => c.Request.Mode == "REPLY" && c.Request.Category == "life.money.budget");
             foreach (var item in new[] { cases[0], budgetCase })
@@ -298,7 +328,7 @@ public sealed class CorpusLab
         }
         var fixture = V4Rules.ReadBytes(PathSafety.ResolveRelative(profiles.DirectoryPath, "pilot-cases.v1.json"), 128 * 1024);
         var samplerBytes = V4Rules.ReadBytes(PathSafety.ResolveRelative(profiles.DirectoryPath, "samplers.v1.json"), 64 * 1024);
-        var plan = new CorpusPilotPlan("pw-corpus-pilot/1", batchSizeProbe ? "BATCH_SIZE" : thinkingQuality ? "THINKING_QUALITY" : thinking ? "THINKING" : intimateHoldout ? "INTIMATE_QA" : "PILOT", registry, profiles.Hash, AssemblyHash, V4Rules.Hash(fixture), V4Rules.Hash(samplerBytes), ownerMaturePilotConsent, jobs.ToArray());
+        var plan = new CorpusPilotPlan("pw-corpus-pilot/1", matchedProfileProbe ? "MATCHED_PROFILE_PROBE" : batchSizeProbe ? "BATCH_SIZE" : thinkingQuality ? "THINKING_QUALITY" : thinking ? "THINKING" : intimateHoldout ? "INTIMATE_QA" : "PILOT", registry, profiles.Hash, AssemblyHash, V4Rules.Hash(fixture), V4Rules.Hash(samplerBytes), ownerMaturePilotConsent, jobs.ToArray());
         Immutable("frozen/pilot-cases.v1.json", fixture); Immutable("frozen/samplers.v1.json", samplerBytes);
         foreach (var resource in profiles.Resources) Immutable("frozen/prompts/" + resource.Key, V4Rules.Utf8.GetBytes(resource.Value));
         var planBytes = Serialize(plan); Immutable("plan.json", planBytes); Immutable("plan.sha256", V4Rules.Utf8.GetBytes(V4Rules.Hash(planBytes) + "\n")); return plan;

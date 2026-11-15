@@ -70,7 +70,7 @@ public sealed partial class LmStudioClient
         ValidateSettings(settings); request.Validate(profiles);
         V4Rules.Require(loaded.InstanceId.Length is > 0 and <= 256 && loaded.ContextLength >= 2048, "LOADED_INSTANCE_REQUIRED");
         var native = request.Transport == "LM_NATIVE";
-        var system = profiles.StrategyText(request.Strategy) + "\n" + profiles.LegacyRules(request.Style);
+        var system = request.Components == null ? profiles.StrategyText(request.Strategy) + "\n" + profiles.LegacyRules(request.Style) : PromptHierarchy.Compose(request.Components);
         var user = V4CorpusGeneration.UserData(request);
         // UTF-8 bytes are a conservative authoring bound, not a claim of exact tokenization.
         var promptBound = Encoding.UTF8.GetByteCount(system) + Encoding.UTF8.GetByteCount(user);

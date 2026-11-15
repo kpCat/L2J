@@ -27,6 +27,10 @@ internal static partial class Program
         if (args.Length > 0 && args[0] == "--prompt-lab-description-live") return await PromptLabDescriptionLive(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-refine-modes-live") return await PromptLabRefineModesLive(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-compare-modes-live") return await PromptLabCompareModesLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-multiturn-live") return await PromptLabMultiturnLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-speech-profiles-live") return await PromptLabSpeechProfilesLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-intimacy-live") return await PromptLabIntimacyLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-pilot-census") return PromptLabPilotCensus(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-controls") return PromptLabControls(args);
         if (args.Length > 0 && args[0] == "--prompt-lab001")
         { await PromptLab001(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }

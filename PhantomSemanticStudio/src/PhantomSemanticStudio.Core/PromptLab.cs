@@ -59,6 +59,9 @@ public sealed record PromptLabVersion
         Category = "social.friendship.support", Style = new() { Category = "social.friendship.support" }
     };
     public IReadOnlyList<V4GenerationRequest> AdditionalScenarios { get; init; } = [];
+    public IReadOnlyList<string> CategoryInstructions { get; init; } = [];
+    public IReadOnlyList<PromptLabFamilyPrompt> FamilyPrompts { get; init; } = [];
+    public string FamilyGroupId { get; init; } = "";
     public bool ReadyForGeneration { get; init; } = true;
     public IReadOnlyList<PromptLabTaxonomySuggestion> CategorySuggestions { get; init; } = [];
     public string ProposalNote { get; init; } = "";
@@ -78,8 +81,20 @@ public sealed record PromptLabVersion
         V4Rules.Require(Generation != null && Refinement != null && Scenario != null, "PROMPT_LAB_OPTIONS_REQUIRED");
         Generation!.Validate(); Refinement!.Validate();
         V4Rules.Require(AdditionalScenarios != null && AdditionalScenarios.Count <= 15 && AdditionalScenarios.All(s => s != null), "PROMPT_LAB_SCENARIOS");
+        V4Rules.Require(CategoryInstructions != null && (CategoryInstructions.Count == 0 || CategoryInstructions.Count == AdditionalScenarios!.Count + 1)
+            && CategoryInstructions.All(text => text != null && V4Rules.Utf8.GetByteCount(text) <= 1600), "PROMPT_LAB_CATEGORY_INSTRUCTIONS");
+        V4Rules.Require(FamilyGroupId != null && (FamilyGroupId.Length == 0 || PromptLabStore.IsId(FamilyGroupId)), "PROMPT_LAB_FAMILY_GROUP_ID");
+        V4Rules.Require(FamilyPrompts != null && FamilyPrompts.Count <= 8, "PROMPT_LAB_FAMILY_PROMPTS");
+        foreach (var family in FamilyPrompts!) { V4Rules.Require(family != null, "PROMPT_LAB_FAMILY_PROMPT"); family!.Validate(); }
+        V4Rules.Require(FamilyPrompts.Select(f => f.FamilyId).Distinct(StringComparer.Ordinal).Count() == FamilyPrompts.Count, "PROMPT_LAB_FAMILY_PROMPT_COLLISION");
         if (!stored && ReadyForGeneration)
-            foreach (var scenario in new[] { Scenario! }.Concat(AdditionalScenarios!)) Generation.Apply(scenario).Validate(PromptProfiles.Default, registry);
+        {
+            var scopes = new[] { Scenario! }.Concat(AdditionalScenarios!).ToArray();
+            foreach (var scenario in scopes) Generation.Apply(scenario).Validate(PromptProfiles.Default, registry);
+            if (scopes.Any(s => s.Components != null))
+                V4Rules.Require(scopes.All(s => s.Components != null && s.Components.FamilyId == Scenario!.Components?.FamilyId && s.Components.FamilyInstruction == System),
+                    "HIERARCHY_SPLIT_FAMILIES_OR_SYNC_EDITOR_REQUIRED");
+        }
     }
 
     private static void CheckPrompt(string value, int bytes)

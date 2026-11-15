@@ -22,6 +22,101 @@ public sealed partial class PromptLabSession : IDisposable
             RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"], Scenario = scenario });
     }
 
+    public PromptLabVersion CreateSpeechProfile(string styleId)
+    {
+        var name = styleId switch { "strong_profanity" => "Крепкий мат", "vulgar_humor" => "Вульгарный юмор", "double_meanings" => "Двусмысленности",
+            "adult_flirt" => "Взрослый флирт", "intimate_conversation" => "Личный интимный разговор", _ => throw new InvalidDataException("UNKNOWN_SPEECH_PROFILE") };
+        var preset = PromptProfiles.Default.Styles.Single(s => s.Id == styleId); var mature = preset.AllowsMature;
+        var category = styleId switch { "strong_profanity" or "vulgar_humor" => "social.banter.rough", "adult_flirt" => "social.flirt.bold", "intimate_conversation" => "life.love.intimacy", _ => "social.banter.double_meanings" };
+        var situation = styleId == "intimate_conversation"
+            ? "Вымышленные совершеннолетние знакомые согласны прямо поговорить о близости и предпочтениях. Это предметный личный разговор, не шутка и не эротическая сцена."
+            : "Вымышленные совершеннолетние знакомые обсуждают заданную ситуацию. Используй только выбранный речевой профиль, учитывая взаимность и доверие.";
+        var suggestions = styleId == "intimate_conversation" && !store.EffectiveRegistry().Categories.Any(c => c.Key == category)
+            ? new[] { new PromptLabTaxonomySuggestion("life.love", category, "разговоры о близости и интимных предпочтениях", category + ".reply", category + ".observe",
+                "Прямой личный разговор отличается от знакомств, флирта и шуток; нельзя подменять им существующую категорию dating.") } : [];
+        return store.SaveVersion(new() { Name = name, ReadyForGeneration = !mature, CategorySuggestions = suggestions,
+            System = PromptProfiles.Default.Resources["dialogue-context.v1.md"] + "\n\nОтдельный речевой профиль: " + name + ". " + preset.Instruction,
+            User = "Самостоятельные живые альтернативы на последний ход. Исполни именно выбранный речевой профиль и не пересказывай его описание.",
+            RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"],
+            Scenario = new() { Category = category, ProfanityLimit = styleId is "strong_profanity" or "vulgar_humor" ? "STRONG" : "NONE",
+                Style = new() { Category = category, StyleId = styleId, Voice = styleId switch { "strong_profanity" or "vulgar_humor" => "rough_joker", "double_meanings" => "dry_wit", "intimate_conversation" => "warm_friend", _ => "playful_tease" },
+                    Relation = mature ? "TRUSTED" : "FAMILIAR", Channel = "BOT_PRIVATE", MatureRequested = mature,
+                    StrongProfanityRequested = styleId is "strong_profanity" or "vulgar_humor", Situation = situation,
+                    Dialogue = ["Игрок: Давай обсудим это прямо, без общих обещаний поболтать."] } } });
+    }
+
+    public PromptLabVersion CreateFamilyProfile(V4GenerationRequest scenario, string? name = null)
+    {
+        scenario = scenario with { Components = null };
+        var snapshot = PromptHierarchy.Default.Freeze(scenario, PromptProfiles.Default, store.EffectiveRegistry());
+        var family = PromptHierarchy.Default.FamilyFor(scenario.Category);
+        return store.SaveVersion(new() { Name = name ?? family.Label, System = snapshot.FamilyInstruction,
+            User = "Создай одну партию самостоятельных альтернатив по указанной категории и сцене.",
+            RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"], Scenario = scenario with { Components = snapshot } });
+    }
+
+    public PromptLabVersion PrepareVersion(PromptLabVersion draft)
+    {
+        if (!draft.ReadyForGeneration) return draft;
+        var scopes = new[] { draft.Scenario }.Concat(draft.AdditionalScenarios).ToArray();
+        V4Rules.Require(draft.CategoryInstructions.Count == 0 || draft.CategoryInstructions.Count == scopes.Length, "PROMPT_LAB_CATEGORY_INSTRUCTIONS");
+        var registry = store.EffectiveRegistry();
+        string? Brief(V4GenerationRequest scope, int index)
+        {
+            var value = draft.CategoryInstructions.Count == 0 ? null : draft.CategoryInstructions[index];
+            if (string.IsNullOrWhiteSpace(value) || scope.Components is { } old && old.Category != scope.Category && value == old.CategoryInstruction) return null;
+            return value;
+        }
+        var rebound = scopes.Select((scope, index) => scope.Components == null ? scope : scope with
+        {
+            Components = PromptHierarchy.Default.Rebind(scope.Components, scope, PromptProfiles.Default, registry, draft.System,
+                Brief(scope, index))
+        }).ToArray();
+        return draft with { Scenario = rebound[0], AdditionalScenarios = rebound.Skip(1).ToArray(),
+            CategoryInstructions = rebound.Any(s => s.Components != null) ? rebound.Select(s => s.Components?.CategoryInstruction ?? "").ToArray() : draft.CategoryInstructions };
+    }
+
+    public PromptLabFamilyGroup SplitFamilyPlan(string versionId)
+    {
+        var source = store.GetVersion(versionId); var existing = store.FindFamilyGroup(source.Id); if (existing != null) return existing;
+        var registry = store.EffectiveRegistry();
+        var scopes = new[] { source.Scenario }.Concat(source.AdditionalScenarios).Select((scope, index) => (Scope: scope, Index: index)).ToArray();
+        var groups = scopes.GroupBy(s => PromptHierarchy.Default.FamilyFor(s.Scope.Category).Id).ToArray();
+        V4Rules.Require(source.FamilyPrompts.All(f => groups.Any(g => g.Key == f.FamilyId)), "PROMPT_LAB_FAMILY_PLAN_SCOPE");
+        // Validate every child before writing any version. A failed write can be resumed from its immutable root versions.
+        var drafts = groups.Select(group =>
+        {
+            var prompt = source.FamilyPrompts.SingleOrDefault(f => f.FamilyId == group.Key);
+            var instruction = prompt?.System ?? (source.Scenario.Components?.FamilyId == group.Key ? source.System : PromptHierarchy.Default.FamilyFor(group.First().Scope.Category).Instruction);
+            var bound = group.Select(item => item.Scope with { Components = PromptHierarchy.Default.Freeze(item.Scope with { Components = null }, PromptProfiles.Default, registry,
+                instruction, source.CategoryInstructions.Count > item.Index && !string.IsNullOrWhiteSpace(source.CategoryInstructions[item.Index]) ? source.CategoryInstructions[item.Index] : null) }).ToArray();
+            var name = source.Name + " · " + PromptHierarchy.Default.FamilyFor(bound[0].Category).Label;
+            var draft = source with { Id = "", ParentId = "", ProfileId = "", Name = name.Length > 120 ? name[..120] : name,
+                Origin = "COPY", ProposedFromRunId = "", ReadyForGeneration = true, FamilyGroupId = source.Id, FamilyPrompts = [], CategorySuggestions = [],
+                System = instruction, User = prompt?.User ?? "Создай одну партию самостоятельных альтернатив по указанной категории и сцене.",
+                Scenario = bound[0], AdditionalScenarios = bound.Skip(1).ToArray(), CategoryInstructions = bound.Select(s => s.Components!.CategoryInstruction).ToArray() };
+            draft.Validate(false, registry); return draft;
+        }).ToArray();
+        var roots = store.ListProfiles().SelectMany(p => store.ListVersions(p.Id)).Where(v => v.FamilyGroupId == source.Id && v.ParentId.Length == 0).ToArray();
+        var members = drafts.Select(draft => roots.SingleOrDefault(v => v.Scenario.Components?.FamilyId == draft.Scenario.Components!.FamilyId) ?? store.SaveVersion(draft)).ToArray();
+        return store.SaveFamilyGroup(source.Id, members.Select(v => v.Id).ToArray());
+    }
+
+    public Task<IReadOnlyList<PromptLabRun>> GenerateFamilyExperimentAsync(IReadOnlyList<string> versionIds, StudioSettings settings, string apiKey,
+        string exactModel, CancellationToken token, IProgress<PromptLabProgress>? progress = null)
+    {
+        token.ThrowIfCancellationRequested(); V4Rules.Require(versionIds.Count is >= 1 and <= 16 && versionIds.Distinct(StringComparer.Ordinal).Count() == versionIds.Count, "PROMPT_LAB_FAMILY_SELECTION");
+        var versions = versionIds.Select(store.GetVersion).ToArray(); var group = store.GetFamilyGroup(versions[0].FamilyGroupId);
+        var members = group.VersionIds.Select(store.GetVersion).ToArray();
+        V4Rules.Require(versions.All(v => v.ReadyForGeneration && v.FamilyGroupId == group.Id && members.Any(m => m.ProfileId == v.ProfileId))
+            && versions.Select(v => v.ProfileId).Distinct().Count() == versions.Length, "PROMPT_LAB_FAMILY_SELECTION");
+        foreach (var version in versions) version.Validate(false, store.EffectiveRegistry());
+        var experiment = Guid.NewGuid().ToString("N");
+        var queued = versions.SelectMany(version => new[] { version.Scenario }.Concat(version.AdditionalScenarios)
+            .Select(scope => store.BeginRun(version.Id, scenario: scope, experimentId: experiment))).ToArray();
+        return ResumeExperimentAsync(queued[0].Id, settings, apiKey, exactModel, token, progress);
+    }
+
     public Task<PromptLabRun> GenerateAsync(string versionId, StudioSettings settings, string apiKey, string exactModel, CancellationToken token,
         IProgress<PromptLabProgress>? progress = null)
     {
@@ -64,9 +159,8 @@ public sealed partial class PromptLabSession : IDisposable
         var selected = store.GetVersion(sourceVersionId ?? source.VersionId);
         var original = store.GetVersion(source.VersionId);
         var sourceScope = source.Scenario ?? original.Scenario;
-        V4Rules.Require(selected.ProfileId == original.ProfileId && new[] { selected.Scenario }.Concat(selected.AdditionalScenarios)
-            .Any(s => s.Category == sourceScope.Category && s.Mode == sourceScope.Mode), "REFINEMENT_SCENARIO_MISMATCH_GENERATE_FIRST");
-        var queued = store.BeginRun(selected.Id, "REFINEMENT", runId, context, apiOptions, source.Scenario);
+        var bound = BindEvaluationScenario(original, selected, sourceScope, "REFINEMENT");
+        var queued = store.BeginRun(selected.Id, "REFINEMENT", runId, context, apiOptions, bound);
         return ResumeAsync(queued.Id, settings, apiKey, exactModel, token, progress);
     }
 
@@ -94,8 +188,27 @@ public sealed partial class PromptLabSession : IDisposable
         token.ThrowIfCancellationRequested(); var baseline = store.GetRun(baselineRunId);
         V4Rules.Require(baseline.Purpose == "GENERATION" && baseline.CompletedAtUtc.HasValue, "COMPARISON_BASELINE_REQUIRED");
         var old = store.GetVersion(baseline.VersionId);
-        var queued = store.BeginRun(newVersionId, baselineRunId: baselineRunId, apiOptions: baseline.ApiOptions ?? old.Generation, scenario: baseline.Scenario ?? old.Scenario);
+        var selected = store.GetVersion(newVersionId);
+        var scenario = BindEvaluationScenario(old, selected, baseline.Scenario ?? old.Scenario, "COMPARISON");
+        var queued = store.BeginRun(newVersionId, baselineRunId: baselineRunId, apiOptions: baseline.ApiOptions ?? old.Generation, scenario: scenario);
         return ResumeAsync(queued.Id, settings, apiKey, exactModel, token, progress);
+    }
+
+    private V4GenerationRequest BindEvaluationScenario(PromptLabVersion original, PromptLabVersion selected, V4GenerationRequest scenario, string operation)
+    {
+        V4Rules.Require(selected.ProfileId == original.ProfileId, operation + "_PROFILE_MISMATCH");
+        var oldScopes = new[] { original.Scenario }.Concat(original.AdditionalScenarios).ToArray();
+        var scopes = new[] { selected.Scenario }.Concat(selected.AdditionalScenarios).ToArray();
+        var index = Array.FindIndex(oldScopes, scope => JsonSerializer.Serialize(scope, PromptProfiles.CompactJson) == JsonSerializer.Serialize(scenario, PromptProfiles.CompactJson));
+        bool SamePurpose(V4GenerationRequest scope) => scope.Category == scenario.Category && scope.Mode == scenario.Mode;
+        var candidates = scopes.Where(SamePurpose).ToArray();
+        V4Rules.Require(index >= 0 && index < scopes.Length && SamePurpose(scopes[index]) || candidates.Length == 1, operation + "_SCENARIO_MISMATCH_OR_AMBIGUOUS");
+        var selectedScope = index >= 0 && index < scopes.Length && SamePurpose(scopes[index]) ? scopes[index] : candidates[0];
+        if (selectedScope.Components != null)
+            scenario = scenario with { Components = PromptHierarchy.Default.Rebind(selectedScope.Components, scenario, PromptProfiles.Default,
+                store.EffectiveRegistry(), selected.System) };
+        else V4Rules.Require(scenario.Components == null, operation + "_COMPONENT_CONTRACT_MISMATCH");
+        return scenario;
     }
 
     public async Task<PromptLabRun> ResumeAsync(string runId, StudioSettings settings, string apiKey, string exactModel, CancellationToken token,
@@ -176,12 +289,15 @@ public sealed partial class PromptLabSession : IDisposable
                     var scopes = proposal.Batches.Select(b => b.ToRequest()).ToArray();
                     proposedId = store.SaveVersion(version with { Id = "", ParentId = version.Id, Origin = "MODEL_PROPOSAL", ProposedFromRunId = queued.Id,
                         System = proposal.System, User = proposal.User, Scenario = scopes[0], AdditionalScenarios = scopes.Skip(1).ToArray(), ReadyForGeneration = false,
+                        CategoryInstructions = [], FamilyPrompts = proposal.FamilyPrompts ?? [], FamilyGroupId = "",
                         CategorySuggestions = proposal.NewCategories, ProposalNote = proposal.Explanation, Description = queued.InputContext }).Id;
                 }
                 else if (queued.Purpose == "REFINEMENT")
                 {
                     var proposal = LmStudioClient.ParsePromptLabRevision(response.Content);
-                    proposedId = store.SaveVersion(version with { Id = "", ParentId = version.Id, Origin = "MODEL_PROPOSAL", ProposedFromRunId = queued.Id, System = proposal.System, User = proposal.User }).Id;
+                    V4GenerationRequest Revised(V4GenerationRequest scope) => scope.Components == null ? scope : scope with { Components = PromptHierarchy.Revise(scope.Components, proposal.System) };
+                    proposedId = store.SaveVersion(version with { Id = "", ParentId = version.Id, Origin = "MODEL_PROPOSAL", ProposedFromRunId = queued.Id, System = proposal.System, User = proposal.User,
+                        Scenario = Revised(version.Scenario), AdditionalScenarios = version.AdditionalScenarios.Select(Revised).ToArray() }).Id;
                 }
                 else
                 {
@@ -193,8 +309,8 @@ public sealed partial class PromptLabSession : IDisposable
                     rows = ReadRows(response.Content, report.Success);
                     if (report.Success)
                     {
-                        var issues = CorpusQuality.Check(report.Entries, request, []);
-                        rows = rows.Select(row => row with { Diagnostics = issues.Where(i => i.Record == row.Number).Select(i => i.Code).ToArray() }).ToArray();
+                        var issues = CorpusQuality.Check(report.Entries, request, []).Concat(request.Components == null ? [] : PromptHierarchy.CheckExampleEcho(request.Components, report.Entries)).ToArray();
+                        rows = rows.Select(row => row with { Diagnostics = issues.Where(i => i.Record == 0 || i.Record == row.Number).Select(i => i.Code).ToArray() }).ToArray();
                     }
                 }
             }

@@ -24,6 +24,13 @@ internal static partial class Program
             foreach (var group in batch.Jobs.GroupBy(j => j.Request.Category))
                 True(group.Select(j => j.Request.Count).Order().SequenceEqual(new[] { 3, 6, 12 }));
             Throws(() => new CorpusLab(Path.Combine(f.Root, "bad-combination"), f.Module, PromptProfiles.Default).CreatePlan(thinking: true, batchSizeProbe: true));
+            var matched = new CorpusLab(Path.Combine(f.Root, "matched-profiles"), f.Module, PromptProfiles.Default)
+                .CreatePlan(transport: "OPENAI_COMPAT", reasoning: "off", compatibleThinkingControl: "reasoning_effort", ownerMaturePilotConsent: true, matchedProfileProbe: true);
+            Equal("MATCHED_PROFILE_PROBE", matched.Kind); Equal(32, matched.Jobs.Length); Equal(128, matched.Jobs.Sum(j => j.Request.Count));
+            foreach (var group in matched.Jobs.GroupBy(j => j.CaseId))
+            { Equal(8, group.Count()); Equal(4, group.Select(j => j.Request.Strategy).Distinct().Count()); Equal(2, group.Select(j => j.Request.Sampler.Id).Distinct().Count()); }
+            True(matched.Jobs.Any(j => j.Request.Style.StyleId == "roleplay_conflict"));
+            True(matched.Jobs.Any(j => j.Request.Style.StyleId == "ordinary" && !j.Request.Style.StrongProfanityRequested));
         });
         Test("001 dialogue request names next phantom speaker and generic adult triggers cannot masquerade as coverage", () =>
         {

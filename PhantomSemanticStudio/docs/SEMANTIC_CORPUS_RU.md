@@ -1,5 +1,9 @@
 # Corpus001 R2 — лаборатория профилей Core/CLI
 
+## Дополнительное сопоставимое сравнение
+
+`corpus-plan --matched-profile-probe --mature-pilot-consent --transport OPENAI_COMPAT --reasoning off --thinking-control reasoning_effort` создаёт отдельный frozen plan из32запросов/128кандидатов: четыре стратегии × два sampler × четыре неизменные сцены. Сцены: PvP, синтетическая театральная бравада знакомых персонажей, спокойный рабочий burnout и взрослый неграфический флирт. INITIATIVE и новые категории здесь не придумываются. Это не полный охват корпуса и не выбор победителя по одному автоматическому score; результаты требуется сравнить редакционно. Продолжение выполняется тем же `corpus-pilot --limit N`, завершённые запросы не повторяются. Старые frozen планы запускаются только соответствующим архивированным CLI.
+
 Текущая стадия: лаборатория прошла офлайн-проверки и начальные реальные API-эксперименты после ручного запуска модели владельцем. `MODEL_API_CALIBRATED`, художественное качество, автономная mass campaign, 100K, импорт нового корпуса, Java proof и интеграция в основную Studio пока не подтверждены. Legacy и V4 — разные форматы. Ни одна команда лаборатории не выставляет legacy APPROVED и не создаёт approved corpus.
 
 ## Что изменено
@@ -109,6 +113,6 @@ Frozen v2 pilot: 16 запросов / 96 синтаксически валид�
 & 'D:\PhantomSemanticBatches\shadow\PhantomSemanticStudio\scripts\Verify-CorpusOverlay.ps1' -OutputRoot 'D:\PhantomSemanticBatches\studio-overlay\offline-v1'
 ```
 
-Verifier проверяет preimage SHA, exact allowlist ≤25 файлов, отдельно mojibake и escaped Cyrillic, создаёт postimage+manifest и standard unified diff. Python standard library используется только для diff/hunk verification, не генерации корпуса; parser воспроизводит postimage в памяти. Это source overlay, ещё не разрешение на интеграцию до Goal013 и калибровки. Перед реальным переносом заново сверить актуальные исходники, конфликты, build/regressions и GitHub. Публикация кода не ждёт 100K, но требует подтверждения владельца о завершении Goal013. Corpus/workspace/stage не смешиваются с source commit; GameServer не устанавливается.
+Verifier проверяет preimage SHA, exact allowlist 46 файлов (45 активны, CorpusCampaign.cs зарезервирован), отдельно mojibake и escaped Cyrillic, создаёт postimage+manifest и standard unified diff. Расширение первоначального scope в 25 файлов утверждено для интерактивной лаборатории и иерархии профилей. Python standard library используется только для diff/hunk verification; parser воспроизводит postimage в памяти. Перед каждым переносом сверяются актуальные исходники, конфликты, build/regressions и GitHub. Владелец подтвердил завершение Goal013; первая версия Studio из 43 файлов опубликована в 5cff6b19. Новые shadow-изменения требуют собственного проверенного overlay. Публикация кода не ждёт 100K. Corpus/workspace/stage не смешиваются с source commit; GameServer не устанавливается.
 
-Статусы GUI_MANUAL_QA_PENDING, WinForms UI enhancement: DEFERRED, JAVA_NOT_RUN и SERVER_NOT_INSTALLED сохраняются до реальных отдельных проверок.
+Статусы GUI_MANUAL_QA_PENDING, JAVA_NOT_RUN и SERVER_NOT_INSTALLED сохраняются до реальных отдельных проверок. Интерактивная вкладка реализована; автоматические headless/static проверки не заменяют ручную UI/DPI/Designer приёмку. Сборщик 20 семейств описан в PROMPT_LAB_RU.md; CLI prompt-coverage строит исходную карту 142 категорий без модели.
