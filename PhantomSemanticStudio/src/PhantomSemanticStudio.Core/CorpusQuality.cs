@@ -17,6 +17,7 @@ public static class CorpusQuality
     private static readonly Regex SecondMaleBody = new(@"(?i)\b(?:твой|твоего|твоему|твоим|твоём)\s+член\b|\bу тебя\s+(?:есть\s+)?член\b", RegexOptions.CultureInvariant);
     private static readonly Regex SecondFemaleBody = new(@"(?i)\b(?:твоя|твою|твоей|твои|твоих)\s+(?:пизд|сиськ)|\bу тебя\s+(?:есть\s+)?(?:пизд|сиськ)", RegexOptions.CultureInvariant);
     private static readonly Regex Cliche = new(@"(?i)(понимаю (?:твои|ваши) чувства|неприятно, когда|важно помнить|следует учитывать|не стоит расстраиваться|как (?:ии|языковая модель)|отличный вопрос)", RegexOptions.CultureInvariant);
+    private static readonly Regex MixedScript = new(@"\b(?=[A-Za-zА-Яа-яЁё0-9]*[A-Za-z])(?=[A-Za-zА-Яа-яЁё0-9]*[А-Яа-яЁё])[A-Za-zА-Яа-яЁё0-9]+\b", RegexOptions.CultureInvariant);
     public static CorpusSpeechIndicators MeasureSpeech(IEnumerable<string> texts)
     {
         var count = 0; var strong = 0; var mild = 0; var adult = 0; var intimate = 0;
@@ -70,6 +71,7 @@ public static class CorpusQuality
                     Flag("PERSONAL_FACT_CONTRADICTION", "Реплика противоречит явно заданной биографии вымышленного совершеннолетнего персонажа.");
             }
             if (Cliche.IsMatch(e.Text)) Flag("GENERIC_AI_STYLE", "Возможная шаблонная или наставническая формулировка.");
+            if (MixedScript.IsMatch(e.Text)) Flag("MIXED_SCRIPT_TOKEN_REVIEW", "В одном слове смешаны кириллица и латиница. Возможно повреждение текста или намеренный игровой сленг; требуется просмотр.");
             var normalized = V4Rules.Normalize(e.Text);
             foreach (var peer in previous)
             {

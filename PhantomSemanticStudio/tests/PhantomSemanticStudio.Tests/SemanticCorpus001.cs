@@ -7,6 +7,13 @@ internal static partial class Program
 {
     private static async Task SemanticCorpus001()
     {
+        Test("001 mixed script damage is editorially flagged while normal L2 tokens stay permitted", () =>
+        {
+            var request = new V4GenerationRequest { Category = "life.health.fatigue", Style = new() { Category = "life.health.fatigue" } };
+            var entry = new V4Entry("fixture", "REPLY", request.Category, request.Category + ".reply", "Не боишься проспать весьs", "", "", "SUPPORTIVE", "CALM", ["UNKNOWN"], ["ANY"], new(), "NONE", "GENERAL", [], 1, "");
+            True(CorpusQuality.Check([entry], request, []).Any(i => i.Code == "MIXED_SCRIPT_TOKEN_REVIEW"));
+            True(!CorpusQuality.Check([entry with { Text = "Соберём PvP-пати после RB." }], request, []).Any(i => i.Code == "MIXED_SCRIPT_TOKEN_REVIEW"));
+        });
         Test("001 comparative plans preserve selected endpoint and freeze batch budgets without HTTP", () =>
         {
             using var f = new Fixture(); var registry = Path.Combine(f.Module, "docs", "phantoms", "semantic", "v4"); Directory.CreateDirectory(registry);

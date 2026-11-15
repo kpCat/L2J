@@ -24,6 +24,8 @@ internal static partial class Program
     private static async Task<int> Run(string[] args)
     {
         if (args.Length > 0 && args[0] == "--prompt-lab-live") return await PromptLabLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-targeted-family-live") return await TargetedFamilyTrial(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-targeted-family-report") return TargetedFamilyReport(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-description-live") return await PromptLabDescriptionLive(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-refine-modes-live") return await PromptLabRefineModesLive(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-compare-modes-live") return await PromptLabCompareModesLive(args);

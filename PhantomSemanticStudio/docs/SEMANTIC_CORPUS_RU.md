@@ -116,3 +116,18 @@ Frozen v2 pilot: 16 запросов / 96 синтаксически валид�
 Verifier проверяет preimage SHA, exact allowlist 46 файлов (45 активны, CorpusCampaign.cs зарезервирован), отдельно mojibake и escaped Cyrillic, создаёт postimage+manifest и standard unified diff. Расширение первоначального scope в 25 файлов утверждено для интерактивной лаборатории и иерархии профилей. Python standard library используется только для diff/hunk verification; parser воспроизводит postimage в памяти. Перед каждым переносом сверяются актуальные исходники, конфликты, build/regressions и GitHub. Владелец подтвердил завершение Goal013; первая версия Studio из 43 файлов опубликована в 5cff6b19. Новые shadow-изменения требуют собственного проверенного overlay. Публикация кода не ждёт 100K. Corpus/workspace/stage не смешиваются с source commit; GameServer не устанавливается.
 
 Статусы GUI_MANUAL_QA_PENDING, JAVA_NOT_RUN и SERVER_NOT_INSTALLED сохраняются до реальных отдельных проверок. Интерактивная вкладка реализована; автоматические headless/static проверки не заменяют ручную UI/DPI/Designer приёмку. Сборщик 20 семейств описан в PROMPT_LAB_RU.md; CLI prompt-coverage строит исходную карту 142 категорий без модели.
+
+## Ограниченный опыт с category briefs
+
+Маршрут существующего console test runner `--prompt-lab-targeted-family-live` использует тот же PromptLabStore/Session, версии и проверки. Это калибровочный опыт по двум семействам, не автономная production campaign. Матрица: observed/hold-out × seed/boundaries/speech-acts × balanced/expressive, всего 24 запроса по 4 альтернативы. Принятые версии, исходные family resources и сервер не меняются.
+
+```powershell
+dotnet $runner --prompt-lab-targeted-family-live $trial $source $model 0
+dotnet $runner --prompt-lab-targeted-family-live $trial $source $model 1
+dotnet $runner --prompt-lab-targeted-family-live $trial $source $model 23
+dotnet $analyzer --prompt-lab-targeted-family-report $trial $source analysis.json
+```
+
+`$runner` указывает на frozen test binary с ресурсами, `$trial` — новый отдельный workspace, `$source` — защищённый HighFive root, `$model` — вручную загруженный exact model/instance. Limit0 сохраняет план без HTTP; полный durable receipt может быть обработан локально. Все run IDs/options закрепляются до первого POST. Resume проверяет SHA manifest, Core/runner/registry/version pins и пропускает завершённые попытки. ISSUED без receipt и INDETERMINATE требуют разбора. Один workspace lock исключает два worker; replay и анализ одного root выполняются последовательно.
+
+`$analyzer` может быть новее frozen runner. Он восстанавливает официальный JSONL из защищённого ответа, использует штатный V4 reader и сохраняет отдельный immutable отчёт с original/analyzer hashes, raw/canonical text и frozen/reanalysed flags. API не вызывается, исходные outcomes не переписываются. Показатели дублей, лексики и вопросов не доказывают естественность или смысловую уникальность. Массовое принятие по этим метрикам не выполняется.
