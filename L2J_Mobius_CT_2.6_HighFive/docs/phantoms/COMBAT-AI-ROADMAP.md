@@ -86,3 +86,13 @@ CONSOLIDATION VERIFIED; EVAL_CLOSURE PARTIAL/G4 FAIL. Разрешение то�
 ## Goal017 — Party evidence и cold NO_FIT closure, 16 ноября 2026
 
 **PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED**, задача№11/13; после выдачи2, final manual gate REQUIRED. Настоящий immutable repair завершил NO_FIT идемпотентно, optimizerDelta0; история016 сохранена. Все17 Party slots/71excluded actions имеют UNKNOWN earnings class94; точный first exception и13 Solo причин остаются UNPROVEN. Новых native Party receipts0, GS0/FIT0/EVAL0/promotion0. Канонический census7/6/4, thresholds16/8/8; даже perfect Party rescue TRAIN≤13/AUDIT≤7. DRAFT14/Adam903/223/acceptedTEST2/pointer12/Geo203/protected207 сохранены. TRAINED_MODEL=NO, GAME_ADVANTAGE=NOT_EVALUATED, PRODUCTION=OFF. [RESULT017](tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/RESULT.md), [READBACK017](tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/READBACK.json). Следующий Goal и предложенный будущий набор не запускались.
+
+## Принятие владельцем — 16 ноября 2026
+
+**OWNER_MANUAL_GATE: ACCEPTED_PARTIAL. Manual gate017 закрыт по явному решению владельца.**
+
+Владелец принял `PHANTOM-LEARNING-017` как `PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED` и подтвердил независимую проверку GitHub: `feature/phantom-world`, HEAD `7ce3fadadd7c7902ca72a133a3543b337be80f5b`.
+
+Подтверждены безопасный повтор `COMPLETED_NO_FIT`, сохранность данных016 и исторического FIT-журнала, локализация потери Party rewards до UNKNOWN EXP/SP одного участника при недоказанной первопричине и недостаточность7 TRAIN /6 TUNING /4 AUDIT. FIT, EVAL, новые GameServer-запуски и promotion не выполнялись. Технический verdict остаётся PARTIAL; отрицательные результаты и ограничения не повышаются до FULL.
+
+Исторические SQL, модели, checkpoints, receipts и отрицательные результаты сохраняются. Прежние отметки REQUIRED описывают состояние на момент выдачи; настоящий manual gate закрыт этим решением владельца. Эта запись меняет только отчётные документы. Новых исправлений017 и runtime-проверок нет. Следующий Goal не начат. Задача№11/13; остаются2 до пересмотра бюджета.

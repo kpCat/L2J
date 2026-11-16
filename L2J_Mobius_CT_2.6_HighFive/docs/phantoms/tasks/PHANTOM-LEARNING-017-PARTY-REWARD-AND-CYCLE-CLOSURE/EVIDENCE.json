@@ -4,7 +4,7 @@
   "technicalVerdict": "PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED",
   "ownerImplementationApproval": "APPROVED_BY_OWNER: plan and exact25 including extra TEST Runtime file",
   "approvedPlanSha256": "496e867fd370996e62204c593045ecca190e03ac5fef446d07db6a78295f59d1",
-  "ownerManualGate": "REQUIRED",
+  "ownerManualGate": "ACCEPTED_PARTIAL",
   "taskCounter": {
     "issued": 11,
     "total": 13,
@@ -2664,5 +2664,33 @@
   "encoding": {
     "mojibake": "PASS_25_FILES_ZERO_MATCHES",
     "escapedCyrillic": "PASS_25_FILES_ZERO_MATCHES"
+  },
+  "ownerAcceptance": {
+    "status": "ACCEPTED_PARTIAL",
+    "technicalVerdict": "PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED",
+    "ownerDecisionDate": "2026-11-16",
+    "timezone": "Europe/Chisinau",
+    "reviewedBranch": "feature/phantom-world",
+    "reviewedHead": "7ce3fadadd7c7902ca72a133a3543b337be80f5b",
+    "decision": "Принимаю PHANTOM-LEARNING-017 как PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED. Закрыть manual gate017 со статусом PARTIAL.",
+    "confirmed": {
+      "coldCompletion": "COMPLETED_NO_FIT; repeat safe",
+      "historical016": "PRESERVED",
+      "partyRootCause": "UNKNOWN EXP/SP одного участника; первопричина UNPROVEN",
+      "fitReadiness": {
+        "train": 7,
+        "tuning": 6,
+        "audit": 4,
+        "sufficient": false
+      },
+      "fit": 0,
+      "independentEval": 0,
+      "newGameServerStarts": 0,
+      "promotion": 0
+    },
+    "historicalSqlModelsCheckpointsReceiptsNegativeResults": "PRESERVE",
+    "new017Fixes": "NOT_AUTHORIZED",
+    "nextGoal": "NOT_STARTED",
+    "priorRequiredMarkers": "Historical delivery/readback snapshot; superseded only for the owner manual gate by this explicit acceptance"
   }
 }

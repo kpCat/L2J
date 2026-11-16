@@ -114,3 +114,13 @@ Git использовался по явному заданию017 и approved p
 После передачи нужен ответ владельца по manual gate. Не запускаются следующий Goal, будущий72-slot dataset, FIT, EVAL или production promotion.
 
 Независимая публикационная проверка: delivery commit `0d7216ba43d1bdf26c5557375caddff367bed6f6`, parent `eed183b70dd8eb6e1a6db98b3d5fb825281b5a2f`; GitHub connector и отдельный HTTPS readback подтвердили25exact changes/25full bodies, Git blob SHA1 и SHA256,13 byte-exact inputs/MANIFEST. Источником проверки был GitHub, не local origin cache. Публичный READBACK фиксирует этот delivery commit. Следующий commit меняет только RESULT/EVIDENCE/READBACK; его fresh HEAD/parent/exact3 и все25 тел проверяются после push во внешнем receipt, окончательный SHA сообщается владельцу. Это исключает бесконечное переписывание self-hash. Дополнительная точная git-команда: `git ls-tree HEAD -- <all25 exact paths from READBACK.json>` с тем же одноразовым SOURCE safe.directory prefix, чтобы сопоставить ожидаемые blobs. Source hashes physical CRLF в настоящем cold receipt не изменились.
+
+## Принятие владельцем — 16 ноября 2026
+
+**OWNER_MANUAL_GATE: ACCEPTED_PARTIAL. Manual gate017 закрыт по явному решению владельца.**
+
+Владелец принял `PHANTOM-LEARNING-017` как `PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED` и подтвердил независимую проверку GitHub: `feature/phantom-world`, HEAD `7ce3fadadd7c7902ca72a133a3543b337be80f5b`.
+
+Подтверждены безопасный повтор `COMPLETED_NO_FIT`, сохранность данных016 и исторического FIT-журнала, локализация потери Party rewards до UNKNOWN EXP/SP одного участника при недоказанной первопричине и недостаточность7 TRAIN /6 TUNING /4 AUDIT. FIT, EVAL, новые GameServer-запуски и promotion не выполнялись. Технический verdict остаётся PARTIAL; отрицательные результаты и ограничения не повышаются до FULL.
+
+Исторические SQL, модели, checkpoints, receipts и отрицательные результаты сохраняются. Прежние отметки REQUIRED описывают состояние на момент выдачи; настоящий manual gate закрыт этим решением владельца. Эта запись меняет только отчётные документы. Новых исправлений017 и runtime-проверок нет. Следующий Goal не начат. Задача№11/13; остаются2 до пересмотра бюджета.
