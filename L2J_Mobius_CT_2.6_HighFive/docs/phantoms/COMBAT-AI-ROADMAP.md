@@ -82,3 +82,7 @@ G0/G1/G2/G3/G5/G6/G7/G8PASS; GitHubae68ab9b106 exact74paths/13source/33full chan
 ## Goal010 — продолжение закрыто PARTIAL
 
 CONSOLIDATION VERIFIED; EVAL_CLOSURE PARTIAL/G4 FAIL. Разрешение того жеGoal расширено5GS/45мин, расход4/715447мс. GS4 дал0pairs; mandatoryEpreflight дважды0lawful cells, GS5 NOT_STARTED. Model14/Adam903/223 frozen, FIT0. СледующегоGoal и автоматического запроса бюджета нет; №4/13,9remaining. Подробности root docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md. Идеи тактики танк/ДД/хилер/рейд/PvP остаются roadmap, не результат010.
+
+## Goal017 — Party evidence и cold NO_FIT closure, 16 ноября 2026
+
+**PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED**, задача№11/13; после выдачи2, final manual gate REQUIRED. Настоящий immutable repair завершил NO_FIT идемпотентно, optimizerDelta0; история016 сохранена. Все17 Party slots/71excluded actions имеют UNKNOWN earnings class94; точный first exception и13 Solo причин остаются UNPROVEN. Новых native Party receipts0, GS0/FIT0/EVAL0/promotion0. Канонический census7/6/4, thresholds16/8/8; даже perfect Party rescue TRAIN≤13/AUDIT≤7. DRAFT14/Adam903/223/acceptedTEST2/pointer12/Geo203/protected207 сохранены. TRAINED_MODEL=NO, GAME_ADVANTAGE=NOT_EVALUATED, PRODUCTION=OFF. [RESULT017](tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/RESULT.md), [READBACK017](tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/READBACK.json). Следующий Goal и предложенный будущий набор не запускались.

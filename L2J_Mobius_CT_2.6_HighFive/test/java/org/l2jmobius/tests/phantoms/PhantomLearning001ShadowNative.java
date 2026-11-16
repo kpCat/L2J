@@ -477,6 +477,14 @@ public final class PhantomLearning001ShadowNative
 		private List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> acquiredActions = List.of();
 		private java.util.function.Consumer<java.util.Map<String, Object>> preparationObserver014 = _ -> { };
 		void preparationObserver014(java.util.function.Consumer<java.util.Map<String, Object>> observer) { preparationObserver014 = java.util.Objects.requireNonNull(observer); }
+		private java.util.function.Consumer<java.util.Map<String, Object>> terminalEvidenceObserver017;
+		void terminalEvidenceObserver017(java.util.function.Consumer<java.util.Map<String, Object>> observer) { terminalEvidenceObserver017 = java.util.Objects.requireNonNull(observer); }
+		/** Passive projection of snapshots already consumed by outcomeActors; never sample native evidence again. */
+		static java.util.Map<String, Object> terminalEvidenceFacts017(long profile, int classId, PlayerNativeEvidence.Snapshot previous, PlayerNativeEvidence.Snapshot current, boolean known)
+		{
+			return java.util.Collections.unmodifiableMap(PhantomEvaluationOutcomeV2.fields("profile", profile, "classId", classId, "known", known,
+				"before", previous.scalarMap(), "atTerminal", current == null ? null : current.scalarMap()));
+		}
 		private <T> T measuredPreparation014(String phase, int classId, java.util.concurrent.Callable<T> action) throws Exception
 		{
 			final long started = System.nanoTime(); final String utc = java.time.Instant.now().toString();
@@ -998,6 +1006,7 @@ public final class PhantomLearning001ShadowNative
 				final boolean known=current!=null&&current.epoch()==previous.epoch()&&!current.overflow()&&!previous.overflow()&&current.firstUnprovenReason()==PlayerNativeEvidence.UnprovenReason.NONE;
 				final boolean dead=outcome006?outcomeFrozen.firstDeath(player.getObjectId()):player.isAlikeDead();
 				actors.add(new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor(Long.parseLong(trainingRows.get(index)[2]),player.getObjectId(),previous.epoch(),player.getActiveClass(),player.getLevel(),player.getCurrentHp(),player.getCurrentMp(),dead,known?current.expGained()-previous.expGained():null,known?current.spGained()-previous.spGained():null));
+				if (terminalEvidenceObserver017 != null) { terminalEvidenceObserver017.accept(terminalEvidenceFacts017(Long.parseLong(trainingRows.get(index)[2]), player.getActiveClass(), previous, current, known)); }
 			}
 			return List.copyOf(actors);
 		}

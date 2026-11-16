@@ -1975,6 +1975,7 @@ public final class PhantomAutonomousTrainingNative
 		final boolean evaluation = evaluationSide != null;
 		final var receipts = new ConcurrentLinkedQueue<TacticalReceiptV3>(); final var failures = new ConcurrentLinkedQueue<TacticalFailureV3>(); final var selections = new ConcurrentLinkedQueue<TrainExplorationV1.Selection>();
 		final var timings = new ConcurrentHashMap<String, TerminalRewardReceiptV1.NativeTiming>(); TerminalRewardReceiptV1.nativeTimingObserver(t -> { if (timings.size() >= 2048) { throw new IllegalStateException("AUTONOMOUS_NATIVE_EFFECT_BOUND"); } timings.put(t.eventKey(), t); });
+		final var terminalEvidence017 = new ArrayList<Map<String, Object>>();
 		final var policy = LearningPolicy.evaluation(LearningPolicy.Mode.SHADOW, 1, v1, 4, hash(config.text("autonomous009Campaign", "") + "/" + id));
 		final var tactical = new TacticalPolicyV3("LEARNED".equals(evaluationSide) ? TacticalPolicyV3.Mode.ON : TacticalPolicyV3.Mode.SHADOW, model.id(), model.model(), 20, 16, 2000, r -> receipts.add(TacticalReceiptV3.fromHeal(r)));
 		tactical.damageObserver(receipts::add); tactical.failureObserver(failures::add);
@@ -1985,6 +1986,7 @@ public final class PhantomAutonomousTrainingNative
 		List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> frozenActions = proposal.shortlist().candidates();
 		try (var runtime = new PhantomLearning001ShadowNative.Runtime(authority, root.resolve("game"), policy, attempt.resolve("stop.request"), true, config.maxActiveActors(), tactical, true, source))
 		{
+			if (!evaluation) { runtime.terminalEvidenceObserver017(row -> { if (terminalEvidence017.size() >= 64) { throw new IllegalStateException("TRAIN017_TERMINAL_EVIDENCE_BOUND"); } terminalEvidence017.add(row); }); }
 			final var costContext = PhantomEvaluationOutcomeV2.fields("classId", cell.proposal().actor().classId(), "learnerClassId", cell.proposal().actor().classId(), "scope", cell.party() ? "PARTY" : "SOLO", "family", family.name(), "side", evaluationSide == null ? "TRAIN" : evaluationSide, "cell", cell.key());
 			runtime.preparationObserver014(row -> preparationCost014(work, costContext, row));
 			java.util.function.Supplier<TacticalEpisodeV3> terminal = null;
@@ -2125,6 +2127,7 @@ public final class PhantomAutonomousTrainingNative
 			{
 				if (!evaluation) { for (var receipt : receipts) { store.record(receipt, slot.split(), context); } for (var failure : failures) { store.recordFailure(failure, slot.split(), context, id); } store.settleEpisode(episode); }
 				immutable(work.resolve("settlement.json"), episode.json());
+				if (!evaluation) { immutable(work.resolve("actor-evidence017.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", "TERMINAL_ACTOR_EVIDENCE017_V1", "observations", terminalEvidence017, "trainingCredit", false))); }
 				if (evaluation && outcomeV2(config))
 				{
 					immutable(work.resolve("terminal-boundary-v2.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", "EVAL_BOUNDARY_V2", "episode", episode.id(), "ownerNonce", episode.ownerNonce(),
@@ -2134,6 +2137,7 @@ public final class PhantomAutonomousTrainingNative
 				for (var receipt : receipts)
 				{
 					final String nativeJson = PhantomLearning005Native.nativeReceiptJson(receipt); immutable(work.resolve(receipt.eventKey() + ".native.json"), nativeJson);
+					if (!evaluation) { archiveTerminalAction017(work, new TacticalStoreV3.Row(slot.split(), context, receipt), timings.get(receipt.eventKey())); }
 					if (evaluation && outcomeV2(config))
 					{
 						final var observation = receipt.attempt().observation();
@@ -2145,13 +2149,27 @@ public final class PhantomAutonomousTrainingNative
 				if (!evaluation && !receipts.isEmpty() && runtime.outcomeEncounterAdmitted() && Set.of("NATIVE_KILL", "NATIVE_ACTOR_DIED", "TIMEOUT").contains(episode.reason()))
 				{
 					final var identity = target.getNativeEvidenceTarget(); final long generation = Long.parseLong(Files.readString(root.resolve("director.json")).replaceAll("(?s).*\"generation\"\\s*:\\s*([0-9]+).*", "$1"));
+					immutable(work.resolve("terminal-boundary017.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", "TERMINAL_BOUNDARY017_V1", "installation", hash(Files.readString(root.resolve("owner.txt"))),
+						"ownerNonce", attempt.getFileName().toString(), "ownerGeneration", generation, "instanceId", identity.instanceId(), "targetObjectId", identity.objectId(), "spawnGeneration", identity.spawnGeneration(),
+						"cutNanos", runtime.outcomeCutNanos(), "terminalNanos", runtime.outcomeTerminalNanos(), "settledNanos", episode.settledNanos(), "encounterAdmitted", runtime.outcomeEncounterAdmitted(), "trainingCredit", false)));
 					final var boundary = new TerminalRewardReceiptV1.Boundary(hash(Files.readString(root.resolve("owner.txt"))), attempt.getFileName().toString(), generation, identity.instanceId(), identity.objectId(), identity.spawnGeneration(), runtime.outcomeCutNanos(), runtime.outcomeTerminalNanos(), episode.settledNanos(), true);
 					final var eligible = new ArrayList<TerminalRewardReceiptV1.TimedAction>();
+					int missingTiming017 = 0, validationFailures017 = 0;
 					for (var receipt : receipts)
 					{
-						try { final var timing = timings.get(receipt.eventKey()); if (timing == null) { continue; } final var action = timing.bind(new TacticalStoreV3.Row(slot.split(), context, receipt)); TerminalRewardReceiptV1.create(boundary, episode, List.of(action), slot.split(), config.text("outcome006DatasetId", ""), store.terminalConfig()); eligible.add(action); }
-						catch (IllegalArgumentException invalid) { Files.writeString(work.resolve("excluded-actions.jsonl"), "{\"eventKey\":" + q(receipt.eventKey()) + ",\"reason\":" + q(invalid.getClass().getSimpleName()) + "}\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND); }
+						final var timing = timings.get(receipt.eventKey()); final var row = new TacticalStoreV3.Row(slot.split(), context, receipt);
+						if (timing == null) { missingTiming017++; immutable(work.resolve(receipt.eventKey() + ".refusal017.json"), terminalRefusal017(row, null, boundary, episode, "MISSING_SOURCE:MISSING_NATIVE_TIMING")); continue; }
+						try { final var action = timing.bind(row); TerminalRewardReceiptV1.create(boundary, episode, List.of(action), slot.split(), config.text("outcome006DatasetId", ""), store.terminalConfig()); eligible.add(action); }
+						catch (IllegalArgumentException invalid)
+						{
+							validationFailures017++;
+							final String reason = terminalFailure017(invalid);
+							immutable(work.resolve(receipt.eventKey() + ".refusal017.json"), terminalRefusal017(row, timing, boundary, episode, reason));
+							Files.writeString(work.resolve("excluded-actions.jsonl"), "{\"eventKey\":" + q(receipt.eventKey()) + ",\"reason\":" + q(reason) + "}\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+						}
 					}
+					immutable(work.resolve("terminal-validation017.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", "TERMINAL_VALIDATION017_V1", "paid", receipts.size(), "missingTiming", missingTiming017,
+						"validationFailures", validationFailures017, "eligible", eligible.size(), "emptyEligible", eligible.isEmpty(), "trainingCredit", false)));
 					if (!eligible.isEmpty()) { final var reward = TerminalRewardReceiptV1.create(boundary, episode, eligible, slot.split(), config.text("outcome006DatasetId", ""), store.terminalConfig()); store.stageTerminal(reward); immutable(work.resolve("terminal.bin"), reward.bytes()); immutable(work.resolve("terminal.json"), reward.json()); }
 				}
 			}
@@ -2188,6 +2206,7 @@ public final class PhantomAutonomousTrainingNative
 	{
 		try
 		{
+			if (args.length == 1 && args[0].equals("party-reward-contract017")) { partyRewardContract017(); return; }
 			if ((args.length == 2 || args.length == 3) && args[0].equals("verify-eval013")) { verifyEvaluation013(Path.of(args[1]), args.length == 3 ? Path.of(args[2]) : null); return; }
 			if (args.length == 1 && args[0].equals("headless-contract")) { headlessContract013(); return; }
 			if (args.length == 1 && args[0].equals("headless-contract015")) { headlessContract015(); return; }
@@ -2929,6 +2948,137 @@ public final class PhantomAutonomousTrainingNative
 	}
 	private static String q(String value) { return PhantomLearning005Evaluation.q(value); }
 	/** Read existing native files only; never reserves SQL credit, fits weights or changes a cohort. */
+	private static String terminalFailure017(IllegalArgumentException invalid)
+	{
+		return switch (invalid.getMessage() == null ? "" : invalid.getMessage())
+		{
+			case "Canonical credited earnings UNKNOWN" -> "TERMINAL_EVIDENCE:CANONICAL_CREDITED_EARNINGS_UNKNOWN";
+			case "Foreign native recipient" -> "TARGET_IDENTITY:FOREIGN_NATIVE_RECIPIENT";
+			case "Missing native write timestamps" -> "NATIVE_TIMING:MISSING_NATIVE_WRITE_TIMESTAMPS";
+			case "Native effect outside terminal boundary" -> "NATIVE_TIMING:OUTSIDE_TERMINAL_BOUNDARY";
+			case "Foreign timing receipt" -> "EVENT_OR_SPLIT:FOREIGN_TIMING_EVENT";
+			case "Incomplete terminal receipt or split contamination" -> "EVENT_OR_SPLIT:INCOMPLETE_TERMINAL_OR_SPLIT";
+			case "Foreign, stale, duplicate or late native action" -> "OTHER_VALIDATION:NATIVE_ACTION_ENVELOPE";
+			case "Unproven target goal" -> "TERMINAL_EVIDENCE:UNPROVEN_TARGET_GOAL";
+			default -> "OTHER_VALIDATION:UNCLASSIFIED";
+		};
+	}
+	private static void archiveTerminalAction017(Path work, TacticalStoreV3.Row row, TerminalRewardReceiptV1.NativeTiming timing) throws Exception
+	{
+		if (!work.toAbsolutePath().normalize().equals(work.toRealPath()) || Files.exists(work.resolve("settled016.json"))) { throw new IllegalStateException("TRAIN017_IMMUTABLE_EPISODE"); }
+		immutable(work.resolve(row.eventKey() + ".receipt017.bin"), TacticalStoreV3.encode(row));
+		immutable(work.resolve(row.eventKey() + ".timing017.json"), PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", "TERMINAL_NATIVE_TIMING017_V1", "eventKey", row.eventKey(), "present", timing != null,
+			"sourceEventKey", timing == null ? null : timing.eventKey(), "instanceId", timing == null ? null : timing.instanceId(), "hpStart", timing == null ? null : timing.hpStart(), "hpEnd", timing == null ? null : timing.hpEnd(),
+			"mpStart", timing == null ? null : timing.mpStart(), "mpEnd", timing == null ? null : timing.mpEnd(), "linkedLethalWrite", timing == null ? null : timing.lethal(), "trainingCredit", false)));
+	}
+	private static String terminalRefusal017(TacticalStoreV3.Row row, TerminalRewardReceiptV1.NativeTiming timing, TerminalRewardReceiptV1.Boundary boundary, TacticalEpisodeV3 episode, String reason)
+	{
+		final var selected = row.receipt().attempt().selected(); final var observation = row.receipt().attempt().observation();
+		return PhantomEvaluationOutcomeV2.json(PhantomEvaluationOutcomeV2.fields("schema", "TERMINAL_REFUSAL017_V1", "eventKey", row.eventKey(), "reason", reason,
+			"split", row.split(), "scope", episode.scope(), "classId", observation.self().classId(), "actorProfile", selected.profileId(), "actorObjectId", selected.actorObjectId(), "actorEpoch", selected.actorEpoch(),
+			"ownerGeneration", row.receipt().owner().generation(), "skillId", selected.skillId(), "skillLevel", selected.skillLevel(), "targetObjectId", selected.targetObjectId(), "targetEpoch", selected.targetEpoch(),
+			"actorInEpisode", episode.actors().stream().anyMatch(a -> a.profile() == selected.profileId() && a.objectId() == selected.actorObjectId() && a.epoch() == selected.actorEpoch()),
+			"eventInEpisode", episode.eventKeys().contains(row.eventKey()), "unknownEarningsActors", episode.actors().stream().filter(a -> a.exp() == null || a.sp() == null).count(),
+			"boundaryTargetObjectId", boundary.targetObjectId(), "boundarySpawnGeneration", boundary.spawnGeneration(), "boundaryInstanceId", boundary.instanceId(),
+			"recipientMatches", selected.family() == LegalActionV3.Family.DAMAGE ? selected.targetObjectId() == boundary.targetObjectId() && selected.targetEpoch() == boundary.spawnGeneration()
+				: episode.actors().stream().anyMatch(a -> a.objectId() == selected.targetObjectId() && a.epoch() == selected.targetEpoch()),
+			"timingEventMatches", timing == null ? null : timing.eventKey().equals(row.eventKey()), "instanceMatches", timing == null ? null : timing.instanceId() == boundary.instanceId(),
+			"capturedAfterCut", observation.capturedNanos() >= boundary.cutNanos(), "capturedBeforeHp", timing == null ? null : observation.capturedNanos() <= timing.hpStart(),
+			"mpStartedAfterCut", timing == null ? null : timing.mpStart() >= boundary.cutNanos(), "mpFinishedBeforeTerminal", timing == null ? null : timing.mpEnd() <= boundary.terminalNanos(),
+			"hpStartedInBoundary", timing == null ? null : timing.hpStart() >= boundary.cutNanos() && timing.hpStart() <= boundary.terminalNanos(),
+			"hpFinishedBeforeSettled", timing == null ? null : timing.hpEnd() <= boundary.settledNanos(),
+			"observationNanos", observation.capturedNanos(), "cutNanos", boundary.cutNanos(), "terminalNanos", boundary.terminalNanos(), "settledNanos", boundary.settledNanos(),
+			"nativeTimingPresent", timing != null, "timingSource", row.eventKey() + ".timing017.json", "receiptSource", row.eventKey() + ".receipt017.bin", "trainingCredit", false));
+	}
+	/** Contract fixture only: these values are never native receipts or SQL credit. */
+	private static TacticalStoreV3.Row terminalFixture017()
+	{
+		final var facts = Map.of(org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field.MAX_HP, org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Fact.known(1000),
+			org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field.LEVEL, org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Fact.known(77));
+		final var self = new org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Entity(org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Role.SELF, 100, 100000, 0, 103, facts, List.of(), List.of(), List.of(), List.of());
+		final var enemy = new org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Entity(org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Role.ENEMY, 1000, 1, 0, 0, facts, List.of(), List.of(), List.of(), List.of());
+		final var observation = new org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3(1, 150, 10000, 100, 100000, "contract-party", List.of(self, enemy));
+		final var stock = new LegalActionV3(LegalActionV3.Family.DAMAGE, "Combat", 10000, 100, 100000, 1, 1000, 1, "contract-party", 200, 1, 35, 2000, 400, false, true);
+		final var other = new LegalActionV3(LegalActionV3.Family.DAMAGE, "Combat", 10000, 100, 100000, 1, 1000, 1, "contract-party", 201, 1, 35, 2000, 400, false, true);
+		final var receipt = new TacticalReceiptV3("1".repeat(64), new TacticalReceiptV3.Attempt(observation, List.of(stock, other), stock, stock, 14), 1000, 900, 100, 35, 1000000000L,
+			TacticalReceiptV3.reward(100, 1000, 35, 1000000000L), new org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner(1, "CONTRACT_FIXTURE"));
+		return new TacticalStoreV3.Row("TRAIN", "contract017", receipt);
+	}
+	private static void partyRewardContract017() throws Exception
+	{
+		final var row = terminalFixture017();
+		final var actor = new TacticalEpisodeV3.Actor(10000, 100, 100000, 103, 77, 900, 800, false, 500L, 50L);
+		final var unknown = new TacticalEpisodeV3.Actor(10001, 101, 100001, 94, 77, 900, 800, false, null, null);
+		final var kill = new TacticalEpisodeV3.Kill(1000, 21798, 1, 0, 100, 1);
+		final var episode = new TacticalEpisodeV3("2".repeat(64), "b".repeat(32), "PARTY", 100, 1000, "NATIVE_KILL", List.of(actor, unknown), List.of(kill), List.of(row.eventKey()), 100, 0, 35, 0);
+		final var boundary = new TerminalRewardReceiptV1.Boundary("a".repeat(64), "b".repeat(32), 1, 0, 1000, 1, 100, 900, 1000, true);
+		final var timing = new TerminalRewardReceiptV1.NativeTiming(row.eventKey(), 0, 200, 300, 180, 190, false);
+		try { TerminalRewardReceiptV1.create(boundary, episode, List.of(timing.bind(row)), "TRAIN", "autonomous009-contract017", TerminalRewardReceiptV1.Config.defaults()); throw new AssertionError("Unknown Party earnings became a reward"); }
+		catch (IllegalArgumentException expected)
+		{
+			if (!terminalFailure017(expected).equals("TERMINAL_EVIDENCE:CANONICAL_CREDITED_EARNINGS_UNKNOWN")) { throw new AssertionError("TRAIN017_LOST_EXACT_TERMINAL_REFUSAL"); }
+		}
+		if (!terminalFailure017(new IllegalArgumentException("jdbc secret payload")).equals("OTHER_VALIDATION:UNCLASSIFIED")) { throw new AssertionError("Diagnostic leaked untrusted exception text"); }
+		final var knownPartner = new TacticalEpisodeV3.Actor(10001, 101, 100001, 94, 77, 900, 800, false, 600L, 60L);
+		final var valid = new TacticalEpisodeV3(episode.id(), episode.ownerNonce(), episode.scope(), 100, 1000, "NATIVE_KILL", List.of(actor, knownPartner), List.of(kill), episode.eventKeys(), 100, 0, 35, 0);
+		final var reward = TerminalRewardReceiptV1.create(boundary, valid, List.of(timing.bind(row)), "TRAIN", "autonomous009-contract017", TerminalRewardReceiptV1.Config.defaults());
+		if (reward.actions().size() != 1 || reward.components().uniqueKills() != 1 || reward.reward() <= 0) { throw new AssertionError("Valid Party contract changed"); }
+		rejectTerminal017(() -> TerminalRewardReceiptV1.create(new TerminalRewardReceiptV1.Boundary(boundary.installation(), boundary.ownerNonce(), 1, 0, 1001, 1, 100, 900, 1000, true), valid, List.of(timing.bind(row)), "TRAIN", "autonomous009-contract017", TerminalRewardReceiptV1.Config.defaults()));
+		rejectTerminal017(() -> TerminalRewardReceiptV1.create(boundary, valid, List.of(timing.bind(row), timing.bind(row)), "TRAIN", "autonomous009-contract017", TerminalRewardReceiptV1.Config.defaults()));
+		rejectTerminal017(() -> TerminalRewardReceiptV1.create(boundary, valid, List.of(new TerminalRewardReceiptV1.NativeTiming(row.eventKey(), 0, 200, 300, 180, 950, false).bind(row)), "TRAIN", "autonomous009-contract017", TerminalRewardReceiptV1.Config.defaults()));
+		rejectTerminal017(() -> TerminalRewardReceiptV1.create(boundary, valid, List.of(new TerminalRewardReceiptV1.NativeTiming(row.eventKey(), 1, 200, 300, 180, 190, false).bind(row)), "TRAIN", "autonomous009-contract017", TerminalRewardReceiptV1.Config.defaults()));
+		final Path work = Files.createTempDirectory("terminal017-contract-");
+		try
+		{
+			archiveTerminalAction017(work, row, timing);
+			final byte[] encoded = Files.readAllBytes(work.resolve(row.eventKey() + ".receipt017.bin"));
+			final var restored = TacticalStoreV3.decode(encoded);
+			final var savedTime = PhantomEvaluationReplayV2.object(work.resolve(row.eventKey() + ".timing017.json"));
+			if (!java.util.Arrays.equals(TacticalStoreV3.encode(restored), encoded) || restored.receipt().actualHp() != 100 || restored.receipt().actualMp() != 35
+				|| !restored.receipt().owner().equals(row.receipt().owner()) || PhantomEvaluationReplayV2.number(savedTime, "hpStart") != 200 || PhantomEvaluationReplayV2.number(savedTime, "mpEnd") != 190) { throw new AssertionError("Native replay ingredients lost"); }
+			archiveTerminalAction017(work, row, timing);
+			immutable(work.resolve("settled016.json"), "{\"fixture\":true}");
+			try { archiveTerminalAction017(work, row, timing); throw new AssertionError("Settled episode mutated"); } catch (IllegalStateException expected) { if (!expected.getMessage().equals("TRAIN017_IMMUTABLE_EPISODE")) { throw expected; } }
+			if (!java.util.Arrays.equals(encoded, Files.readAllBytes(work.resolve(row.eventKey() + ".receipt017.bin")))) { throw new AssertionError("Archived receipt rewritten"); }
+		}
+		finally { try (var files = Files.list(work)) { for (var file : files.toList()) { Files.delete(file); } } Files.delete(work); }
+		final long epoch = System.nanoTime(); final var evidence = new org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence(100, epoch);
+		final var before = evidence.snapshot(); evidence.markUnproven(); final var after = evidence.snapshot();
+		final var observed = PhantomLearning001ShadowNative.Runtime.terminalEvidenceFacts017(10000, 103, before, after, false);
+		if (!Boolean.FALSE.equals(observed.get("known")) || !after.scalarMap().equals(observed.get("atTerminal")) || !before.scalarMap().equals(observed.get("before"))
+			|| PhantomLearning001ShadowNative.Runtime.terminalEvidenceFacts017(10000, 103, before, null, false).get("atTerminal") != null) { throw new AssertionError("Terminal snapshot cause was replaced or guessed"); }
+		censusContract017(row);
+		System.out.println("TRAIN017_PARTY_CONTRACT_GREEN NOT_NATIVE SQL=0 GS=0 rewardsNotFabricated=1");
+	}
+	private static void rejectTerminal017(Runnable action)
+	{
+		try { action.run(); throw new AssertionError("Invalid terminal accepted"); } catch (IllegalArgumentException expected) { }
+	}
+	private static void censusContract017(TacticalStoreV3.Row row) throws Exception
+	{
+		final Path root = Files.createTempDirectory("census017-contract-");
+		try
+		{
+			Files.createDirectory(root.resolve("game")); immutable(root.resolve("owner.txt"), "LEARNING002:" + "a".repeat(32));
+			Files.copy(Path.of("tools/phantom-runtime/training/AutonomousTraining.ini"), root.resolve("TRAIN_CONFIG.ini"));
+			final var config = TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini"));
+			final Path cohort = root.resolve("autonomous/v1/campaigns").resolve(config.text("autonomous009Campaign", "")).resolve("cohorts").resolve(config.text("outcome006DatasetId", ""));
+			Files.createDirectories(cohort.resolve("samples")); immutable(cohort.resolve("collection.complete"), "CONTRACT_NOT_NATIVE");
+			final Path work = cohort.resolve("3".repeat(64)); Files.createDirectory(work);
+			immutable(work.resolve("reserved.json"), "{}");
+			immutable(work.resolve("result.json"), "{\"scope\":\"PARTY\",\"split\":\"TRAIN\",\"experimental\":true,\"afterCut\":true,\"paidRawEffects\":1}");
+			immutable(work.resolve(row.eventKey() + ".native.json"), "{\"fixture\":true}");
+			archiveTerminalAction017(work, row, null);
+			immutable(work.resolve(row.eventKey() + ".refusal017.json"), "{\"eventKey\":" + q(row.eventKey()) + ",\"reason\":\"MISSING_SOURCE:MISSING_NATIVE_TIMING\"}");
+			immutable(work.resolve("terminal-validation017.json"), "{\"schema\":\"TERMINAL_VALIDATION017_V1\",\"paid\":1,\"missingTiming\":1,\"validationFailures\":0,\"eligible\":0,\"emptyEligible\":true,\"trainingCredit\":false}");
+			immutable(work.resolve("settled016.json"), "{\"fixture\":true}");
+			final var output = new java.io.ByteArrayOutputStream(); final var original = System.out;
+			try (var capture = new java.io.PrintStream(output, true, StandardCharsets.UTF_8)) { System.setOut(capture); diagnoseCohort(root); } finally { System.setOut(original); }
+			final String text = output.toString(StandardCharsets.UTF_8);
+			if (!text.contains("missingTiming=1") || !text.contains("emptyEligible=1")) { throw new AssertionError("TRAIN017_MISSING_TIMING_COUNTER_LOST"); }
+		}
+		finally { try (var paths = Files.walk(root)) { for (var path : paths.sorted(Comparator.reverseOrder()).toList()) { Files.delete(path); } } }
+	}
 	private static void diagnoseCohort(Path installation) throws Exception
 	{
 		final Path root = PhantomTrainingActors.physicalRoot(installation);
@@ -2937,6 +3087,58 @@ public final class PhantomAutonomousTrainingNative
 		if (!directory.equals(directory.toRealPath()) || Files.isSymbolicLink(directory) || !Files.isRegularFile(directory.resolve("collection.complete"))) { throw new IllegalArgumentException("Physical completed cohort required"); }
 		final var samples = new ArrayList<org.l2jmobius.gameserver.phantoms.learning.ActionAdvantageV2.Sample>();
 		final var excluded = new java.util.TreeMap<String, Long>();
+		final var census017 = new java.util.TreeMap<String, Map<String, Long>>();
+		final var episodeGroups017 = new HashMap<String, String>();
+		try (var paths = Files.list(directory))
+		{
+			final var episodes = paths.filter(path -> path.getFileName().toString().matches("[a-f0-9]{64}") && Files.isDirectory(path)).sorted().toList();
+			if (episodes.size() > 512) { throw new IllegalArgumentException("Bounded cohort census required"); }
+			for (var episodePath : episodes)
+			{
+				if (!Files.exists(episodePath.resolve("reserved.json"))) { continue; }
+				if (!episodePath.equals(episodePath.toRealPath())) { throw new IllegalArgumentException("Physical episode required"); }
+				final var result = PhantomEvaluationReplayV2.object(episodePath.resolve("result.json"));
+				final String group = PhantomEvaluationReplayV2.string(result, "scope") + "/" + PhantomEvaluationReplayV2.string(result, "split") + "/" + (PhantomEvaluationReplayV2.bool(result, "experimental") ? "EXPLORE" : "STOCK");
+				episodeGroups017.put(episodePath.getFileName().toString(), group);
+				final var counts = census017.computeIfAbsent(group, _ -> new java.util.TreeMap<>());
+				counts.merge("slots", 1L, Long::sum); counts.merge("cut", PhantomEvaluationReplayV2.bool(result, "afterCut") ? 1L : 0L, Long::sum);
+				counts.merge("settled", Files.isRegularFile(episodePath.resolve("settled016.json")) ? 1L : 0L, Long::sum);
+				counts.merge("terminal", Files.isRegularFile(episodePath.resolve("terminal.bin")) ? 1L : 0L, Long::sum);
+				counts.merge("selection", Files.isRegularFile(episodePath.resolve("selection.bin")) ? 1L : 0L, Long::sum);
+				final long paid;
+				try (var files = Files.list(episodePath)) { paid = files.filter(p -> p.getFileName().toString().matches("[a-f0-9]{64}\\.native\\.json")).count(); }
+				if (paid > 2048 || paid != PhantomEvaluationReplayV2.number(result, "paidRawEffects")) { throw new IllegalArgumentException("Native census event count differs"); }
+				counts.merge("paid", paid, Long::sum);
+				final Path refused = episodePath.resolve("excluded-actions.jsonl");
+				long failedValidation017 = 0;
+				if (Files.exists(refused))
+				{
+					final var lines = PhantomEvaluationReplayV2.text(refused).lines().filter(line -> !line.isBlank()).toList();
+					if (lines.size() > 2048) { throw new IllegalArgumentException("Excluded action census bound"); }
+					failedValidation017 = lines.size();
+					counts.merge("validationExcluded", (long) lines.size(), Long::sum);
+					for (String line : lines)
+					{
+						final String key = PhantomEvaluationReplayV2.string(PhantomEvaluationReplayV2.map(PhantomEvaluationReplayV2.parse(line)), "eventKey");
+						if (!key.matches("[a-f0-9]{64}")) { throw new IllegalArgumentException("Invalid excluded event identity"); }
+						if (!Files.isRegularFile(episodePath.resolve(key + ".receipt017.bin")) || !Files.isRegularFile(episodePath.resolve(key + ".timing017.json")) || !Files.isRegularFile(episodePath.resolve("terminal-boundary017.json")))
+						{ counts.merge("unreplayableExcluded", 1L, Long::sum); }
+					}
+				}
+				counts.merge("validationFailures", failedValidation017, Long::sum);
+				final Path summary017 = episodePath.resolve("terminal-validation017.json");
+				if (Files.exists(summary017))
+				{
+					final var summary = PhantomEvaluationReplayV2.object(summary017);
+					final long missing = PhantomEvaluationReplayV2.number(summary, "missingTiming"), failures = PhantomEvaluationReplayV2.number(summary, "validationFailures"), eligible = PhantomEvaluationReplayV2.number(summary, "eligible");
+					final boolean empty = PhantomEvaluationReplayV2.bool(summary, "emptyEligible");
+					if (!PhantomEvaluationReplayV2.string(summary, "schema").equals("TERMINAL_VALIDATION017_V1") || PhantomEvaluationReplayV2.number(summary, "paid") != paid || missing < 0 || failures < 0 || eligible < 0
+						|| missing + failures + eligible != paid || failures != failedValidation017 || empty != (eligible == 0) || PhantomEvaluationReplayV2.bool(summary, "trainingCredit")) { throw new IllegalArgumentException("Terminal census summary changed"); }
+					counts.merge("missingTiming", missing, Long::sum); counts.merge("emptyEligible", empty ? 1L : 0L, Long::sum);
+				}
+				else { counts.merge("missingTimingUnobservedEpisodes", 1L, Long::sum); counts.merge("emptyEligibleUnobservedEpisodes", 1L, Long::sum); }
+			}
+		}
 		try (var paths = Files.list(directory.resolve("samples")))
 		{
 			final var selected = paths.filter(path -> path.getFileName().toString().matches("[a-f0-9]{64}\\.selection\\.bin")).sorted().toList();
@@ -2950,21 +3152,33 @@ public final class PhantomAutonomousTrainingNative
 				if (!selection.fallback().isEmpty() || !Files.exists(terminal)) { excluded.merge("FALLBACK_OR_NO_TERMINAL", 1L, Long::sum); continue; }
 				if (!terminal.equals(terminal.toRealPath()) || Files.size(terminal) > TerminalRewardReceiptV1.MAX_BYTES) { throw new IllegalArgumentException("Physical bounded terminal required"); }
 				final byte[] bytes = Files.readAllBytes(terminal); final var receipt = TerminalRewardReceiptV1.restore(bytes, NeuralPolicy.sha256(bytes));
-				if (receipt.actions().stream().filter(action -> selection.matches(action.row().receipt())).count() != 1) { excluded.merge("NO_EXACT_SELECTED_PAID_TERMINAL", 1L, Long::sum); continue; }
+				if (receipt.actions().stream().filter(action -> selection.matches(action.row().receipt())).count() != 1)
+				{
+					excluded.merge("NO_EXACT_SELECTED_PAID_TERMINAL", 1L, Long::sum); final String group017 = episodeGroups017.get(selection.episode());
+					if (group017 != null) { census017.get(group017).merge("noMatchingSelection", 1L, Long::sum); } continue;
+				}
 				samples.add(new org.l2jmobius.gameserver.phantoms.learning.ActionAdvantageV2.Sample(selection, receipt));
 			}
 		}
-		if (samples.isEmpty()) { System.out.println("AUTONOMOUS_COHORT_DIAGNOSTIC samples=0 readOnly=true excluded=" + excluded); return; }
+		if (samples.isEmpty()) { System.out.println("TRAIN017_DATA_CENSUS readOnly=true SQL=0 trainingCredit=false groups=" + census017); System.out.println("AUTONOMOUS_COHORT_DIAGNOSTIC samples=0 readOnly=true excluded=" + excluded); return; }
 		final var frozen = org.l2jmobius.gameserver.phantoms.learning.ActionAdvantageV2.freeze(hash(directory.getFileName().toString()).substring(0, 32), samples);
 		final var cells = new java.util.TreeMap<String, Map<String, Long>>();
 		for (var sample : samples)
 		{
+			final String group017 = episodeGroups017.get(sample.selection().episode());
+			if (group017 != null) { census017.get(group017).merge("exactSelection", 1L, Long::sum); }
 			final var selection = sample.selection(); final var row = cells.computeIfAbsent(selection.cell(), _ -> new java.util.TreeMap<>());
 			row.merge(selection.split() + (selection.experimental() ? "_B" : "_A"), 1L, Long::sum);
 			row.put("class", (long) selection.observation().self().classId());
 			row.put("controlContexts", samples.stream().filter(s -> s.selection().cell().equals(selection.cell()) && s.selection().split().equals("TRAIN") && !s.selection().experimental()).map(org.l2jmobius.gameserver.phantoms.learning.ActionAdvantageV2.Sample::context).distinct().count());
 		}
 		for (var target : frozen.targets()) { cells.get(target.sample().selection().cell()).merge("TARGET_" + target.sample().selection().split(), 1L, Long::sum); }
+		for (var target : frozen.targets())
+		{
+			final var selection = target.sample().selection(); final String group017 = episodeGroups017.get(selection.episode());
+			if (group017 != null) { census017.get(group017).merge(selection.split().equals("TRAIN") ? "gradient" : "heldOut", 1L, Long::sum); }
+		}
+		System.out.println("TRAIN017_DATA_CENSUS readOnly=true SQL=0 trainingCredit=false groups=" + census017);
 		System.out.println("AUTONOMOUS_COHORT_DIAGNOSTIC readOnly=true sufficient=" + frozen.sufficient() + " metrics=" + frozen.metrics() + " excluded=" + excluded + " cells=" + cells);
 	}
 	private static String hash(String value) { return NeuralPolicy.sha256(value.getBytes(StandardCharsets.UTF_8)); }

@@ -1,0 +1,2660 @@
+{
+  "schema": "PHANTOM_LEARNING017_EVIDENCE_V1",
+  "date": "2026-11-16",
+  "technicalVerdict": "PARTIAL017_PARTY_REWARD_UNPROVEN_CYCLE_CLOSED",
+  "ownerImplementationApproval": "APPROVED_BY_OWNER: plan and exact25 including extra TEST Runtime file",
+  "approvedPlanSha256": "496e867fd370996e62204c593045ecca190e03ac5fef446d07db6a78295f59d1",
+  "ownerManualGate": "REQUIRED",
+  "taskCounter": {
+    "issued": 11,
+    "total": 13,
+    "remaining": 2
+  },
+  "baseline": {
+    "providedHead": "e8b4d6ae1be7bc9dc7d2c4c5b76bf480ca81c177",
+    "sourceAfterApprovedFastForward": "eed183b70dd8eb6e1a6db98b3d5fb825281b5a2f",
+    "branch": "feature/phantom-world"
+  },
+  "gates": {
+    "G0": "PASS: frozen lineage, SQL183, physical owned TEST, preserved historical bytes",
+    "G1": "PARTIAL: 71 Party actions fail the UNKNOWN earnings predicate; first thrown check and 13 Solo causes remain unproven",
+    "G2": "PARTIAL: diagnostic loss and DONE016 fixed RED→GREEN; usable Party reward correction UNPROVEN",
+    "G3": "PASS: exact 7/6/4 targets; immutable thresholds; upper bound <=13 TRAIN and <=7 AUDIT",
+    "G4": "PASS: authentic immutable COMPLETED_NO_FIT, repeated exact receipt, optimizerDelta=0",
+    "G5": "PARTIAL / NOT_RUN_NATIVE: NOT_NATIVE offline fixture only, no reconstructed native Party receipt",
+    "G6": "PASS: GS0/FIT0/EVAL0/promotion0; no campaign or repeated fight",
+    "G7": "PASS: targeted tests, owned SQL held exits, OFF/ports free, bounded evidence",
+    "G8": "PENDING_PUBLICATION: exact25; independent full-body GitHub readback required; manual gate REQUIRED"
+  },
+  "trainedModel": false,
+  "gameAdvantage": "NOT_EVALUATED",
+  "production": "OFF",
+  "partyReward": {
+    "nativeReceipts017": 0,
+    "restored016Receipts": 0,
+    "newTrainingCredit": false,
+    "rootCause": "PARTIALLY_PROVEN: UNKNOWN earnings is an inevitable failing predicate, not a proven first exception or underlying snapshot cause",
+    "nativeTimingForExcluded": "NOT_PERSISTED",
+    "firstUnprovenReasonForClass94": "NOT_PERSISTED"
+  },
+  "rawSummary": {
+    "totals": {
+      "PARTY/AUDIT/STOCK": {
+        "slots": 3,
+        "settled": 3,
+        "cut": 3,
+        "paid": 14,
+        "terminal": 0,
+        "exclusions": 14,
+        "selection": 3
+      },
+      "PARTY/TRAIN/EXPLORE": {
+        "slots": 6,
+        "settled": 6,
+        "cut": 6,
+        "paid": 22,
+        "terminal": 0,
+        "exclusions": 22,
+        "selection": 6
+      },
+      "PARTY/TRAIN/STOCK": {
+        "slots": 5,
+        "settled": 5,
+        "cut": 5,
+        "paid": 21,
+        "terminal": 0,
+        "exclusions": 21,
+        "selection": 5
+      },
+      "PARTY/TUNING/STOCK": {
+        "slots": 3,
+        "settled": 3,
+        "cut": 3,
+        "paid": 14,
+        "terminal": 0,
+        "exclusions": 14,
+        "selection": 3
+      },
+      "SOLO/AUDIT/STOCK": {
+        "slots": 6,
+        "settled": 6,
+        "cut": 6,
+        "paid": 59,
+        "terminal": 4,
+        "exclusions": 0,
+        "selection": 6
+      },
+      "SOLO/TRAIN/EXPLORE": {
+        "slots": 12,
+        "settled": 12,
+        "cut": 12,
+        "paid": 124,
+        "terminal": 9,
+        "exclusions": 0,
+        "selection": 12
+      },
+      "SOLO/TRAIN/STOCK": {
+        "slots": 10,
+        "settled": 10,
+        "cut": 10,
+        "paid": 98,
+        "terminal": 8,
+        "exclusions": 13,
+        "selection": 10
+      },
+      "SOLO/TUNING/STOCK": {
+        "slots": 6,
+        "settled": 6,
+        "cut": 6,
+        "paid": 47,
+        "terminal": 6,
+        "exclusions": 0,
+        "selection": 6
+      }
+    },
+    "uniqueEvents": 399,
+    "uniqueKills": 29,
+    "exclusions": 84,
+    "paidDisposition": {
+      "PERSISTED_TIMING_IN_VALID_TERMINAL": 247,
+      "VALIDATION_FAILED_TIMING_NOT_PERSISTED": 84,
+      "NO_VALIDATION_DIAGNOSIS/NATIVE_ACTOR_DIED": 0,
+      "NO_VALIDATION_DIAGNOSIS/NATIVE_KILL": 0,
+      "NO_VALIDATION_DIAGNOSIS/REQUESTED_DRAIN": 11,
+      "NO_VALIDATION_DIAGNOSIS/NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING": 57
+    },
+    "independentFailures": {
+      "PARTY/CANONICAL_CREDITED_EARNINGS_UNKNOWN": 71,
+      "SOLO/NONE_OBSERVABLE": 13
+    },
+    "director": {
+      "phase": "FIT",
+      "fits": 0,
+      "completedCycles": 0,
+      "pending": false,
+      "checkpointReason": "NO_FIT_INSUFFICIENT_VALID_DATA",
+      "checkpointParentEqualsSelected": true,
+      "fitCandidate": 0,
+      "reservationShaMatches": true
+    },
+    "fileSuffixes": {
+      ".json": 1207,
+      ".jsonl": 138,
+      ".tsv": 121,
+      ".txt": 119,
+      ".bin": 129,
+      ".sha": 4,
+      ".complete": 1,
+      ".lock": 1,
+      ".ini": 1
+    }
+  },
+  "episodes": [
+    {
+      "slot": 0,
+      "episode": "e23993f2ed8d3f853c6d559ebc3fb906a4fe4e062b317f194ed69d2c71ddbcad",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 1,
+      "episode": "f41277687c7a517e9ad7706c3fc17f3a4da43fa4e9faecdea4b2770633194f61",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 11,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 30
+    },
+    {
+      "slot": 2,
+      "episode": "084c52ce6759064bc88887995a96a0154e18db921b9af3a5e2beacecbd11cdec",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 13,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 32
+    },
+    {
+      "slot": 3,
+      "episode": "059ea3497d7ca10d85fc9564f00b9cf7c6945b5fac2377c4698bf2e43a20f722",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 4,
+      "episode": "197eec92442d056fce5035bd4b28c9a2e9e46c9dd217707c44c99391761cab73",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 10,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 29
+    },
+    {
+      "slot": 5,
+      "episode": "95e589aface98ef74d147526a941437389471e613d04da352a8e9a827bd64eb6",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 10,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 29
+    },
+    {
+      "slot": 6,
+      "episode": "02300ac6a36bc21451978ae24866c820b2da5e456f64aa2adc3d2a3f6122e565",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 8,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 27
+    },
+    {
+      "slot": 7,
+      "episode": "574eb1bef4cfbe4489c25e4eb75b645d045fd3c8c1ad2364c3544af7deeb391d",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 8,
+      "episode": "058a5abeec1df6778a8107cb82f16d78ae312f5dce28124538537c7fda8c5384",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 9,
+      "episode": "f78b74a1b7895fb669a26d0d7efdce2caa76f2fe39b51805c7d21e5c437bb42d",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 10,
+      "episode": "1cc0e9abb1f2f16856780c344fb2f1519a7bfa80c7af5d40e1fc90e610ef40d0",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 11,
+      "terminal": false,
+      "exclusions": 0,
+      "nativeReason": "REQUESTED_DRAIN",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 11,
+      "episode": "865f64b05a5c2489782e27b3ca20c02a0909dcb22e8f1096a5784d1bffba5949",
+      "scope": "SOLO",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 12,
+      "episode": "6c4e19b2ebfd6ecefb8f4e74101fce52e4b3eaec9a9d15a9590fc762339cbee9",
+      "scope": "SOLO",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 11,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 30
+    },
+    {
+      "slot": 13,
+      "episode": "d19e3bb3b68ba432c39318e43a9ce455d5ce0167682a8e25876d9f1fbcc9dd2f",
+      "scope": "SOLO",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 8,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 27
+    },
+    {
+      "slot": 14,
+      "episode": "649fd13dca7553ebb2b5f5f945b5a4aad733f4c24dee824fbfae5613b584980e",
+      "scope": "SOLO",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 11,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 30
+    },
+    {
+      "slot": 15,
+      "episode": "530fdf12fc8d71bdaec0f10cf663faff9ebff63e2da0fe0c390de363d9355ed1",
+      "scope": "SOLO",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 16,
+      "episode": "c9348ebe3b64ab933b5ce9a944b4d7b0a01a3dd31083d1122ffb7f9d798f0deb",
+      "scope": "SOLO",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 12,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 31
+    },
+    {
+      "slot": 17,
+      "episode": "0c661d4a55ad5e02cff2f335871c08fa45532933bc4d74afd2c5641df6ff19c5",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 4,
+      "terminal": false,
+      "exclusions": 4,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 23
+    },
+    {
+      "slot": 18,
+      "episode": "3486eef1bc60f5dfdfd8577d20f5131c2ee013fc2a3da5fe870afdac61d85ef1",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 4,
+      "terminal": false,
+      "exclusions": 4,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 23
+    },
+    {
+      "slot": 19,
+      "episode": "60b2540b1cc56ce8c7e740d28eef09e9604563cd8290ed69fd125e159abcf14e",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 4,
+      "terminal": false,
+      "exclusions": 4,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 23
+    },
+    {
+      "slot": 20,
+      "episode": "688954d2ac6e69540d8c785ea187be080d007408a96fc1b54780728dc5f53525",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 4,
+      "terminal": false,
+      "exclusions": 4,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 23
+    },
+    {
+      "slot": 21,
+      "episode": "25bf425ba4c1d1c031c0dacf4b41c5450bb498f0f2801da3f9fdd9bed49d4251",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 5,
+      "terminal": false,
+      "exclusions": 5,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 24
+    },
+    {
+      "slot": 22,
+      "episode": "209c31237dc6eacdf1613c4a9314e982f88cc8d0ba5b07f3c8c1a79fa80884d5",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 4,
+      "terminal": false,
+      "exclusions": 4,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 23
+    },
+    {
+      "slot": 23,
+      "episode": "a59483d845d1e0b36418566a0ae673cbe689610a87d6f6b05637237d0605e9a6",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 2,
+      "terminal": false,
+      "exclusions": 2,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 21
+    },
+    {
+      "slot": 24,
+      "episode": "e4f87bee2fff2a673c1e105c13bdd9ad136704137caf4d24ccee63e2e1a96c9b",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 3,
+      "terminal": false,
+      "exclusions": 3,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 22
+    },
+    {
+      "slot": 25,
+      "episode": "d3c3c41371961d06977c5d8a7126edd289aae09aa9afba53553dafc318b89dcf",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 5,
+      "terminal": false,
+      "exclusions": 5,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 24
+    },
+    {
+      "slot": 26,
+      "episode": "831959f71f44f44de4e3fe89ef5167b1303b817f29c0030c3d4aa256dd2b4efe",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 5,
+      "terminal": false,
+      "exclusions": 5,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 24
+    },
+    {
+      "slot": 27,
+      "episode": "0a7741e696990d6e74ceb459565ade0fcdf622138a8097a08165094ae8e88387",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 3,
+      "terminal": false,
+      "exclusions": 3,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 22
+    },
+    {
+      "slot": 28,
+      "episode": "1c0db202664c2c1e82306bf629378cc33eb1752fa21ec42598bc9896b41a5dcc",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 5,
+      "terminal": false,
+      "exclusions": 5,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 24
+    },
+    {
+      "slot": 29,
+      "episode": "d7d119cff0de1554918163ba22ab1d7ad88b352062758e1bc1a52db9feafc034",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 5,
+      "terminal": false,
+      "exclusions": 5,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 24
+    },
+    {
+      "slot": 30,
+      "episode": "4608e6b5b8331d1235ed6a02d23e27572addceed3782c49750676f739c0396e3",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 4,
+      "terminal": false,
+      "exclusions": 4,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 23
+    },
+    {
+      "slot": 31,
+      "episode": "ed8c597429458f245ea1845b89f47e292b56ba345feefa6828cadc7d43aef98a",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 5,
+      "terminal": false,
+      "exclusions": 5,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 24
+    },
+    {
+      "slot": 32,
+      "episode": "410a07a9ee2684986cd47b354efc60ae4d8dc9a5fa31f3f7dbbcc30e149dc93d",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 5,
+      "terminal": false,
+      "exclusions": 5,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 24
+    },
+    {
+      "slot": 33,
+      "episode": "59660ec71f1920a2428b8812aa069c72a99454260b5ed4d59ad30cc0e23a8863",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 4,
+      "terminal": false,
+      "exclusions": 4,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 5,
+      "unknownEarnings": 1,
+      "rawFiles": 23
+    },
+    {
+      "slot": 34,
+      "episode": "9be6f7e4b43ff4b970e22ebadaf3b42d47e739e3922be1c98cdfb321864a6feb",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 13,
+      "terminal": false,
+      "exclusions": 0,
+      "nativeReason": "NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 30
+    },
+    {
+      "slot": 35,
+      "episode": "5db9c4dc1dba5d6412a501dca5f42a8fd8b9d15c6b98d4127865f4e43eb6b748",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 8,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 27
+    },
+    {
+      "slot": 36,
+      "episode": "caf39ea8f5bcba1588f0a22b9fd7d491f9ffa669b7028dc74316cdf61fde2cdf",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 8,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 27
+    },
+    {
+      "slot": 37,
+      "episode": "d599286c5eb0cc4c2254c3f5f6d08707d63f2dcc05e89e7eaf1e00cc6c482da8",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 12,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 31
+    },
+    {
+      "slot": 38,
+      "episode": "9fcec2f43646ebc7cf9cd9045659ba4f33d631cb469e980309f0a50275de390c",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 4,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 23
+    },
+    {
+      "slot": 39,
+      "episode": "1447040c8d4d20b3024eb878a05147e01d1bed252ef02825ed09eb51dd7313d5",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 11,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 30
+    },
+    {
+      "slot": 40,
+      "episode": "58b0b8858c3aebe4bcac0afa1dd0cfb966b08b6a5d776faefd768ef83a31d750",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 11,
+      "terminal": false,
+      "exclusions": 0,
+      "nativeReason": "NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 41,
+      "episode": "3d62cc9cde0f2f95a8e8f356eb28f4be7d09ce4d2f680b7c582edf15ae9d74b0",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 10,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 29
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": false,
+      "paid": 13,
+      "terminal": false,
+      "exclusions": 13,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 31
+    },
+    {
+      "slot": 43,
+      "episode": "c8630ac906840c1fb060587ea5ff7e5f33cea61d92a7954d8429af794bba7257",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 13,
+      "terminal": false,
+      "exclusions": 0,
+      "nativeReason": "NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 30
+    },
+    {
+      "slot": 44,
+      "episode": "b6c56a16d21ec2af8cb88df1ebaf41067e0465a7764092799f0be627aa8536e6",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "experimental": true,
+      "paid": 11,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_KILL",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 30
+    },
+    {
+      "slot": 45,
+      "episode": "0974edd6916df7103a4a93fe7cce4ee0eb83570493e5df8c5891a55b325371ab",
+      "scope": "SOLO",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 6,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 25
+    },
+    {
+      "slot": 46,
+      "episode": "f6e9a9488fc7bdb98a3ff79ed80b05c36d20dd8cdccbc61c4511b905ee8eb65e",
+      "scope": "SOLO",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 9,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 47,
+      "episode": "de1356cb0a2c62947bac2677eb42cd340732afa8cf317dd59bd485e4a1495b7b",
+      "scope": "SOLO",
+      "split": "TUNING",
+      "experimental": false,
+      "paid": 4,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 23
+    },
+    {
+      "slot": 48,
+      "episode": "2ef265e12b53532607db1f8b4da9302bf68714af7bbe4ec3b1d2e4bb2e29cec8",
+      "scope": "SOLO",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 9,
+      "terminal": false,
+      "exclusions": 0,
+      "nativeReason": "NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 26
+    },
+    {
+      "slot": 49,
+      "episode": "6a59a3af44f15a5e535ede34b988862c5b9982f952f422e4e573cb2c734d6684",
+      "scope": "SOLO",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 11,
+      "terminal": false,
+      "exclusions": 0,
+      "nativeReason": "NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 28
+    },
+    {
+      "slot": 50,
+      "episode": "94c4d093fbd68aa023d756d78230d42e21c77107d62fd59485b4868ad33ce59a",
+      "scope": "SOLO",
+      "split": "AUDIT",
+      "experimental": false,
+      "paid": 7,
+      "terminal": true,
+      "exclusions": 0,
+      "nativeReason": "NATIVE_ACTOR_DIED",
+      "actors": 1,
+      "unknownEarnings": 0,
+      "rawFiles": 26
+    }
+  ],
+  "excludedActions": [
+    {
+      "slot": 27,
+      "episode": "0a7741e696990d6e74ceb459565ade0fcdf622138a8097a08165094ae8e88387",
+      "eventKey": "8e97e781cdfa7940d45d60aabbaddd3c9ba7828210c588ee919ae59f332471dd",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 27,
+      "episode": "0a7741e696990d6e74ceb459565ade0fcdf622138a8097a08165094ae8e88387",
+      "eventKey": "8ee2eed1f8abce8e41d2464cff2708f1944ea623f7eb8fbbd615f4a746111764",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 27,
+      "episode": "0a7741e696990d6e74ceb459565ade0fcdf622138a8097a08165094ae8e88387",
+      "eventKey": "b7a877da3fd51bce31a47680c9004c134f4a1614646b37f7aa61436940f82187",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 17,
+      "episode": "0c661d4a55ad5e02cff2f335871c08fa45532933bc4d74afd2c5641df6ff19c5",
+      "eventKey": "1856ca2f17d623e9d355a6c31fdecadfd78a3a4d7e0bf5f0824929f3e7296189",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 17,
+      "episode": "0c661d4a55ad5e02cff2f335871c08fa45532933bc4d74afd2c5641df6ff19c5",
+      "eventKey": "82684cc71529a99e46302997c3d2a0ab9e89d91e77f3cd86d75bae39438d7185",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 17,
+      "episode": "0c661d4a55ad5e02cff2f335871c08fa45532933bc4d74afd2c5641df6ff19c5",
+      "eventKey": "be31d1ac1c1f5a638b8de283ef035199eed5c02e781c0b622b4e9b9a1bffcff9",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 17,
+      "episode": "0c661d4a55ad5e02cff2f335871c08fa45532933bc4d74afd2c5641df6ff19c5",
+      "eventKey": "f343a01113838fa7c70a4ff0daecb83a5bc84fd119c896323a6a86d09ba4a685",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "0f5dbac03794a715c2b9c78cc9d85c4051468eeeeaa53711bad7e57306de79d9",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "1beeec10ff75213f9567d724e5eee1e29dfdee0dfdb03e68fb511cbf7a745fdc",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "3d4580e9491df985faa7ae249ed5d2638b1b6856f61c6469822e5ef8ce123dfc",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "3f293a4966021864a64310dee772f338c196999a60c3330733e0cea5780e10de",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "6e257792ea57df574f5d70e82ae3f0ad3045c5586c927a37b25f6d0191406f96",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "70c7b6adad47bd169272dff2561a7f8ae1da63d48f6a9e8231af1c60f6f1949b",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "730a25c9b0fee0a588c5f7f5cda3229475d9502421ab5ee0d0cdd00a2889a134",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "7ca02fdd6aeeb429a39640990f7165a5524f451d520164e5e058ac7b0cfc6720",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "92319c9b5f512a53d6964c1e432d86c702714e782909671894d70242a8eafb9a",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "926fdd454e19d4c8a44f49c3a2e8a2edb8ddc12eaff74470ea3b4626e9705d94",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "9fc49c73045cb32c64dc15a2361e10cdbecd777e9eb73330d2c48d626923ffa5",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "b6664512f6b38c6eb2ef4438dab4e7f27f1bf1e84f77122899fd354d7e156291",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 42,
+      "episode": "15fb60715528a05011a9a4329b4dd5713c6f57eac6745d8cacb84352d9796a34",
+      "eventKey": "c13518e0cb79836edf4758cdf58fddcbd6fbd79b15ccd83c5096dd34e7bb4c31",
+      "scope": "SOLO",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 28,
+      "episode": "1c0db202664c2c1e82306bf629378cc33eb1752fa21ec42598bc9896b41a5dcc",
+      "eventKey": "47c2d1214046a728407b8a8d4d07cbdabe703e4a0a2c1b2496dd71cbf6810160",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 28,
+      "episode": "1c0db202664c2c1e82306bf629378cc33eb1752fa21ec42598bc9896b41a5dcc",
+      "eventKey": "8cfefa1f572273212dbf8da2029fc429d4151798fb0e64db45c00bf73cdceb81",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 28,
+      "episode": "1c0db202664c2c1e82306bf629378cc33eb1752fa21ec42598bc9896b41a5dcc",
+      "eventKey": "ab4e3366bf12d10c30f93b275e5d01186dc30e8acf65049e3577d221b91c96e8",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 28,
+      "episode": "1c0db202664c2c1e82306bf629378cc33eb1752fa21ec42598bc9896b41a5dcc",
+      "eventKey": "aecbda6153f85e0dff0877a75100773b2ee038a898a3d5b499b61e73a7f95cfc",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 28,
+      "episode": "1c0db202664c2c1e82306bf629378cc33eb1752fa21ec42598bc9896b41a5dcc",
+      "eventKey": "ec2b047d5f5fa0c4818eb31fcfbe3a568d2d7fa134f5e6ee43f3a54529a4923b",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 22,
+      "episode": "209c31237dc6eacdf1613c4a9314e982f88cc8d0ba5b07f3c8c1a79fa80884d5",
+      "eventKey": "38d7183cee91781284c6a13621016b0f09656c1bbeba2b9583f63ebd9b7ab802",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 22,
+      "episode": "209c31237dc6eacdf1613c4a9314e982f88cc8d0ba5b07f3c8c1a79fa80884d5",
+      "eventKey": "5d9c8ffdbe3198105f55dfea5157a642b2e19ef138e9295bed9d852f8a7f7b1a",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 22,
+      "episode": "209c31237dc6eacdf1613c4a9314e982f88cc8d0ba5b07f3c8c1a79fa80884d5",
+      "eventKey": "c0957055dc1728417fabaaf16a3fc6d5b3e2470a96d8f9882f7550c8d1407c61",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 22,
+      "episode": "209c31237dc6eacdf1613c4a9314e982f88cc8d0ba5b07f3c8c1a79fa80884d5",
+      "eventKey": "c9c4982503ea4173c143431cfe13b78811d0c0da362505da0e43d309150d0927",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 21,
+      "episode": "25bf425ba4c1d1c031c0dacf4b41c5450bb498f0f2801da3f9fdd9bed49d4251",
+      "eventKey": "1c090ef0229d56fb76dbb9e0e609137c6e9aa4ec6c6de0d88562f203f0bdb8f7",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 21,
+      "episode": "25bf425ba4c1d1c031c0dacf4b41c5450bb498f0f2801da3f9fdd9bed49d4251",
+      "eventKey": "50414bec978813bec5bb72d2da06f41d30e02eb891b6348fb0f453baf9dc2369",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 21,
+      "episode": "25bf425ba4c1d1c031c0dacf4b41c5450bb498f0f2801da3f9fdd9bed49d4251",
+      "eventKey": "c7998c0afb7f3ce269a92bdac35f8e604602147cba2ddf981ad5ce1fe4428b60",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 21,
+      "episode": "25bf425ba4c1d1c031c0dacf4b41c5450bb498f0f2801da3f9fdd9bed49d4251",
+      "eventKey": "d37023423f7ab16c328dd62b9139443f0e7827aeadebcf531f875122dd4f2aa6",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 21,
+      "episode": "25bf425ba4c1d1c031c0dacf4b41c5450bb498f0f2801da3f9fdd9bed49d4251",
+      "eventKey": "e5ada4caa180f976daae0d6377f38247a806e6bce082f3356a08e9539ff4a243",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 18,
+      "episode": "3486eef1bc60f5dfdfd8577d20f5131c2ee013fc2a3da5fe870afdac61d85ef1",
+      "eventKey": "5351a4f81dc12d5013c754a67abaa6e8f845a6cd92b1f62e4c59cfbfe50a3b70",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 18,
+      "episode": "3486eef1bc60f5dfdfd8577d20f5131c2ee013fc2a3da5fe870afdac61d85ef1",
+      "eventKey": "5ad797eb368ff8b8c6cc2bd309333bf4ed82bec0e7ee466c249e7ceba465a701",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 18,
+      "episode": "3486eef1bc60f5dfdfd8577d20f5131c2ee013fc2a3da5fe870afdac61d85ef1",
+      "eventKey": "a62b6010f31af6d3721ce54ce9b622165cece74e15c2a7201bf78beb7d9d9824",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 18,
+      "episode": "3486eef1bc60f5dfdfd8577d20f5131c2ee013fc2a3da5fe870afdac61d85ef1",
+      "eventKey": "fb2af919d17450439ccffd8c657df36a8e11f72afc19fd52a5b5bde9812ba58e",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 32,
+      "episode": "410a07a9ee2684986cd47b354efc60ae4d8dc9a5fa31f3f7dbbcc30e149dc93d",
+      "eventKey": "00af9d994cf289e8daf4bb6860add980c14dedc636dd5fed2ec5ef58c18b278f",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 32,
+      "episode": "410a07a9ee2684986cd47b354efc60ae4d8dc9a5fa31f3f7dbbcc30e149dc93d",
+      "eventKey": "2c045ed2f8da7739493ab87e9393143db69574b99394fcd34d914e662e4ac7c7",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 32,
+      "episode": "410a07a9ee2684986cd47b354efc60ae4d8dc9a5fa31f3f7dbbcc30e149dc93d",
+      "eventKey": "7e29ca4a59dd64b95e900cdc97ad493c147296f6c9c99ae3d47c1b9fd84dce89",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 32,
+      "episode": "410a07a9ee2684986cd47b354efc60ae4d8dc9a5fa31f3f7dbbcc30e149dc93d",
+      "eventKey": "9678b8c2197d80ad3c8a5632e01ade7828d01d8aad89bb558cb31ff95c7e841d",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 32,
+      "episode": "410a07a9ee2684986cd47b354efc60ae4d8dc9a5fa31f3f7dbbcc30e149dc93d",
+      "eventKey": "dafdb111150c83dda9c44f04fa16a36734a12aefe10131df2a34398eb22b3ad7",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 30,
+      "episode": "4608e6b5b8331d1235ed6a02d23e27572addceed3782c49750676f739c0396e3",
+      "eventKey": "0fc44492c3faceca80c4bfcf41f566cf807de828a04ac88f48884a7662c8d025",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 30,
+      "episode": "4608e6b5b8331d1235ed6a02d23e27572addceed3782c49750676f739c0396e3",
+      "eventKey": "92b099e54a7b1250eacba9ad703eeca13ca1dbd0e129b9d2618b06ab45f252c6",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 30,
+      "episode": "4608e6b5b8331d1235ed6a02d23e27572addceed3782c49750676f739c0396e3",
+      "eventKey": "a1649964fe255c85646076d2ad1bbc297d53f5b83035cc1833c6b37bee1dbd30",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 30,
+      "episode": "4608e6b5b8331d1235ed6a02d23e27572addceed3782c49750676f739c0396e3",
+      "eventKey": "c1107280f5c35ce10e65a8b4d151cb4c2b74dc2f666f510ff7694b2e9a852284",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 33,
+      "episode": "59660ec71f1920a2428b8812aa069c72a99454260b5ed4d59ad30cc0e23a8863",
+      "eventKey": "3e7161127e445febe3425d9ed6c611f357b0fe871b8b9eba40a559d1a11bea66",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 33,
+      "episode": "59660ec71f1920a2428b8812aa069c72a99454260b5ed4d59ad30cc0e23a8863",
+      "eventKey": "438f3bf54e5d53224e82ae58bece9fb23f48472052da505e331f3c709912a6ef",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 33,
+      "episode": "59660ec71f1920a2428b8812aa069c72a99454260b5ed4d59ad30cc0e23a8863",
+      "eventKey": "6c4656cd990c653cf0af08f62453907d6e4f0df07641ae29e9eb6b7327c6c4b5",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 33,
+      "episode": "59660ec71f1920a2428b8812aa069c72a99454260b5ed4d59ad30cc0e23a8863",
+      "eventKey": "c9f9b079751ef151669373ab0d1f7f0be4a7dd29b76d8a2229a3bd1c63117050",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 19,
+      "episode": "60b2540b1cc56ce8c7e740d28eef09e9604563cd8290ed69fd125e159abcf14e",
+      "eventKey": "2095944e75b0aa0c0ea1adc0d70e026f79feb848aa72fe96d9fe199f824383ce",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 19,
+      "episode": "60b2540b1cc56ce8c7e740d28eef09e9604563cd8290ed69fd125e159abcf14e",
+      "eventKey": "3e204223aeecb5a1b7b43fbf3984bea511773722656a3f7a7f833b25ed1cd3ee",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 19,
+      "episode": "60b2540b1cc56ce8c7e740d28eef09e9604563cd8290ed69fd125e159abcf14e",
+      "eventKey": "3f041ee0f63ae31c4d0d5f74609069a4a2e21ba175fec3db652f9d098caaf5ab",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 19,
+      "episode": "60b2540b1cc56ce8c7e740d28eef09e9604563cd8290ed69fd125e159abcf14e",
+      "eventKey": "f3ffe28409c49ed4b894202464b42a6ca328941a0fa6351a93e8d82732ed5b3a",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 20,
+      "episode": "688954d2ac6e69540d8c785ea187be080d007408a96fc1b54780728dc5f53525",
+      "eventKey": "200f92719ec7efa1ad50d708045521f721049099aa8661c426c2c5b8a2b46f1c",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 20,
+      "episode": "688954d2ac6e69540d8c785ea187be080d007408a96fc1b54780728dc5f53525",
+      "eventKey": "73cdfe0601c13166387de21e7d13e6c287b5c9ff35b3467611dc3d024d48b848",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 20,
+      "episode": "688954d2ac6e69540d8c785ea187be080d007408a96fc1b54780728dc5f53525",
+      "eventKey": "b13eb699337e6a2116056c14a0980371e9283c6431a6fe5f7862204d1fbd920e",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 20,
+      "episode": "688954d2ac6e69540d8c785ea187be080d007408a96fc1b54780728dc5f53525",
+      "eventKey": "bee98a7d70abc15e41562035ee1071763b84f9d9ace16346d1471b182f7fe687",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 26,
+      "episode": "831959f71f44f44de4e3fe89ef5167b1303b817f29c0030c3d4aa256dd2b4efe",
+      "eventKey": "61eae48a26f08a5d967b582a8d1ec7ee4d692dd49cb5f2629dbaa93382e6214c",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 26,
+      "episode": "831959f71f44f44de4e3fe89ef5167b1303b817f29c0030c3d4aa256dd2b4efe",
+      "eventKey": "81ac12e213c23fa7ffccfeebf7556a382374db92ca4fc7aebaf8de755b09ca94",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 26,
+      "episode": "831959f71f44f44de4e3fe89ef5167b1303b817f29c0030c3d4aa256dd2b4efe",
+      "eventKey": "b2e72e2d6d3a131bddb84e6d5b7d70d5851829560eeeb7861cc4dc01d7fd5096",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 26,
+      "episode": "831959f71f44f44de4e3fe89ef5167b1303b817f29c0030c3d4aa256dd2b4efe",
+      "eventKey": "b3dcac4690f7c7917b7ce517e769ac14b0d16d63bf1114f90f0fbb820c6e9b44",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 26,
+      "episode": "831959f71f44f44de4e3fe89ef5167b1303b817f29c0030c3d4aa256dd2b4efe",
+      "eventKey": "fe649109a5761586c069ee3243d4f76c6ceb4598852055182d929d1c5ff6192e",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 23,
+      "episode": "a59483d845d1e0b36418566a0ae673cbe689610a87d6f6b05637237d0605e9a6",
+      "eventKey": "0fd1f2d6d45771811dfd93d5b42ff0fc863e186fdf8115d79b51eed34f8a9569",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 23,
+      "episode": "a59483d845d1e0b36418566a0ae673cbe689610a87d6f6b05637237d0605e9a6",
+      "eventKey": "247f954c12096e50bda5f97edc50343e100aab9fbdddd43742601462797826e3",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 25,
+      "episode": "d3c3c41371961d06977c5d8a7126edd289aae09aa9afba53553dafc318b89dcf",
+      "eventKey": "1239ff4ae19536f7cda100620ea2cc6af1635094fc40a10d9b2a78c857d7e86d",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 25,
+      "episode": "d3c3c41371961d06977c5d8a7126edd289aae09aa9afba53553dafc318b89dcf",
+      "eventKey": "3965dffead2ef85fe2360ec268b7e2693cab98e3d1699d708fae7e958555c395",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 25,
+      "episode": "d3c3c41371961d06977c5d8a7126edd289aae09aa9afba53553dafc318b89dcf",
+      "eventKey": "60cf42ee0a3deff5d36ac6c1140b97ef4d9c9bc5b270efa1b4187bc11f30f209",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 25,
+      "episode": "d3c3c41371961d06977c5d8a7126edd289aae09aa9afba53553dafc318b89dcf",
+      "eventKey": "9621787dc5c79c03c1e9ff67c3a68eb6805af09e113beedc74b1fae92e15e74a",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 25,
+      "episode": "d3c3c41371961d06977c5d8a7126edd289aae09aa9afba53553dafc318b89dcf",
+      "eventKey": "ca51c33cb8a73229bebf1cc8466c962e5a2601bd0ae91fda7c49ff42ec163dc9",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 29,
+      "episode": "d7d119cff0de1554918163ba22ab1d7ad88b352062758e1bc1a52db9feafc034",
+      "eventKey": "20dc40d316674bcd103141611509444ba7aedd5de37b156a183ed64fc6a50799",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 29,
+      "episode": "d7d119cff0de1554918163ba22ab1d7ad88b352062758e1bc1a52db9feafc034",
+      "eventKey": "2a8f9dbdcb65cb77c7f37a629f1cf89b29158ed24c873ad2a9aa0a48be80b16d",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 29,
+      "episode": "d7d119cff0de1554918163ba22ab1d7ad88b352062758e1bc1a52db9feafc034",
+      "eventKey": "a5a98c9dc4515ab654f982f8d6b14c4f7c322ae652f68cb0555dd15cff16f0fd",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 29,
+      "episode": "d7d119cff0de1554918163ba22ab1d7ad88b352062758e1bc1a52db9feafc034",
+      "eventKey": "da179542dbafc4adddde851a299ef850be14017bb52edeb12f4c3a35985d5f3d",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 29,
+      "episode": "d7d119cff0de1554918163ba22ab1d7ad88b352062758e1bc1a52db9feafc034",
+      "eventKey": "e4eb0b43b2cfe6fdbacf5e63d221fd4277d7f7a97f2141f4a7b24294566d199e",
+      "scope": "PARTY",
+      "split": "TUNING",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 24,
+      "episode": "e4f87bee2fff2a673c1e105c13bdd9ad136704137caf4d24ccee63e2e1a96c9b",
+      "eventKey": "544cc5ed656d7f2b6b9004d5de0c497f8cdffa321bf48a4dfb6b111d23a3c12a",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 24,
+      "episode": "e4f87bee2fff2a673c1e105c13bdd9ad136704137caf4d24ccee63e2e1a96c9b",
+      "eventKey": "867ae74f2719ddac728c07704192ba28dbb4941177605d16e6ab702af60febb8",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 24,
+      "episode": "e4f87bee2fff2a673c1e105c13bdd9ad136704137caf4d24ccee63e2e1a96c9b",
+      "eventKey": "ce7ea21ea373c21ecd6f2366b566573c245aacc668a21542e9986a1506b5d53f",
+      "scope": "PARTY",
+      "split": "TRAIN",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 31,
+      "episode": "ed8c597429458f245ea1845b89f47e292b56ba345feefa6828cadc7d43aef98a",
+      "eventKey": "1cc2327e72ddba5b043d8895b79996381c640a11e0273340f558d0c1a996f3a8",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 31,
+      "episode": "ed8c597429458f245ea1845b89f47e292b56ba345feefa6828cadc7d43aef98a",
+      "eventKey": "2b41351a730a3588cbeccf3caa30ed4caf9a71996c67cf102addb0e2a268f891",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 31,
+      "episode": "ed8c597429458f245ea1845b89f47e292b56ba345feefa6828cadc7d43aef98a",
+      "eventKey": "3b6b874d851aaca5a174fa9bc7006bf90cd62708e8c5ff3d2e1ab99e8456f67b",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 31,
+      "episode": "ed8c597429458f245ea1845b89f47e292b56ba345feefa6828cadc7d43aef98a",
+      "eventKey": "cde7edf6efc9e95d6b8e2f1f8e76938ad35c434fca80ba76fb3dd1b3227f1fdb",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    },
+    {
+      "slot": 31,
+      "episode": "ed8c597429458f245ea1845b89f47e292b56ba345feefa6828cadc7d43aef98a",
+      "eventKey": "ffda053d86476e9cb3363f7733ddc51e4051e54f0f5dca694165c2cc2f0ab587",
+      "scope": "PARTY",
+      "split": "AUDIT",
+      "originalReason": "IllegalArgumentException",
+      "independentlyFailedChecks": [
+        "CANONICAL_CREDITED_EARNINGS_UNKNOWN"
+      ],
+      "nativeTimingAvailable": false,
+      "firstThrownCheck": "UNPROVEN_MISSING_NATIVE_TIMING",
+      "actorMatches": true,
+      "targetMatches": true
+    }
+  ],
+  "canonicalCensus": {
+    "readOnly": true,
+    "samples": 27,
+    "exactSelectionPairs": 27,
+    "registeredSelections": 51,
+    "gradient": 7,
+    "tuning": 6,
+    "audit": 4,
+    "required": [
+      16,
+      8,
+      8
+    ],
+    "shortage": [
+      9,
+      2,
+      4
+    ],
+    "classes": 2,
+    "scopes": [
+      "SOLO"
+    ],
+    "selectedNotStockGradient": 3,
+    "sufficient": false,
+    "datasetSha256": "bcdf86051d090a9ac46f533e287c89b87a71dace173e9cc3c074878c005402b6",
+    "upperBoundAfterPerfectPartyRescue": {
+      "gradient": 13,
+      "audit": 7,
+      "attainability": "UNPROVEN"
+    },
+    "directMissingTimingAndEmptyEligibleCounters016": "UNOBSERVED_IN_ALL_51_EPISODES"
+  },
+  "sqlCensus": {
+    "status": "PASS",
+    "sqlReadOnly": true,
+    "episodeRows": 51,
+    "nativeEventRows": 399,
+    "terminalRows": 27,
+    "typedTerminalMatches": 27,
+    "typedNativeActionMatches": 247,
+    "alreadyApplied": 0,
+    "individualV2Targets": {
+      "TRAIN": 7,
+      "TUNING": 6,
+      "AUDIT": 4
+    },
+    "completeFitAdmissible": false,
+    "historicalApplications": {
+      "advantage": 148,
+      "terminal": 13
+    },
+    "nativeTimingForExcluded": "NOT_PERSISTED",
+    "trainingCredit": false
+  },
+  "director": {
+    "status": "COMPLETED_NO_FIT",
+    "closureSha256": "4fd8f058c25e5a6290bc133abf93c3b395bc6e694c5d469d72204e2fe71934a2",
+    "markerSha256": "d24e426c10c932315f017e3ea6e6306a256620ba416092203546f57d49a94d8f",
+    "proofSha256": "38D1FA556E1F7EF9E01DB054B396164B84615C0881E222939E31CAAC0C24703E",
+    "historicalJournalSha256": "331CFECF66B1A82AB2BBA74E16C76195D9B4DF1388399E0B88627EC8ECD444E7",
+    "frozenCycleFiles": {
+      "base-config.json": "94956032AA6076803162E9DD17EBCD217E2DD4651009A06D1ECA2A1F6F7D8ECC",
+      "cycles\\c000001\\checkpoint016.json": "12284BC08DC3CF2A92D1C410068B93E04A1A92E3170077A0B872E5DA43F06B52",
+      "cycles\\c000001\\fit-reserved016.json": "3D3A5EF2FB3839C9A63FCD6999EF9AF84B96C1B61E3F47EDC91DDD65C10941BA",
+      "cycles\\c000001\\fit-result.json": "10E69B2C258FF39F6014B872358754C2C9C9E27692C8B3B79A914AD2D8BE6BD5"
+    },
+    "frozenPins": {
+      "TRAIN_CONFIG.ini": "B687881E82BFDB94B739D9C2FD5633F2E0F8F4538B1C7AFE4C710582C1BA5A0E",
+      "build.json": "397BDA89635EB733B9C9659DFE5F26D04DDD7A822DE4E67C02634C4F99DF47AE",
+      "owner.txt": "0E1745D3567030C59D6A756796FB90C5F49E435A2267328FF00A0183A4063AE5",
+      "geo203.json": "A8A4B73BC7B53BED28F545CD889F489492B585B369F8E84988F8DB8A91C973D5",
+      "protected207.json": "246AC12CD718E698B18E6AB2B338622B24D505F75BA492EB1CD348BCA2E335CD",
+      "autonomous\\v1\\cold-checkpoint.json": "ACC21BED707B518FB58E23FEC006E7D658723763C73C237A039D950E14C9B010",
+      "autonomous\\v16\\native-budget.json": "8846F368FE6BC3E3AA580701E3C751E58F02DD6E159F765652C9A3B5B3D163E0"
+    },
+    "selected": {
+      "modelVersion": 14,
+      "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "optimizerSha": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+      "terminalWeightsSha": "f830a1cc4ead23f36dd6153fd1d818bbb0ae3b830d9e666f1988a4c82f05e9bf",
+      "optimizerUpdates": 903,
+      "completedEpochs": 223,
+      "acceptedTestVersion": 2,
+      "acceptedTestSha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+      "schemaVersion": 13,
+      "featureSchemaSha": "a3648815c4afab480c4217c54e5a16e9b7e09118cbd50774c4e4f3ca83e15c58",
+      "productionPromotion": false
+    },
+    "executorPhysicalPins": {
+      "tools\\phantom-runtime\\training\\Training.ps1": "FF12058331B7506C43E2693753C2AFD76AC5045634E0B30A31049FCAE87A97F2",
+      "tools\\phantom-runtime\\training\\TrainingOwner.ps1": "5F846A595459CBD3694A743DB8B7FC288C02898C27C03EF62B9970C35F28288E",
+      "tools\\phantom-runtime\\training\\Test-Training.ps1": "A45005EA684F41D614E51D00B434CD2A8FD104A9C0DEAE8CD210AE6EB77F1B4C",
+      "test\\java\\org\\l2jmobius\\tests\\phantoms\\PhantomAutonomousTrainingNative.java": "BE9D322DAF59DAED76B3559430C353E7233733FF01AAEAE0FD25644282A564C0",
+      "test\\java\\org\\l2jmobius\\tests\\phantoms\\PhantomLearning001ShadowNative.java": "5B84A208242D7C85302280AC2BE4B99764803F7AB4D5B217C17E95F788A9A9CB"
+    },
+    "coldProofSha256": "1FBAF3614152497ED163524EEBF52C62219F0857AA14DCE19FCE9EAA756D7038",
+    "optimizerDelta": 0,
+    "trainingCredit": false,
+    "independentEvaluation": false,
+    "productionPromotion": false,
+    "repeat": "SAME_BYTES",
+    "historicalJournalPhase": "FIT",
+    "historicalCompletedCycles": 0,
+    "externalRepairCompletedCycles": 1,
+    "historicalErrorPreserved": true
+  },
+  "protection": {
+    "status": "PASS",
+    "historicalDrift": 0,
+    "immutableOriginals": 1822,
+    "backupCopies": 1823,
+    "backupBytes": 29127467,
+    "operationalChangeOnly": "worker-process.json: owned read-only SQL Export receipt; old bytes retained",
+    "sql183Sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+    "mainPlayStudio": "NO_WRITES_BY017; foreign dirt preserved"
+  },
+  "budget": {
+    "gameServerStarts017": 0,
+    "nativeMilliseconds017": 0,
+    "fit017": 0,
+    "independentEval017": 0,
+    "promotion017": 0,
+    "ownedReadOnlySqlSessions": 2,
+    "sqlHeldExitCodes": [
+      0,
+      0
+    ],
+    "historical016": {
+      "starts": 2,
+      "milliseconds": 4269588,
+      "minutes": 71.1598,
+      "changed": false
+    },
+    "javaCliXmxMiB": 256,
+    "peakCpu": "UNKNOWN_NOT_MEASURED",
+    "peakRam": "UNKNOWN_NOT_MEASURED",
+    "gateWallSeconds": {
+      "java-gates017.json": [
+        {
+          "gate": "phantom-autonomous-training-test",
+          "seconds": 35.5097612,
+          "exitCode": 0
+        },
+        {
+          "gate": "phantom-learning008-test",
+          "seconds": 58.065171,
+          "exitCode": 0
+        },
+        {
+          "gate": "phantom-learning007-test",
+          "seconds": 67.409862,
+          "exitCode": 0
+        },
+        {
+          "gate": "jar",
+          "seconds": 23.6641494,
+          "exitCode": 0
+        },
+        {
+          "gate": "phantom-humanized-v3-content-validate",
+          "seconds": 62.0840981,
+          "exitCode": 0
+        }
+      ],
+      "ps-gates017.json": [
+        {
+          "gate": "closure017",
+          "seconds": 4.6325248,
+          "exitCode": 0
+        },
+        {
+          "gate": "cycle013",
+          "seconds": 1.0000339,
+          "exitCode": 0
+        },
+        {
+          "gate": "readiness016",
+          "seconds": 1.1858981,
+          "exitCode": 0
+        },
+        {
+          "gate": "headless013",
+          "seconds": 9.7199112,
+          "exitCode": 0
+        },
+        {
+          "gate": "config",
+          "seconds": 0.6490912999999999,
+          "exitCode": 0
+        },
+        {
+          "gate": "atomic",
+          "seconds": 0.5087482999999999,
+          "exitCode": 0
+        }
+      ]
+    },
+    "finalBuildSeconds": 42,
+    "temporaryNativeProcessesRemaining": 0,
+    "externalEvidenceDiskSnapshot": {
+      "files": 1958,
+      "bytes": 33407770,
+      "excludes": "SOURCE build and subsequent publication readback"
+    }
+  },
+  "review": {
+    "rounds": 1,
+    "initial": "REQUEST_CHANGES",
+    "critical": 0,
+    "important": 3,
+    "minor": 2,
+    "ruling": "Both Minor items regraded Important because explicit 017 contracts; all five fixed in ONE pass",
+    "fixed": [
+      "readonly process helper/root",
+      "canonical SQL inventory and aliases",
+      "concurrent immutable publication",
+      "direct diagnostic counters",
+      "negative marker trainingCredit"
+    ],
+    "additionalBoundary": "Existing TEST director.lock read-only exclusive lease",
+    "secondReview": false,
+    "deferred": [],
+    "unverified": [
+      "real composed ONE_FIT forbidden",
+      "native observer runtime overhead NOT_MEASURED"
+    ]
+  },
+  "sourceFiles": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "physicalSha256": "be9d322daf59daed76b3559430c353e7233733ff01aaeae0fd25644282a564c0",
+      "gitEncoding": "Existing BOM retained; CRLF working copy, LF Git blob"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "physicalSha256": "5b84a208242d7c85302280ac2be4b99764803f7ab4d5b217c17e95f788a9a9cb",
+      "gitEncoding": "Existing BOM retained; CRLF working copy, LF Git blob"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "physicalSha256": "5f846a595459cbd3694a743db8b7fc288c02898c27c03ef62b9970c35f28288e",
+      "gitEncoding": "Existing BOM retained; CRLF working copy, LF Git blob"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "physicalSha256": "ff12058331b7506c43e2693753c2afd76ac5045634e0b30a31049fcae87a97f2",
+      "gitEncoding": "Existing BOM retained; CRLF working copy, LF Git blob"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "physicalSha256": "a45005ea684f41d614e51d00b434cd2a8fd104a9c0deae8cd210ae6eb77f1b4c",
+      "gitEncoding": "Existing BOM retained; CRLF working copy, LF Git blob"
+    }
+  ],
+  "unchangedInputs": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/START_HERE.md",
+      "sha256": "342f0ef0902ea2fded6e07d30691036e324e9ec899ccaa022f0e1a7a52b317f6"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/TASK.md",
+      "sha256": "9c0b2ff57dd1c41d004d7cb5cd3c676aa5eace13493077edb69d69362fb6ca66"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PRE_AUDIT.md",
+      "sha256": "f875488fc7a5f5c8bc5a1ec801040f069e07cb27a2755f92363c3b2ce3f0b912"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PARTY_REWARD_CONTRACT.md",
+      "sha256": "378161efe378605e7858cbbe50e054c81ef44f2c318da262a5abb07a11e5974c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/DATA_SUFFICIENCY.md",
+      "sha256": "6c427d3f7c1948df5937d66b9a629707359ec9b028aeb5d167d3444c88a117d3"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/DIRECTOR_CLOSURE.md",
+      "sha256": "cba4e6452c66d365ccf0432a6afc113ab3389b5311048982e6481331e3c566c8"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PLAN.md",
+      "sha256": "99326569c5155e54e21f8564e9a6aea83f3b33112f6fa9e293486ef6bc511283"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/TEST_MATRIX.md",
+      "sha256": "121071a1d5525247c574a41800b03d4bfaa5300df80fbb2778aa62b6b3be1cf0"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/ACCEPTANCE.md",
+      "sha256": "0e1cdca2402b029be12017bdbef5975f1c348b228c87408d205d31f4749c0bf5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/GIT_AND_PRESERVATION.md",
+      "sha256": "608d9eecfb08fa9e5240bdb8a58f41e709af82c84b2fca331616ca547e6b6bda"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/HANDOFF.md",
+      "sha256": "0d0769b052130cb12ec4dd78c38740c2ff0490cdce5585da88315ecc1d94cb57"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/SOURCE_POINTERS.md",
+      "sha256": "e9fb98898bb70c6361297a1e939adecc4e33dd905f9441c1e6758414d44c6a29"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/MANIFEST.sha256",
+      "sha256": "e5232ab15feb867dccb3886e8d2d5f085bad09e3f6efc9b29288cb9ddc3b9134"
+    }
+  ],
+  "privateEvidence": {
+    "location": "EVIDENCE017 (operator external evidence directory; retained, not committed)",
+    "files": {
+      "boundary017-final.log": {
+        "sha256": "5cf48e01d84fb39bd1786de5dbc3b995bc238cf4b09f780167c8230b67359598",
+        "bytes": 253
+      },
+      "boundary017.log": {
+        "sha256": "51c9cbd7ade2de3dbce2ccc7835877420819ba0738c2712d32eddc7f144ad1f0",
+        "bytes": 220
+      },
+      "census017-final.log": {
+        "sha256": "14b052131fcd1f4deb3fd540978efbd23692a5e0b01eafe770e4ac20752b9853",
+        "bytes": 2055
+      },
+      "final017-build.log": {
+        "sha256": "3bcc4047916b36f59e30a72ad7ba00ce5ac8e3e3fbe9fcca038530d0574c2e9e",
+        "bytes": 13490
+      },
+      "final017-census.log": {
+        "sha256": "6fbac44de124d6bb28026d4146429d1cff3efccbd24ff8b6775ebbc55f2fbeaf",
+        "bytes": 5602
+      },
+      "final017-party.log": {
+        "sha256": "b9066611b93356195d532be4984c3add2490a034b1b15ad2bb7afe9c0b98ca0f",
+        "bytes": 154
+      },
+      "gate017-jar.log": {
+        "sha256": "6039a14a833feb24e08ea5ec1777cd13f3ea79df789cbcdc01acb3398cf457a3",
+        "bytes": 11738
+      },
+      "gate017-phantom-autonomous-training-test.log": {
+        "sha256": "a2bfb9b5f19a4570a3b450314cea43f542cb9924fed96bad73ffe925e2ceaae4",
+        "bytes": 19884
+      },
+      "gate017-phantom-humanized-v3-content-validate.log": {
+        "sha256": "c961acd861ff3f576820f8e79639e576e6424fc4d70e691c998901f3b0306e18",
+        "bytes": 17532
+      },
+      "gate017-phantom-learning007-test.log": {
+        "sha256": "aa592ecdf3a42daf1f76cee0f9c69c64a64169a047554cc05236d63871be74c3",
+        "bytes": 16232
+      },
+      "gate017-phantom-learning008-test.log": {
+        "sha256": "77eaf3fbe24e131bc55e568e6947c2f54482bea264ff1418bba577fe9922709f",
+        "bytes": 16536
+      },
+      "gate017-ps-atomic.log": {
+        "sha256": "0cf4ca0e4af13186bc48ab2566f32d9023209f22999dfe650f0b41643616f0a2",
+        "bytes": 282
+      },
+      "gate017-ps-closure017.log": {
+        "sha256": "af7e8001bd7eb1a885eebcb2414e064331b2a5f9df6a271c505e2845538d2d20",
+        "bytes": 202
+      },
+      "gate017-ps-config.log": {
+        "sha256": "912eee80da0eafcea63aed9b89f670d284433ff5caf04411011f191d8bfda1ab",
+        "bytes": 366
+      },
+      "gate017-ps-cycle013.log": {
+        "sha256": "3e79d397b3fb998db9fc952153b063dbd74290d54e236be80650758ec98625d0",
+        "bytes": 538
+      },
+      "gate017-ps-headless013.log": {
+        "sha256": "73beb930d47d4217c1b95ba343a866674652281e14c407e5ce531b67c13af97e",
+        "bytes": 714
+      },
+      "gate017-ps-readiness016.log": {
+        "sha256": "cf1c312d30acefc358cbdc9fb02a230cf095e0f7c046d68d05aeab825ed6c8b0",
+        "bytes": 282
+      },
+      "green017-cold.log": {
+        "sha256": "03bfbbd38ea07a6438a3e335749aead7b7d861a154a56367fbb652c2ca61a9d8",
+        "bytes": 100
+      },
+      "green017-java-compile.log": {
+        "sha256": "7bcc5ce43ed38140bf3f38a551270b3dda70638595896f9f67854595ab6a2ccc",
+        "bytes": 7588
+      },
+      "green017-party.log": {
+        "sha256": "9180edaaff086ca80252b22acd123a77d04f0540a69fd4cd62de7f71a62598ac",
+        "bytes": 76
+      },
+      "green017-phase.log": {
+        "sha256": "03bfbbd38ea07a6438a3e335749aead7b7d861a154a56367fbb652c2ca61a9d8",
+        "bytes": 100
+      },
+      "green017-readiness016.log": {
+        "sha256": "ca87fd62cdc300af46631e25cced38387370c8a39d0f61055ddd3becdf34215b",
+        "bytes": 140
+      },
+      "red017-cold.log": {
+        "sha256": "487d459ae87b377d13547122135567c7126d25f6305dc1ccd37f04907ddc2621",
+        "bytes": 509
+      },
+      "red017-java-compile.log": {
+        "sha256": "7bcc5ce43ed38140bf3f38a551270b3dda70638595896f9f67854595ab6a2ccc",
+        "bytes": 7588
+      },
+      "red017-party.log": {
+        "sha256": "b2786401ab124c5796e74d3ae74ca5731d8d5a85e2f7f418049c71b33b906bd9",
+        "bytes": 337
+      },
+      "red017-phase.log": {
+        "sha256": "ac596c5213c242d335e942b13330190cfd928756f5080b8bb28395832f57c100",
+        "bytes": 509
+      },
+      "regression017-learning016.log": {
+        "sha256": "0384919bf490387e75b399ed239631a2112cb8b4af6a69e9e83fa4fefa7e1a5e",
+        "bytes": 7747
+      },
+      "regression017-readiness016-initial.log": {
+        "sha256": "d8ff1c44eb865543a71e537605353b3c814fa23a21e32e76b5dbc475d2ddde04",
+        "bytes": 407
+      },
+      "repair017-first.log": {
+        "sha256": "82060466cd85373694947301fd6aa7cef2201daba7e07cb94f8a401820a15d00",
+        "bytes": 58
+      },
+      "repair017-repeat.log": {
+        "sha256": "82060466cd85373694947301fd6aa7cef2201daba7e07cb94f8a401820a15d00",
+        "bytes": 58
+      },
+      "review-green017-alias.log": {
+        "sha256": "1bdba332be0430fa4914a2f17d77083c83b9e0baf885289791f67cf385d96c70",
+        "bytes": 131
+      },
+      "review-green017-counters-compile.log": {
+        "sha256": "842e8a358bf52bbff202ccef6a09213b3e731fdb3c4f30045dae3d9e0f0162d5",
+        "bytes": 7588
+      },
+      "review-green017-counters.log": {
+        "sha256": "9180edaaff086ca80252b22acd123a77d04f0540a69fd4cd62de7f71a62598ac",
+        "bytes": 76
+      },
+      "review-green017-marker.log": {
+        "sha256": "03bfbbd38ea07a6438a3e335749aead7b7d861a154a56367fbb652c2ca61a9d8",
+        "bytes": 100
+      },
+      "review-green017-publication.log": {
+        "sha256": "03bfbbd38ea07a6438a3e335749aead7b7d861a154a56367fbb652c2ca61a9d8",
+        "bytes": 100
+      },
+      "review-green017-readonly.log": {
+        "sha256": "03bfbbd38ea07a6438a3e335749aead7b7d861a154a56367fbb652c2ca61a9d8",
+        "bytes": 100
+      },
+      "review-red017-alias.log": {
+        "sha256": "47cc9585a6cb47ab553d8d19ae3fc3da22834587fa0b5ebf9aed095fa7ff4f48",
+        "bytes": 498
+      },
+      "review-red017-counters-compile.log": {
+        "sha256": "66e870d47925ff130c6df41f7f8fb59c34ba6f4a6fc428ecee6c7311a9a93d1a",
+        "bytes": 7588
+      },
+      "review-red017-counters.log": {
+        "sha256": "25a41926622b2316122f78f35f242c22dda2e9654edc33b4e47125b5d2b4eee7",
+        "bytes": 464
+      },
+      "review-red017-input-lease.log": {
+        "sha256": "1db20a9ca41e86a2fff37911bd86f8f78b38c21a287c7dcaaef22cbc3da53c06",
+        "bytes": 461
+      },
+      "review-red017-marker.log": {
+        "sha256": "3543a392e318257ed591b9cb9a245a0e20d073a04fc3d339a5b78d8c9c0f4085",
+        "bytes": 512
+      },
+      "review-red017-publication.log": {
+        "sha256": "2eb46cf8226ababc9f390315718d9ff42dc99a80e2d72a1fd43fd328ed032823",
+        "bytes": 507
+      },
+      "review-red017-readonly.log": {
+        "sha256": "a42f3c923c50bef68fd2fef0cec1b665514e831dce5e838a25e66d2f1a85668c",
+        "bytes": 503
+      },
+      "backup-manifest017.json": {
+        "sha256": "20a058297c91d43ec48e5241db51a73cd55d22ebbbc15b2c741ff00264a02c72",
+        "bytes": 725292
+      },
+      "additional-manifest017.json": {
+        "sha256": "d86f0121d3d93e4527ac8441096ce3d1b77f6d3eafdba8b696c18ff40133a622",
+        "bytes": 43306
+      },
+      "raw-audit017.json": {
+        "sha256": "47b6ebb8a409bfcb845f34696d86827c84816582fab159f0efd062d83e91af80",
+        "bytes": 68734
+      },
+      "cold-proof-after017.json": {
+        "sha256": "1fbaf3614152497ed163524eebf52c62219f0857aa14dce19fce9eaa756d7038",
+        "bytes": 128106
+      },
+      "sql-census017.json": {
+        "sha256": "0c71297882e3e35b63beab0e49101f9d3347c2b6084bd025cd5c7d421e7c8229",
+        "bytes": 486
+      },
+      "preservation-final017.json": {
+        "sha256": "e1cfc8d836a89e3296fff71cb2ed297163add2cda2b47ff4abef830834619e4f",
+        "bytes": 727
+      },
+      "safety-final017.json": {
+        "sha256": "12ca240e47e55520ad357f3f02d261b640ab31f690937374d5dfb65929303771",
+        "bytes": 794
+      },
+      "repair017-result.json": {
+        "sha256": "c972a05102117b08d48b0ab3c4c3eeabd86a0008777cd09b263b0a7ee86a95d8",
+        "bytes": 367
+      },
+      "java-gates017.json": {
+        "sha256": "038d1a198e304ed548f79c0805a32c2bbf24f523db83cfc97a583082cae46108",
+        "bytes": 1891
+      },
+      "ps-gates017.json": {
+        "sha256": "2544d1b39bb1c6b88b3a173b5407bbcd077ad9e04af586766fd3c46a03c18f10",
+        "bytes": 2114
+      }
+    }
+  },
+  "futureDataset": {
+    "executed": false,
+    "oneProposalOnly": true,
+    "preselectedExactCells": 3,
+    "minimumClasses": 2,
+    "minimumScopes": 2,
+    "perCell": {
+      "independentTrainStock": 6,
+      "trainExploratory": 8,
+      "tuning": 5,
+      "audit": 5
+    },
+    "totalSlots": 72,
+    "theoreticalTargets": [
+      24,
+      15,
+      15
+    ],
+    "partyYield": "UNPROVEN: historical 0/6 exploratory",
+    "soloYield": "7/12 exploratory",
+    "nativeMinutesAtOldMean": 100.46,
+    "fitsCurrent017Budget": false
+  },
+  "publication": {
+    "status": "PENDING",
+    "readback": "READBACK.json; final receipt-only HEAD verified separately"
+  },
+  "encoding": {
+    "mojibake": "PASS_25_FILES_ZERO_MATCHES",
+    "escapedCyrillic": "PASS_25_FILES_ZERO_MATCHES"
+  }
+}

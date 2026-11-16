@@ -6,6 +6,7 @@ param(
     [switch]$Readiness014,
     [switch]$Readiness015,
     [switch]$Readiness016,
+    [switch]$Closure017,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -18,6 +19,156 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($Closure017){
+    $fixture=Join-Path ([IO.Path]::GetTempPath()) ('Training017-'+[guid]::NewGuid().ToString('N'))
+    $campaign=Join-Path $fixture 'autonomous009-learning016-g2-v1'
+    $cycle=Join-Path $campaign 'cycles\c000001'
+    $null=[IO.Directory]::CreateDirectory($cycle)
+    try{
+        $parent=@{schemaVersion=13;modelVersion=14;modelSha=('a'*64);optimizerSha=('b'*64);terminalWeightsSha=('c'*64);optimizerUpdates=903;completedEpochs=223;acceptedTestVersion=2;acceptedTestSha=('d'*64);featureSchemaSha=('e'*64);productionPromotion=$false}
+        $dataset='autonomous009-learning016-g2-v1-c000001'
+        $config=@{autonomous016Version='1';autonomous013Version='1';autonomous009Campaign='autonomous009-learning016-g2-v1';outcome006DatasetId=$dataset}
+        Write-TrainJson (Join-Path $campaign 'base-config.json') $config
+        $reservation=Join-Path $cycle 'fit-reserved016.json'
+        Write-TrainJson $reservation @{schemaVersion=16;cycle=$dataset;parent=$parent;trainingCredit=$false}
+        Write-TrainJson (Join-Path $cycle 'fit-result.json') @{candidateVersion=0;productionPromotion=$false;reservationSha=(Get-FileHash -LiteralPath $reservation).Hash;metrics=@{usedForTraining=$false;objective='ACQUIRED_ACTION_ADVANTAGE_V2'}}
+        $checkpoint=Join-Path $cycle 'checkpoint016.json'
+        $saved=@{schemaVersion=16;cycle=$dataset;selected=$parent;parent=$parent;fits=0;reason='NO_FIT_INSUFFICIENT_VALID_DATA';independentEvaluation=$false;productionPromotion=$false;bestVersion=2;bestSha=('d'*64)}
+        Write-TrainJson $checkpoint $saved
+        $checkpointSha=(Get-FileHash -LiteralPath $checkpoint).Hash
+        $journal=[pscustomobject]@{schemaVersion=13;campaign=$config.autonomous009Campaign;cycle=1;dataset=$dataset;phase='FIT';fits=0;completedCycles=0;pending=$false;pendingDecision=$null;sourceSha=('f'*64);jarSha=('1'*64);parentCheckpoint=[pscustomobject]$parent;patience=0;bestVersion=2;bestSha=('d'*64)}
+        $path=Join-Path $campaign 'director-state.json'
+        Save-TrainCycleState013 $path $journal
+        $journal.phase='DONE016';$journal.completedCycles=1
+        try{Save-TrainCycleState013 $path $journal}catch{throw 'TRAIN017_VALID_NO_FIT_DONE016_REJECTED'}
+        Require ((Read-TrainJson $path).phase -ceq 'DONE016') 'TRAIN017_FINAL_PHASE_NOT_SAVED'
+        foreach($phase in @('DONE017','SOME999')){
+            $bad=$journal.PSObject.Copy();$bad.phase=$phase
+            $refused=$false;try{Save-TrainCycleState013 $path $bad}catch{$refused=$true}
+            Require $refused 'TRAIN017_UNKNOWN_NUMERIC_PHASE_ACCEPTED'
+        }
+        foreach($version in @('0','13','14','15')){
+            $badConfig=$config.Clone();$badConfig.autonomous016Version=$version
+            Write-TrainJson (Join-Path $campaign 'base-config.json') $badConfig
+            $refused=$false;try{Save-TrainCycleState013 $path $journal}catch{$refused=$true}
+            Require $refused 'TRAIN017_LEGACY_DONE016_ACCEPTED'
+        }
+        Write-TrainJson (Join-Path $campaign 'base-config.json') $config
+        foreach($change in @(@{fits=1},@{reason='ONE_FIT_COLD_RESTORED'},@{cycle='foreign'},@{productionPromotion=$true})){
+            $bad=$saved.Clone();foreach($key in $change.Keys){$bad[$key]=$change[$key]};Write-TrainJson $checkpoint $bad
+            $refused=$false;try{Save-TrainCycleState013 $path $journal}catch{$refused=$true}
+            Require $refused 'TRAIN017_CHANGED_CHECKPOINT_ACCEPTED'
+        }
+        Write-TrainJson $checkpoint $saved
+        Require ((Get-FileHash -LiteralPath $checkpoint).Hash -ceq $checkpointSha) 'TRAIN017_FIXTURE_CHECKPOINT_DRIFT'
+        Initialize-TrainWin32
+        $processFixture=@{Root=(Join-Path $fixture 'process-owner');Sql=(Join-Path $fixture 'process-owner\sql')}
+        New-TrainPrivateRoot $processFixture
+        $release=Join-Path $processFixture.Root 'release';$ready=Join-Path $processFixture.Root 'ready'
+        $stub=Join-Path $processFixture.Root 'child.ps1'
+        Write-TrainText $stub 'param($Ready,$Release) [IO.File]::WriteAllText($Ready,"ready");$end=[DateTime]::UtcNow.AddSeconds(15);while(![IO.File]::Exists($Release) -and [DateTime]::UtcNow -lt $end){Start-Sleep -Milliseconds 20};exit 7'
+        $arguments='-NoProfile -ExecutionPolicy Bypass -File "'+$stub+'" -Ready "'+$ready+'" -Release "'+$release+'"'
+        $child=Start-Process -FilePath $layout.PowerShell -ArgumentList $arguments -WindowStyle Hidden -PassThru
+        $held=Hold-ProcessHandle $child
+        try{
+            $end=[DateTime]::UtcNow.AddSeconds(10)
+            while(!(Test-Path -LiteralPath $ready) -and [DateTime]::UtcNow -lt $end){Start-Sleep -Milliseconds 20}
+            Require (Test-Path -LiteralPath $ready) 'TRAIN017_CHILD_NOT_READY'
+            $record=New-TrainProcessRecord $child $layout.PowerShell ([guid]::NewGuid().ToString('N')) Worker
+            $null=[IO.Directory]::CreateDirectory((Join-Path $processFixture.Root ('workers\'+$record.nonce)))
+            Write-TrainText $release 'exit';Require ($child.WaitForExit(5000)) 'TRAIN017_CHILD_NOT_EXITED'
+            Write-TrainExitReceipt $processFixture $record $child $held
+            & {
+                function Get-TrainLayout {return $processFixture}
+                Require (Test-TrainProcessAbsent $record $child $held $processFixture) 'TRAIN017_READONLY_HELD_EXIT_REJECTED'
+                Require (!(Test-Path -LiteralPath (Join-Path $processFixture.Root 'process-observations'))) 'TRAIN017_READONLY_PROBE_WROTE_HISTORY'
+                $unseen={param($ProcessId017) [pscustomobject]@{Success=$false;Error=31}}
+                Require (Test-TrainProcessAbsent $record $null $null $processFixture $unseen) 'TRAIN017_READONLY_PRIVATE_EXIT_RECEIPT_NOT_USED'
+                $foreign=$record.PSObject.Copy();$foreign.nonce='f'*32
+                $rejected=$false;try{$null=Test-TrainProcessAbsent $foreign $null $null $processFixture $unseen}catch{$rejected=$_.Exception.Message -ceq 'TRAIN002_PROCESS_VISIBILITY_UNKNOWN'}
+                Require $rejected 'TRAIN017_READONLY_UNPROVEN_EXIT_ACCEPTED'
+                $script:ProcessProbeQueries017=0
+                $retry={param($ProcessId017) $script:ProcessProbeQueries017++;[pscustomobject]@{Success=$false;Error=$(if($script:ProcessProbeQueries017 -eq 1){5}else{87})}}
+                Require (Test-TrainProcessAbsent $record $null $null $processFixture $retry) 'TRAIN017_READONLY_RETRY_NOT_ABSENT'
+                Require (!(Test-Path -LiteralPath (Join-Path $processFixture.Root 'process-observations'))) 'TRAIN017_READONLY_RETRY_WROTE_HISTORY'
+            }
+        }finally{if(!$child.HasExited){Write-TrainText $release 'exit';$null=$child.WaitForExit(5000)};$child.Dispose()}
+        $tokens=$null;$errors=$null
+        $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
+        Require ($errors.Count -eq 0) 'TRAIN017_SOURCE_PARSE'
+        $definitions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Test-TrainIncremental016'},$false)
+        . ([scriptblock]::Create(($definitions|ForEach-Object {$_.Extent.Text}) -join "`n"))
+        $director=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Invoke-TrainAutonomousDirector013'},$false)[0]
+        $fitNode=$director.Body.FindAll({param($n) $n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.StartsWith("if(`$journal.phase -ceq 'FIT')",[StringComparison]::Ordinal)},$true)[0]
+        $fitBody=[scriptblock]::Create($fitNode.Extent.Text)
+        & {
+            $journal.phase='FIT';$journal.completedCycles=0
+            $config=@{autonomous016Version='1'};$script:Config=$config;$layout=@{Root=$fixture};$cycleDirectory=$cycle;$directory=$campaign
+            $Dependencies=$null
+            function Write-TrainConfig {throw 'TRAIN017_UNEXPECTED_CONFIG_WRITE'}
+            function Publish-TrainState {throw 'TRAIN017_UNEXPECTED_HISTORY_WRITE'}
+            function Invoke-TrainJava {throw 'TRAIN017_UNEXPECTED_JAVA'}
+            function Read-TrainCold013 {throw 'TRAIN017_UNEXPECTED_SQL'}
+            $cause='';try{& $fitBody}catch{$cause=$_.Exception.Message}
+            Require ($cause -ceq 'TRAIN017_EXISTING_CHECKPOINT_USE_REPAIR') 'TRAIN017_COLD_FIT_ENTERED_EXTERNAL_WORK'
+        }
+        $proof=Get-TrainNoFitCompletion016 $campaign $journal
+        $repair=Join-Path $fixture 'repair-closure017'
+        $before=(Get-FileHash -LiteralPath $path).Hash
+        $first=Write-TrainNoFitClosure017 $repair $proof
+        $receiptPath=Join-Path $repair 'closure.json';$receiptSha=(Get-FileHash -LiteralPath $receiptPath).Hash
+        $again=Write-TrainNoFitClosure017 $repair $proof
+        Require ($first.status -ceq 'COMPLETED_NO_FIT' -and $again.status -ceq 'COMPLETED_NO_FIT' -and
+            (Get-FileHash -LiteralPath $receiptPath).Hash -ceq $receiptSha -and (Get-FileHash -LiteralPath $path).Hash -ceq $before -and
+            (Get-FileHash -LiteralPath $checkpoint).Hash -ceq $checkpointSha) 'TRAIN017_COLD_CLOSURE_MUTATED_HISTORY'
+        $markerPath=Join-Path $repair 'complete.json';$markerText=[IO.File]::ReadAllText($markerPath)
+        $marker=Read-TrainJson $markerPath;$marker.trainingCredit=$true;Write-TrainJson $markerPath $marker
+        $refused=$false;try{$null=Write-TrainNoFitClosure017 $repair $proof}catch{$refused=$true}
+        Require $refused 'TRAIN017_TAMPERED_CREDIT_MARKER_ACCEPTED'
+        Write-TrainText $markerPath $markerText
+        $race=Join-Path $fixture 'parallel-closure';$proofPath=Join-Path $fixture 'parallel-proof.json';Write-TrainJson $proofPath $proof
+        $publisher=Join-Path $fixture 'publisher.ps1'
+        Write-TrainText $publisher 'param($Owner,$Directory,$ProofPath,$Ready,$ResultPath) $ErrorActionPreference="Stop";. $Owner;[IO.File]::WriteAllText($Ready,"ready");$closed=Write-TrainNoFitClosure017 $Directory (Read-TrainJson $ProofPath);Write-TrainJson $ResultPath @{status=$closed.status;receiptSha=(Get-FileHash -LiteralPath (Join-Path $Directory "closure.json")).Hash}'
+        $hash=[Security.Cryptography.SHA256]::Create()
+        try{$lockName='Local\PhantomTrainClosure017_'+([BitConverter]::ToString($hash.ComputeHash([Text.Encoding]::UTF8.GetBytes([IO.Path]::GetFullPath($race).TrimEnd('\').ToUpperInvariant())))).Replace('-','')}finally{$hash.Dispose()}
+        $mutex=[Threading.Mutex]::new($false,$lockName);Require ($mutex.WaitOne(5000)) 'TRAIN017_FIXTURE_LOCK_BUSY'
+        $publishers=@();$released=$false
+        try{
+            foreach($index in 0..1){
+                $readyPath=Join-Path $fixture ('publisher-ready'+$index);$resultPath=Join-Path $fixture ('publisher-result'+$index+'.json')
+                $argsLine='-NoProfile -ExecutionPolicy Bypass -File "'+$publisher+'" -Owner "'+$owner+'" -Directory "'+$race+'" -ProofPath "'+$proofPath+'" -Ready "'+$readyPath+'" -ResultPath "'+$resultPath+'"'
+                $process=Start-Process -FilePath $layout.PowerShell -ArgumentList $argsLine -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $fixture ('publisher'+$index+'.out')) -RedirectStandardError (Join-Path $fixture ('publisher'+$index+'.err'))
+                $publishers+=@{process=$process;handle=(Hold-ProcessHandle $process);ready=$readyPath;result=$resultPath}
+            }
+            $limit=[DateTime]::UtcNow.AddSeconds(10)
+            while(@($publishers|Where-Object {!(Test-Path -LiteralPath $_.ready)}).Count -and [DateTime]::UtcNow -lt $limit){Start-Sleep -Milliseconds 20}
+            Require (@($publishers|Where-Object {!(Test-Path -LiteralPath $_.ready)}).Count -eq 0) 'TRAIN017_PUBLISHERS_NOT_READY'
+            foreach($entry in $publishers){$null=$entry.process.WaitForExit(350)}
+            Require (!(Test-Path -LiteralPath (Join-Path $race 'closure.json'))) 'TRAIN017_CLOSURE_IGNORED_PUBLICATION_LOCK'
+            $mutex.ReleaseMutex();$released=$true
+            foreach($entry in $publishers){Require ($entry.process.WaitForExit(10000)) 'TRAIN017_PUBLISHER_DID_NOT_EXIT';Require ((Get-TrackedProcessExitCode $entry.process $entry.handle) -eq 0) 'TRAIN017_PARALLEL_PUBLICATION_FAILED'}
+            $firstSha=(Read-TrainJson $publishers[0].result).receiptSha
+            Require ($firstSha -ceq (Read-TrainJson $publishers[1].result).receiptSha -and $firstSha -ceq (Get-FileHash -LiteralPath (Join-Path $race 'closure.json')).Hash) 'TRAIN017_PARALLEL_RECEIPT_OVERWRITTEN'
+            $null=Write-TrainNoFitClosure017 $race $proof
+            Require ($firstSha -ceq (Get-FileHash -LiteralPath (Join-Path $race 'closure.json')).Hash) 'TRAIN017_PARALLEL_READBACK_CHANGED'
+        }finally{
+            if(!$released){$mutex.ReleaseMutex()};$mutex.Dispose()
+            foreach($entry in $publishers){if(!$entry.process.HasExited){$null=$entry.process.WaitForExit(20000)};$entry.process.Dispose()}
+        }
+        $badProof=$proof.PSObject.Copy();$badProof.dataset='foreign'
+        $refused=$false;try{$null=Write-TrainNoFitClosure017 $repair $badProof}catch{$refused=$true}
+        Require $refused 'TRAIN017_REPAIR_OVERWROTE_FOREIGN_PROOF'
+        Write-TrainText $receiptPath '{}'
+        $refused=$false;try{$null=Write-TrainNoFitClosure017 $repair $proof}catch{$refused=$true}
+        Require $refused 'TRAIN017_REPAIR_ACCEPTED_CHANGED_RECEIPT'
+        Write-Output 'TRAIN017_PHASE_GREEN exactDONE016=1 unknownPhase=2 legacy=4 checkpointNegative=4 SQL=0 JAVA=0 GS=0'
+    }finally{
+        $resolved=[IO.Path]::GetFullPath($fixture)
+        if(!$resolved.StartsWith([IO.Path]::GetTempPath(),[StringComparison]::OrdinalIgnoreCase)){throw 'TRAIN017_FIXTURE_SCOPE'}
+        Remove-Item -LiteralPath $resolved -Recurse -Force
+    }
+    return
+}
 if($Readiness016){
     $fixture=Join-Path ([IO.Path]::GetTempPath()) ('Training016-'+[guid]::NewGuid().ToString('N'))
     $null=[IO.Directory]::CreateDirectory($fixture)
@@ -164,8 +315,13 @@ if($Readiness016){
                     $refused=$false;try{& $fitBody}catch{$refused=$_.Exception.Message -ceq 'TRAIN016_FIT_RESERVATION_UNCERTAIN_NO_REPLAY'}
                     Require ($refused -and $script:fitCalls016 -eq 0) 'READINESS016_UNKNOWN_FIT_REPLAYED'
                 }else{
-                    & $fitBody;$journal.phase='FIT';& $fitBody
-                    Require ($script:fitCalls016 -eq 1 -and $journal.phase -ceq 'DONE016' -and $journal.bestVersion -eq 2 -and $journal.fits -eq $(if($scenario -ceq 'ONE_FIT'){1}else{0})) 'READINESS016_REPEATED_FIT_OR_LOST_ACCEPTED_BEST'
+                    & $fitBody
+                    $checkpoint016=Join-Path $cycleDirectory 'checkpoint016.json';$checkpoint016Sha=(Get-FileHash -LiteralPath $checkpoint016).Hash
+                    $journal.phase='FIT';$refused=$false
+                    try{& $fitBody}catch{$refused=$_.Exception.Message -ceq 'TRAIN017_EXISTING_CHECKPOINT_USE_REPAIR'}
+                    Require ($refused -and $script:fitCalls016 -eq 1 -and (Read-TrainJson $path).phase -ceq 'DONE016' -and
+                        (Get-FileHash -LiteralPath $checkpoint016).Hash -ceq $checkpoint016Sha -and $journal.bestVersion -eq 2 -and
+                        $journal.fits -eq $(if($scenario -ceq 'ONE_FIT'){1}else{0})) 'READINESS017_REPEATED_FIT_OR_REWRITTEN_CHECKPOINT'
                     if($scenario -ceq 'INSUFFICIENT'){Require ($journal.reason -ceq 'NO_FIT_INSUFFICIENT_VALID_DATA') 'READINESS016_FAKE_FIT_ON_INSUFFICIENT_DATA'}
                 }
             }

@@ -169,7 +169,7 @@ function Get-TrainSafeErrorRecord([Management.Automation.ErrorRecord]$Failure) {
     $scriptName=$null;$line=$null
     if($Failure.InvocationInfo){$scriptName=$Failure.InvocationInfo.ScriptName;$line=$Failure.InvocationInfo.ScriptLineNumber}
     $code=$null
-    if($Failure.Exception.Message -cmatch '^(?:TRAIN002|OWN108R3C)_[A-Z0-9_]+(?::[A-Za-z0-9_.-]+)?$'){$code=$Failure.Exception.Message}
+    if($Failure.Exception.Message -cmatch '^(?:TRAIN002|TRAIN017|OWN108R3C)_[A-Z0-9_]+(?::[A-Za-z0-9_.-]+)?$'){$code=$Failure.Exception.Message}
     $diagnostic=[ordered]@{event='TRAIN002_SAFE_ERROR';exceptionType=$Failure.Exception.GetType().FullName;code=$code;commandName=$command;scriptName=$scriptName;scriptLineNumber=$line;fullyQualifiedErrorId=$Failure.FullyQualifiedErrorId;pid=$null;nativeError=$null;created=$null}
     foreach($key in @('pid','nativeError','created')){if($Failure.Exception.Data.Contains($key)){$diagnostic[$key]=[long]$Failure.Exception.Data[$key]}}
     return $diagnostic
@@ -342,8 +342,43 @@ function Assert-TrainEvaluationReceipt013($Receipt,[string]$CycleId,[long]$Versi
         Assert-TrainHash $file ([string]$entry.Value)
     }
 }
+function Get-TrainNoFitCompletion016([string]$CampaignDirectory,$Journal) {
+    Assert-TrainDirectory $CampaignDirectory
+    if($Journal.schemaVersion -ne 13 -or [int]$Journal.cycle -ne 1 -or
+       $Journal.campaign -cnotin @('autonomous009-learning016-v1','autonomous009-learning016-g2-v1') -or
+       $Journal.dataset -cne ($Journal.campaign+'-c000001') -or (Split-Path $CampaignDirectory -Leaf) -cne $Journal.campaign -or
+       $Journal.phase -cnotin @('FIT','DONE016') -or [int]$Journal.fits -ne 0 -or $Journal.pending -isnot [bool] -or $Journal.pending -or $Journal.pendingDecision -or
+       [int]$Journal.completedCycles -ne $(if($Journal.phase -ceq 'DONE016'){1}else{0})) {throw 'TRAIN017_NO_FIT_JOURNAL'}
+    $config=Read-TrainJson (Join-Path $CampaignDirectory 'base-config.json')
+    if($config.autonomous016Version -cne '1' -or $config.autonomous013Version -cne '1' -or
+       $config.autonomous009Campaign -cne $Journal.campaign -or $config.outcome006DatasetId -cne $Journal.dataset){throw 'TRAIN017_NO_FIT_CAMPAIGN'}
+    $cycle=Join-Path $CampaignDirectory 'cycles\c000001'
+    $checkpoint=Read-TrainJson (Join-Path $cycle 'checkpoint016.json')
+    $reserved=Read-TrainJson (Join-Path $cycle 'fit-reserved016.json')
+    $fit=Read-TrainJson (Join-Path $cycle 'fit-result.json')
+    if($checkpoint.schemaVersion -ne 16 -or $checkpoint.cycle -cne $Journal.dataset -or [int]$checkpoint.fits -ne 0 -or
+       $checkpoint.reason -cne 'NO_FIT_INSUFFICIENT_VALID_DATA' -or $checkpoint.independentEvaluation -isnot [bool] -or $checkpoint.independentEvaluation -or
+       $checkpoint.productionPromotion -isnot [bool] -or $checkpoint.productionPromotion -or
+       $reserved.schemaVersion -ne 16 -or $reserved.cycle -cne $Journal.dataset -or $reserved.trainingCredit -isnot [bool] -or $reserved.trainingCredit -or
+       [long]$fit.candidateVersion -ne 0 -or $fit.productionPromotion -isnot [bool] -or $fit.productionPromotion -or
+       $fit.metrics.usedForTraining -isnot [bool] -or $fit.metrics.usedForTraining -or $fit.metrics.objective -cne 'ACQUIRED_ACTION_ADVANTAGE_V2' -or
+       $fit.reservationSha -cne (Get-FileHash -LiteralPath (Join-Path $cycle 'fit-reserved016.json')).Hash -or
+       [long]$checkpoint.bestVersion -ne [long]$Journal.bestVersion -or $checkpoint.bestSha -cne $Journal.bestSha){throw 'TRAIN017_NO_FIT_CHECKPOINT'}
+    $keys=@('schemaVersion','modelVersion','modelSha','optimizerSha','terminalWeightsSha','optimizerUpdates','completedEpochs','acceptedTestVersion','acceptedTestSha','featureSchemaSha','productionPromotion')
+    foreach($key in $keys){
+        $expected=$Journal.parentCheckpoint.$key
+        if($null -eq $expected -or $checkpoint.parent.$key -cne $expected -or $checkpoint.selected.$key -cne $expected -or $reserved.parent.$key -cne $expected){throw 'TRAIN017_NO_FIT_LINEAGE'}
+    }
+    $files=[ordered]@{}
+    foreach($relative in @('base-config.json','cycles\c000001\checkpoint016.json','cycles\c000001\fit-reserved016.json','cycles\c000001\fit-result.json')){
+        $file=Join-Path $CampaignDirectory $relative;Assert-G0PhysicalFile $file;$files[$relative]=(Get-FileHash -LiteralPath $file).Hash
+    }
+    return [pscustomobject]@{schemaVersion=17;status='COMPLETED_NO_FIT';campaign=$Journal.campaign;dataset=$Journal.dataset;selected=$checkpoint.selected;files=$files;trainingCredit=$false;optimizerDelta=0;independentEvaluation=$false;productionPromotion=$false}
+}
 function Save-TrainCycleState013([string]$Path,$Journal) {
-    if($Journal.schemaVersion -ne 13 -or [int]$Journal.cycle -lt 1 -or [int]$Journal.cycle -gt 1000000 -or $Journal.phase -cnotmatch '^[A-Z_]{1,32}$'){throw 'TRAIN013_STATE_VERSION_OR_PHASE'}
+    if($Journal.schemaVersion -ne 13 -or [int]$Journal.cycle -lt 1 -or [int]$Journal.cycle -gt 1000000){throw 'TRAIN013_STATE_VERSION_OR_PHASE'}
+    if($Journal.phase -ceq 'DONE016'){$null=Get-TrainNoFitCompletion016 (Split-Path $Path -Parent) $Journal}
+    elseif($Journal.phase -cnotmatch '^[A-Z_]{1,32}$'){throw 'TRAIN013_STATE_VERSION_OR_PHASE'}
     $parent=Split-Path $Path -Parent;Assert-TrainDirectory $parent
     $events=Join-Path $parent ('cycles\c{0:D6}\phases' -f [int]$Journal.cycle);$null=[IO.Directory]::CreateDirectory($events);Assert-TrainDirectory $events
     $entered=Join-Path $events ($Journal.phase+'.entered.json')
@@ -358,6 +393,58 @@ function Save-TrainCycleState013([string]$Path,$Journal) {
     }
     Write-TrainJson $Path $Journal
     Write-TrainJson (Join-Path (Split-Path $events -Parent) 'cycle-status.json') $Journal
+}
+function Write-TrainNoFitClosure017([string]$Directory,$Proof) {
+    $directory017=[IO.Path]::GetFullPath($Directory).TrimEnd('\')
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try{$name='Local\PhantomTrainClosure017_'+([BitConverter]::ToString($sha.ComputeHash($script:TrainUtf8.GetBytes($directory017.ToUpperInvariant())))).Replace('-','')}finally{$sha.Dispose()}
+    $mutex=[Threading.Mutex]::new($false,$name);$locked=$false
+    try{
+        try{$locked=$mutex.WaitOne(15000)}catch [Threading.AbandonedMutexException]{$locked=$true}
+        if(!$locked){throw 'TRAIN017_REPAIR_PUBLICATION_BUSY'}
+        return Write-TrainNoFitClosureLocked017 $directory017 $Proof
+    }finally{if($locked){$mutex.ReleaseMutex()};$mutex.Dispose()}
+}
+function Write-TrainImmutableJson017([string]$Path,$Value) {
+    Assert-TrainDirectory (Split-Path $Path -Parent)
+    $pending=$Path+'.'+[guid]::NewGuid().ToString('N')+'.pending'
+    try{
+        $bytes=$script:TrainUtf8.GetBytes(($Value|ConvertTo-Json -Depth 12))
+        $stream=[IO.FileStream]::new($pending,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+        try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
+        # Move is create-only: even a publisher bypassing the mutex cannot replace history.
+        [IO.File]::Move($pending,$Path)
+    }finally{if(Test-Path -LiteralPath $pending){Remove-Item -LiteralPath $pending}}
+}
+function Write-TrainNoFitClosureLocked017([string]$Directory,$Proof) {
+    if($Proof.schemaVersion -ne 17 -or $Proof.status -cne 'COMPLETED_NO_FIT' -or $Proof.trainingCredit -isnot [bool] -or $Proof.trainingCredit -or
+       [long]$Proof.optimizerDelta -ne 0 -or $Proof.independentEvaluation -isnot [bool] -or $Proof.independentEvaluation -or
+       $Proof.productionPromotion -isnot [bool] -or $Proof.productionPromotion){throw 'TRAIN017_REPAIR_PROOF'}
+    Assert-TrainDirectory (Split-Path ([IO.Path]::GetFullPath($Directory)) -Parent)
+    if(!(Test-Path -LiteralPath $Directory)){$null=[IO.Directory]::CreateDirectory($Directory)}
+    Assert-TrainDirectory $Directory
+    $text=$Proof|ConvertTo-Json -Depth 12 -Compress
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try{$proofSha=([BitConverter]::ToString($sha.ComputeHash($script:TrainUtf8.GetBytes($text)))).Replace('-','')}finally{$sha.Dispose()}
+    $receiptPath=Join-Path $Directory 'closure.json';$markerPath=Join-Path $Directory 'complete.json'
+    foreach($entry in Get-ChildItem -LiteralPath $Directory -Force){if($entry.PSIsContainer -or $entry.Name -cnotin @('closure.json','complete.json')){throw 'TRAIN017_REPAIR_UNKNOWN_PENDING'}}
+    if(Test-Path -LiteralPath $receiptPath){
+        $receipt=Read-TrainJson $receiptPath
+        if($receipt.schemaVersion -ne 17 -or $receipt.status -cne 'COMPLETED_NO_FIT' -or $receipt.proofSha -cne $proofSha){throw 'TRAIN017_REPAIR_CHANGED'}
+        $stored=$receipt.proof|ConvertTo-Json -Depth 12 -Compress
+        if($stored -cne $text){throw 'TRAIN017_REPAIR_CHANGED'}
+    }else{
+        if(Test-Path -LiteralPath $markerPath){throw 'TRAIN017_REPAIR_MISSING_RECEIPT'}
+        $receipt=[ordered]@{schemaVersion=17;status='COMPLETED_NO_FIT';proofSha=$proofSha;proof=$Proof;closedUtc=[DateTime]::UtcNow.ToString('o')}
+        Write-TrainImmutableJson017 $receiptPath $receipt
+    }
+    $receiptSha=(Get-FileHash -LiteralPath $receiptPath).Hash
+    if(Test-Path -LiteralPath $markerPath){
+        $marker=Read-TrainJson $markerPath
+        if(@($marker.PSObject.Properties).Count -ne 4 -or $marker.schemaVersion -ne 17 -or $marker.receiptSha -cne $receiptSha -or $marker.proofSha -cne $proofSha -or
+           $marker.trainingCredit -isnot [bool] -or $marker.trainingCredit){throw 'TRAIN017_REPAIR_MARKER_CHANGED'}
+    }else{Write-TrainImmutableJson017 $markerPath @{schemaVersion=17;receiptSha=$receiptSha;proofSha=$proofSha;trainingCredit=$false}}
+    return Read-TrainJson $receiptPath
 }
 function Complete-TrainCycle013([string]$JournalPath,$Journal,[string]$CheckpointPath,[string]$CampaignDirectory) {
     $checkpoint=Read-TrainJson $CheckpointPath
@@ -539,27 +626,29 @@ function Assert-TrainProcess($Record,[ValidateSet('Director','Sql','Native','Wor
         Assert-TrainIdentitySnapshot $fact $Record
     }
 }
-function Test-TrainProcessAbsent($Record,[Diagnostics.Process]$TrackedProcess=$null,[object]$Handle=$null) {
+function Test-TrainProcessAbsent($Record,[Diagnostics.Process]$TrackedProcess=$null,[object]$Handle=$null,$ReadOnlyLayout=$null,[scriptblock]$ProcessQuery=$null) {
+    if($ReadOnlyLayout){Assert-TrainInstallation $ReadOnlyLayout}
+    if($ProcessQuery -and !$ReadOnlyLayout){throw 'TRAIN017_PROCESS_QUERY_REQUIRES_READONLY'}
     $lastError=-1
     for($query=0;$query -lt 10;$query++){
         if($null -ne $TrackedProcess){
             $held=Get-TrainHeldExitProof $Record $TrackedProcess $Handle
             if($held.exited){
-                Save-TrainProcessObservation $Record $null 'OWN_HELD_HANDLE_EXIT' $held.exitCode
+                if(!$ReadOnlyLayout){Save-TrainProcessObservation $Record $null 'OWN_HELD_HANDLE_EXIT' $held.exitCode}
                 return $true
             }
         }
-        $actual=[Win32SqlIdentity]::Process([uint32]$Record.pid,0x1000)
-        if($actual.Success){if($lastError -ge 0){Save-TrainProcessObservation $Record 0 'VISIBLE_AFTER_RETRY'};return $actual.CreatedFileTime -ne [long]$Record.created}
-        if($actual.Error -eq 87){if($lastError -ge 0){Save-TrainProcessObservation $Record 87 'ABSENT_AFTER_RETRY'};return $true}
+        $actual=if($ProcessQuery){& $ProcessQuery ([uint32]$Record.pid)}else{[Win32SqlIdentity]::Process([uint32]$Record.pid,0x1000)}
+        if($actual.Success){if($lastError -ge 0 -and !$ReadOnlyLayout){Save-TrainProcessObservation $Record 0 'VISIBLE_AFTER_RETRY'};return $actual.CreatedFileTime -ne [long]$Record.created}
+        if($actual.Error -eq 87){if($lastError -ge 0 -and !$ReadOnlyLayout){Save-TrainProcessObservation $Record 87 'ABSENT_AFTER_RETRY'};return $true}
         if($actual.Error -eq 31){
-            $layout=Get-TrainLayout
+            $layout=if($ReadOnlyLayout){$ReadOnlyLayout}else{Get-TrainLayout}
             if((Test-TrainExitReceipt $layout $Record) -and @(Get-CimInstance Win32_Process -Filter "ProcessId=$($Record.pid)").Count -eq 0){
-                Save-TrainProcessObservation $Record 31 'PRIVATE_HELD_EXIT_RECEIPT_CIM_ABSENT'
+                if(!$ReadOnlyLayout){Save-TrainProcessObservation $Record 31 'PRIVATE_HELD_EXIT_RECEIPT_CIM_ABSENT'}
                 return $true
             }
         }
-        if($actual.Error -ne $lastError){Save-TrainProcessObservation $Record $actual.Error 'VISIBILITY_UNKNOWN';$lastError=$actual.Error}
+        if($actual.Error -ne $lastError){if(!$ReadOnlyLayout){Save-TrainProcessObservation $Record $actual.Error 'VISIBILITY_UNKNOWN'};$lastError=$actual.Error}
         if($query -lt 9){Start-Sleep -Milliseconds 100}
     }
     $failure=[InvalidOperationException]::new('TRAIN002_PROCESS_VISIBILITY_UNKNOWN');$failure.Data['pid']=$Record.pid;$failure.Data['created']=$Record.created;$failure.Data['nativeError']=$lastError;throw $failure

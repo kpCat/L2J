@@ -1,7 +1,9 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight','Prepare')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight','Prepare','RepairClosure017')][string]$Action,
     [string]$Root,
+    [string]$RepairEvidenceRoot,
+    [string]$ColdLineageProof,
     [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
     [switch]$EnableOutcome006,
     [switch]$EnableExploration007,
@@ -21,7 +23,7 @@ Set-StrictMode -Version Latest
 [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'TrainingOwner.ps1')
 . (Join-Path $PSScriptRoot 'TrainingBroker.ps1')
-$layout=Get-TrainLayout $Root
+$layout=if($Action -ceq 'RepairClosure017'){$null}else{Get-TrainLayout $Root}
 $script:State=$null
 $script:DirectorNonce=$Nonce
 $script:SqlRecord=$null
@@ -1022,11 +1024,106 @@ function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[strin
         }
     }
 }
-function Get-TrainControlSource013 {
+function Get-TrainControlSource013([string]$Directory=$PSScriptRoot) {
     $names=@('Training.ps1','TrainingOwner.ps1','TrainingBroker.ps1','TrainingBootstrap.ps1','TrainingGui.cs','TrainingGui.Designer.cs','TrainingJobProbe.cs','AutonomousTraining.ini')
-    $lines=@($names|ForEach-Object {$_+':'+(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $_)).Hash})
+    $lines=@($names|ForEach-Object {$file=Join-Path $Directory $_;Assert-G0PhysicalFile $file;$_+':'+(Get-FileHash -LiteralPath $file).Hash})
     $sha=[Security.Cryptography.SHA256]::Create()
     try{return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+}
+function Invoke-TrainRepairClosure017([string]$TrainRoot,[string]$OutputRoot,[string]$ColdPath) {
+    foreach($path017 in @($TrainRoot,$OutputRoot,$ColdPath)){if(!$path017 -or ![IO.Path]::IsPathRooted($path017)){throw 'TRAIN017_ABSOLUTE_REPAIR_PATH_REQUIRED'}}
+    $train=[IO.Path]::GetFullPath($TrainRoot).TrimEnd('\');Assert-TrainDirectory $train
+    $clone=Split-Path (Split-Path (Split-Path $train -Parent) -Parent) -Parent
+    if((Join-Path $clone '.phantom-local\learning002\train') -ine $train){throw 'TRAIN017_REPAIR_INSTALLATION_SCOPE'}
+    $executor=Get-TrainLayout
+    $output=[IO.Path]::GetFullPath($OutputRoot).TrimEnd('\')
+    foreach($protectedRoot in @($clone,(Split-Path $executor.Clone -Parent))){
+        if($output -ieq $protectedRoot -or $output.StartsWith($protectedRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'TRAIN017_REPAIR_OUTPUT_PROTECTED'}
+    }
+    if((Split-Path $output -Leaf) -cne 'repair-closure017'){throw 'TRAIN017_REPAIR_OUTPUT_SCOPE'}
+    $layout=@{Root=$train;ExpectedRoot=$train;Clone=$clone;Module=(Join-Path $clone 'L2J_Mobius_CT_2.6_HighFive');Game=(Join-Path $train 'game');Sql=(Join-Path $train 'sql')}
+    Assert-TrainInstallation $layout
+    $inputLock=Join-Path $train 'director.lock';Assert-G0PhysicalFile $inputLock
+    try{$inputLease=[IO.FileStream]::new($inputLock,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)}catch{throw 'TRAIN017_REPAIR_INPUT_LEASE_UNAVAILABLE'}
+    try{
+    $config=Read-TrainConfig (Join-Path $train 'TRAIN_CONFIG.ini')
+    if(!(Test-TrainIncremental016 $config) -or $config.autonomous009Enabled -cne 'false' -or $config.autonomous009Phase -cne 'OFF' -or $config.outcome006Enabled -cne 'false'){throw 'TRAIN017_REPAIR_REQUIRES_OFF'}
+    foreach($record in @('owner-process.json','worker-process.json','native-process.json','sql\owned-process.json')){
+        if(!(Test-TrainProcessAbsent (Read-TrainJson (Join-Path $train $record)) -ReadOnlyLayout $layout)){throw 'TRAIN017_REPAIR_PROCESS_PRESENT'}
+    }
+    Assert-TrainPortsFree @([int]$config.sqlPort,[int]$config.gamePort,[int]$config.loginPort)
+    $campaign=Join-Path $train ('autonomous\v16\campaigns\'+$config.autonomous009Campaign)
+    # Exact accepted frozen016 inputs, not self-attested replacement journals/checkpoints.
+    $historical017=[ordered]@{
+        'director-state.json'='331CFECF66B1A82AB2BBA74E16C76195D9B4DF1388399E0B88627EC8ECD444E7'
+        'base-config.json'='94956032AA6076803162E9DD17EBCD217E2DD4651009A06D1ECA2A1F6F7D8ECC'
+        'cycles\c000001\checkpoint016.json'='12284BC08DC3CF2A92D1C410068B93E04A1A92E3170077A0B872E5DA43F06B52'
+        'cycles\c000001\fit-reserved016.json'='3D3A5EF2FB3839C9A63FCD6999EF9AF84B96C1B61E3F47EDC91DDD65C10941BA'
+        'cycles\c000001\fit-result.json'='10E69B2C258FF39F6014B872358754C2C9C9E27692C8B3B79A914AD2D8BE6BD5'
+    }
+    foreach($entry in $historical017.GetEnumerator()){Assert-TrainHash (Join-Path $campaign $entry.Key) $entry.Value}
+    Assert-TrainHash (Join-Path $train 'autonomous\v16\native-budget.json') '8846F368FE6BC3E3AA580701E3C751E58F02DD6E159F765652C9A3B5B3D163E0'
+    Assert-TrainHash (Join-Path $train 'autonomous\v16\generation2-issued.json') '8F9A23F485E784494F292C292F96111A4C54A76D493F56360C5FA1129D26E98F'
+    $journalPath=Join-Path $campaign 'director-state.json';$journal=Read-TrainJson $journalPath
+    if($journal.phase -cne 'FIT'){throw 'TRAIN017_REPAIR_HISTORICAL_PHASE'}
+    $proof=Get-TrainNoFitCompletion016 $campaign $journal
+    $basePath=Join-Path $campaign 'base-config.json';Assert-TrainHash $basePath $journal.configSha
+    $base=Read-TrainJson $basePath
+    if($config.Count -ne @($base.PSObject.Properties).Count){throw 'TRAIN017_REPAIR_CONFIG_DRIFT'}
+    foreach($property in $base.PSObject.Properties){
+        if($property.Name -cnotin @('autonomous009Enabled','autonomous009Phase','outcome006Enabled') -and $config[$property.Name] -cne $property.Value){throw 'TRAIN017_REPAIR_CONFIG_DRIFT'}
+    }
+    $build=Read-TrainJson (Join-Path $train 'build.json')
+    if($build.sourceFingerprint -cne $journal.sourceSha -or $build.jarSha.ToLowerInvariant() -cne $journal.jarSha -or
+       (Get-TrainSourceFingerprint) -cne $journal.sourceSha -or
+       (Get-TrainControlSource013 (Join-Path $layout.Module 'tools\phantom-runtime\training')) -cne $journal.controlSourceSha){throw 'TRAIN017_REPAIR_FROZEN_SOURCE_DRIFT'}
+    Assert-TrainHash (Join-Path $layout.Module 'dist\libs\GameServer.jar') $journal.jarSha
+    Assert-TrainHash (Join-Path $layout.Game 'libs\GameServer.jar') $journal.jarSha
+    Assert-TrainHash (Join-Path $train 'owner.txt') $journal.ownerSha
+    Assert-TrainHash (Join-Path $train 'geo203.json') $journal.geoSha
+    Assert-TrainHash (Join-Path $train 'protected207.json') $journal.protectedSha
+    $budgetPath=Join-Path $train 'autonomous\v16\native-budget.json';$budget=Read-TrainJson $budgetPath
+    if($budget.pending -or [int]$budget.starts -ne [int]$journal.starts -or [long]$budget.nativeMillis -ne [long]$journal.nativeMillis){throw 'TRAIN017_REPAIR_PENDING_OR_BUDGET_DRIFT'}
+    $cold=Read-TrainJson $ColdPath
+    if($cold.schemaVersion -ne 17 -or $cold.readOnly -isnot [bool] -or !$cold.readOnly -or $cold.root -ine $train -or [int]$cold.rows -ne 183 -or
+       $cold.sqlSha -cne '9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D'){throw 'TRAIN017_REPAIR_COLD_PROOF'}
+    Assert-TrainHash $cold.rawSql $cold.sqlSha
+    foreach($key in @('schemaVersion','modelVersion','modelSha','optimizerSha','terminalWeightsSha','optimizerUpdates','completedEpochs','acceptedTestVersion','acceptedTestSha','featureSchemaSha','productionPromotion')){
+        if($cold.selected.$key -cne $proof.selected.$key){throw 'TRAIN017_REPAIR_COLD_LINEAGE_DRIFT'}
+    }
+    $sqlFiles=@(Get-ChildItem -LiteralPath (Join-Path $train 'sql\data') -Recurse -File -Force)
+    if(!$sqlFiles.Count -or $sqlFiles.Count -gt 4096 -or $sqlFiles.Count -ne @($cold.sqlFiles).Count){throw 'TRAIN017_REPAIR_COLD_STORE_CHANGED'}
+    $dataPrefix=[IO.Path]::GetFullPath((Join-Path $train 'sql\data')).TrimEnd('\')+'\'
+    $actualPaths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach($actualFile in $sqlFiles){
+        Assert-G0PhysicalFile $actualFile.FullName
+        $canonical=[IO.Path]::GetFullPath($actualFile.FullName)
+        if(!$canonical.StartsWith($dataPrefix,[StringComparison]::OrdinalIgnoreCase) -or !$actualPaths.Add($canonical)){throw 'TRAIN017_REPAIR_COLD_STORE_PATH'}
+    }
+    $declaredPaths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach($file in $cold.sqlFiles){
+        if($file.relative -cnotmatch '^sql/data/[A-Za-z0-9_./@#-]+$' -or @($file.relative.Split('/')|Where-Object {$_ -ceq '.' -or $_ -ceq '..' -or !$_}).Count){throw 'TRAIN017_REPAIR_COLD_STORE_PATH'}
+        $canonical=[IO.Path]::GetFullPath((Join-Path $train $file.relative))
+        if(!$canonical.StartsWith($dataPrefix,[StringComparison]::OrdinalIgnoreCase) -or !$declaredPaths.Add($canonical)){throw 'TRAIN017_REPAIR_COLD_STORE_PATH'}
+    }
+    if(!$actualPaths.SetEquals($declaredPaths)){throw 'TRAIN017_REPAIR_COLD_STORE_CHANGED'}
+    foreach($file in $cold.sqlFiles){Assert-TrainHash (Join-Path $train $file.relative) $file.sha256}
+    $pins=[ordered]@{}
+    foreach($relative in @('TRAIN_CONFIG.ini','build.json','owner.txt','geo203.json','protected207.json','autonomous\v1\cold-checkpoint.json','autonomous\v16\native-budget.json')){
+        $file=Join-Path $train $relative;Assert-G0PhysicalFile $file;$pins[$relative]=(Get-FileHash -LiteralPath $file).Hash
+    }
+    if($pins['TRAIN_CONFIG.ini'] -cne $cold.configSha -or $pins['build.json'] -cne $cold.buildSha -or
+       $pins['autonomous\v1\cold-checkpoint.json'] -cne 'ACC21BED707B518FB58E23FEC006E7D658723763C73C237A039D950E14C9B010'){throw 'TRAIN017_REPAIR_COLD_PIN_DRIFT'}
+    $executorPins=[ordered]@{}
+    foreach($relative in @('tools\phantom-runtime\training\Training.ps1','tools\phantom-runtime\training\TrainingOwner.ps1','tools\phantom-runtime\training\Test-Training.ps1','test\java\org\l2jmobius\tests\phantoms\PhantomAutonomousTrainingNative.java','test\java\org\l2jmobius\tests\phantoms\PhantomLearning001ShadowNative.java')){
+        $file=Join-Path $executor.Module $relative;Assert-G0PhysicalFile $file;$executorPins[$relative]=(Get-FileHash -LiteralPath $file).Hash
+    }
+    $proof|Add-Member frozenPins $pins;$proof|Add-Member executorPins $executorPins
+    $proof|Add-Member historicalJournalSha (Get-FileHash -LiteralPath $journalPath).Hash
+    $proof|Add-Member coldProofSha (Get-FileHash -LiteralPath $ColdPath).Hash
+    $proof|Add-Member historicalVerdict 'PARTIAL016_NATIVE_COLLECTED_DIRECTOR_CLOSE_FAILED'
+    return Write-TrainNoFitClosure017 $output $proof
+    }finally{$inputLease.Dispose()}
 }
 function Copy-TrainConfig013($Values) {
     $copy=@{}
@@ -1190,6 +1287,8 @@ function Invoke-TrainAutonomousDirector013($Dependencies,[string]$Jar) {
             $journal.phase='FIT';Save-TrainCycleState013 $path $journal
         }
         if($journal.phase -ceq 'FIT'){
+            # A frozen result is historical evidence, never a request to dispatch or rewrite FIT.
+            if((Test-TrainIncremental016 $script:Config) -and (Test-Path -LiteralPath (Join-Path $cycleDirectory 'checkpoint016.json'))){throw 'TRAIN017_EXISTING_CHECKPOINT_USE_REPAIR'}
             $config.autonomous009Phase='FIT';$script:Config=$config;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $config;Publish-TrainState 'FITTING' 'Продолжение exact terminal Adam; selected checkpoint отдельно.'
             if(Test-TrainIncremental016 $script:Config){
                 $fitReservation=Join-Path $cycleDirectory 'fit-reserved016.json';$fitResult=Join-Path $cycleDirectory 'fit-result.json'
@@ -1668,6 +1767,15 @@ function Invoke-TrainDirector {
     }
 }
 
+# Repair has no startup/config/failure-history path and never opens Java, SQL or GS.
+if($Action -ceq 'RepairClosure017'){
+    try{
+        Initialize-TrainWin32
+        $closed=Invoke-TrainRepairClosure017 $Root $RepairEvidenceRoot $ColdLineageProof
+        Write-Output ('TRAIN017_REPAIR '+$closed.status+' JAVA=0 SQL=0 GS=0 FIT=0')
+        exit 0
+    }catch{Write-TrainSafeError $_;exit 1}
+}
 # Status does not require Java, SQL, build artifacts or asset copies.
 try {
     if($Action -eq 'Prepare' -and !$Autonomous){throw 'TRAIN002_PREPARE_AUTONOMOUS_REQUIRED'}
