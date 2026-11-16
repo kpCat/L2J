@@ -19,7 +19,7 @@
     "G5":  "PASS_GENUINE_NATIVE_TRAIN",
     "G6":  "PASS_NO_FIT_INSUFFICIENT_VALID_DATA",
     "G7":  "PASS_WITH_DISCLOSED_METRIC_LIMITS",
-    "G8":  "PENDING_GITHUB_READBACK",
+    "G8":  "PASS_SOURCE_AND_EVIDENCE_FULL_BODY_VERIFIED",
     "TRAINED_MODEL":  "NO",
     "GAME_ADVANTAGE":  "NOT_EVALUATED",
     "PRODUCTION":  "OFF",
@@ -6371,7 +6371,20 @@
                                                 "taskWrites":  0,
                                                 "comparisonScope":  "HEAD and tracked inventory; concurrent foreign Studio work preserved, no exact dirt-byte equivalence claimed",
                                                 "headBeforeAndAfter":  "7e997636dbac9d5e1754e00c793cd6fac858b0c6"
-                                            }
+                                            },
+                        "publicHistoryAndFreeze":  {
+                                                       "schema":  "PUBLIC_HISTORY_AND_CODE_FREEZE016_G2",
+                                                       "sourceTestSevenByteExact":  true,
+                                                       "priorEvidenceDataExact":  true,
+                                                       "capturedUtc":  "2026-11-16T12:39:11.7575087Z",
+                                                       "historicalTextSuffixesLFExact":  [
+                                                                                             "ROADMAP.md",
+                                                                                             "REPORT.md",
+                                                                                             "RESULT.md",
+                                                                                             "COMMANDS.md"
+                                                                                         ],
+                                                       "runtimeCodeModifiedAfterFreeze":  false
+                                                   }
                     },
     "publicationParent":  "156cf88f51c0739ca9d0b777e936fce00568be5f",
     "parallelStudioFastForwards":  [
@@ -6387,5 +6400,25 @@
                                            "HighFiveAndAgentsPaths":  0,
                                            "StudioPaths":  8
                                        }
-                                   ]
+                                   ],
+    "delivery":  {
+                     "branch":  "feature/phantom-world",
+                     "ordinaryPush":  true,
+                     "changedPaths":  17,
+                     "sourceParent":  "156cf88f51c0739ca9d0b777e936fce00568be5f",
+                     "fullBytes":  1920572,
+                     "tree":  "d0973d51f87d0f6cbd8da6dc265e0b804e5a096d",
+                     "receiptFollowupPaths":  [
+                                                  "READBACK.json",
+                                                  "EVIDENCE.json",
+                                                  "COMMANDS.md",
+                                                  "RESULT.md",
+                                                  "ACCEPTANCE_RESULT.md"
+                                              ],
+                     "sourceHead":  "7baf0aa33263bcb382ebf958021e5e728daf6677",
+                     "independentWholeBodySha256":  true,
+                     "observedUtc":  "2026-11-16 12:41:22 UTC",
+                     "finalExternalReceipt":  "FINAL_GITHUB_READBACK016_G2.json",
+                     "fullBodies":  30
+                 }
 }

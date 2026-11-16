@@ -1,3 +1,16 @@
+# Независимая доставка продолжения016
+
+Source/evidence commit `7baf0aa33263bcb382ebf958021e5e728daf6677`, parent `156cf88f51c0739ca9d0b777e936fce00568be5f`, tree `d0973d51f87d0f6cbd8da6dc265e0b804e5a096d`. `git commit -m "feat(phantoms): link one frozen TRAIN016 continuation"` и обычный `git push origin HEAD:refs/heads/feature/phantom-world` exit0. SOURCE после commit чист. GitHub connector branchref/commit/compare подтвердил17exactchangedpaths, включая6исходников из7; новые Studio paths в commit не попали. `fetch_file(base64, immutable7baf...)` независимо прочитал все30полныхтел,1920572bytes; SHA256/длины/remoteGitblobSHA совпали с SHA1-проверенными локальными Gitblobs. Внешний `source-github-readback.json` содержит полный список.
+
+Receipt-only follow-up меняет только5точных task outputs: READBACK.json/EVIDENCE.json/COMMANDS.md/RESULT.md/ACCEPTANCE_RESULT.md. Code/JAR/runtime/model/SQL не меняются. Команды: тот же exactallowlist guard/stage, `git diff --check --cached -- <exact30>`, `git commit -m "docs(phantoms): verify native Goal016 continuation delivery"`, обычный `git push origin HEAD:refs/heads/feature/phantom-world`, затем independent GitHub finalref/parent/compare и повтор всех30fullbodies. Финальный SHA фиксируется во внешнем FINAL_GITHUB_READBACK016_G2.json и ответе, без self-reference. Старая FINAL_GITHUB_READBACK016.json не переписывалась.
+
+Fresh origin перед первым commit совпал с156cf; source clean1c8→00afe сохранил34Studio paths, затем00afe→156cf сохранил8Studio paths. HighFive/AGENTS в этих fast-forward не менялись. MAIN HEAD7e997...остался прежним; trackedforeigndirt наблюдался13вначале/15вконце при параллельной Studio работе, задача не писала вMAIN. Точная побайтовая эквивалентность меняющегося чужого dirt не заявляется. SHA old59/oldDirector10/session1/protected3/frozen7/SQL183/pointer12 отдельно подтверждены.
+
+External receipt helpers Init-DeliveryReceipts/Finalize-DeliveryReceipts/Verify-PublicHistory выполнялись обычным `powershell -NoProfile -ExecutionPolicy Bypass -File <g2 helper>`. Git ownership check под sandbox user отказал до staging; guard выполнен под реальным владельцем через разрешённый elevated process, global safe.directory не менялся. Report File.Replace использует временный backup на том же томе, затем проверенную SHA копию вне checkout; предыдущий cross-volume backup вызвал отказ до замены. UTF-8/BOM, интерполяция `${minutes}` и внешние reader corrections не являются behavioral RED и не меняют runtime. Все временные source-файлы убраны самими успешными атомарными заменами; exact scope проверен снова.
+
+Результат остаётся **PARTIAL016_NATIVE_COLLECTED_DIRECTOR_CLOSE_FAILED**, G4PARTIAL, TRAINED_MODEL=NO, GAME_ADVANTAGE=NOT_EVALUATED, PRODUCTION=OFF, manualREQUIRED. Native51/399effects/29uniquekills/16deathslower/MP24820 и новый finalizer defect отражены без подмены. СледующийGoalне начат; №10/13,3remaining.
+
+---
 # Команды разрешённого продолжения016
 
 Продолжается та же задача. Прямое разрешение владельца покрывает ровно одну новую frozen generation, оставшиеся headless sessions, штатные GS/FIT послеG3, scoped commits и обычный push feature/phantom-world. Source004 использовался для разработки; TEST006 — единственная разрешённая TEST-среда. MAIN не редактировался. Новых веток/worktrees/clones нет.

@@ -1,6 +1,6 @@
 # Приёмка016 — PARTIAL016_NATIVE_COLLECTED_DIRECTOR_CLOSE_FAILED
 
-Продолжение того же Goal: G0/G1/G2/G3/G5/G6/G7 подтверждены реальными generation2/native/postflight receipts и targeted checks. **G4 PARTIAL: DONE016 отвергнута общим regex, финальное закрытие director не состоялось.** G8 ожидает independent GitHub readback. FULL016 не заявляется. Manual gate **REQUIRED**. Первая попытка016 остаётся историческим PARTIAL, Goal015 не изменён.
+Продолжение того же Goal: G0/G1/G2/G3/G5/G6/G7 подтверждены реальными generation2/native/postflight receipts и targeted checks. **G4 PARTIAL: DONE016 отвергнута общим regex, финальное закрытие director не состоялось.** G8 PASS: GitHub подтвердил source7baf0aa33263,17изменённыхпутей и все30полныхтел (1920572байта); финальный receipt проверяется отдельно, см.READBACK. FULL016 не заявляется. Manual gate **REQUIRED**. Первая попытка016 остаётся историческим PARTIAL, Goal015 не изменён.
 
 Три A/B-сцены, три класса, Solo+Party; headless 2/3. Настоящий TRAIN: 2 GS / 71,1598 минуты, 51 CUT / 399 оплаченных эффектов. Исходы: 29 NATIVE_KILL, 16 NATIVE_ACTOR_DIED, 5 NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING, 1 REQUESTED_DRAIN. FIT=0 (`NO_FIT_INSUFFICIENT_VALID_DATA`), 183 исторические SQL-строки совпадают точно. TRAINED_MODEL=NO; GAME_ADVANTAGE=NOT_EVALUATED; PRODUCTION=OFF. Отрицательные результаты и Party reward exclusions раскрыты в RESULT/EVIDENCE. Рост интеллекта не доказан. Следующий Goal не начат; №10/13, осталось 3.
 

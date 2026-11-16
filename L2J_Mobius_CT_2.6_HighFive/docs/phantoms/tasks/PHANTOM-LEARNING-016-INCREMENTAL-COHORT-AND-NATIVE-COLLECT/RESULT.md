@@ -33,7 +33,7 @@ Train evaluator вызван один раз; optimizer FIT — **0**, `candidat
 |G5|PASS LIVE: ненулевые настоящие TRAIN CUT/paid effects и settlement kill/death; negative/paused исходы не заменены|
 |G6|PASS: FIT=0; reason=NO_FIT_INSUFFICIENT_VALID_DATA; historical183exact; lawful newSQLrows=0; EVAL0/promotion0, выбранная и terminal lineage отдельно в EVIDENCE|
 |G7|PASS: headless2/3, исходная session1не сброшена; общий бюджет30мин сохранён, GS2/3 и 71.1598/75мин; targetedofflinegatesPASS|
-|G8|PENDING: обычная scoped публикация и independent GitHub whole-body readback выполняются после формирования этого evidence|
+|G8|PASS: ordinary push7baf0aa33263, parent156cf88f51c; GitHub17changedpaths/30полныхтел/1920572bytes, SHA256+blobSHA verified. Финальный receipt-only HEAD проверяется отдельно, см.READBACK|
 
 STOP/RESUME: snapshot9settled доPause,11послеStop; все11marker/rawclosures побайтово неизменны послеGS2, dispatch возобновился соslot11. GS1 heldexit0 списал489573ms; общий native ledger не сбрасывался. Резервированный неоднозначный эпизод не переигрывался. В новом journal первый GENESIS импортировал sequence/visits/cursors/sceneCounts/rosterVisits/refusalCounts/refusalSamples/pendingIndex и порядок двух pendingrows; incomplete attempt и completed pairs/credits не переносились. Sequence1→5, TARGET_BOUND_ALTERNATIVES1672→5057, FULL_RECOVERY_HAS_NO_WOUNDED_HEAL_RECIPIENT1→1.
 
@@ -46,7 +46,7 @@ STOP/RESUME: snapshot9settled доPause,11послеStop; все11marker/rawclos
 - mojibake-маркеры в изменённых файлах проверены (полный набор маркеров);
 - escaped Cyrillic в изменённых файлах проверены отдельной проверкой, включая XML.
 
-Источники: EVIDENCE.json (priorAttempt плюс generation2), NEGATIVE_TESTS.md, PROFILING.md, COMMANDS.md, READBACK.json. Сырые игровые/SQL/owner receipts остаются в приватном внешнем evidence; публично агрегаты и SHA.
+Git использовался по прямому разрешению владельца: scoped commits и обычный non-force push только feature/phantom-world; точные команды и основания — COMMANDS.md. Параллельные Studio fast-forward сохранены. Источники: EVIDENCE.json (priorAttempt плюс generation2), NEGATIVE_TESTS.md, PROFILING.md, COMMANDS.md, READBACK.json. Сырые игровые/SQL/owner receipts остаются в приватном внешнем evidence; публично агрегаты и SHA.
 
 ---
 
