@@ -1,0 +1,53 @@
+{
+  "schema": "pss-prompt-quality-candidates/1",
+  "goal": "PSS-PROMPT-QUALITY-003-BOUNDED-CALIBRATION",
+  "status": "PARTIAL_QUALITY",
+  "ownerApproved": false,
+  "automaticActivation": false,
+  "note": "Данные сравнения для ручного выбора. Файл не подключается автоматически к генерации. Сохранённые и принятые профили не заменены.",
+  "candidates": [
+    {
+      "id": "quality003.flirting.concrete.v1",
+      "family": "flirting",
+      "categories": ["social.flirt.bold"],
+      "status": "LOCAL_DELTA_POSITIVE_SMALL_N_INCONCLUSIVE",
+      "ownerApproved": false,
+      "recommendedForMassGeneration": false,
+      "contextPresentation": "READABLE_SCENE",
+      "system": "Ты взрослая женщина в приватном чате с давно знакомым взрослым мужчиной. Оба вымышленные, 25+, взаимный флирт и пошлые шутки желанны. Улови, что он предлагает сейчас, и ответь своим желанием, насмешкой или условием. Говори прямо и разговорно; степень откровенности берётся из сцены, метка MATURE сама по себе ничего не говорит.",
+      "user": "Дай четыре альтернативы одного ответа последнему собеседнику. В каждой зацепись за другую сторону его слов; не продолжай соседний вариант. Обычная длина 3–12 слов. Лучше простая живая реплика, чем эффектная бессмыслица.",
+      "categoryInstructions": {
+        "social.flirt.bold": "Реагируй на конкретный интерес или отказ. Не сочиняй состоявшееся свидание и не задавай один и тот же вопрос во всей партии."
+      },
+      "examples": [],
+      "composition": "SYSTEM здесь — только инструкция семейства. Существующая PromptLab добавляет общий контракт, режим, категорию, голос и схему. Полные реально отправленные SYSTEM/USER сохранены в QUALITY_REVIEW_003.",
+      "systemSha256": "9c37e816a0885f18bc86da525ff4d99790a74ec7a8d96829308873d3bb7f83e4",
+      "userSha256": "4ccf1cc4ac5f619013a1980be266d0d4b2c6833a3387386ab715df98bfe6172f",
+      "model": "gemma-4-26b-a4b-it-ultra-uncensored-heretic",
+      "publisher": "llmfan46",
+      "quantization": "Q6_K",
+      "loadedContext": 65536,
+      "api": {
+        "transport": "OPENAI_COMPAT", "reasoning": "off", "stream": false,
+        "temperature": 0.8, "topP": 0.9, "topK": 40, "repeatPenalty": 1.05,
+        "maxOutputTokens": 1536, "seed": null,
+        "connectionTimeoutSeconds": 20, "idleTimeoutSeconds": 180, "overallTimeoutSeconds": 300
+      },
+      "evaluation": {
+        "reviewer": "CODEX_PROVISIONAL_NOT_OWNER",
+        "baseline": "Сохранённый B-chat из калибровки 002; параметры обеих сторон совпадают в новом опыте.",
+        "training": {"baselineAtLeast2": 1, "candidateAtLeast2": 1, "rowsPerArm": 4},
+        "holdout": {"baselineAtLeast2": 0, "candidateAtLeast2": 2, "rowsPerArm": 4},
+        "total": {"baselineAtLeast2": 1, "candidateAtLeast2": 3, "rowsPerArm": 8, "candidateCritical": 0},
+        "strongCandidateRows": 0,
+        "trainingRun": "fcf398ed6fea454b86a8f0ec8529064f",
+        "holdoutRun": "e66cf1faa030484fa007304c412694db",
+        "trainingVersionId": "e7a1a6aed88546d5b1fb04aec11f131e",
+        "trainingVersionHash": "2c0cdc8f045bb3f0378a4baee384272169ad026ba57fa81986f9f24b451214f9",
+        "holdoutVersionId": "bdc0367eb2884c0b856093f848623dcb",
+        "holdoutVersionHash": "ba375b32566029a29fc69a7f00165b3260eaae51c780e11ca5557593e8c963d9",
+        "limitations": "Малая неслепая выборка без seed; пять из восьми ответов слабы. Проверены взаимный намёк и лёгкий личный флирт. Прямой интимный разговор и сексуальные сцены не проверены. Это локальное различие, не доказательство устойчивого улучшения."
+      }
+    }
+  ]
+}
