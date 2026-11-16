@@ -7,6 +7,7 @@ param(
     [switch]$Readiness015,
     [switch]$Readiness016,
     [switch]$Closure017,
+    [switch]$ActionValue019,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -19,6 +20,18 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($ActionValue019){
+    # NOT_NATIVE proof fixtures, never game samples or optimizer input. A process exit0 cannot prove a paid cast.
+    $sha='a'*64
+    $empty=[pscustomobject]@{modelSha=$sha;MODEL_CONSULTED=$false;NATIVE_EXECUTED=$false;EFFECT_PAID=$false;nativePaid=0}
+    $refused=$false;try{Assert-TrainActionValue019Proof 0 $empty $sha}catch{$refused=$true}
+    Require $refused 'TRAIN019_FALSE_NATIVE_SUCCESS'
+    $valid=[pscustomobject]@{modelSha=$sha;MODEL_CONSULTED=$true;NATIVE_EXECUTED=$true;EFFECT_PAID=$true;nativePaid=1}
+    Assert-TrainActionValue019Proof 0 $valid $sha
+    $refused=$false;try{Assert-TrainActionValue019Proof 0 $valid ('b'*64)}catch{$refused=$true}
+    Require $refused 'TRAIN019_FOREIGN_MODEL_PROOF'
+    Write-Output 'TRAIN019_PROOF_CONTRACT_PASS NOT_NATIVE GS=0 SQL=0';return
+}
 if($Closure017){
     $fixture=Join-Path ([IO.Path]::GetTempPath()) ('Training017-'+[guid]::NewGuid().ToString('N'))
     $campaign=Join-Path $fixture 'autonomous009-learning016-g2-v1'

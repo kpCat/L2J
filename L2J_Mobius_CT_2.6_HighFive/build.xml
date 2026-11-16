@@ -1288,6 +1288,17 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning019-test" depends="compile-tests" description="Bounded real native016 action import, V4 update, cold restore and stock fallback; no SQL or GameServer.">
+		<fail unless="phantom.learning019.cohort" message="Explicit physical native016 cohort required; synthetic training is forbidden." />
+		<fail unless="phantom.learning019.output" message="Explicit fresh V4 candidate output directory required." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning019ActionValue" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="256m">
+			<arg value="offline" /><arg value="${phantom.learning019.cohort}" /><arg value="${phantom.learning019.output}" />
+		</java>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning019ActionValue" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="256m">
+			<arg value="cold" /><arg value="${phantom.learning019.cohort}" /><arg value="${phantom.learning019.output}" />
+		</java>
+	</target>
+
 	<target name="phantom-learning016-test" depends="compile-tests" description="Run incremental TRAIN016 configuration, durable preparation and native reservation contracts without database access.">
 		<java classname="org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
 			<arg value="config016" />

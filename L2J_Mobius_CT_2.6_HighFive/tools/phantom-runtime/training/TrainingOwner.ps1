@@ -6,6 +6,101 @@ $script:TrainProtectedSha='9777AB48BC8D14BDEE77D4ACA8E7E650CB099F03CA33FEA108D5C
 $script:TrainProtected005Sha='A523F7FFE87682D2C1BBB0D23F40CAD8DB9634F7F2BFCED83232C3E6703D754A'
 $script:TrainProtected006Sha='246AC12CD718E698B18E6AB2B338622B24D505F75BA492EB1CD348BCA2E335CD'
 $script:TrainWin32Initialized=$false
+function Assert-TrainActionValue019Proof([int]$ExitCode,$Proof,[string]$ExpectedSha) {
+    if($ExitCode -ne 0 -or !$Proof -or $Proof.modelSha -cne $ExpectedSha -or $Proof.MODEL_CONSULTED -ne $true -or
+        $Proof.NATIVE_EXECUTED -ne $true -or $Proof.EFFECT_PAID -ne $true -or $Proof.nativePaid -lt 1){throw 'TRAIN019_NATIVE_EVIDENCE_MISSING_OR_FAILED'}
+}
+function Invoke-TrainActionValue019([string]$HistoryRoot,[string]$CandidateDirectory) {
+    if(!$HistoryRoot -or !$CandidateDirectory){throw 'TRAIN019_EXPLICIT_INPUTS'}
+    $HistoryRoot=[IO.Path]::GetFullPath($HistoryRoot).TrimEnd('\');$CandidateDirectory=[IO.Path]::GetFullPath($CandidateDirectory).TrimEnd('\')
+    Assert-TrainDirectory $HistoryRoot;Assert-TrainDirectory $CandidateDirectory
+    if((Split-Path $HistoryRoot -Leaf) -cne 'train' -or (Read-TrainJson (Join-Path $HistoryRoot 'director.json')).phase -cne 'STOPPED'){throw 'TRAIN019_STOPPED_HISTORY_REQUIRED'}
+    $old=@{Root=$HistoryRoot;Sql=(Join-Path $HistoryRoot 'sql')};Assert-TrainInstallation $old
+    Initialize-TrainWin32
+    foreach($path in @('sql\owned-process.json','native-process.json','owner-process.json')){
+        $record=Read-TrainJson (Join-Path $HistoryRoot $path)
+        if(!(Test-TrainProcessAbsent $record)){throw 'TRAIN019_HISTORY_OWNER_LIVE'}
+    }
+    Assert-TrainPortsFree @(33357,18001,19301,33359,18019,19319)
+    $lease=[IO.FileStream]::new((Join-Path $HistoryRoot 'director.lock'),[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+    $root=Join-Path (Split-Path $HistoryRoot -Parent) 'train019'
+    if(Test-Path -LiteralPath $root){$lease.Dispose();throw 'TRAIN019_FRESH_ROOT_ONLY_NO_SECOND_BOOT'}
+    $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'));$clone=Split-Path $module -Parent
+    $bin=Join-Path $env:ProgramFiles 'MariaDB 11.4\bin'
+    $layout=@{Root=$root;Game=(Join-Path $root 'game');Sql=(Join-Path $root 'sql');Admin=(Join-Path $bin 'mariadb-admin.exe');Daemon=(Join-Path $bin 'mariadbd.exe')}
+    $values=@{sqlPort='33359';shutdownTimeoutSeconds='30'}
+    $sql=$null;$native=$null;$nativeRecord=$null;$nativeHandle=$null;$clock=$null;$failure=$null;$pins=@{}
+    try {
+        New-TrainPrivateRoot $layout
+        $files=@(Get-ChildItem -LiteralPath (Join-Path $HistoryRoot 'autonomous') -File -Recurse)
+        $files+=@(Get-ChildItem -LiteralPath (Join-Path $HistoryRoot 'outcome006') -File -Recurse)
+        $files+=@(Get-ChildItem -LiteralPath (Join-Path $HistoryRoot 'sql\data') -File -Recurse)
+        foreach($relative in @('owner.txt','geo203.json','protected207.json','TRAIN_CONFIG.ini','director.json','game\libs\GameServer.jar')){$files+=Get-Item -LiteralPath (Join-Path $HistoryRoot $relative)}
+        foreach($file in $files){$pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash}
+        Write-TrainJson (Join-Path $root 'preservation-before.json') $pins
+        Copy-Item -LiteralPath (Join-Path $HistoryRoot 'game') -Destination $root -Recurse
+        $null=[IO.Directory]::CreateDirectory($layout.Sql)
+        Copy-Item -LiteralPath (Join-Path $HistoryRoot 'sql\data') -Destination $layout.Sql -Recurse
+        Copy-Item -LiteralPath (Join-Path $module 'dist\libs\GameServer.jar') -Destination (Join-Path $layout.Game 'libs\GameServer.jar') -Force
+        Copy-Item -LiteralPath (Join-Path $CandidateDirectory 'candidate.bin') -Destination $root
+        $proof=Read-TrainJson (Join-Path $CandidateDirectory 'offline.json')
+        Assert-TrainHash (Join-Path $root 'candidate.bin') $proof.modelShaAfter.ToUpperInvariant()
+        $client=[IO.File]::ReadAllText((Join-Path $HistoryRoot 'sql\admin.client.ini')).Replace('port=33357','port=33359')
+        Write-TrainText (Join-Path $layout.Sql 'admin.client.ini') $client
+        $database=Join-Path $layout.Game 'config\Database.ini';Write-TrainText $database ([IO.File]::ReadAllText($database).Replace('127.0.0.1:33357/','127.0.0.1:33359/'))
+        $server=Join-Path $layout.Game 'config\Server.ini';$body=[IO.File]::ReadAllText($server)
+        $body=[regex]::Replace($body,'(?m)^GameserverPort\s*=.*$','GameserverPort = 18019');$body=[regex]::Replace($body,'(?m)^LoginPort\s*=.*$','LoginPort = 19319');Write-TrainText $server $body
+        $config=Join-Path $layout.Game 'config\Custom\PhantomPlayers.ini';Write-TrainText $config (Get-TrainColdBaseline ([IO.File]::ReadAllText($config)))
+        $cohort=Join-Path $HistoryRoot 'autonomous\v1\campaigns\autonomous009-learning016-g2-v1\cohorts\autonomous009-learning016-g2-v1-c000001'
+        $selected=$null
+        foreach($work in @(Get-ChildItem -LiteralPath $cohort -Directory|Where-Object Name -Match '^[a-f0-9]{64}$'|Sort-Object Name)){
+            $result=Read-TrainJson (Join-Path $work.FullName 'result.json')
+            if($result.scope -ceq 'SOLO' -and $result.classId -eq 110 -and $result.outcome -ceq 'COMPLETED' -and $result.paidRawEffects -ge 2){$selected=$work;break}
+        }
+        if(!$selected){throw 'TRAIN019_NO_LIVING_SAVED_SOLO'}
+        Copy-Item -LiteralPath (Join-Path $selected.FullName 'roster.tsv') -Destination $root
+        $nonce=[guid]::NewGuid().ToString('N');$options=Join-Path $layout.Sql ('owned-server.'+$nonce+'.ini')
+        Write-TrainText $options ((@('[mysqld]','bind-address=127.0.0.1','port=33359',('datadir="'+(Join-Path $layout.Sql 'data').Replace('\','/')+'"'),'default-time-zone=+00:00')) -join "`n")
+        $sqlProcess=Start-Process -FilePath $layout.Daemon -ArgumentList @(('"--defaults-file='+$options+'"'),'--console') -WorkingDirectory $layout.Sql -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'sql.out') -RedirectStandardError (Join-Path $root 'sql.err')
+        $null=Hold-ProcessHandle $sqlProcess;$sql=New-TrainProcessRecord $sqlProcess $layout.Daemon $nonce Sql $options
+        Write-TrainJson (Join-Path $layout.Sql 'owned-process.json') $sql
+        $ready=[DateTime]::UtcNow.AddSeconds(30)
+        while($true){
+            & $layout.Admin ('--defaults-file='+(Join-Path $layout.Sql 'admin.client.ini')) --protocol=tcp ping 1>$null 2>$null
+            if($LASTEXITCODE -eq 0){break};if($sqlProcess.HasExited -or [DateTime]::UtcNow -ge $ready){throw 'TRAIN019_SQL_NOT_READY'};Start-Sleep -Milliseconds 250
+        }
+        Assert-TrainSqlOptions $layout $values $sql;Assert-TrainProcess $sql -Kind Sql -Port 33359
+        $java=(Get-Command java.exe -CommandType Application|Select-Object -First 1).Source
+        $classPath=(Join-Path $clone 'build\phantom-test\bin')+';'+(Join-Path $layout.Game 'libs\*')
+        $jarSha=(Get-FileHash -LiteralPath (Join-Path $layout.Game 'libs\GameServer.jar')).Hash.ToLowerInvariant()
+        $args019=Get-TrainJavaArguments 'org.l2jmobius.tests.phantoms.PhantomLearning019ActionValue' @('native',$root,$jarSha,$proof.modelShaAfter) $classPath $nonce 2 4096
+        $null=[IO.Directory]::CreateDirectory((Join-Path $root ('attempts\'+$nonce)))
+        $clock=[Diagnostics.Stopwatch]::StartNew()
+        $native=Start-Process -FilePath $java -ArgumentList $args019 -WorkingDirectory $layout.Game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'native.out') -RedirectStandardError (Join-Path $root 'native.err')
+        $nativeHandle=Hold-ProcessHandle $native;$nativeRecord=New-TrainProcessRecord $native $java $nonce Native (Join-Path $root 'candidate.bin')
+        Write-TrainJson (Join-Path $root 'native-process.json') $nativeRecord
+        while(!$native.HasExited -and $clock.ElapsedMilliseconds -lt 460000){
+            if($clock.ElapsedMilliseconds -ge 330000 -and !(Test-Path -LiteralPath (Join-Path $root 'stop.request'))){Write-TrainText (Join-Path $root 'stop.request') '019_BOUNDED_DRAIN'}
+            Start-Sleep -Milliseconds 250
+        }
+        if(!$native.HasExited){Assert-TrainProcess $nativeRecord -Kind Native;$native.Kill();$null=$native.WaitForExit(10000);throw 'TRAIN019_NATIVE_DEADLINE'}
+        $exit=Get-TrackedProcessExitCode $native $nativeHandle
+        Write-TrainExitReceipt $layout $nativeRecord $native $nativeHandle
+        Assert-TrainActionValue019Proof $exit (Read-TrainJson (Join-Path $root 'native019.json')) $proof.modelShaAfter
+    } catch {$failure=$_} finally {
+        if($native -and !$native.HasExited){Assert-TrainProcess $nativeRecord -Kind Native;$native.Kill();$null=$native.WaitForExit(10000)}
+        if(Test-Path -LiteralPath (Join-Path $layout.Game 'config\Custom\PhantomPlayers.ini')){$config=Join-Path $layout.Game 'config\Custom\PhantomPlayers.ini';Write-TrainText $config (Get-TrainColdBaseline ([IO.File]::ReadAllText($config)))}
+        if($sql -and !(Test-TrainProcessAbsent $sql)){Stop-TrainSql $layout $values $sql}
+        if($clock){$clock.Stop()}
+        $drift=@();foreach($path in $pins.Keys){if((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -cne $pins[$path]){$drift+=$path}}
+        Assert-TrainPortsFree @(33357,18001,19301,33359,18019,19319)
+        Write-TrainJson (Join-Path $root 'safety019.json') @{gsStarts=$(if($clock){1}else{0});nativeElapsedMillis=$(if($clock){$clock.ElapsedMilliseconds}else{0});preservedFiles=$pins.Count;historicalDrift=$drift.Count;test='OFF';ownedProcesses=0;portsFree=$true;nativeExit=$(if($native -and $native.HasExited){Get-TrackedProcessExitCode $native $nativeHandle}else{$null})}
+        $lease.Dispose()
+        if($drift.Count){throw 'TRAIN019_HISTORICAL_DRIFT'}
+    }
+    if($failure){throw $failure}
+    Write-Output ('TRAIN019_NATIVE_CLOSED root='+$root)
+}
 function Hold-ProcessHandle([Diagnostics.Process]$Process) {
     if ($null -eq $Process) { throw 'OWN108R3C_PROCESS_REQUIRED' }
     # Start-Process redirection on Windows PowerShell 5.1 can lose ExitCode unless

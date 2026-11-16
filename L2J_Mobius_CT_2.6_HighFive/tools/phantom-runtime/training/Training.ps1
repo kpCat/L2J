@@ -1,9 +1,10 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight','Prepare','RepairClosure017')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight','Prepare','RepairClosure017','ActionValue019')][string]$Action,
     [string]$Root,
     [string]$RepairEvidenceRoot,
     [string]$ColdLineageProof,
+    [string]$ActionValueCandidate,
     [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
     [switch]$EnableOutcome006,
     [switch]$EnableExploration007,
@@ -23,6 +24,7 @@ Set-StrictMode -Version Latest
 [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'TrainingOwner.ps1')
 . (Join-Path $PSScriptRoot 'TrainingBroker.ps1')
+if($Action -ceq 'ActionValue019'){Invoke-TrainActionValue019 $Root $ActionValueCandidate;exit}
 $layout=if($Action -ceq 'RepairClosure017'){$null}else{Get-TrainLayout $Root}
 $script:State=$null
 $script:DirectorNonce=$Nonce

@@ -28,6 +28,55 @@ public final class TacticalPolicyV3
 	private volatile Consumer<TacticalReceiptV3> _damageSink = _ -> { };
 	private volatile Consumer<TacticalFailureV3> _failureSink = _ -> { };
 	private volatile TrainExplorationV1 _exploration;
+	private volatile Mode _actionValueMode = Mode.OFF;
+	private volatile ActionValueV4 _actionValue;
+	private volatile Consumer<ActionValueDecision> _actionValueSink = _ -> { };
+	public record ActionValueDecision(LegalActionV3 selected, List<Double> scores, boolean consulted, String reason, String modelSha, long nanos)
+	{ public ActionValueDecision { scores = List.copyOf(scores); } }
+	/** Explicit TEST-only pre-CUT binding. Ordinary configuration never installs V4. */
+	public void actionValueTest(Mode mode, ActionValueV4 model, Consumer<ActionValueDecision> sink)
+	{
+		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || mode == null || sink == null || !_last.isEmpty())
+		{ throw new IllegalArgumentException("V4 requires separate explicit pre-combat TEST policy"); }
+		_actionValue = model; _actionValueSink = sink; _actionValueMode = mode;
+	}
+	/** Pure rank over already validated proposals; execution authority remains with the caller. */
+	public static ActionValueDecision actionValueChoice(Mode mode, ActionValueV4 model, TacticalObservationV3 observation,
+		List<LegalActionV3> offered, LegalActionV3 stock, boolean critical, long deadline)
+	{
+		final long started = System.nanoTime();
+		final var scores = new ArrayList<Double>(); String reason = "OFF"; boolean consulted = false;
+		LegalActionV3 selected = stock;
+		try
+		{
+			if (mode == null || mode == Mode.OFF) { reason = "OFF"; }
+			else if (critical) { reason = "CRITICAL_STOCK"; }
+			else if (model == null || model.updates() == 0) { reason = "MODEL_UNREADY"; }
+			else if (System.nanoTime() >= deadline) { reason = "BUDGET_5MS"; }
+			else if (observation == null || offered == null || offered.size() < 2 || offered.size() > 16 || !offered.contains(stock)) { reason = "MISSING_OBSERVATION_OR_OPTIONS"; }
+			else
+			{
+				new TacticalReceiptV3.Attempt(observation, offered, stock, stock, 0);
+				if (offered.stream().anyMatch(a -> a.family() != LegalActionV3.Family.DAMAGE)) { reason = "FAMILY_UNTRAINED"; }
+				else
+				{
+					double best = -Double.MAX_VALUE, second = best; LegalActionV3 winner = stock;
+					for (var action : offered)
+					{
+						final double score = model.score(observation, action); scores.add(score);
+						if (score > best) { second = best; best = score; winner = action; } else { second = Math.max(second, score); }
+					}
+					consulted = true;
+					if (System.nanoTime() >= deadline) { reason = "BUDGET_5MS"; }
+					else if (mode != Mode.ON) { reason = "SHADOW"; }
+					else if (best - second < .025) { reason = "MARGIN"; }
+					else { selected = winner; reason = selected.equals(stock) ? "V4_STOCK" : "V4_REORDERED"; }
+				}
+			}
+		}
+		catch (RuntimeException invalid) { selected = stock; reason = "INVALID_STOCK"; }
+		return new ActionValueDecision(selected, scores, consulted, reason, model == null ? "" : model.sha256(), System.nanoTime() - started);
+	}
 	private final ConcurrentHashMap<Long, Long> _last = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, HealEvidenceV3.Attempt> _pending = new ConcurrentHashMap<>();
 	private final AtomicLong _generation = new AtomicLong();
@@ -133,6 +182,13 @@ public final class TacticalPolicyV3
 					else{selected=offered.indexOf(decision.selected());}
 					session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),profile,target.getObjectId());
 				}
+			}
+			if (_actionValueMode != Mode.OFF)
+			{
+				final var decision = actionValueChoice(_actionValueMode, _actionValue, observation, offered, offered.get(stock),
+					_exploration != null || actor.getCurrentHp() <= actor.getMaxHp() * .30, now + 5_000_000L);
+				selected = offered.indexOf(decision.selected());
+				_actionValueSink.accept(decision); reason("V4_" + decision.reason(), profile, target.getObjectId());
 			}
 			reason(selected==stock?"DAMAGE_STOCK":"DAMAGE_REORDER",profile,target.getObjectId());
 			if (selected != stock) { reordered.increment(); }

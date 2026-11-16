@@ -1218,6 +1218,29 @@ public final class PhantomLearning001ShadowNative
 			return "{\"schema\":1,\"actors\":[" + String.join(",", facts) + "],\"rewardAttribution\":\"UNKNOWN\",\"spoil\":\"UNKNOWN\"}";
 		}
 
+		/** One TEST019 Solo cast through this existing owner. No provisioning, healing, new scheduler or SQL training. */
+		String actionValue019Solo(String[] row, BooleanSupplier paid) throws Exception
+		{
+			check(Boolean.getBoolean("phantom.learning.train") && trainingRows.isEmpty(), "V4_TEST_ONLY");
+			trainingRows = List.<String[]>of(row); trainingParty = false; trainingAdmission = false;
+			coordinator.installLogicalFarmAdmission(_ -> false);
+			final Player player = materialize(row); trainingPlayers = List.of(player);
+			check(!player.isAlikeDead() && player.getCurrentHp() > player.getMaxHp() * .30, "V4_NATIVE_ACTOR_NOT_SAFE");
+			returnToPartyAnchor(row, player);
+			await(() -> progression.findCatalog().isPresent(), Duration.ofSeconds(20), "V4_NATIVE_CATALOG");
+			final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+			final var target = PhantomLearning001ActorFixture.coldSoloOpeningTargets(player).stream()
+				.filter(t -> geo.canSeeTarget(player, t) && geo.canMoveToTarget(player.getX(), player.getY(), player.getZ(), t.getX(), t.getY(), t.getZ(), player.getInstanceId()))
+				.findFirst().orElseThrow(() -> new IllegalStateException("V4_NO_LAWFUL_SOLO_OPENING"));
+			final long profile = Long.parseLong(row[2]);
+			final var request = new PhantomCombatRequest(profile, target.getObjectId(), PhantomCombatMode.RANGED_MAGIC, true, true, 45000,
+				() -> false, LearningScope.SOLO, null, () -> false);
+			check(combat.startSession(request).accepted(), "V4_NATIVE_OWNER_START");
+			final long deadline = System.nanoTime() + Duration.ofSeconds(45).toNanos();
+			while (!paid.getAsBoolean() && !Files.exists(stop) && !player.isAlikeDead() && !target.isAlikeDead() && System.nanoTime() < deadline) { Thread.sleep(100); }
+			return trainingFacts();
+		}
+
 		private Player materialize(String[] row)
 		{
 			final long profile = Long.parseLong(row[2]);
