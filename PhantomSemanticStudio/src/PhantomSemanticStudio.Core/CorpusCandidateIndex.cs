@@ -61,6 +61,44 @@ public sealed class CorpusCandidateIndex
         using var verified = Open(false, CancellationToken.None);
     }
 
+    // A claim follows a durable editorial decision. It is not made by Append/Find and never approves research by itself.
+    internal IReadOnlyList<int> ReserveApprovals(string sourceId, string sourceHash, string decisionHash, string approvalHash,
+        IReadOnlyList<int> numbers, CancellationToken token)
+    {
+        V4Rules.Require(Hex(sourceId, 32, 64) && numbers is { Count: <= 20 } && numbers.All(n => n is >= 1 and <= 20)
+            && numbers.Distinct().Count() == numbers.Count && new[] { sourceHash, decisionHash, approvalHash }.All(h => h is { Length: 64 } && h.All(char.IsAsciiHexDigit)), "CORPUS_APPROVAL_CLAIM");
+        if (numbers.Count == 0) return [];
+        using var db = Open(true, token); using var transaction = db.BeginTransaction();
+        using (var schema = Command(db, transaction, """
+            CREATE TABLE IF NOT EXISTS approved_texts(text_id INTEGER PRIMARY KEY REFERENCES texts(id),source_id TEXT NOT NULL,number INTEGER NOT NULL,
+                decision_hash TEXT NOT NULL,approval_hash TEXT NOT NULL);
+            """)) schema.ExecuteNonQuery();
+        var reserved = new List<int>();
+        foreach (var number in numbers)
+        {
+            token.ThrowIfCancellationRequested(); long textId;
+            using (var lookup = Command(db, transaction, "SELECT o.text_id FROM occurrences o JOIN sources s ON s.id=o.source_id WHERE o.source_id=$source AND o.number=$number AND s.fingerprint=$hash AND o.qa_only=0",
+                ("$source", sourceId), ("$number", number), ("$hash", sourceHash)))
+                textId = lookup.ExecuteScalar() is long found ? found : throw new InvalidDataException("CORPUS_APPROVAL_SOURCE_DRIFT");
+            using (var insert = Command(db, transaction, "INSERT OR IGNORE INTO approved_texts VALUES($text,$source,$number,$decision,$approval)",
+                ("$text", textId), ("$source", sourceId), ("$number", number), ("$decision", decisionHash), ("$approval", approvalHash))) insert.ExecuteNonQuery();
+            using var owner = Command(db, transaction, "SELECT source_id,number,decision_hash,approval_hash FROM approved_texts WHERE text_id=$text", ("$text", textId));
+            using var reader = owner.ExecuteReader();
+            V4Rules.Require(reader.Read(), "CORPUS_APPROVAL_RESERVATION_MISSING");
+            if (reader.GetString(0) == sourceId && reader.GetInt32(1) == number && reader.GetString(2) == decisionHash && reader.GetString(3) == approvalHash) reserved.Add(number);
+        }
+        transaction.Commit(); return reserved;
+    }
+    internal bool HasApproval(string sourceId, int number, string decisionHash, string approvalHash)
+    {
+        using var db = Open(false, CancellationToken.None);
+        using (var feature = Command(db, null, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='approved_texts'"))
+            if ((long)feature.ExecuteScalar()! == 0) return false;
+        using var lookup = Command(db, null, "SELECT count(*) FROM approved_texts WHERE source_id=$source AND number=$number AND decision_hash=$decision AND approval_hash=$approval",
+            ("$source", sourceId), ("$number", number), ("$decision", decisionHash), ("$approval", approvalHash));
+        return (long)lookup.ExecuteScalar()! == 1;
+    }
+
     private void Guard()
     {
         workspace.Check(); PathSafety.AssertNoReparsePoints(path);

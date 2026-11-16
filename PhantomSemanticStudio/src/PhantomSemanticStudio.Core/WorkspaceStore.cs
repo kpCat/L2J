@@ -28,6 +28,8 @@ public sealed class WorkspaceStore : IDisposable
     {
         Root = PathSafety.Canonical(root); ProtectedRoot = PathSafety.RepositoryBoundary(sourceModule);
         PathSafety.AssertDisjoint(ProtectedRoot, Root);
+        // Reuse the existing host-repository and workspace-repository guards before any directory or lock is created.
+        _ = new V4Workspace(Root, ProtectedRoot);
         Directory.CreateDirectory(Root);
         PathSafety.AssertNoReparsePoints(Root);
         exclusiveLock = new FileStream(Path.Combine(Root, "workspace.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);

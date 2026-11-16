@@ -87,17 +87,27 @@ public sealed partial class LmStudioClient
         return result.AppendLine(instruction).Append("Точная схема JSON-ответа:\n").Append(schema.ToJsonString(PromptProfiles.CompactJson)).ToString();
     }
 
+    internal static void ValidatePromptLabBudget(string system, string user, V4GenerationRequest request, int contextLength)
+    {
+        var bound = Encoding.UTF8.GetByteCount(system) + Encoding.UTF8.GetByteCount(user);
+        V4Rules.Require(bound <= 32768 && bound + request.MaxOutputTokens + 4096 <= Math.Min(65536, contextLength), "CONTEXT_BUDGET_REJECTED");
+    }
+    private static void ValidatePromptLabRequest(StudioSettings settings, string apiKey, CorpusLoadedModel loaded,
+        V4GenerationRequest request, PromptLabApiOptions options, string system, string user)
+    {
+        ValidateSettings(settings); options.Validate();
+        V4Rules.Require(loaded.InstanceId.Length is > 0 and <= 256 && loaded.ContextLength == 65536, "EXACT_LOADED_CONTEXT_65536_REQUIRED");
+        var native = options.Transport == "LM_NATIVE";
+        V4Rules.Require(!native || request.Reasoning == "default" || loaded.AllowedReasoning.Length == 0 || loaded.AllowedReasoning.Contains(request.Reasoning), "REASONING_NOT_SUPPORTED");
+        ValidatePromptLabBudget(system, user, request, loaded.ContextLength);
+        V4Rules.Require(apiKey.Length <= 4096 && !apiKey.Any(char.IsControl), "API_TOKEN_FORMAT");
+    }
     private async Task<PromptLabResponse> SendPromptLabAsync(StudioSettings settings, string apiKey, CorpusLoadedModel loaded,
         V4GenerationRequest request, PromptLabApiOptions options, string system, string user, object schema, bool checkReasoningLeakage,
         CancellationToken token, IProgress<PromptLabProgress>? progress)
     {
-        ValidateSettings(settings); options.Validate(); token.ThrowIfCancellationRequested();
-        V4Rules.Require(loaded.InstanceId.Length is > 0 and <= 256 && loaded.ContextLength == 65536, "EXACT_LOADED_CONTEXT_65536_REQUIRED");
+        ValidatePromptLabRequest(settings, apiKey, loaded, request, options, system, user); token.ThrowIfCancellationRequested();
         var native = options.Transport == "LM_NATIVE";
-        V4Rules.Require(!native || request.Reasoning == "default" || loaded.AllowedReasoning.Length == 0 || loaded.AllowedReasoning.Contains(request.Reasoning), "REASONING_NOT_SUPPORTED");
-        var bound = Encoding.UTF8.GetByteCount(system) + Encoding.UTF8.GetByteCount(user);
-        V4Rules.Require(bound <= 32768 && bound + request.MaxOutputTokens + 4096 <= Math.Min(65536, loaded.ContextLength), "CONTEXT_BUDGET_REJECTED");
-        V4Rules.Require(apiKey.Length <= 4096 && !apiKey.Any(char.IsControl), "API_TOKEN_FORMAT");
         var payload = CorpusPayload(loaded, request, system, user, schema); payload["stream"] = options.Stream;
         if (options.Stream && !native) payload["stream_options"] = new { include_usage = true };
         var requestJson = JsonSerializer.Serialize(payload, PromptProfiles.ConfigJson);

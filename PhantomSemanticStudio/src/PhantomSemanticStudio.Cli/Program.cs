@@ -9,8 +9,8 @@ catch (Exception error) when (error is IOException or InvalidDataException or Ar
 static int Run(string[] args)
 {
     var options = new Dictionary<string, string>(StringComparer.Ordinal); var positional = new List<string>();
-    var flags = new[] { "--dry-run", "--reviewed", "--mature", "--help", "--markdown", "--thinking", "--mature-pilot-consent", "--intimate-holdout", "--thinking-quality", "--batch-size-probe", "--matched-profile-probe", "--draft-only" };
-    var valued = new[] { "--workspace", "--source", "--category", "--persona", "--relation", "--parent", "--key", "--label", "--act", "--intent", "--proposal", "--hash", "--lab", "--model", "--transport", "--reasoning", "--thinking-control", "--limit", "--profiles", "--endpoint", "--model-file", "--thinking-budget" };
+    var flags = new[] { "--dry-run", "--reviewed", "--mature", "--help", "--markdown", "--thinking", "--mature-pilot-consent", "--intimate-holdout", "--thinking-quality", "--batch-size-probe", "--matched-profile-probe", "--draft-only", "--final-tail" };
+    var valued = new[] { "--workspace", "--source", "--category", "--persona", "--relation", "--parent", "--key", "--label", "--act", "--intent", "--proposal", "--hash", "--lab", "--model", "--transport", "--reasoning", "--thinking-control", "--limit", "--profiles", "--endpoint", "--model-file", "--thinking-budget", "--policy", "--approval-hash", "--sample" };
     for (var i = 0; i < args.Length; i++)
     {
         var arg = args[i];
@@ -23,10 +23,50 @@ static int Run(string[] args)
     string Opt(string key, string? fallback = null) => options.TryGetValue(key, out var value) ? value : fallback ?? throw new InvalidDataException("Нужна опция " + key);
     string Input() => positional.Count == 2 ? Path.GetFullPath(positional[1]) : throw new InvalidDataException("Укажите один путь к файлу/папке.");
     if (positional.Count == 0 || options.ContainsKey("--help")) { Help(); return 0; }
+    if (positional[0] is "campaign-policy-propose" or "campaign-policy-approve" or "campaign-policy-check" or "campaign-export" or "campaign-import" or "campaign-stage")
+    {
+        var command = positional[0]; var allowed = command switch
+        {
+            "campaign-policy-propose" or "campaign-stage" => Array.Empty<string>(),
+            "campaign-policy-approve" => ["--hash", "--sample", "--reviewed"],
+            "campaign-policy-check" => ["--hash"], "campaign-export" => ["--hash", "--policy", "--approval-hash", "--final-tail"],
+            "campaign-import" => ["--hash", "--reviewed"], _ => throw new InvalidDataException("Неизвестная campaign-команда.")
+        };
+        if (positional.Count != (command == "campaign-stage" ? 1 : 2) || options.Keys.Any(key => key is not ("--workspace" or "--source") && !allowed.Contains(key)))
+            throw new InvalidDataException("Неверный набор аргументов campaign-команды.");
+        using var owned = new WorkspaceStore(PathSafety.Canonical(Opt("--workspace")), PathSafety.Canonical(Opt("--source")));
+        var policies = new CorpusCampaignPolicies(new PromptLabStore(owned)); object output;
+        if (command == "campaign-policy-propose")
+        {
+            var policy = policies.Propose(CorpusCampaignPolicies.ReadSpec(Input()));
+            output = new { PolicyId = policy.Id, PolicyHash = policies.PolicyHash(policy.Id), State = "PROPOSED_NOT_APPROVED", policy.Spec.CampaignId, policy.Spec.PlanHash,
+                policy.Spec.Critic, policy.Spec.MaxEditorialRequests, Contexts = policy.Spec.Contexts.Count, RequiredOwnerSample = 50 };
+        }
+        else if (command is "campaign-policy-approve" or "campaign-policy-check")
+        {
+            var approval = command == "campaign-policy-approve"
+                ? policies.Approve(positional[1], Opt("--hash"), CorpusCampaignPolicies.ReadSample(Opt("--sample")), options.ContainsKey("--reviewed"))
+                : policies.CheckApproved(positional[1], Opt("--hash"));
+            output = new { approval.PolicyId, ApprovalHash = policies.ApprovalHash(approval.PolicyId), State = "OWNER_POLICY_APPROVED", Samples = approval.Samples.Count,
+                MeanNaturalness = approval.Samples.Average(s => s.Grade.Naturalness), MeanContextAccuracy = approval.Samples.Average(s => s.Grade.ContextAccuracy),
+                Note = "Утверждена политика; это не число принятых, импортированных или установленных записей." };
+        }
+        else
+        {
+            var export = new CorpusCampaignExport(owned);
+            output = command switch
+            {
+                "campaign-export" => export.Export(positional[1], Opt("--hash"), Opt("--policy"), Opt("--approval-hash"), options.ContainsKey("--final-tail")),
+                "campaign-import" => export.Import(positional[1], Opt("--hash"), options.ContainsKey("--reviewed")),
+                "campaign-stage" => export.BuildAndVerify(), _ => throw new InvalidDataException("Неизвестная campaign-команда.")
+            };
+        }
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(output, WorkspaceStore.JsonOptions)); return 0;
+    }
     if (positional[0] is "campaign-run" or "campaign-resume" or "campaign-status" or "campaign-pause" or "campaign-stop")
     {
         var execute = positional[0] is "campaign-run" or "campaign-resume";
-        if (positional.Count != 2 || options.Keys.Any(key => key is not ("--workspace" or "--source" or "--hash") && !(execute && key is "--limit" or "--draft-only")))
+        if (positional.Count != 2 || options.Keys.Any(key => key is not ("--workspace" or "--source" or "--hash") && !(execute && key is "--limit" or "--draft-only" or "--policy" or "--approval-hash")))
             throw new InvalidDataException("Нужны campaign ID, --hash, --workspace, --source; запуск требует --draft-only и допускает --limit.");
         var root = PathSafety.Canonical(Opt("--workspace")); var sourceRoot = PathSafety.Canonical(Opt("--source")); var hash = Opt("--hash");
         CorpusCampaignStatus status;
@@ -35,16 +75,17 @@ static int Run(string[] args)
                 : CorpusCampaignControl.Request(root, sourceRoot, positional[1], hash, positional[0] == "campaign-stop" ? "STOP" : "PAUSE");
         else
         {
-            if (!options.ContainsKey("--draft-only")) throw new InvalidDataException("Автоматическое утверждение не реализовано. Для worker укажите --draft-only.");
+            var draft = options.ContainsKey("--draft-only"); var policy = options.GetValueOrDefault("--policy"); var approval = options.GetValueOrDefault("--approval-hash");
+            if (draft == (policy != null) || (policy == null) != (approval == null)) throw new InvalidDataException("Укажите либо --draft-only, либо пару --policy и --approval-hash.");
             if (!int.TryParse(Opt("--limit", "1000000"), out var limit) || limit is < 1 or > 1000000) throw new InvalidDataException("Лимит партий: 1..1000000.");
             using var owned = new WorkspaceStore(root, sourceRoot); using var worker = new CorpusCampaignWorker(owned);
             using var cancel = new CancellationTokenSource();
             ConsoleCancelEventHandler handler = (_, e) => { e.Cancel = true; cancel.Cancel(); }; Console.CancelKeyPress += handler;
-            try { status = worker.RunAsync(positional[1], hash, limit, cancel.Token, resume: positional[0] == "campaign-resume").GetAwaiter().GetResult(); }
+            try { status = worker.RunAsync(positional[1], hash, limit, cancel.Token, resume: positional[0] == "campaign-resume", policyId: policy, approvalHash: approval).GetAwaiter().GetResult(); }
             finally { Console.CancelKeyPress -= handler; }
         }
         Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(status, WorkspaceStore.JsonOptions));
-        return status.State is "PAUSED_INDETERMINATE" or "PAUSED_MODEL_OFFLINE" or "PAUSED_RESOURCE" or "PAUSED_QUALITY_REGRESSION" ? 1 : 0;
+        return status.State.StartsWith("PAUSED_", StringComparison.Ordinal) && status.State != "PAUSED_REVIEW" || status.State == "EDITORIAL_BUDGET_EXHAUSTED" ? 1 : 0;
     }
     if (positional[0] is "campaign-plan" or "campaign-check")
     {
@@ -178,9 +219,16 @@ corpus-inspect-gguf --model-file <local.gguf>  Read-only GGUF v3 metadata/templa
 prompt-coverage — офлайн JSON-карта142категорий,20семейств и неподтверждённых quality gaps; модель не нужна.
 campaign-plan <spec.json> --workspace <lab-dir> --source <HighFive> — закрепить квоты production-профилей без HTTP.
 campaign-check <id> --hash <plan-sha256> --workspace <lab-dir> --source <HighFive> — проверить pins/evidence/drift; не Start/Resume.
+campaign-policy-propose <spec.json> --workspace <lab-dir> --source <HighFive> — сохранить политику и контексты без утверждения и HTTP.
+campaign-policy-approve <id> --hash <policy-sha256> --sample <owner-grades.json> --reviewed --workspace <lab-dir> --source <HighFive> — явное утверждение после50+ оценок.
+campaign-policy-check <id> --hash <approval-sha256> --workspace <lab-dir> --source <HighFive> — проверить approval и sample/profile pins.
 campaign-run <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> --draft-only [--limit N] — сохранять drafts без утверждения/импорта.
+campaign-run|campaign-resume <id> --hash <plan-sha256> --policy <id> --approval-hash <sha256> --workspace <lab-dir> --source <HighFive> [--limit N] — policy-bound generation/editorial.
 campaign-resume <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> --draft-only [--limit N] — продолжить сохранённую очередь.
 campaign-status|campaign-pause|campaign-stop <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> — независимое управление на границе партии.
+campaign-export <id> --hash <plan-sha256> --policy <id> --approval-hash <sha256> --workspace <lab-dir> --source <HighFive> [--final-tail] — approved-only JSONL.
+campaign-import <export-id> --hash <input-sha256> --reviewed --workspace <lab-dir> --source <HighFive> — официальный импорт в отдельный workspace лаборатории.
+campaign-stage --workspace <lab-dir> --source <HighFive> — официальный V4 build/verify, без установки и Java proof.
 --matched-profile-probe --mature-pilot-consent — 32 matched запроса: четыре стратегии × два sampler × PvP/ролевая бравада/спокойный контроль/взрослый неграфический юмор; по4 кандидата, cap2048.
 --thinking-control none|reasoning_effort|chat_template_kwargs; --profiles <directory>.
 --mature-pilot-consent — отдельное явное разрешение взрослой части синтетического приватного пилота; по умолчанию OFF.

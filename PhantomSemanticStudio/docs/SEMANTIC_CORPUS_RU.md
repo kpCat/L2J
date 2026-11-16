@@ -40,6 +40,8 @@ Core `CorpusCandidateIndex` хранит новые исследовательс
 
 ## Возобновляемый worker черновиков (C3A)
 
+Совместимый draft-only путь сохранён. Следующий раздел описывает отдельно включаемый policy-bound режим C3B; без его явных аргументов worker не утверждает строки.
+
 В существующем Core работает последовательный `CorpusCampaignWorker`: закреплённый production-профиль → обычный PromptLab run → сохранённый transport receipt → строгий V4 parser → снимок проверки дублей → общий индекс → SQLite checkpoint. На данном этапе результаты имеют только `PENDING` или `REJECTED`; reviewed/approved всегда0, импорта и stage нет. Квоты accepted сохраняются как цель, а распределение попыток пока round-robin. Повторение одной ситуации не считается разнообразием контекстов или готовой массовой кампанией.
 
 CLI из той же сборки Studio:
@@ -61,6 +63,41 @@ campaign-stop <id> --hash <sha256> --workspace <lab-dir> --source <HighFive>
 До append индекса сохраняется неизменяемый снимок соседей и исходного решения. Crash после index append восстанавливает его и не превращает собственный повтор в новый дубликат. Crash между созданием run и привязкой SQLite восстанавливается по task GUID в ExperimentId. Raw/версии/receipt/отклонённые партии не удаляются. Не использовать `campaign-resume` как способ повторной отправки неизвестного POST.
 
 `--corpus-campaign001` проверяет mock pipeline, три crash checkpoint, неизвестный POST и отдельный процесс после завершения launcher с Pause/Resume/Stop. Это `MOCK_ONLY`: не настоящий корпус, не качество Gemma, не проверка её непрерывной работы. Запуск production PowerShell launcher на настоящей Gemma, context pool, policy-bound редакционная приёмка, approved-only export и100K ещё требуют следующих проверок в том же Goal.
+
+## Редакционная кампания C3B
+
+Политика сохраняется отдельной неизменяемой proposal, а утверждение — отдельным hash-bound документом. Оно закрепляет C1-план, версии production-профилей, sampler, реестр/Core, контексты, полный SYSTEM критика, его независимые параметры и редакционную выборку. Изменение отзывов или исходных pins запрещает новый запуск/экспорт под старым approval. Предложение политики, наличие JSON и оценки модели не являются утверждением владельца.
+
+```text
+campaign-policy-propose <policy-spec.json> --workspace <lab-dir> --source <HighFive>
+campaign-policy-approve <policy-id> --hash <policy-sha256> --sample <owner-grades.json> --reviewed --workspace <lab-dir> --source <HighFive>
+campaign-policy-check <policy-id> --hash <approval-sha256> --workspace <lab-dir> --source <HighFive>
+campaign-run <campaign-id> --hash <plan-sha256> --policy <policy-id> --approval-hash <approval-sha256> --limit 100 --workspace <lab-dir> --source <HighFive>
+```
+
+Минимальный policy-spec содержит CampaignId/PlanHash. CriticSystem можно задать самому; пустая строка при создании proposal заменяется полным текстом editorial.v1.md из той же сборки. Сохранённая политика не перечитывает меняющийся ресурс. Critic — отдельный PromptLabApiOptions; default reasoning off, temperature0.1, top_p1, max output4096. AUTO/ON/OFF и unsupported-параметры обрабатывает тот же измеряемый LM-клиент; успешный HTTP сам по себе не доказывает применение thinking OFF. MaxEditorialRequests — отдельный конечный бюджет, generation MaxRequests и --limit считаются отдельно.
+
+Contexts — массив `{Id, QuotaId, Situation, Dialogue}`. Можно менять только ситуацию и последние ходы, максимум4096 контекстов/4MiB proposal. Голос, отношения, стиль, maturity/profanity, mode/event, family/category instructions и generation sampler берутся из закреплённого профиля. Для квот>300 нужны хотя бы два дополнительных контекста; это лишь структурный минимум, а не доказанное разнообразие100K смыслов. Выбор контекста детерминированный. Непроверенные факты и новые события автоматически не подтверждаются.
+
+Owner-grades — JSON-массив50–1000 уникальных строк. Все поля обязательны: QuotaId, RunId, Number, TextHash, Naturalness, ContextAccuracy, HasCriticalIssue, Comment. Пропущенный HasCriticalIssue не превращается в false. Это реальные оценки оператора по шкале1–5, а не автоматически назначенные баллы модели. Нужны LIKE в сохранённом лабораторном отзыве, строгая схема, точные model/context/endpoint/prompt/options, представительство каждой квоты, каждое значение>=3, средние>=4 по каждой квоте и ни одной critical ошибки. Одну строку или одинаковые тексты нельзя размножить до50. --reviewed является явным действием владельца; worker не вызывает Approve.
+
+Редакционный POST отличается от generation. Он получает относящийся к партии scope, замороженные исходные SYSTEM/USER как цитируемое задание, тексты/diagnostics и до двух соседей на запись из сохранённого preindex snapshot. Общий serialized batch ограничен32KiB, ответ64KiB, контекст LM65536 с резервом транспорта. Неизвестный контекст ссылки не выдумывается. Ограниченный shortlist не доказывает полный semantic recall. Строгий parser требует ровно все candidate IDs, целые оценки1–5, правильные типы и только существующие duplicate references; частичный/повреждённый JSON не принимается.
+
+Автоматический допуск в рамках утверждённой политики требует naturalness/context>=4, character>=3, grammar>=4, act/profile=true, отсутствия сомнений/смыслового дубля и согласованных меток. Fatal deterministic diagnostics не отменяются решением модели. Нетривиальный lore без проверенного источника остаётся pending; SUPPORTED без механизма подтверждённого fact-source также не даёт автодопуск. Мат проверяется по реальному тексту и профилю. У TRIGGER нет исходящих profanity/maturity полей: их отсутствие не означает запрет мата; исходящие метки проверяются отдельно. Ограничения нынешнего Java consumer отмечаются отдельно; этот код не снимает их и не меняет сервер.
+
+Сначала сохраняются request/issued/receipt/decision, затем резервируется уникальный принятый текст в общем индексе и фиксируется journal. Резервирование само по себе не импортирует и не устанавливает запись. После сбоя решение и резервирование переиспользуются; неизвестный editorial POST не повторяется даже при Resume. Счётчики generation issued и editorial issued раздельны. Неуверенность сохраняется как pending, не скрытый approval. Владелец может рассмотреть строки/отзыв в обычной лаборатории и исправить профиль; отдельный явный перенос понравившихся лабораторных строк сохраняет прежний PromptLabRouting и не увеличивает автоматически счётчик кампании.
+
+Квоты учитывают approved, а не число попыток. При исчерпании бюджета недобор остаётся недобором. Меньше25% accepted в последних восьми редакционных партиях даёт PAUSED_QUALITY_REGRESSION; пять подряд повреждённых generation batches также останавливают policy-worker. Каждые10K approved сохраняется immutable контрольная выборка до80 строк с распределениями/лексическими индикаторами и provenance. Это spot-review artifact, а не уже выполненная художественная приёмка. При>80 квотах одна выборка не покрывает все квоты.
+
+```text
+campaign-export <campaign-id> --hash <plan-sha256> --policy <policy-id> --approval-hash <approval-sha256> --workspace <lab-dir> --source <HighFive> [--final-tail]
+campaign-import <export-id> --hash <input-sha256> --reviewed --workspace <lab-dir> --source <HighFive>
+campaign-stage --workspace <lab-dir> --source <HighFive>
+```
+
+Экспортирует только approved, сверяя сырой run, V4 parser, editorial receipt/decision и глобальное резервирование. JSONL группируются по category/mode/act, до300 строк/file; хвост<100 включается только с --final-tail. Детерминированный повтор возвращает прежний snapshot. Каждый файл имеет отдельный provenance и SHA; pending/rejected не включаются. Официальный dry-run проверяет файлы; явный import пишет только в отдельный v4-workspace лаборатории. Build/verify используют существующий V4 compiler, включая fallback; это не Java proof и не установка GameServer. Старый корпус автоматически не подключается.
+
+Hidden launcher принимает пару -PolicyId/-ApprovalHash для этого режима и проверяет policy до старта; без них остаётся draft-only. -CheckOnly не запускает процесс. Полная готовность100K требует реальных сравнительных опытов, принятой владельцем политики, настоящего detached Gemma smoke и проверки масштаба. Mock accepted rows и mock-stage из tests не являются настоящим новым корпусом.
 
 ## Дополнительное сопоставимое сравнение
 
