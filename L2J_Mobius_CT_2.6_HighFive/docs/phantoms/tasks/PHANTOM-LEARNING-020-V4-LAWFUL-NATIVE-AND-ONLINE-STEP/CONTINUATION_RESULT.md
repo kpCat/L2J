@@ -90,5 +90,7 @@ Scope:6 code/build/script файлов и4 разрешённых doc artifacts 
 
 Git прямо разрешён продолжением владельца. Использованы `git rev-parse HEAD`, `git rev-parse HEAD origin/feature/phantom-world`, `git symbolic-ref --short HEAD`, `git status --short`, `git fetch origin feature/phantom-world`; exact-path `git diff --stat`, `git diff --check`, reviewer `git diff f6ebaa20... -- <exact paths>`; далее exact `git add -- <allowlist>`, `git diff --cached --name-only`, scoped cached check/stat, `git commit`, обычный `git push origin HEAD:feature/phantom-world`, `git ls-tree -r HEAD -- <allowlist>` для независимого readback. Final SHA/push/readback сообщаются после фактического выполнения. Force/reset/clean/stash/rebase/branch/worktree не использованы.
 
+Поставка содержит два обычных scoped commits: после первого staged summary обнаружена лишняя смена EOL одинаковых jvmarg-строк build.xml. Второй commit восстанавливает точные исходные mixed EOL по независимо прочитанному f6ebaa20 GitHub blob. История не переписывалась; итоговый diff build.xml относительно baseline — ровно1 added/0 removed, новая module-root jvmarg только в020 target. Для EOL-restoration diff-check применяется к итоговому diff от baseline, поскольку возвращаемые исходные CR в промежуточном commit иначе трактуются Git как trailing whitespace. Логика и результаты тестов не менялись.
+
 - mojibake-маркеры в изменённых файлах проверены: полный набор27, совпадений0 во всех10файлах;
 - escaped Cyrillic в изменённых файлах проверены: отдельно все6 Unicode/XML regex, совпадений0 во всех10файлах.
