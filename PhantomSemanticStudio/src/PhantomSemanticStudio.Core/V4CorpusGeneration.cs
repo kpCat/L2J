@@ -34,10 +34,20 @@ public sealed record V4GenerationRequest
     public void Validate(PromptProfiles profiles, V4Registry? registry = null)
     {
         registry ??= V4Registry.Default;
-        V4Rules.Require(registry.Categories.Any(c => c.Key == Category) && V4Registry.Modes.Contains(Mode)
-            && Count is >= 1 and <= 20 && PromptProfiles.Strategies.Contains(Strategy) && Sampler != null && Style != null
-            && Transport is "OPENAI_COMPAT" or "LM_NATIVE" && Reasoning is "default" or "off" or "on"
-            && CompatibleThinkingControl is "none" or "reasoning_effort" or "chat_template_kwargs" && MaxOutputTokens is >= 128 and <= 8192, "GENERATION_REQUEST");
+        static void Check(string field, object? value, bool valid, string expected)
+        {
+            if (!valid) throw new InvalidDataException($"GENERATION_REQUEST {field}: получено {JsonSerializer.Serialize(value, PromptProfiles.CompactJson)}; ожидается {expected}.");
+        }
+        Check(nameof(Category), Category, registry.Categories.Any(c => c.Key == Category), "точный key категории из действующего реестра");
+        Check(nameof(Mode), Mode, V4Registry.Modes.Contains(Mode), string.Join(", ", V4Registry.Modes));
+        Check(nameof(Count), Count, Count is >= 1 and <= 20, "целое число от 1 до 20");
+        Check(nameof(Strategy), Strategy, PromptProfiles.Strategies.Contains(Strategy), string.Join(", ", PromptProfiles.Strategies));
+        Check(nameof(Sampler), Sampler, Sampler != null, "объект параметров sampler");
+        Check(nameof(Style), Style, Style != null, "объект параметров style");
+        Check(nameof(Transport), Transport, Transport is "OPENAI_COMPAT" or "LM_NATIVE", "OPENAI_COMPAT, LM_NATIVE");
+        Check(nameof(Reasoning), Reasoning, Reasoning is "default" or "off" or "on", "default, off, on");
+        Check(nameof(CompatibleThinkingControl), CompatibleThinkingControl, CompatibleThinkingControl is "none" or "reasoning_effort" or "chat_template_kwargs", "none, reasoning_effort, chat_template_kwargs");
+        Check(nameof(MaxOutputTokens), MaxOutputTokens, MaxOutputTokens is >= 128 and <= 8192, "целое число от 128 до 8192");
         var sampler = Sampler!;
         V4Rules.Require(!MinP.HasValue || Transport == "LM_NATIVE" && double.IsFinite(MinP.Value) && MinP.Value is >= 0 and <= 1, "MIN_P_TRANSPORT_OR_RANGE");
         V4Rules.Require(double.IsFinite(sampler.Temperature) && sampler.Temperature is >= 0 and <= 1 && double.IsFinite(sampler.TopP) && sampler.TopP is > 0 and <= 1

@@ -133,6 +133,30 @@ public sealed partial class PromptLabSession : IDisposable
         return ResumeAsync(run.Id, settings, apiKey, exactModel, token, progress);
     }
 
+    public PromptLabRun QueueDescriptionRepair(string sourceRunId)
+    {
+        if (disposed) throw new ObjectDisposedException(nameof(PromptLabSession));
+        lock (store)
+        {
+            var source = store.GetRun(sourceRunId); var registry = store.EffectiveRegistry();
+            DescriptionRepairSource(source, registry);
+            var existing = store.ListRuns().Where(r => r.Purpose == "DESCRIPTION" && r.BaselineRunId == source.Id).ToArray();
+            V4Rules.Require(existing.Length <= 1, "DESCRIPTION_REPAIR_AMBIGUOUS");
+            return existing.SingleOrDefault() ?? store.BeginRun(source.VersionId, "DESCRIPTION", source.Id, source.InputContext, source.ApiOptions);
+        }
+    }
+
+    private static string DescriptionRepairSource(PromptLabRun source, V4Registry registry)
+    {
+        V4Rules.Require(source.Purpose == "DESCRIPTION" && source.State == "REJECTED" && source.CompletedAtUtc.HasValue
+            && source.BaselineRunId.Length == 0 && source.Response is { Rejection.Length: 0, Content.Length: > 0 }
+            && V4Rules.Utf8.GetByteCount(source.Response.Content) <= 32768 && (source.RegistryHash.Length == 0 || source.RegistryHash == registry.Hash),
+            "DESCRIPTION_REPAIR_UNAVAILABLE: нужна исходная отклонённая структура с полным ответом; цепочки исправлений и повторы неопределённых HTTP запрещены");
+        var diagnostic = PromptLabAuthoring.ProposalDiagnostic(source.Response!.Content, registry);
+        V4Rules.Require(diagnostic.Length > 0, "DESCRIPTION_REPAIR_NOT_NEEDED: предложение уже проходит структурную проверку");
+        return source.Response.Content;
+    }
+
     public async Task<IReadOnlyList<PromptLabRun>> GenerateExperimentAsync(string versionId, StudioSettings settings, string apiKey, string exactModel,
         CancellationToken token, IProgress<PromptLabProgress>? progress = null)
     {
@@ -240,6 +264,8 @@ public sealed partial class PromptLabSession : IDisposable
             var receipt = store.GetTransport(runId);
             if (receipt != null) return CompleteReceipt(run, savedVersion, receipt);
             V4Rules.Require(run.State == "QUEUED", "INDETERMINATE_REQUEST_REVIEW_REQUIRED");
+            var correction = run.Purpose == "DESCRIPTION" && run.BaselineRunId.Length > 0
+                ? DescriptionRepairSource(store.GetRun(run.BaselineRunId), registry) : null;
             var options = run.ApiOptions ?? (run.Purpose == "GENERATION" ? version.Generation : version.Refinement);
             version = version with { Scenario = run.Scenario ?? version.Scenario,
                 Generation = run.Purpose == "GENERATION" ? options : version.Generation,
@@ -260,7 +286,7 @@ public sealed partial class PromptLabSession : IDisposable
                 response = run.Purpose switch
                 {
                     "REFINEMENT" => await client.RefinePromptLabAsync(actualSettings, apiKey, loaded, version, run.InputContext, overall.Token, progress, registry).ConfigureAwait(false),
-                    "DESCRIPTION" => await client.DescribePromptLabAsync(actualSettings, apiKey, loaded, version, run.InputContext, registry, overall.Token, progress).ConfigureAwait(false),
+                    "DESCRIPTION" => await client.DescribePromptLabAsync(actualSettings, apiKey, loaded, version, run.InputContext, registry, overall.Token, progress, correction).ConfigureAwait(false),
                     _ => await client.GeneratePromptLabAsync(actualSettings, apiKey, loaded, version, overall.Token, progress, registry).ConfigureAwait(false)
                 };
                 if (overall.IsCancellationRequested && !caller.IsCancellationRequested)

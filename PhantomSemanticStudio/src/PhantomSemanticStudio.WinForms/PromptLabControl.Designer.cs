@@ -86,6 +86,7 @@ partial class PromptLabControl
         btnViewRun = new System.Windows.Forms.Button();
         btnResume = new System.Windows.Forms.Button();
         btnDescribe = new System.Windows.Forms.Button();
+        btnRepairDescription = new System.Windows.Forms.Button();
         btnRoute = new System.Windows.Forms.Button();
         btnProduction = new System.Windows.Forms.Button();
         lblStatus = new System.Windows.Forms.Label();
@@ -242,8 +243,9 @@ partial class PromptLabControl
         historyLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize)); historyLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize)); historyLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         cboRuns.Name = "cboRuns"; cboRuns.Dock = System.Windows.Forms.DockStyle.Fill; cboRuns.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
         btnViewRun.Name = "btnViewRun"; btnViewRun.Text = "Открыть сохранённый эксперимент"; btnViewRun.AutoSize = true;
+        btnRepairDescription.Name = "btnRepairDescription"; btnRepairDescription.Text = "Исправить структуру описания в Gemma (1 попытка)"; btnRepairDescription.Dock = System.Windows.Forms.DockStyle.Bottom; btnRepairDescription.Height = 38; btnRepairDescription.Enabled = false;
         txtHistory.Name = "txtHistory"; txtHistory.Multiline = true; txtHistory.ReadOnly = true; txtHistory.ScrollBars = System.Windows.Forms.ScrollBars.Vertical; txtHistory.Dock = System.Windows.Forms.DockStyle.Fill;
-        historyLayout.Controls.Add(cboRuns, 0, 0); historyLayout.Controls.Add(btnViewRun, 0, 1); historyLayout.Controls.Add(txtHistory, 0, 2); tabHistory.Controls.Add(historyLayout);
+        historyLayout.Controls.Add(cboRuns, 0, 0); historyLayout.Controls.Add(btnViewRun, 0, 1); historyLayout.Controls.Add(txtHistory, 0, 2); tabHistory.Controls.Add(historyLayout); tabHistory.Controls.Add(btnRepairDescription);
         txtDescription.Name = "txtDescription"; txtDescription.Multiline = true; txtDescription.Dock = System.Windows.Forms.DockStyle.Fill; txtDescription.PlaceholderText = "Опишите своими словами желаемые разговоры, характеры и ситуации";
         btnDescribe.Name = "btnDescribe"; btnDescribe.Text = "Предложить промпт и план партий"; btnDescribe.Dock = System.Windows.Forms.DockStyle.Bottom; btnDescribe.Height = 38; btnDescribe.Enabled = false;
         tabDescription.Controls.Add(txtDescription); tabDescription.Controls.Add(btnDescribe);
@@ -264,6 +266,7 @@ partial class PromptLabControl
         btnGenerate.Click += Generate_Click; btnRefine.Click += Refine_Click; btnCompare.Click += Compare_Click; btnCancel.Click += Cancel_Click;
         btnModels.Click += Models_Click; btnViewRun.Click += ViewRun_Click; btnResume.Click += Resume_Click;
         btnDescribe.Click += Describe_Click; btnApplyPlan.Click += ApplyPlan_Click;
+        btnRepairDescription.Click += RepairDescription_Click;
         btnRoute.Click += Route_Click; btnImportPack.Click += ImportPack_Click; btnBuildPack.Click += BuildPack_Click; btnProduction.Click += Production_Click;
         btnTaxonomy.Click += Taxonomy_Click; btnAddScope.Click += AddScope_Click; btnRemoveScope.Click += RemoveScope_Click;
         btnFamily.Click += Family_Click;
@@ -301,7 +304,7 @@ partial class PromptLabControl
     private System.Windows.Forms.TextBox txtName = null!, txtModel = null!, txtSystem = null!, txtUser = null!, txtSituation = null!, txtDialogue = null!, txtFeedbackV1 = null!, txtFeedbackV2 = null!, txtHistory = null!, txtDescription = null!, txtPackReport = null!, txtCategoryInstruction = null!;
     private System.Windows.Forms.ComboBox cboProfiles = null!, cboVersions = null!, cboRuns = null!, cboContextPresentation = null!;
     private System.Windows.Forms.DataGridView gridScope = null!, gridParameters = null!, gridV1 = null!, gridV2 = null!;
-    private System.Windows.Forms.Button btnNew = null!, btnCopy = null!, btnSave = null!, btnAccept = null!, btnGenerate = null!, btnRefine = null!, btnCompare = null!, btnCancel = null!, btnModels = null!, btnViewRun = null!, btnResume = null!, btnDescribe = null!, btnRoute = null!, btnProduction = null!;
+    private System.Windows.Forms.Button btnNew = null!, btnCopy = null!, btnSave = null!, btnAccept = null!, btnGenerate = null!, btnRefine = null!, btnCompare = null!, btnCancel = null!, btnModels = null!, btnViewRun = null!, btnResume = null!, btnDescribe = null!, btnRepairDescription = null!, btnRoute = null!, btnProduction = null!;
     private System.Windows.Forms.Label lblStatus = null!, lblVersions = null!, lblSystem = null!, lblUser = null!, lblV1 = null!, lblV2 = null!, lblContextPresentation = null!;
     private System.Windows.Forms.Timer draftTimer = null!;
     private System.Windows.Forms.DataGridViewTextBoxColumn colParameter = null!, colGeneration = null!, colRefinement = null!;

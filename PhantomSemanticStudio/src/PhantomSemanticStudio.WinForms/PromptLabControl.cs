@@ -219,6 +219,9 @@ public partial class PromptLabControl : UserControl
                 + "\r\nФактические параметры:\r\n" + JsonSerializer.Serialize(run.ApiOptions, WorkspaceStore.JsonOptions)
                 + $"\r\nЛексическое разнообразие {metrics.TokenDiversity:P1}. Исполнение речевого акта и естественность требуют вашей оценки."
                 + "\r\n\r\nФактический SYSTEM:\r\n" + run.EffectiveSystem + "\r\n\r\nФактический USER:\r\n" + run.EffectiveUser;
+            if (run.Purpose == "DESCRIPTION" && run.Response?.Content.Length > 0)
+                txtHistory.AppendText("\r\n\r\nПолный исходный ответ модели:\r\n" + run.Response.Content
+                    + "\r\n\r\nПроверка структуры сейчас:\r\n" + PromptLabAuthoring.ProposalDiagnostic(run.Response.Content, Store.EffectiveRegistry()));
             if (run.Purpose == "GENERATION" && run.Response?.Content.Length > 0)
             {
                 try
@@ -233,7 +236,7 @@ public partial class PromptLabControl : UserControl
             }
         }
         finally { binding = false; }
-        tabsLab.SelectedTab = tabResults; UpdateActions();
+        tabsLab.SelectedTab = run.Purpose == "GENERATION" ? tabResults : tabHistory; UpdateActions();
     }
 
     private void SaveFeedback()
@@ -396,8 +399,23 @@ public partial class PromptLabControl : UserControl
     private async void Describe_Click(object? sender, EventArgs e) => await RunAsync(async token =>
     {
         var version = SaveEditor(); var result = await Lab.DescribeAsync(version.Id, txtDescription.Text, settingsProvider!(), keyProvider!(), txtModel.Text, token, Progress());
+        ShowRun(result, false);
         if (result.ProposedVersionId.Length > 0) { var proposed = Store.GetVersion(result.ProposedVersionId); LoadProfiles(proposed.ProfileId, proposed.Id); tabsLab.SelectedTab = tabScope; }
+        else tabsLab.SelectedTab = tabHistory;
         lblStatus.Text = result.Failure.Length == 0 ? "Предложение сохранено. Проверьте партии; подтверждение плана создаст независимые профили семейств для редактирования SYSTEM/USER." : result.Failure; LoadHistory();
+    });
+    private async void RepairDescription_Click(object? sender, EventArgs e) => await RunAsync(async token =>
+    {
+        var source = leftRun ?? throw new InvalidDataException("Откройте исходный DESCRIPTION / REJECTED в истории.");
+        var queued = Lab.QueueDescriptionRepair(source.Id);
+        var result = await Lab.ResumeAsync(queued.Id, settingsProvider!(), keyProvider!(), txtModel.Text, token, Progress());
+        ShowRun(result, false); LoadHistory();
+        if (result.ProposedVersionId.Length > 0)
+        {
+            var proposed = Store.GetVersion(result.ProposedVersionId); LoadProfiles(proposed.ProfileId, proposed.Id); tabsLab.SelectedTab = tabScope;
+            lblStatus.Text = "Исправленное предложение сохранено отдельно. Проверьте план; исходный ответ сохранён в истории.";
+        }
+        else { tabsLab.SelectedTab = tabHistory; lblStatus.Text = "Попытка исправления сохранена: " + result.State + ". " + result.Failure; }
     });
     private async void Refine_Click(object? sender, EventArgs e) => await RunAsync(async token =>
     {
@@ -444,6 +462,7 @@ public partial class PromptLabControl : UserControl
         var ready = lab != null && current != null; var idle = !Busy;
         btnGenerate.Enabled = ready && idle && current!.ReadyForGeneration; btnModels.Enabled = lab != null && idle; btnSave.Enabled = ready && idle; btnAccept.Enabled = ready && idle && current!.ReadyForGeneration;
         btnDescribe.Enabled = ready && idle; btnApplyPlan.Enabled = ready && idle;
+        btnRepairDescription.Enabled = ready && idle && leftRun is { Purpose: "DESCRIPTION", State: "REJECTED", BaselineRunId.Length: 0, Response.Rejection.Length: 0 };
         btnAddScope.Enabled = btnRemoveScope.Enabled = btnTaxonomy.Enabled = ready && idle;
         btnFamily.Enabled = ready && idle;
         btnSplitFamilies.Enabled = ready && idle; btnGenerateFamilies.Enabled = ready && idle && current!.FamilyGroupId.Length > 0;
