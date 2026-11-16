@@ -39,6 +39,7 @@ internal static partial class Program
         if (args.Length > 0 && args[0] == "--corpus001")
         { await SemanticCorpus001(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--corpus-index-census") return CorpusIndexCensus(args);
+        if (args.Length > 0 && args[0] == "--corpus-semantic-live") return await CorpusSemanticLive(args);
         if (args.Length > 0 && args[0] == "--task095")
         { Task095(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--task095-controls") return Task095Controls();

@@ -7,6 +7,69 @@ internal static partial class Program
 {
     private static async Task SemanticCorpus001()
     {
+        await TestAsync("001 measured semantic review uses bounded laboratory transport while retaining strict reference parsing", async () =>
+        {
+            using var f = new Fixture(); var candidate = new Candidate { Id = Guid.NewGuid().ToString("N"), Kind = "PATTERN", Topic = "social.banter.rough", Act = "social.banter.rough.reply", Text = "Ты опять лево с правом путаешь?" };
+            var shortlist = SemanticFixture(candidate, [new("r01", "Ты опять лево с правом путаешь?", "", "SAME_MEANING")]);
+            var verdict = JsonSerializer.Serialize(new { verdicts = new[] { new { refKey = "r01", relation = "SAME_MEANING", reason = "Точная копия." } } });
+            using var handler = new RecordingHandler(PromptLabCompatSse(verdict, "stop", true), mediaType: "text/event-stream");
+            using var http = new HttpClient(handler); var client = new LmStudioClient(http);
+            var response = await client.SendMeasuredSemanticAsync(new() { HighFiveRoot = f.Module, ModelId = "instance-1" }, "", new("gemma-local", "instance-1", 65536, []),
+                candidate, shortlist, SemanticScope(candidate), new() { Stream = true, Reasoning = "off", Temperature = .1 }, "Экспериментальный критик, только JSON.", CancellationToken.None);
+            Equal("", response.Response.Rejection); Equal(1, LmStudioClient.ParseSemanticVerdicts(response.Response.Content, shortlist).Count);
+            using var payload = JsonDocument.Parse(handler.Payload!); var request = payload.RootElement;
+            Equal("none", request.GetProperty("reasoning_effort").GetString()); True(request.GetProperty("stream").GetBoolean());
+            True(request.GetProperty("response_format").GetProperty("json_schema").GetProperty("schema").GetProperty("properties").TryGetProperty("verdicts", out _));
+            Equal("Экспериментальный критик, только JSON.", response.EffectiveSystem);
+            using var nativeHandler = new RecordingHandler(PromptLabSse(verdict, true), mediaType: "text/event-stream"); using var nativeHttp = new HttpClient(nativeHandler);
+            var nativeReply = await new LmStudioClient(nativeHttp).SendMeasuredSemanticAsync(new() { HighFiveRoot = f.Module, ModelId = "instance-1" }, "", new("gemma-local", "instance-1", 65536, []),
+                candidate, shortlist, SemanticScope(candidate), new() { Transport = "LM_NATIVE", Reasoning = "off" }, "Экспериментальный критик, только JSON.", CancellationToken.None);
+            Equal("", nativeReply.Response.Rejection); True(nativeReply.EffectiveUser.Contains("\"verdicts\"", StringComparison.Ordinal));
+        });
+        await TestAsync("001 measured semantic review rejects invalid bounds before POST and retains truncated response as rejected", async () =>
+        {
+            using var f = new Fixture(); var candidate = new Candidate { Id = Guid.NewGuid().ToString("N"), Kind = "PATTERN", Topic = "social.banter.rough", Act = "social.banter.rough.reply", Text = "Ты опять лево с правом путаешь?" };
+            var shortlist = SemanticFixture(candidate, [new("r01", candidate.Text, "", "SAME_MEANING")]);
+            using var handler = new Corpus001Handler(JsonSerializer.Serialize(new { model = "instance-1", choices = new[] { new { message = new { content = "{}" }, finish_reason = "length" } } }));
+            using var http = new HttpClient(handler); var client = new LmStudioClient(http); var settings = new StudioSettings { HighFiveRoot = f.Module, ModelId = "instance-1" };
+            var loaded = new CorpusLoadedModel("gemma-local", "instance-1", 65536, []); var scope = SemanticScope(candidate); var options = new PromptLabApiOptions { Stream = false };
+            await ThrowsAsync(() => client.SendMeasuredSemanticAsync(settings, "", loaded with { ContextLength = 8192 }, candidate, shortlist, scope, options, null, CancellationToken.None));
+            await ThrowsAsync(() => client.SendMeasuredSemanticAsync(settings, "", loaded, candidate, shortlist, scope with { Category = "life.health.fatigue" }, options, null, CancellationToken.None));
+            await ThrowsAsync(() => client.SendMeasuredSemanticAsync(settings, "", loaded, candidate, shortlist, scope, options, new string('x', 9000), CancellationToken.None));
+            Equal(0, handler.Posts);
+            var rejected = await client.SendMeasuredSemanticAsync(settings, "", loaded, candidate, shortlist, scope, options, null, CancellationToken.None);
+            True(rejected.Response.Rejection.Length > 0); Equal(1, handler.Posts); Throws(() => LmStudioClient.ParseSemanticVerdicts(rejected.Response.Content, shortlist));
+        });
+        await TestAsync("001 semantic trial freezes before HTTP and never repeats an issued request without a receipt", async () =>
+        {
+            using var f = new Fixture(); var root = Path.Combine(f.Root, "semantic-trial"); var specPath = Path.Combine(f.Root, "semantic-spec.json");
+            var spec = new SemanticTrialSpec("pw-semantic-critic-trial/1", "social.banter.rough", "Ты опять лево с правом путаешь?",
+                [new("r01", "Опять направления перепутал?", "SYNTHETIC", "SAME_MEANING")], [new(f.Segment, FileSha(f.Segment))], [new("first", "Только JSON."), new("second", "Оцени речевой акт. Только JSON.")]);
+            File.WriteAllText(specPath, JsonSerializer.Serialize(spec, WorkspaceStore.JsonOptions));
+            var arguments = new[] { "--corpus-semantic-live", root, f.Module, "instance-1", "0", specPath };
+            using var handler = new RecordingHandler("{}");
+            Equal(0, await CorpusSemanticLive(arguments, _ => new HttpClient(handler, false))); Equal(0, handler.Calls);
+            using var planFile = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root, "semantic-plan.json")));
+            var saved = planFile.RootElement.GetProperty("data").Deserialize<SemanticTrialSnapshot>(PromptProfiles.ConfigJson)!;
+            var job = saved.Plan.Jobs[0]; var folder = Path.Combine(root, "jobs", job.Id); Directory.CreateDirectory(folder);
+            var data = JsonSerializer.SerializeToElement(new { job, Model = "instance-1", SpecHash = saved.Plan.SpecHash }, PromptProfiles.CompactJson);
+            File.WriteAllText(Path.Combine(folder, "issued.json"), JsonSerializer.Serialize(new { sha256 = V4Rules.Hash(JsonSerializer.SerializeToUtf8Bytes(data, PromptProfiles.CompactJson)), data }, WorkspaceStore.JsonOptions));
+            arguments[4] = "6"; Equal(3, await CorpusSemanticLive(arguments, _ => new HttpClient(handler, false))); Equal(0, handler.Calls);
+            var issuedPath = Path.Combine(folder, "issued.json"); var original = File.ReadAllText(issuedPath); File.WriteAllText(issuedPath, original.Replace("instance-1", "instance-2", StringComparison.Ordinal));
+            arguments[4] = "0"; Equal(3, await CorpusSemanticLive(arguments, _ => new HttpClient(handler, false))); Equal(0, handler.Calls);
+            File.Delete(issuedPath);
+            var other = saved.Plan.Jobs.First(j => j.Profile == job.Profile && j.Reasoning != job.Reasoning); var otherFolder = Path.Combine(root, "jobs", other.Id); Directory.CreateDirectory(otherFolder);
+            void WriteEnvelope(string path, object value)
+            {
+                var payload = JsonSerializer.SerializeToElement(value, PromptProfiles.CompactJson);
+                File.WriteAllText(path, JsonSerializer.Serialize(new { sha256 = V4Rules.Hash(JsonSerializer.SerializeToUtf8Bytes(payload, PromptProfiles.CompactJson)), data = payload }, WorkspaceStore.JsonOptions));
+            }
+            WriteEnvelope(Path.Combine(otherFolder, "issued.json"), new { job = other, Model = "instance-1", SpecHash = saved.Plan.SpecHash });
+            var content = JsonSerializer.Serialize(new { verdicts = new[] { new { refKey = "r01", relation = "SAME_MEANING", reason = "Синтетический receipt." } } });
+            var reply = new PromptLabResponse(new("{\"model\":\"instance-1\"}", "{}", content, new(100, 60, 0, null, null, 1), "", 200, null, null), "synthetic", spec.Profiles.Single(p => p.Id == job.Profile).System, "Synthetic quoted input", true);
+            WriteEnvelope(Path.Combine(otherFolder, "receipt.json"), new SemanticTrialReceipt(job.Id, saved.Plan.SpecHash, job.Profile, job.Reasoning, "instance-1", reply));
+            await ThrowsAsync(() => CorpusSemanticLive(arguments, _ => new HttpClient(handler, false))); Equal(0, handler.Calls);
+        });
         Test("001 global index persists canonical duplicates and atomically rejects changed provenance on replay", () =>
         {
             using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "index"), f.Module);
@@ -319,6 +382,162 @@ internal static partial class Program
             var system = payload.RootElement.GetProperty("messages")[0].GetProperty("content").GetString()!;
             True(system.Contains("MATURE", StringComparison.Ordinal) && system.Contains("playful_tease", StringComparison.Ordinal));
         });
+    }
+
+    private sealed record SemanticFixtureReference(string Id, string Text, string SourceFile, string Expected);
+    private sealed record SemanticTrialSource(string Path, string Sha256);
+    private sealed record SemanticTrialProfile(string Id, string System);
+    [System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+    private sealed record SemanticTrialSpec(string Schema, string Category, string CandidateText, SemanticFixtureReference[] References,
+        SemanticTrialSource[] Sources, SemanticTrialProfile[] Profiles);
+    private sealed record SemanticTrialJob(string Id, string Profile, string Reasoning);
+    private sealed record SemanticTrialPlan(string SpecHash, string CoreHash, string RunnerHash, string Model, SemanticTrialJob[] Jobs);
+    private sealed record SemanticTrialSnapshot(SemanticTrialSpec Spec, SemanticTrialPlan Plan, string PlanHash);
+    private sealed record SemanticTrialReceipt(string JobId, string SpecHash, string Profile, string Reasoning, string Model, PromptLabResponse Reply);
+    private sealed record SemanticTrialOutcome(string State, string Failure, IReadOnlyList<SemanticVerdict> Verdicts);
+
+    private static async Task<int> CorpusSemanticLive(string[] args, Func<int, HttpClient>? httpFactory = null)
+    {
+        V4Rules.Require(args.Length == 6 && int.TryParse(args[4], out var count) && count is >= 0 and <= 6, "SEMANTIC_TRIAL_ARGS");
+        var limit = int.Parse(args[4]); var root = PathSafety.Canonical(args[1]);
+        var bytes = V4Rules.ReadBytes(PathSafety.Canonical(args[5]), 128 * 1024); var specHash = V4Rules.Hash(bytes);
+        var spec = JsonSerializer.Deserialize<SemanticTrialSpec>(bytes, PromptProfiles.ConfigJson) ?? throw new InvalidDataException("SEMANTIC_TRIAL_SPEC");
+        V4Rules.Require(spec.Schema == "pw-semantic-critic-trial/1" && spec.References is { Length: >= 1 and <= 12 }
+            && spec.Profiles is { Length: 2 } && spec.Sources is { Length: >= 1 and <= 16 }
+            && spec.Profiles.Select(p => p.Id).Distinct().Count() == 2, "SEMANTIC_TRIAL_SHAPE");
+        foreach (var profile in spec.Profiles) V4Rules.Require(profile.Id is { Length: > 0 and <= 48 } && profile.Id.All(char.IsAsciiLetterOrDigit)
+            && !string.IsNullOrWhiteSpace(profile.System) && V4Rules.Utf8.GetByteCount(profile.System) <= 8192, "SEMANTIC_TRIAL_PROFILE");
+        V4Rules.Require(spec.References.All(r => r.Expected is "SAME_MEANING" or "NON_DUPLICATE")
+            && spec.References.Select(r => r.Id).Distinct().Count() == spec.References.Length, "SEMANTIC_TRIAL_EXPECTATIONS");
+        var definition = V4Registry.Default.Categories.Single(c => c.Key == spec.Category);
+        var candidate = new Candidate { Id = "d2300000000000000000000000000001", Kind = "PATTERN", Topic = spec.Category, Act = definition.Act, Text = spec.CandidateText, Band = "FAMILIAR", Register = "CASUAL" };
+        var shortlist = SemanticFixture(candidate, spec.References) with { SourceFingerprint = specHash, SourceStateFingerprint = specHash, PeersFingerprint = specHash };
+        var scope = SemanticScope(candidate); scope.Validate(PromptProfiles.Default);
+        void VerifySources() { foreach (var source in spec.Sources) V4Rules.Require(FileSha(PathSafety.Canonical(source.Path)) == source.Sha256, "SEMANTIC_TRIAL_SOURCE_DRIFT"); }
+        VerifySources();
+        using var workspace = new WorkspaceStore(root, PathSafety.Canonical(args[2]));
+        string Local(string name) { workspace.Check(); return PathSafety.ResolveRelative(root, name); }
+        void Save<T>(string name, T value)
+        {
+            var target = Local(name); Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            var data = JsonSerializer.SerializeToElement(value, PromptProfiles.CompactJson);
+            var hash = V4Rules.Hash(JsonSerializer.SerializeToUtf8Bytes(data, PromptProfiles.CompactJson));
+            var content = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = hash, data }, WorkspaceStore.JsonOptions);
+            var temporary = Local(name + ".tmp-" + Guid.NewGuid().ToString("N"));
+            try { using (var sink = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { sink.Write(content); sink.Flush(true); } workspace.Check(); File.Move(temporary, target, false); }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        }
+        T Read<T>(string name)
+        {
+            using var envelope = JsonDocument.Parse(V4Rules.ReadBytes(Local(name), 16 * 1024 * 1024));
+            var element = envelope.RootElement; V4Rules.JsonKeys(element, ["sha256", "data"], []);
+            var data = JsonSerializer.SerializeToUtf8Bytes(element.GetProperty("data"), PromptProfiles.CompactJson);
+            V4Rules.Require(V4Rules.Hash(data) == V4Rules.String(element, "sha256"), "SEMANTIC_TRIAL_ARTIFACT_HASH");
+            return JsonSerializer.Deserialize<T>(data, PromptProfiles.ConfigJson) ?? throw new InvalidDataException("SEMANTIC_TRIAL_EMPTY_ARTIFACT");
+        }
+        PromptLabResponse ReadReceipt(SemanticTrialJob job)
+        {
+            var folder = "jobs/" + job.Id + "/"; var receipt = Read<SemanticTrialReceipt>(folder + "receipt.json");
+            V4Rules.Require(receipt.JobId == job.Id && receipt.SpecHash == specHash && receipt.Profile == job.Profile
+                && receipt.Reasoning == job.Reasoning && receipt.Model == args[3], "SEMANTIC_TRIAL_RECEIPT_BINDING");
+            V4Rules.Require(receipt.Reply.EffectiveSystem == spec.Profiles.Single(p => p.Id == job.Profile).System, "SEMANTIC_TRIAL_EFFECTIVE_SYSTEM_DRIFT");
+            using var request = JsonDocument.Parse(receipt.Reply.Response.RequestJson);
+            V4Rules.Require(request.RootElement.GetProperty("model").GetString() == args[3], "SEMANTIC_TRIAL_REQUEST_MODEL_DRIFT");
+            return receipt.Reply;
+        }
+        var planPath = Local("semantic-plan.json"); SemanticTrialPlan plan; SemanticTrialSnapshot snapshot;
+        if (!File.Exists(planPath))
+        {
+            var jobs = new List<SemanticTrialJob>(); var modes = new[] { "off", "auto", "on" };
+            for (var m = 0; m < modes.Length; m++) for (var p = 0; p < 2; p++)
+                jobs.Add(new(Guid.NewGuid().ToString("N"), spec.Profiles[(p + m) % 2].Id, modes[m]));
+            plan = new(specHash, FileSha(typeof(LmStudioClient).Assembly.Location), FileSha(typeof(Program).Assembly.Location), args[3], jobs.ToArray());
+            snapshot = new(spec, plan, V4Rules.Hash(JsonSerializer.SerializeToUtf8Bytes(plan, PromptProfiles.CompactJson)));
+            Save("semantic-plan.json", snapshot);
+        }
+        else { snapshot = Read<SemanticTrialSnapshot>("semantic-plan.json"); plan = snapshot.Plan; }
+        V4Rules.Require(plan.SpecHash == specHash && plan.CoreHash == FileSha(typeof(LmStudioClient).Assembly.Location)
+            && plan.RunnerHash == FileSha(typeof(Program).Assembly.Location) && plan.Model == args[3] && plan.Jobs.Length == 6
+            && snapshot.PlanHash == V4Rules.Hash(JsonSerializer.SerializeToUtf8Bytes(plan, PromptProfiles.CompactJson))
+            && JsonSerializer.Serialize(snapshot.Spec, PromptProfiles.CompactJson) == JsonSerializer.Serialize(spec, PromptProfiles.CompactJson), "SEMANTIC_TRIAL_REVISION_DRIFT");
+        foreach (var job in plan.Jobs)
+        {
+            var folder = "jobs/" + job.Id + "/";
+            if (!File.Exists(Local(folder + "outcome.json"))) continue;
+            var outcome = Read<SemanticTrialOutcome>(folder + "outcome.json"); var reply = ReadReceipt(job);
+            var issued = Read<JsonElement>(folder + "issued.json");
+            V4Rules.Require(issued.GetProperty("job").GetProperty("Id").GetString() == job.Id && issued.GetProperty("Model").GetString() == plan.Model
+                && issued.GetProperty("SpecHash").GetString() == specHash, "SEMANTIC_TRIAL_ISSUED_DRIFT");
+            if (outcome.State == "COMPLETE") V4Rules.Require(reply.Response.HttpStatus == 200 && reply.Response.Rejection.Length == 0
+                && JsonSerializer.Serialize(LmStudioClient.ParseSemanticVerdicts(reply.Response.Content, shortlist), PromptProfiles.CompactJson)
+                == JsonSerializer.Serialize(outcome.Verdicts, PromptProfiles.CompactJson), "SEMANTIC_TRIAL_OUTCOME_DRIFT");
+            else V4Rules.Require(outcome.State is "REJECTED" or "INDETERMINATE" && outcome.Verdicts.Count == 0 && outcome.Failure.Length > 0, "SEMANTIC_TRIAL_OUTCOME_STATE");
+            if (outcome.State == "INDETERMINATE") { Console.WriteLine("STOP_INDETERMINATE " + job.Id); return 3; }
+        }
+        using var cancellation = new CancellationTokenSource(); ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); }; Console.CancelKeyPress += cancel;
+        var attempts = 0; var stopped = false;
+        try
+        {
+            foreach (var job in plan.Jobs)
+            {
+                var folder = "jobs/" + job.Id + "/"; if (File.Exists(Local(folder + "outcome.json"))) continue;
+                PromptLabResponse reply;
+                if (File.Exists(Local(folder + "receipt.json")))
+                {
+                    var issued = Read<JsonElement>(folder + "issued.json");
+                    V4Rules.Require(issued.GetProperty("job").GetProperty("Id").GetString() == job.Id && issued.GetProperty("Model").GetString() == plan.Model
+                        && issued.GetProperty("SpecHash").GetString() == specHash, "SEMANTIC_TRIAL_RECEIPT_WITHOUT_ISSUED");
+                    reply = ReadReceipt(job);
+                }
+                else
+                {
+                    if (File.Exists(Local(folder + "issued.json"))) { Console.WriteLine("STOP_INDETERMINATE " + job.Id); stopped = true; break; }
+                    if (attempts >= limit) continue;
+                    VerifySources(); var options = new PromptLabApiOptions { Reasoning = job.Reasoning, Temperature = .1, MaxOutputTokens = 4096 };
+                    var settings = new StudioSettings { HighFiveRoot = args[2], ModelId = args[3] }; var key = Environment.GetEnvironmentVariable("LM_STUDIO_API_KEY") ?? "";
+                    using var http = httpFactory?.Invoke(options.ConnectionTimeoutSeconds) ?? LmStudioClient.CreateHttpClient(options.ConnectionTimeoutSeconds); var client = new LmStudioClient(http); CorpusModelInventory inventory;
+                    try { inventory = await client.ProbeCorpusModelsAsync(settings, key, cancellation.Token); }
+                    catch (Exception error) { Console.WriteLine("MODEL_OFFLINE_NO_POST " + error.GetType().Name); stopped = true; break; }
+                    var loaded = inventory.Loaded.SingleOrDefault(m => m.InstanceId == args[3] && m.ContextLength == 65536);
+                    if (loaded == null) { Console.WriteLine("MODEL_OFFLINE_NO_POST exactinstance/context65536"); stopped = true; break; }
+                    var profile = spec.Profiles.Single(p => p.Id == job.Profile);
+                    Save(folder + "issued.json", new { job, options, Model = loaded.InstanceId, loaded.ContextLength, SpecHash = specHash, At = DateTimeOffset.UtcNow }); attempts++;
+                    try
+                    {
+                        reply = await client.SendMeasuredSemanticAsync(settings, key, loaded, candidate, shortlist, scope, options, profile.System, cancellation.Token, new PromptLabConsoleProgress());
+                        Save(folder + "receipt.json", new SemanticTrialReceipt(job.Id, specHash, job.Profile, job.Reasoning, args[3], reply));
+                    }
+                    catch (Exception error) { Save(folder + "indeterminate.json", new { Type = error.GetType().Name, At = DateTimeOffset.UtcNow }); stopped = true; break; }
+                }
+                SemanticTrialOutcome outcome;
+                if (reply.Response.HttpStatus != 200 || reply.Response.Rejection.Length > 0) outcome = new(reply.TransportComplete ? "REJECTED" : "INDETERMINATE",
+                    reply.Response.Rejection.Length > 0 ? reply.Response.Rejection : "HTTP_" + reply.Response.HttpStatus, []);
+                else
+                {
+                    try { outcome = new("COMPLETE", "", LmStudioClient.ParseSemanticVerdicts(reply.Response.Content, shortlist)); }
+                    catch (Exception error) when (error is JsonException or InvalidDataException) { outcome = new("REJECTED", error.GetType().Name, []); }
+                }
+                Save(folder + "outcome.json", outcome); Console.WriteLine("SEMANTIC " + job.Profile + "/" + job.Reasoning + " " + outcome.State + " " + job.Id);
+                foreach (var verdict in outcome.Verdicts) Console.WriteLine(verdict.RefKey + " " + verdict.Relation + ": " + verdict.Reason);
+                if (cancellation.IsCancellationRequested || !reply.TransportComplete || outcome.Failure.Contains("TIMEOUT", StringComparison.Ordinal)) { stopped = true; break; }
+            }
+        }
+        finally { Console.CancelKeyPress -= cancel; }
+        var outcomes = plan.Jobs.Where(j => File.Exists(Local("jobs/" + j.Id + "/outcome.json"))).Select(job => new { Job = job,
+            Outcome = Read<SemanticTrialOutcome>("jobs/" + job.Id + "/outcome.json"),
+            Usage = ReadReceipt(job).Response.Telemetry }).ToArray();
+        Save("semantic-summary-" + Guid.NewGuid().ToString("N") + ".json", new { plan, Outcomes = outcomes, Attempts = attempts, Stopped = stopped, Expected = spec.References.Select(r => new { r.Id, r.Expected }), Approved = 0 });
+        Console.WriteLine($"SEMANTIC_STATE terminal={outcomes.Length}; pending={6 - outcomes.Length}; newAttempts={attempts}; approved=0"); return stopped ? 3 : 0;
+    }
+    private static V4GenerationRequest SemanticScope(Candidate candidate) => new() { Category = candidate.Topic, Mode = "TRIGGER", Count = 1,
+        Style = new() { Category = candidate.Topic, StyleId = "strong_profanity", StrongProfanityRequested = true, Relation = "FAMILIAR", Channel = "SHOUT" } };
+    private static SemanticShortlist SemanticFixture(Candidate candidate, IReadOnlyList<SemanticFixtureReference> references)
+    {
+        var hash = TextRules.Hash("synthetic-semantic-fixture");
+        var matches = references.Select(r => new SemanticNeighbor(r.Id, r.Text, TextRules.Hash(r.Text), candidate.Kind, candidate.Act,
+            candidate.Topic, candidate.Band, candidate.Register, r.SourceFile, 1, 1, false, r.Text == candidate.Text, 1)).ToArray();
+        return new(SemanticDuplicateScout.CandidateFingerprint(candidate), hash, hash, hash,
+            SemanticDuplicateScout.ShortlistFingerprint(matches, matches.Length, matches.Length, matches.Length), matches.Length, matches.Length, matches.Length, matches);
     }
 
     private static int CorpusIndexCensus(string[] args)

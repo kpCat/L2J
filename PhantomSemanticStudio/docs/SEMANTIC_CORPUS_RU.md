@@ -1,5 +1,11 @@
 # Corpus001 R2 — лаборатория профилей Core/CLI
 
+## Измеряемый смысловой критик
+
+`LmStudioClient.SendMeasuredSemanticAsync` использует существующие strict reference IDs/schema/parser и ограниченный транспорт PromptLab: streaming, отдельные timeout, выбранный reasoning, полный raw/request/usage. Возвращается транспортный ответ; только завершённый ответ без Rejection разрешено передавать `ParseSemanticVerdicts`. Это advisory, не approval или JSONL generation. Старый `ReviewSemanticAsync` сохраняет прежний протокол.
+
+Два отдельных экспериментальных ресурса: semantic-conservative.v1.md и semantic-act-contrast.v1.md. Они не заменяют generation/refiner профили и не входят в прежний PromptProfiles.Hash. В сравнении фиксируются полный текст и SHA каждого ресурса. `--corpus-semantic-live <owned-trial> <HighFive> <exact-model> <limit0..6> <spec.json>` в existing console runner сохраняет spec/plan/issued/receipt/outcome. Limit0 офлайн, complete replay без новыхPOST; issued без receipt требует разбора, автоматического повтора нет. Положительные/отрицательные expected labels из исследовательского spec в запрос не попадают. Вывод критика нельзя считать подтверждённым semantic recall или решением владельца.
+
 ## Общий индекс кандидатов
 
 Core `CorpusCandidateIndex` хранит новые исследовательские кандидаты отдельно от Semantic Pack: `labs/prompt-lab/corpus-index/<registry-hash>.sqlite` в переданном owned workspace. Старый корпус не загружается автоматически. Каждое появление сохраняет source ID/hash, номер, category/mode, исходный текст и QA-only; уникальный NFKC/whitespace/lowercase текст индексируется один раз. Повтор того же source/row идемпотентен; изменение строки или hash источника откатывает всю текущую порцию. Ограничение порции1000, базы1GiB, schema/algorithm/registry pins проверяются при открытии.

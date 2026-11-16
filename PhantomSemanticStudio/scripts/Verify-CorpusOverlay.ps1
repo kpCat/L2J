@@ -21,7 +21,8 @@ $allowed=@(
  'tests/PhantomSemanticStudio.Tests/PromptLab001.cs','tests/PhantomSemanticStudio.Tests/PromptLab001Controls.cs','docs/PROMPT_LAB_RU.md','prompts/corpus001/refiner.v1.md',
  'src/PhantomSemanticStudio.Core/PromptLabAuthoring.cs','src/PhantomSemanticStudio.Core/PromptLabRouting.cs',
  'scripts/Verify-Designer.ps1','tests/PhantomSemanticStudio.Tests/Batch081Controls.cs','tests/PhantomSemanticStudio.Tests/Pss005.cs',
- 'src/PhantomSemanticStudio.Core/PromptHierarchy.cs','prompts/corpus001/families.v1.json','prompts/corpus001/user-task.v1.md','src/PhantomSemanticStudio.Core/CorpusCandidateIndex.cs'
+ 'src/PhantomSemanticStudio.Core/PromptHierarchy.cs','prompts/corpus001/families.v1.json','prompts/corpus001/user-task.v1.md','src/PhantomSemanticStudio.Core/CorpusCandidateIndex.cs',
+ 'prompts/corpus001/semantic-conservative.v1.md','prompts/corpus001/semantic-act-contrast.v1.md'
 )
 function Hash([string]$Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
 $manifestEntries=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
