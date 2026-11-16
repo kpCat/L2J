@@ -97,6 +97,20 @@ public sealed class PromptLabRouting(PromptLabStore store)
             store.EffectiveRegistry().Hash, version, sources, DateTimeOffset.UtcNow);
         store.SaveProduction(production); return production;
     }
+
+    internal PromptLabProduction ValidateProduction(string productionId)
+    {
+        var production = store.GetProduction(productionId); var version = store.GetVersion(production.VersionId);
+        V4Rules.Require(production.RegistryHash == store.EffectiveRegistry().Hash && production.VersionHash == store.VersionHash(version.Id)
+            && production.Version != null && Hash(production.Version) == Hash(version), "PRODUCTION_SNAPSHOT_DRIFT");
+        version.Validate(true, store.EffectiveRegistry());
+        V4Rules.Require(production.Evidence is { Count: >= 1 and <= 64 }
+            && production.Evidence.All(e => e != null) && production.Evidence.Select(e => e.RunId).Distinct(StringComparer.Ordinal).Count() == production.Evidence.Count,
+            "PRODUCTION_EVIDENCE_REQUIRED");
+        foreach (var source in production.Evidence)
+            V4Rules.Require(ReviewSource(source.RunId) == source && store.GetRun(source.RunId).VersionId == version.Id, "PRODUCTION_EVIDENCE_DRIFT");
+        return production;
+    }
 }
 
 public sealed partial class PromptLabStore
@@ -123,6 +137,11 @@ public sealed partial class PromptLabStore
     internal void SavePackImport(PromptLabPackPreview preview, V4Report result) => Write("packs/" + preview.Id + "/import-" + Guid.NewGuid().ToString("N") + ".json",
         "PACK_IMPORT", new { preview.ReviewHash, result, At = DateTimeOffset.UtcNow }, false);
     internal void SaveProduction(PromptLabProduction production) => Write("production/" + production.Id + ".json", "PRODUCTION", production, false);
+    public PromptLabProduction GetProduction(string id)
+    {
+        RequireId(id); var production = Read<PromptLabProduction>("production/" + id + ".json", "PRODUCTION");
+        V4Rules.Require(production.Id == id, "PRODUCTION_ID"); return production;
+    }
     public IReadOnlyList<PromptLabProduction> ListProduction() => Files("production")
         .Select(file => Read<PromptLabProduction>("production/" + Path.GetFileName(file), "PRODUCTION")).OrderByDescending(p => p.CreatedAtUtc).ToArray();
 }

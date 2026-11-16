@@ -7,6 +7,48 @@ internal static partial class Program
 {
     private static async Task SemanticCorpus001()
     {
+        Test("001 campaign preparation freezes a 100K quota without issuing generation or approving records", () =>
+        {
+            using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "campaign"), f.Module);
+            var store = new PromptLabStore(workspace); var campaign = new CorpusCampaign(store);
+            var missing = new CorpusCampaignSpec { ModelId = "instance-1", MaxRequests = 100000,
+                Quotas = [new("support", Guid.NewGuid().ToString("N"), 0, 100000)] };
+            Throws(() => campaign.Prepare(missing)); True(!Directory.Exists(Path.Combine(store.Root, "campaigns")));
+            var fixture = CampaignProduction(store); var spec = missing with { Quotas = [new("support", fixture.Production.Id, 0, 100000)] };
+            Throws(() => campaign.Prepare(spec with { MaxRequests = 99999 }));
+            Throws(() => campaign.Prepare(spec with { ModelId = "unreviewed-model" }));
+            Throws(() => campaign.Prepare(spec with { Quotas = [new("support", fixture.Production.Id, 1, 100000)] }));
+            Throws(() => campaign.Prepare(spec with { Quotas = [new("support", fixture.Production.Id, 0, 50000), new("also-support", fixture.Production.Id, 0, 50000)] }));
+            Throws(() => JsonSerializer.Deserialize<CorpusCampaignSpec>("{\"Schema\":\"pw-corpus-campaign-spec/1\",\"AutoApprove\":true}"));
+            True(!Directory.Exists(Path.Combine(store.Root, "campaigns")));
+            var plan = campaign.Prepare(spec); Equal("PREPARED_UNAPPROVED", plan.Status);
+            Equal(100000, plan.AcceptedTarget); Equal(100000, plan.NominalMinimumRequests); Equal(65536, plan.ContextLimit);
+            Equal(1, store.ListRuns().Count); Equal("social.friendship.support", plan.Coverage[0].Category);
+            Equal("REPLY", plan.Coverage[0].Mode); Equal(100000, plan.Coverage[0].AcceptedTarget);
+            var hash = campaign.PlanHash(plan.Id); var reopened = new CorpusCampaign(new PromptLabStore(workspace)).Check(plan.Id, hash);
+            Equal(plan.Id, reopened.Id); Equal(hash, campaign.PlanHash(plan.Id));
+            var changed = store.SaveVersion(store.GetVersion(fixture.Production.VersionId) with { Id = "", ParentId = fixture.Production.VersionId, System = "Другой текст." });
+            store.AcceptVersion(changed.Id); Throws(() => campaign.Check(plan.Id, hash));
+            Equal(1, store.ListRuns().Count); Equal(0, store.IsolatedV4().Stats().Total);
+        });
+        Test("001 campaign requires reviewed settings and scenario and detects feedback or plan drift", () =>
+        {
+            using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "campaign"), f.Module);
+            var store = new PromptLabStore(workspace); var campaign = new CorpusCampaign(store);
+            var wrongSampler = CampaignProduction(store, differentSampler: true);
+            var spec = new CorpusCampaignSpec { ModelId = "instance-1", MaxRequests = 100000,
+                Quotas = [new("support", wrongSampler.Production.Id, 0, 100000)] };
+            Throws(() => campaign.Prepare(spec)); True(!Directory.Exists(Path.Combine(store.Root, "campaigns")));
+            var stalePrompt = CampaignProduction(store, differentPrompt: true);
+            Throws(() => campaign.Prepare(spec with { Quotas = [new("stale-prompt", stalePrompt.Production.Id, 0, 100000)] }));
+            var good = CampaignProduction(store, additionalScope: true);
+            Throws(() => campaign.Prepare(spec with { Quotas = [new("unreviewed-scene", good.Production.Id, 1, 100000)] }));
+            var plan = campaign.Prepare(spec with { Quotas = [new("support", good.Production.Id, 0, 100000)] });
+            var hash = campaign.PlanHash(plan.Id); Throws(() => campaign.Check(plan.Id, new string('0', 64)));
+            store.SaveFeedback(good.Run.Id, [new(1, good.Run.Rows[0].TextHash, "DISLIKE", "Пересмотр синтетической оценки.")], "Этот пример больше не подходит.");
+            Throws(() => campaign.Check(plan.Id, hash));
+            Equal(3, store.ListRuns().Count); Equal(0, store.IsolatedV4().Stats().Total);
+        });
         Test("001 mixed script damage is editorially flagged while normal L2 tokens stay permitted", () =>
         {
             var request = new V4GenerationRequest { Category = "life.health.fatigue", Style = new() { Category = "life.health.fatigue" } };
@@ -247,6 +289,27 @@ internal static partial class Program
             var system = payload.RootElement.GetProperty("messages")[0].GetProperty("content").GetString()!;
             True(system.Contains("MATURE", StringComparison.Ordinal) && system.Contains("playful_tease", StringComparison.Ordinal));
         });
+    }
+
+    private static (PromptLabProduction Production, PromptLabRun Run) CampaignProduction(PromptLabStore store, bool differentSampler = false, bool additionalScope = false, bool differentPrompt = false)
+    {
+        var scope = new V4GenerationRequest { Category = "social.friendship.support", Count = 1, Style = new() { Category = "social.friendship.support" } };
+        var version = store.SaveVersion(new() { Name = "Синтетический contract fixture, не owner approval", Scenario = scope,
+            AdditionalScenarios = additionalScope ? [scope with { Style = scope.Style with { Situation = "Другая сцена, её ещё не оценивали." } }] : [] });
+        var options = differentSampler ? version.Generation with { Temperature = .25 } : version.Generation;
+        var prompt = LmStudioClient.ComposePromptLabGeneration(version with { Generation = options }, store.EffectiveRegistry());
+        var run = store.BeginRun(version.Id, apiOptions: options); store.MarkIssued(run.Id);
+        const string text = "Пошли, разберёмся вместе.";
+        var content = JsonSerializer.Serialize(new { header = new { schema = "pw-semantic-batch/1", category = "social.friendship.support",
+            mode = "REPLY", act = "social.friendship.support.reply", language = "ru", count = 1 }, records = new[] { new { text, stance = "SUPPORTIVE" } } });
+        _ = V4CorpusGeneration.ToJsonl(content, version.Scenario, store.EffectiveRegistry());
+        store.CompleteRun(run with { State = "COMPLETE", CompletedAtUtc = DateTimeOffset.UtcNow, ModelId = "instance-1", ModelContext = 65536,
+            EffectiveSystem = differentPrompt ? "Старый фактически оценённый SYSTEM." : prompt.System, EffectiveUser = prompt.User,
+            Endpoint = "http://127.0.0.1:1234/v1", Response = new("{}", "{}", content, new(100, 20, 0, null, null, 1), "", 200, null, null),
+            Rows = [new(1, text, TextRules.Hash(text), true, [])] });
+        run = store.GetRun(run.Id); store.AcceptVersion(version.Id);
+        store.SaveFeedback(run.Id, [new(1, run.Rows[0].TextHash, "LIKE", "Синтетическая проверка контракта.")], "Не оценка владельца и не реальный модельный опыт.");
+        return (new PromptLabRouting(store).Promote(version.Id, [run.Id], true), run);
     }
 
     private sealed class Corpus001Handler(string? postResponse = null) : HttpMessageHandler

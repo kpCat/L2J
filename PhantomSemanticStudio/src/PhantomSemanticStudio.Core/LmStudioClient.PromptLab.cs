@@ -48,6 +48,13 @@ public sealed partial class LmStudioClient
     public Task<PromptLabResponse> GeneratePromptLabAsync(StudioSettings settings, string apiKey, CorpusLoadedModel loaded,
         PromptLabVersion version, CancellationToken token, IProgress<PromptLabProgress>? progress = null, V4Registry? registry = null)
     {
+        var prompt = ComposePromptLabGeneration(version, registry);
+        return SendPromptLabAsync(settings, apiKey, loaded, prompt.Request, version.Generation, prompt.System, prompt.User,
+            V4CorpusGeneration.ResponseSchema(prompt.Request, registry), true, token, progress);
+    }
+
+    internal static (V4GenerationRequest Request, string System, string User) ComposePromptLabGeneration(PromptLabVersion version, V4Registry? registry = null)
+    {
         V4Rules.Require(version.ReadyForGeneration, "PLAN_REVIEW_REQUIRED");
         version.Validate(false, registry); var request = version.Generation.Apply(version.Scenario); request.Validate(PromptProfiles.Default, registry);
         var system = request.Components == null ? PromptProfiles.Default.Resources["common.v1.md"] + "\n\n" + version.System + "\n\n" + PromptProfiles.Default.LegacyRules(request.Style, registry)
@@ -57,7 +64,7 @@ public sealed partial class LmStudioClient
         var user = version.User + "\n\n" + scene
             + "\nСейчас выполняется ровно ОДНА партия, описанная в этих данных: только её category, mode, count, stance/tone и сцена. "
             + "Если редактор выше описал несколько тем или партий, остальные сейчас не выполняй. Не добавляй их реплики в records и не меняй метаданные активной партии.";
-        return SendPromptLabAsync(settings, apiKey, loaded, request, version.Generation, system, user, V4CorpusGeneration.ResponseSchema(request, registry), true, token, progress);
+        return (request, system, user);
     }
 
     private static string ReadableScene(string data)

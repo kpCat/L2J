@@ -23,6 +23,27 @@ static int Run(string[] args)
     string Opt(string key, string? fallback = null) => options.TryGetValue(key, out var value) ? value : fallback ?? throw new InvalidDataException("Нужна опция " + key);
     string Input() => positional.Count == 2 ? Path.GetFullPath(positional[1]) : throw new InvalidDataException("Укажите один путь к файлу/папке.");
     if (positional.Count == 0 || options.ContainsKey("--help")) { Help(); return 0; }
+    if (positional[0] is "campaign-plan" or "campaign-check")
+    {
+        var prepare = positional[0] == "campaign-plan";
+        if (positional.Count != 2 || options.Keys.Any(key => key is not ("--workspace" or "--source") && !(key == "--hash" && !prepare)))
+            throw new InvalidDataException("Campaign-команда принимает один spec/id, --workspace, --source и --hash только для check.");
+        var sourcePath = PathSafety.Canonical(Opt("--source")); var workspacePath = PathSafety.Canonical(Opt("--workspace"));
+        var spec = prepare ? CorpusCampaign.ReadSpec(Input()) : null;
+        var expectedHash = prepare ? "" : Opt("--hash");
+        if (!prepare && (!Guid.TryParseExact(positional[1], "N", out _) || expectedHash.Length != 64
+            || expectedHash.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f'))))
+            throw new InvalidDataException("Для check нужны ID и точный SHA256 сохранённого плана.");
+        using var owned = new WorkspaceStore(workspacePath, sourcePath);
+        var campaign = new CorpusCampaign(new PromptLabStore(owned));
+        var plan = prepare ? campaign.Prepare(spec!) : campaign.Check(positional[1], expectedHash);
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { plan.Id, PlanHash = campaign.PlanHash(plan.Id), plan.Status,
+            plan.ContextLimit, plan.RegistryHash, plan.CoreHash, plan.PromptResourceHash, plan.AcceptedTarget,
+            plan.NominalMinimumRequests, plan.Spec.MaxRequests, plan.Profiles, plan.Coverage,
+            Generated = 0, Reviewed = 0, Approved = 0, Imported = 0,
+            Note = "Только офлайн-план. Quality policy не утверждена; worker/Start/Resume этой командой не запускаются." }, WorkspaceStore.JsonOptions));
+        return 0;
+    }
     if (positional.Count == 1 && positional[0] == "prompt-coverage")
     {
         var hierarchy = PromptHierarchy.Default;
@@ -132,6 +153,8 @@ corpus-models --lab <dir> --source <HighFive> --model <owner-selected-id>
 corpus-inspect-gguf --model-file <local.gguf>  Read-only GGUF v3 metadata/template; tensor weights не читаются.
 Для corpus-plan: --transport OPENAI_COMPAT|LM_NATIVE --reasoning default|off|on
 prompt-coverage — офлайн JSON-карта142категорий,20семейств и неподтверждённых quality gaps; модель не нужна.
+campaign-plan <spec.json> --workspace <lab-dir> --source <HighFive> — закрепить квоты production-профилей без HTTP.
+campaign-check <id> --hash <plan-sha256> --workspace <lab-dir> --source <HighFive> — проверить pins/evidence/drift; не Start/Resume.
 --matched-profile-probe --mature-pilot-consent — 32 matched запроса: четыре стратегии × два sampler × PvP/ролевая бравада/спокойный контроль/взрослый неграфический юмор; по4 кандидата, cap2048.
 --thinking-control none|reasoning_effort|chat_template_kwargs; --profiles <directory>.
 --mature-pilot-consent — отдельное явное разрешение взрослой части синтетического приватного пилота; по умолчанию OFF.
