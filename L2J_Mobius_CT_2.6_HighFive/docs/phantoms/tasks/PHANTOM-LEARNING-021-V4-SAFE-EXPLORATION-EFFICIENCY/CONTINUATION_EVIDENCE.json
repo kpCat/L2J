@@ -1,6 +1,6 @@
 {
   "schema": "PHANTOM_LEARNING021_CONTINUATION_V1",
-  "status": "NATIVE_CHAIN021_VERIFIED_G8_PENDING",
+  "status": "FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK",
   "manualGate": "REQUIRED",
   "authority": "CONTINUATION_AUTHORITY.md; explicit owner answer",
   "baseline": "d7cc02f6ec6b2720814e1f57f1fd4ab0666ee044",
@@ -14,5 +14,5 @@
   "timingsMillis": {"preflight":309,"readOnlySourceSql":660,"recoverPublication":414,"fit":445,"cold":433,"offlineFinalizeWrapper":2422},
   "budget": {"additionalChecksLimitSeconds":420,"additionalChecksConservativeUpperBoundSeconds":390,"originalCoreChecksSeconds":677.935,"originalBudgetNotReset":true,"goalWallLimitMinutes":75},
   "limits": {"productionV4":"OFF","nightTrainer":"NOT_READY","superiority":"NOT_EVALUATED","independentEfficacySample":"INSUFFICIENT_SAMPLE_SIZE","maxEvents":4096,"maxBatch":256,"goal022Started":false},
-  "publication": "PENDING_INDEPENDENT_READBACK"
+  "publication": {"status":"VERIFIED","sourceCommit":"7e26020c464438d1b728614c1befc1fefdee9e60","parent":"d7cc02f6ec6b2720814e1f57f1fd4ab0666ee044","exactPaths":9,"fullBodies":9,"manualGate":"REQUIRED"}
 }

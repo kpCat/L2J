@@ -1,11 +1,86 @@
 {
   "schema": "PHANTOM_LEARNING021_CONTINUATION_DELIVERY_V1",
-  "publication": "PENDING",
+  "publication": "NORMAL_FEATURE_PUSH_VERIFIED",
   "manualGate": "REQUIRED",
   "gitAuthorizedBy": "Goal021 + explicit continuation authority",
   "sourceBaseline": "d7cc02f6ec6b2720814e1f57f1fd4ab0666ee044",
-  "independentReadback": "PENDING",
-  "mojibakeMarkers": "PENDING_FINAL_SCAN",
-  "escapedCyrillic": "PENDING_FINAL_SCAN",
-  "nextGoalStarted": false
+  "independentReadback": "PASS_HEAD_PARENT_EXACT9_FULL_BODIES",
+  "mojibakeMarkers": "PASS_FULL_SET_ZERO",
+  "escapedCyrillic": "PASS_SIX_REGEX_ZERO",
+  "nextGoalStarted": false,
+  "result": "FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK",
+  "sourceCommit": "7e26020c464438d1b728614c1befc1fefdee9e60",
+  "scopeAllowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_AUTHORITY.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_DELIVERY.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_EVIDENCE.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_RESULT.md",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning021V4Exploration.java",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1"
+  ],
+  "githubBodies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "blobSha": "9c0982a67790e48800deff636bfa29d994a1c629",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_AUTHORITY.md",
+      "blobSha": "9fa1bf35ebecaf17ef46fe130ea70866208fa528",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_DELIVERY.json",
+      "blobSha": "5942a1ae8c8e4fdf60d95ad57728f23fb867b219",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_EVIDENCE.json",
+      "blobSha": "701b2f0e48ba727d3d219d357633e55e73d46f30",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTINUATION_RESULT.md",
+      "blobSha": "5b4a0c53615a2615d5fee0284309b970617f711d",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java",
+      "blobSha": "6d8bd08fff7d6eff092dd612d68a3ef1f3da2419",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning021V4Exploration.java",
+      "blobSha": "2e66cc1f1ae244b8e8ca18829aa9fc956e75b757",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "blobSha": "8831a0eda9c24ea53e76089717a0cb1deddecffb",
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "blobSha": "6bc9bd9c8502f516de08fe375860f0a22469951f",
+      "fullBodyRead": true
+    }
+  ],
+  "gitCommands": [
+    "git rev-parse HEAD origin/feature/phantom-world",
+    "git status --short",
+    "git fetch origin feature/phantom-world",
+    "git diff --check -- $allow021c",
+    "git add -- $allow021c",
+    "git diff --cached --check -- $allow021c",
+    "git diff --cached --stat -- $allow021c",
+    "git commit -m 'fix(phantoms): complete Goal021 native exploration and cold update'",
+    "git push origin HEAD:feature/phantom-world",
+    "git ls-tree -r HEAD -- $allow021c"
+  ],
+  "originalTaskManifest": "11/11 exact",
+  "wallAtSourceReadbackMinutes": 73.15,
+  "finalReceipt": "Docs-only append; final HEAD/parent/diff verified separately; no runtime after native recovery"
 }

@@ -1,6 +1,6 @@
 # Goal021 — результат разрешённого продолжения
 
-**NATIVE_CHAIN021_VERIFIED; финальный FULL зависит от G8 readback в CONTINUATION_DELIVERY.json. Manual gate REQUIRED.** Это тот же Goal021, не022. Исходные PARTIAL RESULT/EVIDENCE и первый train021 сохранены.
+**FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK. Manual gate REQUIRED.** G8: source7e26020c464 ordinary feature push, independent HEAD/parent/exact9/full9 bodies PASS, см. CONTINUATION_DELIVERY.json. Это тот же Goal021, не022. Исходные PARTIAL RESULT/EVIDENCE и первый train021 сохранены.
 
 Владелец отдельно разрешил один fresh GS≤8min и дополнительные проверки≤7min, см. CONTINUATION_AUTHORITY.md. Fresh train021-c1, loopback33363/18023/19323, тот же fixed production JAR75f37c80…5782297 и immutable parent179/42cfff…ef96c. Изменены4 TEST/CLI файла; production Java/JAR/skills/resources/Geo не менялись. New branch/worktree/provider/scheduler отсутствуют.
 
