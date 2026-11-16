@@ -1,5 +1,13 @@
 # Corpus001 R2 — лаборатория профилей Core/CLI
 
+## Общий индекс кандидатов
+
+Core `CorpusCandidateIndex` хранит новые исследовательские кандидаты отдельно от Semantic Pack: `labs/prompt-lab/corpus-index/<registry-hash>.sqlite` в переданном owned workspace. Старый корпус не загружается автоматически. Каждое появление сохраняет source ID/hash, номер, category/mode, исходный текст и QA-only; уникальный NFKC/whitespace/lowercase текст индексируется один раз. Повтор того же source/row идемпотентен; изменение строки или hash источника откатывает всю текущую порцию. Ограничение порции1000, базы1GiB, schema/algorithm/registry pins проверяются при открытии.
+
+Поиск использует до64 char/token/bigram/opening признаков и shortlist до128 текстов; выдача1–64. Exact lookup выполняется отдельно. `LexicalNearClone` переиспользует существующий detector, `RepeatedOpening` отмечает первые три слова. Оба флага требуют проверки смысла. Они не доказывают дубликат и не дают разрешения approval/import; пустая выдача не доказывает оригинальность. Новые embeddings или модели не подключаются.
+
+Диагностический route существующего console runner: `--corpus-index-census <census.json> <work-root> <new-index-workspace> <HighFive>`. Он проверяет SHA исходных результатов census, копирует только новые canonical кандидаты в отдельный research index и сохраняет provenance/счётчики/ограниченный пример поиска. Неизвестные canonical registry категории исключаются с отдельной статистикой, не переименовываются. Это не JSONL-import и не принятый корпус. Повтор на том же census проверяет Resume/idempotency индекса, не автономного LM-worker. Масштабирование100K и semantic recall требуют отдельных измерений.
+
 ## Подготовка кампании из production-профилей
 
 `campaign-plan <spec.json> --workspace <отдельная-lab-папка> --source <HighFive>` сохраняет неизменяемый план квот. `campaign-check <id> --hash <PlanHash> --workspace <та-же-папка> --source <HighFive>` повторно проверяет profile/registry/evidence pins. Обе команды офлайн: не создают generation jobs, не обращаются к модели, не утверждают строки и не импортируют JSONL. Статус `PREPARED_UNAPPROVED` не является разрешением Start/Resume; worker, SQLite journal, редакционная политика и глобальный duplicate index относятся к следующим частям реализации. Настоящий100K запуск требует качественного пилота и явного утверждения политики.

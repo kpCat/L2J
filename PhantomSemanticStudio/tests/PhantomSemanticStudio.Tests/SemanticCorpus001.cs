@@ -7,6 +7,36 @@ internal static partial class Program
 {
     private static async Task SemanticCorpus001()
     {
+        Test("001 global index persists canonical duplicates and atomically rejects changed provenance on replay", () =>
+        {
+            using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "index"), f.Module);
+            var index = new CorpusCandidateIndex(workspace);
+            var first = new CorpusIndexRecord(Guid.NewGuid().ToString("N"), new string('a', 64), 1, "social.friendship.support", "REPLY", "Пошли, разберёмся вместе.");
+            var second = first with { SourceId = Guid.NewGuid().ToString("N"), Text = " ПОШЛИ,  разберёмся вместе. " };
+            var added = index.Append([first, second]); Equal(1, added.NewTexts); Equal(2, added.NewOccurrences); Equal(1, added.ExactDuplicates);
+            index = new CorpusCandidateIndex(workspace); Equal(1L, index.Stats().Texts); Equal(2L, index.Stats().Occurrences);
+            Equal(2, index.Append([first, second]).Replayed); Equal(2L, index.Stats().Occurrences);
+            var fresh = first with { SourceId = Guid.NewGuid().ToString("N"), Text = "Подожду тебя у входа." };
+            Throws(() => index.Append([fresh, first with { Text = "Другой исходный текст." }]));
+            Throws(() => index.Append([first with { Number = 2, SourceHash = new string('b', 64) }]));
+            Equal(1L, index.Stats().Texts); Equal(2L, index.Stats().Occurrences);
+            using (var db = CorpusStore.Connect(Path.Combine(workspace.Root, "labs/prompt-lab/corpus-index", V4Registry.Default.Hash + ".sqlite"), true))
+            using (var revision = db.CreateCommand()) { revision.CommandText = "PRAGMA user_version=2"; revision.ExecuteNonQuery(); }
+            Throws(() => new CorpusCandidateIndex(workspace));
+        });
+        Test("001 indexed shortlist finds permutations short exact text and repeated openings without semantic approval", () =>
+        {
+            using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "index"), f.Module);
+            var index = new CorpusCandidateIndex(workspace);
+            CorpusIndexRecord Row(string text) => new(Guid.NewGuid().ToString("N"), new string('a', 64), 1, "social.friendship.support", "REPLY", text);
+            index.Append([Row("Давай после рейда спокойно разберём этот косяк."), Row("Слышь, ты чё, опять налево свернул?"), Row("Ага.")]);
+            True(index.Find("Давай спокойно разберём этот косяк после рейда.").Any(n => n.LexicalNearClone && !n.Exact));
+            True(index.Find("Слышь, ты чё, этот лут совсем не берёшь?").Any(n => n.RepeatedOpening));
+            True(index.Find("АГА.", 1).Single().Exact); True(index.Find("Ага.").All(n => n.Coverage == "COVERAGE_LIMITED_NOT_SEMANTIC_APPROVAL"));
+            Throws(() => index.Find("Ага.", 65));
+            using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
+            Throws(() => index.Append([Row("Ещё одна строка.")], cancelled.Token)); Equal(3L, index.Stats().Texts);
+        });
         Test("001 campaign preparation freezes a 100K quota without issuing generation or approving records", () =>
         {
             using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "campaign"), f.Module);
@@ -289,6 +319,49 @@ internal static partial class Program
             var system = payload.RootElement.GetProperty("messages")[0].GetProperty("content").GetString()!;
             True(system.Contains("MATURE", StringComparison.Ordinal) && system.Contains("playful_tease", StringComparison.Ordinal));
         });
+    }
+
+    private static int CorpusIndexCensus(string[] args)
+    {
+        V4Rules.Require(args.Length == 5, "INDEX_CENSUS_ARGS: census.json workRoot new-index-workspace source");
+        var input = PathSafety.Canonical(args[1]); var work = PathSafety.Canonical(args[2]); var root = PathSafety.Canonical(args[3]);
+        V4Rules.Require(PathSafety.IsWithin(input, work), "INDEX_CENSUS_INPUT_SCOPE");
+        var marker = PathSafety.ResolveRelative(root, "index-census-input.sha256");
+        V4Rules.Require(!Directory.Exists(root) || File.Exists(marker), "INDEX_CENSUS_NEW_WORKSPACE_REQUIRED");
+        var bytes = V4Rules.ReadBytes(input, 16 * 1024 * 1024); var censusHash = V4Rules.Hash(bytes);
+        if (File.Exists(marker)) V4Rules.Require(File.ReadAllText(marker) == censusHash, "INDEX_CENSUS_REVISION_DRIFT");
+        using var document = JsonDocument.Parse(bytes); var census = document.RootElement;
+        V4Rules.Require(V4Rules.String(census, "Schema") == "pw-cross-trial-census/1", "INDEX_CENSUS_SCHEMA");
+        var sources = census.GetProperty("Sources").EnumerateArray().ToDictionary(s => V4Rules.String(s, "Path"), s => V4Rules.String(s, "Sha256"), StringComparer.Ordinal);
+        foreach (var source in sources) V4Rules.Require(FileSha(PathSafety.ResolveRelative(work, source.Key)) == source.Value, "INDEX_CENSUS_SOURCE_DRIFT");
+        var categories = V4Registry.Default.Categories.Select(c => c.Key).ToHashSet(StringComparer.Ordinal);
+        var records = new List<CorpusIndexRecord>(); var excluded = new Dictionary<string, int>(); var sourceIds = new Dictionary<string, string>();
+        foreach (var row in census.GetProperty("Records").EnumerateArray())
+        {
+            var source = V4Rules.String(row, "Source"); var hash = V4Rules.String(row, "SourceSha256");
+            V4Rules.Require(sources.TryGetValue(source, out var verified) && verified == hash, "INDEX_CENSUS_UNVERIFIED_ROW");
+            var category = V4Rules.String(row, "Category");
+            if (!categories.Contains(category)) { excluded[category] = excluded.GetValueOrDefault(category) + 1; continue; }
+            var id = V4Rules.Hash(V4Rules.Utf8.GetBytes(source + "\n" + hash)); sourceIds[id] = source;
+            records.Add(new(id, hash, row.GetProperty("Number").GetInt32(), category, V4Rules.String(row, "Mode"), V4Rules.String(row, "Text"), row.GetProperty("QaOnly").GetBoolean()));
+        }
+        using var workspace = new WorkspaceStore(root, PathSafety.Canonical(args[4]));
+        if (!File.Exists(marker)) { using var file = new FileStream(marker, FileMode.CreateNew, FileAccess.Write, FileShare.None); file.Write(Encoding.ASCII.GetBytes(censusHash)); file.Flush(true); }
+        var index = new CorpusCandidateIndex(workspace); var timer = System.Diagnostics.Stopwatch.StartNew(); var added = 0; var replayed = 0;
+        foreach (var batch in records.Chunk(300)) { var result = index.Append(batch); added += result.NewOccurrences; replayed += result.Replayed; }
+        timer.Stop(); var stats = index.Stats(); var expectedUnique = records.Select(r => V4Rules.Normalize(r.Text)).Distinct(StringComparer.Ordinal).Count();
+        V4Rules.Require(stats.Texts == expectedUnique && stats.Occurrences == records.Count, "INDEX_CENSUS_COUNTS_MISMATCH");
+        const string query = "Слышь, ты чё, совсем ебанулся? Лево и право — это для тебя слишком сложно, блядь?";
+        var matches = index.Find(query).Select(n => new { Match = n, SourceFile = sourceIds[n.Source.SourceId] }).ToArray();
+        var report = new { Schema = "pw-corpus-index-census/1", Status = "RESEARCH_INDEX_ONLY", CensusHash = censusHash, VerifiedSourceFiles = sources.Count,
+            InputRows = census.GetProperty("Records").GetArrayLength(), IndexedRows = records.Count, ExpectedUnique = expectedUnique,
+            ExactExtraOccurrences = records.Count - expectedUnique, ExcludedNonCanonical = excluded, stats, AddedOccurrences = added, Replayed = replayed,
+            AppendWallSeconds = timer.Elapsed.TotalSeconds, Query = query, Matches = matches,
+            DatabaseBytes = new FileInfo(Path.Combine(root, "labs/prompt-lab/corpus-index", stats.RegistryHash + ".sqlite")).Length,
+            Approved = 0, Imported = 0, SemanticRecall = "NOT_PROVEN; bounded lexical retrieval only" };
+        var output = PathSafety.ResolveRelative(root, "index-census-" + Guid.NewGuid().ToString("N") + ".json");
+        workspace.Check(); File.WriteAllText(output, JsonSerializer.Serialize(report, WorkspaceStore.JsonOptions), new UTF8Encoding(false));
+        Console.WriteLine($"INDEX_CENSUS_PASS rows={records.Count}; unique={stats.Texts}; exactExtra={records.Count - expectedUnique}; added={added}; replayed={replayed}; report={output}; approved=0"); return 0;
     }
 
     private static (PromptLabProduction Production, PromptLabRun Run) CampaignProduction(PromptLabStore store, bool differentSampler = false, bool additionalScope = false, bool differentPrompt = false)
