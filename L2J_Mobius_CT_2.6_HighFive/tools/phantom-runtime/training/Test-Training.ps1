@@ -9,6 +9,7 @@ param(
     [switch]$Closure017,
     [switch]$ActionValue019,
     [switch]$ActionValue020,
+    [switch]$ActionValue021,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -19,6 +20,25 @@ Set-StrictMode -Version Latest
 $owner=Join-Path $PSScriptRoot 'TrainingOwner.ps1'
 if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CONTRACT_MISSING' }
 . $owner
+if($ActionValue021){
+    function Require021([bool]$Value,[string]$Reason){if(!$Value){throw $Reason}}
+    $sha='a'*64
+    $proof=[pscustomobject]@{modelSha=$sha;MODEL_CONSULTED=$true;MODEL_REORDERED=$false;NATIVE_EXECUTED=$true;EFFECT_PAID=$true;nativePaid=2;settled=$true;episodeSha=('b'*64);newTrainSamples=2;EXPERIMENT_REORDERED=$true;experimentalPaid=1;baselinePaid=1}
+    Assert-TrainActionValue021Proof 0 $proof $sha
+    foreach($field in @('EXPERIMENT_REORDERED','experimentalPaid','baselinePaid','MODEL_REORDERED')){
+        $bad=$proof.PSObject.Copy();$bad.$field=$(if($field -ceq 'MODEL_REORDERED'){$true}elseif($field -ceq 'EXPERIMENT_REORDERED'){$false}else{0})
+        $refused=$false;try{Assert-TrainActionValue021Proof 0 $bad $sha}catch{$refused=$true}
+        Require021 $refused ('TRAIN021_FALSE_PROOF_'+$field)
+    }
+    $fixture=Join-Path ([IO.Path]::GetTempPath()) ('Train021-Step-'+[guid]::NewGuid().ToString('N'));$null=[IO.Directory]::CreateDirectory($fixture)
+    try{
+        Write-TrainJson (Join-Path $fixture 'cold020.json') @{sha=$sha}
+        Require021 (!(Test-TrainActionValue020Complete $fixture -Experiment021)) 'TRAIN021_INCOMPLETE_FALSE_COMPLETED'
+        $null=Request-TrainActionValue020Stop $fixture $false $false
+        Require021 (Test-Path -LiteralPath (Join-Path $fixture 'stop.request')) 'TRAIN021_STOP_BEFORE_RECORD'
+    }finally{foreach($n in @('cold020.json','stop.request')){[IO.File]::Delete((Join-Path $fixture $n))};[IO.Directory]::Delete($fixture)}
+    Write-Output 'TRAIN021_PROOF_CONTRACT_PASS NOT_NATIVE GS=0 SQL=0';return
+}
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
 if($ActionValue020){

@@ -16,7 +16,12 @@ import static org.l2jmobius.tests.phantoms.PhantomLearning019ActionValue.check;
 /** Один TEST-only acquired encounter. Никаких producer credits, SQL fit или фонового director. */
 public final class PhantomLearning020V4Native
 {
-	static final String PARENT = "569295cf4d8f4172eee0e8a7e530246534dd1cf24d34ab95e07ded65c6b2f061";
+	static final boolean EXPERIMENT021 = Boolean.getBoolean("phantom.learning.explore021");
+	static final String PARENT = EXPERIMENT021 ? PhantomLearning021V4Exploration.PARENT : "569295cf4d8f4172eee0e8a7e530246534dd1cf24d34ab95e07ded65c6b2f061";
+	static final int PARENT_UPDATES = EXPERIMENT021 ? 179 : 161;
+	private static ActionExplorationV4 experiment;
+	private static final java.util.concurrent.ConcurrentHashMap<Long, ActionExperimentReceiptV4.Intent> intents021 = new java.util.concurrent.ConcurrentHashMap<>();
+	private static volatile boolean intentIntegrity021 = true;
 	static String sha(Path p) throws Exception { return TacticalObservationV3.hash(Files.readAllBytes(p)); }
 	static void write(Path p, String value) throws Exception { Files.writeString(p, value, StandardOpenOption.CREATE_NEW); }
 	static String json(Object value) { return PhantomEvaluationOutcomeV2.jsonValue(value); }
@@ -83,7 +88,7 @@ public final class PhantomLearning020V4Native
 	}
 	static void owned(Path root) throws Exception
 	{
-		physical(root); check(root.getFileName().toString().matches("train020(?:-c1|-[a-f0-9]{32})?")
+		physical(root); check((EXPERIMENT021 ? root.getFileName().toString().equals("train021") : root.getFileName().toString().matches("train020(?:-c1|-[a-f0-9]{32})?"))
 			&& Files.readString(root.resolve("owner.txt")).matches("LEARNING002:[a-f0-9]{32}"), "V4_OWNED_TEST020_REQUIRED");
 	}
 	static void bindings(Path root, Map<String, Object> files) throws Exception
@@ -139,17 +144,17 @@ public final class PhantomLearning020V4Native
 	}
 	static void preflight(Path cohort, Path root) throws Exception
 	{
-		owned(root); var parent = ActionLearningV4.load(root.resolve("candidate.bin"), PARENT); check(parent.updates() == 161, "V4_PARENT161_REQUIRED");
+		owned(root); var parent = ActionLearningV4.load(root.resolve("candidate.bin"), PARENT); check(parent.updates() == PARENT_UPDATES, "V4_EXACT_PARENT_REQUIRED");
 		var candidates = candidates(cohort); String nonce = UUID.randomUUID().toString().replace("-", "");
 		write(root.resolve("preflight020.json"), json(Map.of("schema", "V4_SINGLE_STEP020", "split", "TRAIN", "nonce", nonce,
 			"cohortSha", sha(cohort.resolve("cohort016.json")), "parentSha", PARENT, "candidates", candidates, "liveAdmitted", false)));
-		System.out.println("LEARNING020_PREFLIGHT_PASS candidates=" + candidates.size() + " liveAdmitted=false parentUpdates=161");
+		System.out.println("LEARNING020_PREFLIGHT_PASS candidates=" + candidates.size() + " liveAdmitted=false parentUpdates=" + PARENT_UPDATES);
 	}
 	static void sourceSql(Path root) throws Exception
 	{
-		owned(root); check(root.getFileName().toString().equals("train020-c1"), "V4_CONTINUATION_SQL_SCOPE");
+		owned(root); check(root.getFileName().toString().equals(EXPERIMENT021 ? "train021" : "train020-c1"), "V4_CONTINUATION_SQL_SCOPE");
 		var database = new Properties(); try (var reader = Files.newBufferedReader(root.resolve("game/config/Database.ini"))) { database.load(reader); }
-		check(database.getProperty("URL").equals("jdbc:mysql://127.0.0.1:33361/phantom_learning001_train002"), "V4_PRIVATE_SOURCE_SQL");
+		check(database.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (EXPERIMENT021 ? 33362 : 33361) + "/phantom_learning001_train002"), "V4_PRIVATE_SOURCE_SQL");
 		var candidates = list(object(root.resolve("preflight020.json")).get("candidates")); check(candidates.size() == 1, "V4_ONE_CANDIDATE"); var candidate = map(candidates.getFirst());
 		var image = PhantomAutonomousTrainingNative.soloSource020(string(candidate, "cell"), string(candidate, "sourceImage"));
 		try (var connection = java.sql.DriverManager.getConnection(database.getProperty("URL"), database.getProperty("Login"), database.getProperty("Password")))
@@ -171,6 +176,26 @@ public final class PhantomLearning020V4Native
 		var tactical = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, _ -> { });
 		tactical.actionValueTest(TacticalPolicyV3.Mode.ON, model, d -> { check(decisions.size() < 64, "V4_DECISION_BOUND"); decisions.add(d); });
 		tactical.damageObserver(r -> { check(receipts.size() < 32, "V4_RECEIPT_BOUND"); receipts.add(r); });
+		if (EXPERIMENT021)
+		{
+			policy.observer(new LearningPolicy.Observer()
+			{
+				public void issued(LearningPolicy.Attempt a, org.l2jmobius.gameserver.model.actor.Player actor, Monster target)
+				{
+					if (a.tactical() == null) { return; }
+					try
+					{
+						var d = experiment.decisions().stream().filter(v -> v.selected().equals(a.tactical().selected())).findFirst().orElseThrow();
+						check(actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent() && TacticalSnapshotV3.epoch(actor) == d.observation().actorEpoch()
+							&& target.getObjectId() == d.selected().targetObjectId() && TacticalSnapshotV3.epoch(target) == d.selected().targetEpoch(), "V4_PRE_NATIVE_OWNER_TARGET");
+						var owner = new HealEvidenceV3.SourceOwner(a.generation(), "Combat/" + a.request().profileId() + "/" + a.generation() + "/" + a.sequence());
+						check(intents021.size() < 64 && intents021.putIfAbsent(d.cursor(), new ActionExperimentReceiptV4.Intent(d, owner, System.nanoTime())) == null, "V4_DUPLICATE_PRE_NATIVE_INTENT");
+					}
+					catch (Exception | AssertionError failed) { intentIntegrity021 = false; }
+				}
+				public void recorded(LearningPolicy.Attempt a, LearningStore.Evidence evidence) { }
+			});
+		}
 		PhantomCombatCapabilityResolver.CapabilitySource frozen = prepared.capabilities();
 		Monster target = null; java.util.function.Supplier<TacticalEpisodeV3> terminal = null;
 		try (var runtime = new PhantomLearning001ShadowNative.Runtime(authority, root.resolve("game"), policy, root.resolve("stop.request"), true, 1, tactical, true, frozen))
@@ -197,9 +222,22 @@ public final class PhantomLearning020V4Native
 					"skills", cell[4], "hp", actor.getCurrentHp(), "mp", actor.getCurrentMp(), "inventory", inventory.fingerprint(), "geoLos", true, "ownerCurrent", true)));
 				var admission = runtime.acquiredEncounterAdmission(45000);
 				String nonce = string(object(root.resolve("preflight020.json")), "nonce"), id = TacticalObservationV3.hash((nonce + "/" + ordinal).getBytes(StandardCharsets.UTF_8));
+				if (EXPERIMENT021)
+				{
+					var plan = new ActionExplorationV4.Plan(1, "COVERAGE_TEST_V1", 21001, 1, .15, "TRAIN", id, string(candidate, "sourceSha"), model.sha256(), actions.stream().map(a -> a.skillId() + ":" + a.skillLevel()).sorted().toList());
+					experiment = new ActionExplorationV4(plan);
+					ActionExperimentReceiptV4.publish(root.resolve("policy021.bin"), plan.bytes());
+					tactical.actionExplorationTest(experiment);
+				}
 				terminal = runtime.runLearning006Encounter(id, nonce, 45, () -> Files.exists(root.resolve("stop.request")), () -> List.copyOf(receipts), stamp ->
 				{
-					try { runtime.revalidateAcquiredEncounter(); write(root.resolve("cut020.json"), json(Map.of("episode", id, "nonce", nonce, "startedNanos", stamp, "split", "TRAIN", "modelSha", model.sha256(), "admission", admission))); }
+					try
+					{
+						runtime.revalidateAcquiredEncounter();
+						var cut = new LinkedHashMap<String, Object>(Map.of("episode", id, "nonce", nonce, "startedNanos", stamp, "split", "TRAIN", "modelSha", model.sha256(), "admission", admission));
+						if (EXPERIMENT021) { cut.put("policySha", sha(root.resolve("policy021.bin"))); }
+						write(root.resolve("cut020.json"), json(cut));
+					}
 					catch (Exception failure) { throw new IllegalStateException("V4_DURABLE_CUT_FAILED", failure); }
 				});
 			}
@@ -216,6 +254,7 @@ public final class PhantomLearning020V4Native
 				if (target != null) { target.deleteMe(); }
 			}
 		}
+		if (EXPERIMENT021) { write(root.resolve("diagnostics021.json"), tactical.diagnostics()); }
 		return episode(object(root.resolve("episode020.json")), number(object(root.resolve("cut020.json")), "startedNanos"));
 	}
 	static void nativeOnce(Path root, String jarSha, String modelSha, String preflightSha) throws Exception
@@ -226,8 +265,8 @@ public final class PhantomLearning020V4Native
 		for (Class<?> type : List.of(org.l2jmobius.gameserver.GameServer.class, TacticalPolicyV3.class, ActionValueV4.class))
 		{ check(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath().equals(jar), "V4_PRODUCTION_JAR_ORIGIN"); }
 		var db = new Properties(); try (var reader = Files.newBufferedReader(game.resolve("config/Database.ini"))) { db.load(reader); }
-		boolean continuation = root.getFileName().toString().equals("train020-c1");
-		check(db.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (continuation ? 33361 : 33360) + "/phantom_learning001_train002"), "V4_SEPARATE_SQL020");
+		boolean continuation = root.getFileName().toString().equals("train020-c1") || EXPERIMENT021;
+		check(db.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (EXPERIMENT021 ? 33362 : continuation ? 33361 : 33360) + "/phantom_learning001_train002"), "V4_SEPARATE_SQL020");
 		if (continuation)
 		{
 			var sourceProof = object(root.resolve("source-sql020.json")); var reservation = object(root.resolve("boot-reserved020.json"));
@@ -236,10 +275,10 @@ public final class PhantomLearning020V4Native
 			check(bool(sourceProof, "sqlReadOnly") && number(sourceProof, "gsBoots") == 0 && number(sourceProof, "recoverySeconds") == 180
 				&& string(sourceProof, "sourceSha").equals(source.sha()) && string(sourceProof, "physicalSha").equals(source.physicalFingerprint())
 				&& string(sourceProof, "configSha").equals(sha(root.resolve("TRAIN_CONFIG.ini"))) && string(reservation, "sourceSqlSha").equals(sha(root.resolve("source-sql020.json")))
-				&& number(reservation, "goal020BootOrdinal") == 2, "V4_SUCCESSFUL_OFFLINE_SOURCE_GATE_REQUIRED");
+				&& number(reservation, "goal020BootOrdinal") == (EXPERIMENT021 ? 1 : 2), "V4_SUCCESSFUL_OFFLINE_SOURCE_GATE_REQUIRED");
 		}
 		var endpoints = new Properties(); try (var reader = Files.newBufferedReader(game.resolve("config/Server.ini"))) { endpoints.load(reader); }
-		check(endpoints.getProperty("GameserverHostname").equals("127.0.0.1") && endpoints.getProperty("GameserverPort").equals(continuation ? "18021" : "18020") && endpoints.getProperty("LoginHost").equals("127.0.0.1") && endpoints.getProperty("LoginPort").equals(continuation ? "19321" : "19320"), "V4_LOOPBACK020");
+		check(endpoints.getProperty("GameserverHostname").equals("127.0.0.1") && endpoints.getProperty("GameserverPort").equals(EXPERIMENT021 ? "18022" : continuation ? "18021" : "18020") && endpoints.getProperty("LoginHost").equals("127.0.0.1") && endpoints.getProperty("LoginPort").equals(EXPERIMENT021 ? "19322" : continuation ? "19321" : "19320"), "V4_LOOPBACK020");
 		var model = ActionLearningV4.load(root.resolve("candidate.bin"), modelSha); String off = Files.readString(config); check(off.contains("EnablePhantomSystem = False"), "V4_COLD_OFF");
 		claimBoot(root, jarSha, preflightSha, modelSha);
 		boolean booted = false; var receipts = new ConcurrentLinkedQueue<TacticalReceiptV3>(); var decisions = new ConcurrentLinkedQueue<TacticalPolicyV3.ActionValueDecision>();
@@ -268,6 +307,24 @@ public final class PhantomLearning020V4Native
 			check(settled != null, "V4_NO_LAWFUL_NATIVE_SCENE");
 			var files = new TreeMap<String, Object>(); var records = new ArrayList<Object>();
 			for (String name : List.of("preflight020.json", "cut020.json", "episode020.json", "boot-reserved020.json", "native-entered020.marker")) { files.put(name, sha(root.resolve(name))); }
+			if (EXPERIMENT021)
+			{
+				check(experiment != null && intentIntegrity021, "V4_EXPERIMENT_PLAN_AND_PRE_NATIVE_INTEGRITY_REQUIRED");
+				ActionExplorationV4.validateLog(experiment.decisions());
+				files.put("policy021.bin", sha(root.resolve("policy021.bin")));
+				check(string(object(root.resolve("cut020.json")), "policySha").equals(sha(root.resolve("policy021.bin"))), "V4_PRE_CUT_POLICY_PIN");
+				files.put("diagnostics021.json", sha(root.resolve("diagnostics021.json")));
+				for (var d : experiment.decisions())
+				{
+					String name = "decision021-" + d.cursor() + ".bin";
+					ActionExperimentReceiptV4.publish(root.resolve(name), d.bytes()); files.put(name, sha(root.resolve(name)));
+				}
+				for (var entry : new TreeMap<>(intents021).entrySet())
+				{
+					String name = "intent021-" + entry.getKey() + ".bin";
+					ActionExperimentReceiptV4.publish(root.resolve(name), entry.getValue().bytes()); files.put(name, sha(root.resolve(name)));
+				}
+			}
 			for (var receipt : receipts)
 			{
 				var decision = decisions.stream().filter(d -> d.consulted() && d.modelSha().equals(modelSha) && d.selected().equals(receipt.attempt().selected())).findFirst();
@@ -278,14 +335,41 @@ public final class PhantomLearning020V4Native
 				Files.write(root.resolve(encoded), bytes, StandardOpenOption.CREATE_NEW);
 				ActionFeedbackV4.nativeAction(bytes, TacticalObservationV3.hash(bytes), settled, receipt.owner(), sha(root.resolve(raw)));
 				files.put(raw, sha(root.resolve(raw))); files.put(encoded, sha(root.resolve(encoded)));
-				var d = decision.orElseThrow(); records.add(Map.of("eventKey", receipt.eventKey(), "stock", receipt.attempt().baseline().skillId(), "chosen", d.selected().skillId(), "scores", d.scores(), "reason", d.reason(), "paidHp", receipt.actualHp(), "paidMp", receipt.actualMp(), "elapsedNanos", receipt.elapsedNanos()));
+				var d = decision.orElseThrow();
+				var record = new LinkedHashMap<String, Object>(Map.of("eventKey", receipt.eventKey(), "stock", receipt.attempt().baseline().skillId(), "chosen", d.selected().skillId(), "scores", d.scores(), "reason", d.reason(), "paidHp", receipt.actualHp(), "paidMp", receipt.actualMp(), "elapsedNanos", receipt.elapsedNanos()));
+				if (EXPERIMENT021)
+				{
+					var selected = experiment.decisions().stream().filter(e -> e.selected().equals(receipt.attempt().selected())).findFirst().orElseThrow();
+					var intent = intents021.get(selected.cursor()); check(intent != null, "V4_PRE_NATIVE_INTENT_REQUIRED");
+					var effect = ActionExperimentReceiptV4.bind(intent, sha(root.resolve("policy021.bin")), bytes, settled, sha(root.resolve(raw)));
+					String effectName = receipt.eventKey() + ".effect021.bin"; ActionExperimentReceiptV4.publish(root.resolve(effectName), effect.bytes()); files.put(effectName, sha(root.resolve(effectName)));
+					record.put("decision", "decision021-" + selected.cursor() + ".bin"); record.put("mode", selected.mode()); record.put("propensity", selected.propensity());
+					record.put("decisionSha", effect.decisionSha()); record.put("effect", effectName); record.put("usefulHpFraction", effect.usefulHpFraction()); record.put("policy", selected.plan().policyId());
+					record.put("intent", "intent021-" + selected.cursor() + ".bin");
+				}
+				records.add(record);
 			}
 			check(!records.isEmpty(), "V4_MODEL_BOUND_PAID_RECEIPT_REQUIRED");
 			var proof = new LinkedHashMap<String, Object>(); proof.put("modelSha", modelSha); proof.put("MODEL_CONSULTED", true);
-			proof.put("MODEL_REORDERED", receipts.stream().anyMatch(r -> !r.attempt().baseline().equals(r.attempt().selected())));
+			proof.put("MODEL_REORDERED", EXPERIMENT021 ? decisions.stream().anyMatch(d -> d.reason().equals("MODEL") && !d.selected().equals(receipts.stream().filter(r -> r.attempt().selected().equals(d.selected())).findFirst().orElseThrow().attempt().baseline())) : receipts.stream().anyMatch(r -> !r.attempt().baseline().equals(r.attempt().selected())));
+			if (EXPERIMENT021)
+			{
+				long experimental = records.stream().map(PhantomEvaluationReplayV2::map).filter(r -> string(r, "mode").startsWith("EXPLORE") && integer(r, "stock") != integer(r, "chosen")).count();
+				long controls = records.stream().map(PhantomEvaluationReplayV2::map).filter(r -> string(r, "mode").equals("BASELINE")).count();
+				proof.put("EXPERIMENT_REORDERED", experimental > 0); proof.put("experimentalPaid", experimental); proof.put("baselinePaid", controls);
+				check(experimental >= 1 && controls >= 1, "V4_REAL_EXPERIMENT_AND_CONTROL_REQUIRED");
+			}
 			proof.put("NATIVE_EXECUTED", true); proof.put("EFFECT_PAID", true); proof.put("nativePaid", records.size()); proof.put("newTrainSamples", records.size());
 			proof.put("settled", true); proof.put("episodeSha", settled.sha256()); proof.put("records", records); proof.put("files", files);
-			write(root.resolve("native020.json"), json(proof)); System.out.println("LEARNING020_NATIVE_PASS paid=" + records.size());
+			if (EXPERIMENT021)
+			{
+				var logFiles = new TreeMap<String, Object>(); files.forEach((name, digest) -> { if (name.startsWith("decision021-") || name.startsWith("intent021-")) { logFiles.put(name, digest); } });
+				ActionExperimentReceiptV4.publish(root.resolve("manifest021.json"), json(Map.of("schemaVersion", 1, "decisionCount", experiment.decisions().size(), "intentCount", intents021.size(), "recordCount", records.size(), "files", logFiles)).getBytes(StandardCharsets.UTF_8));
+				files.put("manifest021.json", sha(root.resolve("manifest021.json")));
+			}
+			write(root.resolve("native020.json"), json(proof));
+			if (EXPERIMENT021) { ActionExperimentReceiptV4.publish(root.resolve("native021.complete.json"), json(Map.of("schemaVersion", 1, "nativeSha", sha(root.resolve("native020.json")), "manifestSha", sha(root.resolve("manifest021.json")))).getBytes(StandardCharsets.UTF_8)); }
+			System.out.println("LEARNING020_NATIVE_PASS paid=" + records.size());
 		}
 		finally
 		{
@@ -293,9 +377,54 @@ public final class PhantomLearning020V4Native
 			if (booted) { org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.load(); org.l2jmobius.gameserver.Shutdown.getInstance().startShutdown(null, 0, false); }
 		}
 	}
+	static void validateExperimentLog(Path root, Map<String, Object> proof, Map<String, Object> files) throws Exception
+	{
+		var seal = object(root.resolve("native021.complete.json")); var manifest = object(root.resolve("manifest021.json"));
+		check(number(seal, "schemaVersion") == 1 && number(manifest, "schemaVersion") == 1 && string(seal, "nativeSha").equals(sha(root.resolve("native020.json")))
+			&& string(seal, "manifestSha").equals(sha(root.resolve("manifest021.json"))) && files.containsKey("manifest021.json"), "V4_COMPLETE_PUBLICATION_SEAL");
+		int count = integer(manifest, "decisionCount"); check(count > 0 && count <= 64, "V4_COMPLETE_DECISION_COUNT");
+		var logFiles = map(manifest.get("files")); var restored = new ArrayList<ActionExplorationV4.Decision>(); var seen = new HashSet<String>();
+		for (int i = 0; i < count; i++)
+		{
+			String name = "decision021-" + i + ".bin"; check(logFiles.containsKey(name) && Objects.equals(logFiles.get(name), files.get(name)), "V4_MISSING_DECISION_CURSOR");
+			var d = ActionExplorationV4.Decision.restore(Files.readAllBytes(root.resolve(name))); restored.add(d); seen.add(name);
+			check(d.plan().sha256().equals(sha(root.resolve("policy021.bin"))), "V4_CHANGED_FROZEN_POLICY");
+		}
+		ActionExplorationV4.validateLog(restored);
+		int intentCount = 0;
+		for (String name : logFiles.keySet())
+		{
+			if (!name.startsWith("intent021-")) { continue; }
+			check(name.matches("intent021-[0-9]{1,2}\\.bin") && Objects.equals(logFiles.get(name), files.get(name)), "V4_INTENT_MANIFEST");
+			var intent = ActionExperimentReceiptV4.Intent.restore(Files.readAllBytes(root.resolve(name)));
+			int cursor = Math.toIntExact(intent.decision().cursor());
+			check(cursor < count && intent.decision().equals(restored.get(cursor)) && name.equals("intent021-" + cursor + ".bin"), "V4_INTENT_LOG_MISMATCH"); seen.add(name); intentCount++;
+		}
+		check(intentCount == number(manifest, "intentCount") && logFiles.keySet().equals(seen), "V4_COMPLETE_INTENT_COUNT");
+		try (var paths = Files.list(root))
+		{
+			var actual = paths.map(p -> p.getFileName().toString()).filter(n -> n.startsWith("decision021-") || n.startsWith("intent021-")).collect(java.util.stream.Collectors.toSet());
+			check(actual.equals(seen), "V4_UNDECLARED_OR_MISSING_LOG_FILE");
+		}
+		var records = list(proof.get("records")); check(records.size() == number(manifest, "recordCount") && records.size() == number(proof, "nativePaid")
+			&& records.size() == number(proof, "newTrainSamples"), "V4_COMPLETE_PAID_COUNT");
+		long experiments = 0, controls = 0; boolean modelReordered = false;
+		for (var value : records)
+		{
+			var r = map(value); String name = string(r, "decision");
+			check(logFiles.containsKey(name), "V4_UNDECLARED_PAID_DECISION");
+			var d = ActionExplorationV4.Decision.restore(Files.readAllBytes(root.resolve(name))); ActionExperimentReceiptV4.validateSummary(r, d);
+			if (d.mode().startsWith("EXPLORE") && !d.selected().equals(d.stock())) { experiments++; }
+			if (d.mode().equals("BASELINE")) { controls++; }
+			modelReordered |= d.mode().equals("MODEL") && !d.selected().equals(d.stock());
+		}
+		check(experiments >= 1 && controls >= 1 && experiments == number(proof, "experimentalPaid") && controls == number(proof, "baselinePaid")
+			&& Boolean.TRUE.equals(proof.get("EXPERIMENT_REORDERED")) && Boolean.valueOf(modelReordered).equals(proof.get("MODEL_REORDERED")), "V4_EXPERIMENT_CONTROL_SUMMARY");
+	}
 	static List<ActionFeedbackV4> samples(Path root) throws Exception
 	{
 		owned(root); var proof = object(root.resolve("native020.json")); var files = map(proof.get("files")); bindings(root, files);
+		if (EXPERIMENT021) { validateExperimentLog(root, proof, files); }
 		check(files.keySet().containsAll(List.of("preflight020.json", "cut020.json", "episode020.json", "boot-reserved020.json", "native-entered020.marker")), "V4_REQUIRED_SETTLED_BINDINGS");
 		var cut = object(root.resolve("cut020.json")); check(string(cut, "split").equals("TRAIN") && string(cut, "modelSha").equals(PARENT), "V4_PRE_CUT_TRAIN");
 		var frozen = object(root.resolve("preflight020.json")); var boot = object(root.resolve("boot-reserved020.json"));
@@ -309,6 +438,20 @@ public final class PhantomLearning020V4Native
 			byte[] bytes = Files.readAllBytes(root.resolve(key + ".row.bin")); var row = TacticalStoreV3.decode(bytes);
 			check(row.eventKey().equals(key) && row.split().equals("TRAIN"), "V4_NATIVE_ROW_IDENTITY");
 			var raw = object(root.resolve(key + ".native.json")); nativeRecord(row, raw);
+			if (EXPERIMENT021)
+			{
+				var r = map(value); String decisionName = string(r, "decision"), effectName = string(r, "effect");
+				String intentName = string(r, "intent");
+				check(files.containsKey("policy021.bin") && files.containsKey(decisionName) && files.containsKey(effectName) && files.containsKey(intentName), "V4_REQUIRED_EXPERIMENT_BINDINGS");
+				var decision = ActionExplorationV4.Decision.restore(Files.readAllBytes(root.resolve(decisionName)));
+				var intent = ActionExperimentReceiptV4.Intent.restore(Files.readAllBytes(root.resolve(intentName)));
+				check(intent.decision().equals(decision), "V4_INTENT_DECISION_MISMATCH");
+				ActionExperimentReceiptV4.validateSummary(r, decision);
+				check(decision.plan().modelSha().equals(PARENT) && decision.plan().sourceSha().equals(string(map(list(frozen.get("candidates")).getFirst()), "sourceSha"))
+					&& string(cut, "policySha").equals(sha(root.resolve("policy021.bin"))), "V4_EXPERIMENT_PARENT_SOURCE_POLICY");
+				var effect = ActionExperimentReceiptV4.bind(intent, sha(root.resolve("policy021.bin")), bytes, episode, sha(root.resolve(key + ".native.json")));
+				check(Arrays.equals(effect.bytes(), Files.readAllBytes(root.resolve(effectName))), "V4_EFFECT_METADATA_TAMPER");
+			}
 			result.add(ActionFeedbackV4.nativeAction(bytes, TacticalObservationV3.hash(bytes), episode, row.receipt().owner(), sha(root.resolve(key + ".native.json"))));
 		}
 		check(!result.isEmpty() && result.stream().map(s -> s.row().eventKey()).distinct().count() == result.size(), "V4_FRESH_UNIQUE_BATCH"); return List.copyOf(result);
@@ -316,23 +459,23 @@ public final class PhantomLearning020V4Native
 	static void fit(Path root) throws Exception
 	{
 		var parent = ActionLearningV4.load(root.resolve("candidate.bin"), PARENT); var samples = samples(root); var learned = ActionLearningV4.fit(parent, samples);
-		check(learned.updates() == 161 + samples.size() && !learned.sha256().equals(PARENT), "V4_NEW_INCREMENT_REQUIRED");
+		check(learned.updates() == PARENT_UPDATES + samples.size() && !learned.sha256().equals(PARENT), "V4_NEW_INCREMENT_REQUIRED");
 		if (Files.exists(root.resolve("fit020.json")))
 		{
 			var previous = object(root.resolve("fit020.json")); String name = string(previous, "candidate");
-			check(name.equals("candidate020-" + learned.sha256() + ".bin") && string(previous, "newSha").equals(learned.sha256()) && string(previous, "nativeSha").equals(sha(root.resolve("native020.json"))), "V4_RETRY_CHANGED_FIT_SOURCE");
+			check(name.equals((EXPERIMENT021 ? "candidate021-" : "candidate020-") + learned.sha256() + ".bin") && string(previous, "newSha").equals(learned.sha256()) && string(previous, "nativeSha").equals(sha(root.resolve("native020.json"))), "V4_RETRY_CHANGED_FIT_SOURCE");
 			var saved = ActionLearningV4.load(root.resolve(name), learned.sha256());
 			check(Arrays.equals(saved.bytes(), learned.bytes()) && ActionLearningV4.fit(saved, samples).sha256().equals(saved.sha256()), "V4_RETRY_REPLAY_ZERO");
 			System.out.println("LEARNING020_FIT_REPLAY_PASS additionalUpdates=0 sha=" + saved.sha256()); return;
 		}
-		Path path = root.resolve("candidate020-" + learned.sha256() + ".bin"); ActionLearningV4.save(path, learned);
-		write(root.resolve("fit020.json"), json(Map.of("nativeSha", sha(root.resolve("native020.json")), "parentSha", PARENT, "newSha", learned.sha256(), "candidate", path.getFileName().toString(), "updatesBefore", 161, "updatesAfter", learned.updates(), "newTrainSamples", samples.size())));
+		Path path = root.resolve((EXPERIMENT021 ? "candidate021-" : "candidate020-") + learned.sha256() + ".bin"); ActionLearningV4.save(path, learned);
+		write(root.resolve("fit020.json"), json(Map.of("nativeSha", sha(root.resolve("native020.json")), "parentSha", PARENT, "newSha", learned.sha256(), "candidate", path.getFileName().toString(), "updatesBefore", PARENT_UPDATES, "updatesAfter", learned.updates(), "newTrainSamples", samples.size())));
 		System.out.println("LEARNING020_FIT_PASS updates=" + learned.updates() + " sha=" + learned.sha256());
 	}
 	static void cold(Path root) throws Exception
 	{
 		var fit = object(root.resolve("fit020.json")); check(string(fit, "nativeSha").equals(sha(root.resolve("native020.json"))), "V4_COLD_NATIVE_PIN");
-		String name = string(fit, "candidate"); check(name.matches("candidate020-[a-f0-9]{64}\\.bin"), "V4_COLD_PATH");
+		String name = string(fit, "candidate"); check(name.matches((EXPERIMENT021 ? "candidate021-" : "candidate020-") + "[a-f0-9]{64}\\.bin"), "V4_COLD_PATH");
 		var model = ActionLearningV4.load(root.resolve(name), string(fit, "newSha")); var samples = samples(root);
 		check(model.updates() == number(fit, "updatesAfter") && ActionLearningV4.fit(model, samples).sha256().equals(model.sha256()), "V4_COLD_REPLAY_ZERO");
 		byte[] damaged = model.bytes(); damaged[damaged.length - 1] ^= 1; PhantomLearning019ActionValue.rejects(() -> ActionValueV4.restore(damaged, model.sha256()));

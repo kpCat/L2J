@@ -28,6 +28,15 @@ public final class TacticalPolicyV3
 	private volatile Consumer<TacticalReceiptV3> _damageSink = _ -> { };
 	private volatile Consumer<TacticalFailureV3> _failureSink = _ -> { };
 	private volatile TrainExplorationV1 _exploration;
+	private volatile ActionExplorationV4 _experiment;
+	/** Mutually exclusive, pre-CUT TEST-only owner; ordinary configuration has no entry point. */
+	public void actionExplorationTest(ActionExplorationV4 session)
+	{
+		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || session == null || _exploration != null || !_last.isEmpty()
+			|| _actionValueMode != Mode.ON || _actionValue == null || !session.plan().modelSha().equals(_actionValue.sha256()))
+		{ throw new IllegalArgumentException("V4 experiment requires exclusive frozen TEST owner/model"); }
+		_experiment = session;
+	}
 	private volatile Mode _actionValueMode = Mode.OFF;
 	private volatile ActionValueV4 _actionValue;
 	private volatile Consumer<ActionValueDecision> _actionValueSink = _ -> { };
@@ -109,6 +118,7 @@ public final class TacticalPolicyV3
 	/** Explicit pre-CUT owned TRAIN binding. Ordinary ON inference cannot receive an exploration window. */
 	public void trainExploration(TrainExplorationV1 session)
 	{
+		if (session != null && _experiment != null) { throw new IllegalArgumentException("Only one experiment owner per decision"); }
 		if(session!=null&&(_mode!=Mode.SHADOW||_model==null||session.modelVersion()!=_version||!session.modelSha().equals(_model.sha256())))
 		{throw new IllegalArgumentException("Exploration requires exact SHADOW TEST model authority");}
 		_exploration=session;
@@ -183,7 +193,17 @@ public final class TacticalPolicyV3
 					session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),profile,target.getObjectId());
 				}
 			}
-			if (_actionValueMode != Mode.OFF)
+			if (_experiment != null)
+			{
+				final boolean safe = actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
+					&& actor.getCurrentHp() > actor.getMaxHp() * .30 && candidates.stream().allMatch(c -> c.exact().getAsBoolean());
+				final var model = actionValueChoice(_actionValueMode, _actionValue, observation, offered, offered.get(stock), !safe, now + 5_000_000L);
+				final var decision = _experiment.choose(observation, offered, offered.get(stock), model.selected(), safe, now + 5_000_000L);
+				selected = offered.indexOf(decision.selected());
+				_actionValueSink.accept(new ActionValueDecision(decision.selected(), model.scores(), model.consulted(), decision.mode(), model.modelSha(), model.nanos()));
+				reason(decision.mode(), profile, target.getObjectId());
+			}
+			else if (_actionValueMode != Mode.OFF)
 			{
 				final var decision = actionValueChoice(_actionValueMode, _actionValue, observation, offered, offered.get(stock),
 					_exploration != null || actor.getCurrentHp() <= actor.getMaxHp() * .30, now + 5_000_000L);

@@ -1,0 +1,33 @@
+{
+  "schema": "PHANTOM_LEARNING021_V1",
+  "date": "2026-11-17",
+  "status": "PARTIAL021_EXPLORE_FEEDBACK_UNPROVEN",
+  "manualGate": "REQUIRED",
+  "baseline": "30a7a74dd4f4777c8f8cd2670e12e3b37e2b34f8",
+  "branch": "feature/phantom-world",
+  "parent": {"updates": 179, "sha": "42cfff5c02fd386a31ab1e95d4234a8eb22549a62debd729a3fc9a7a602ef96c", "coldExact": true, "historicalReplayAdditionalUpdates": 0, "afterExact": true},
+  "policy": {"schemaVersion": 1, "id": "COVERAGE_TEST_V1", "seed": 21001, "cap": 1, "propensity": 1, "split": "TRAIN", "sha": "12ac4c9cb151fe5a0e410b90c2131b5b6e14000a26d7bba8cb3899f377b5daf3", "frozenBeforeCut": true, "epsilonOffline": [0.85, 0.15, 0.075]},
+  "native": {
+    "gsBoots": 1, "lifecycleMillis": 93190, "wrapperMillis": 323935, "wrapperExit": 1,
+    "classId": 94, "level": 77, "npcId": 20966, "initialHp": 4827, "initialMp": 2837,
+    "modeCounts": {"BASELINE": 17, "MODEL": 0, "EXPLORE_COVERAGE": 1, "EXPLORE_EPSILON": 0},
+    "decisions": 18, "preNativeIntents": 18,
+    "alternative": {"cursor": 1, "stock": "1275:14", "selected": "1230:28", "propensity": 1, "capturedBeforeDeadline": true, "paidReceipt": "UNPROVEN"},
+    "modelReordered": false, "experimentSelectionReordered": true,
+    "episode": {"outcome": "FAILED", "reason": "NATIVE_ACTOR_DIED", "kill": 0, "deathsLowerBound": 1, "eventKeys": 14, "observedHp": 7827, "observedMp": 728, "durationNanos": 40050869100, "sha": "f421181fe2365c80dca7db25e3cbcfcf0ce7b2ebd9850296e8463fbf1146eeb6"},
+    "persistedAuthenticatedControl": {"count": 1, "hp": 625, "mp": 69, "elapsedNanos": 1911038800},
+    "sourceSqlReadOnlyMillis": 650, "preflightMillis": 296,
+    "sourceSqlSha": "4bba84c09248455b7a511b8553d0b4edf14141078042d3cc3ccc08594c3a0607",
+    "sourceImageSha": "6865da954d8fe2f62e236aaade0f99ba4bb6433e19ba1c3a9d9bac958957364e",
+    "jarSha": "32541099ba3f532c5f2f2c2eb56907c337e62680e5ba93a6a524045e11766a9e"
+  },
+  "blocker": {"stage": "post-drain bind", "cause": "Live sparse unknown-fact map differs from codec-restored explicit unknown map despite exact canonical bytes", "focusedRed": true, "fixedCanonicalByteComparison": true, "focusedGreen": true, "nativeReverified": false, "postLiveFixes": 1},
+  "training": {"newCredits": 0, "updatesBefore": 179, "updatesAfter": 179, "newFit": "NOT_RUN", "newCheckpoint": "NOT_RUN", "newCold": "NOT_RUN", "incompletePublicationRejected": true},
+  "efficiency": {"authenticatedControlSamples": 1, "authenticatedExperimentSamples": 0, "comparison": "INSUFFICIENT_SAMPLE_SIZE", "superiority": "NOT_EVALUATED", "counterfactual": "UNKNOWN", "selectionBias": "DETERMINISTIC_COVERAGE"},
+  "cleanup": {"test": "OFF", "ownedProcesses": 0, "portsFree": true, "preservedFiles": 91294, "historicalDrift": 0, "geo203Protected207Guards": true, "freshSql183LogicalDigest": "NOT_RUN"},
+  "budget": {"mainAutomaticRunsSeconds": 677.935, "focusedDiagnosticsAdditionalSecondsUpperBound": 10, "allChecksLimitSeconds": 720, "offlineMaximumObservedSeconds": 66, "nativeLimitSeconds": 480},
+  "finalSourceJarSha": "75f37c80cda8d2019242e20bbd2c649fe8f0af310162a1c216c6354045782297",
+  "future": {"decisionContractVersion": 1, "stepResultVersion": 1, "maxEvents": 4096, "maxBatch": 256, "rollover": "REQUIRES_VERSIONED_APPEND_ONLY_LEDGER", "nightTrainer": "NOT_READY", "productionV4": "OFF", "automaticNextStep": false, "goal022Started": false},
+  "publication": {"status": "PENDING_INDEPENDENT_READBACK", "normalFeaturePushOnly": true},
+  "scope": {"codeBuildScriptFiles": 9, "exception": "Approved021 allowlist plus original task package and required result artifacts; one learning subsystem"}
+}

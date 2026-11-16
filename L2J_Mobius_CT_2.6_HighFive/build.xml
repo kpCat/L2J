@@ -1288,6 +1288,15 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning021-test" depends="compile-tests" description="V4 safe exploration contracts; no SQL or GameServer.">
+		<fail unless="phantom.learning021.cohort" message="Explicit sealed016 cohort required." />
+		<fail unless="phantom.learning021.parent" message="Explicit immutable checkpoint179 required." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning021V4Exploration" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="256m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<arg value="${phantom.learning021.cohort}" /><arg value="${phantom.learning021.parent}" />
+		</java>
+	</target>
+
 	<target name="phantom-learning020-test" depends="compile-tests" description="Bounded native raw binding and one-use ingress contracts over genuine sealed016 input; no SQL or GameServer.">
 		<fail unless="phantom.learning020.cohort" message="Explicit physical sealed016 cohort required." />
 		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning020V4Native" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="256m">
