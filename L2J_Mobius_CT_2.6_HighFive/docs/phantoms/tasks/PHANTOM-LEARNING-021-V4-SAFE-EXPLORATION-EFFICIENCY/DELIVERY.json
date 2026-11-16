@@ -2,8 +2,8 @@
   "schema": "PHANTOM_LEARNING021_DELIVERY_V1",
   "result": "PARTIAL021_EXPLORE_FEEDBACK_UNPROVEN",
   "manualGate": "REQUIRED",
-  "publication": "PENDING",
-  "independentGitHubReadback": "PENDING",
+  "publication": "SOURCE_PUSH_VERIFIED_RECEIPT_APPEND",
+  "independentGitHubReadback": "PASS",
   "mojibakeMarkers": {
     "status": "PASS",
     "matches": 0,
@@ -54,17 +54,192 @@
     "git fetch origin feature/phantom-world",
     "git rev-parse origin/feature/phantom-world",
     "git ls-remote origin refs/heads/feature/phantom-world",
-    "git diff --numstat -- <exact changed paths>",
-    "git diff --check -- <exact allowlist>",
+    "git diff --numstat -- the exact path subsets recorded in scopeAllowlist",
+    "git diff --check -- $allow021",
     "git status --porcelain=v1 --untracked-files=all",
-    "git add -- <exact allowlist>",
+    "git add -- $allow021",
     "git diff --cached --name-only",
-    "git diff --cached --check -- <exact allowlist>",
-    "git diff --cached --stat -- <exact allowlist>",
-    "git commit -m <scoped message>",
+    "git diff --cached --check -- $allow021",
+    "git diff --cached --stat -- $allow021",
+    "git commit -m 'feat(phantoms): add safe V4 exploration with partial native evidence'",
     "git push origin HEAD:feature/phantom-world",
-    "git ls-tree -r HEAD -- <exact allowlist>"
+    "git ls-tree -r HEAD -- $allow021"
   ],
   "forbiddenGitActionsUsed": false,
-  "nextGoalStarted": false
+  "nextGoalStarted": false,
+  "sourceCommit": "65a79c5a66903bd3f207edc8eb3291db0122b549",
+  "sourceParent": "30a7a74dd4f4777c8f8cd2670e12e3b37e2b34f8",
+  "githubHeadAtSourceReadback": "65a79c5a66903bd3f207edc8eb3291db0122b549",
+  "githubChangedPaths": 28,
+  "githubExactAllowlist": true,
+  "githubSourceBodies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "blobSha": "39362dc1536ae677f8d262c04201848c0519cb19",
+      "characters": 338231,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionExperimentReceiptV4.java",
+      "blobSha": "bccc4120c9be7b41f2a310d7bf78b9b48bb84a41",
+      "characters": 6394,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionExplorationV4.java",
+      "blobSha": "9f05d1576508c4b83f462176bae11d960037c9b8",
+      "characters": 10304,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalPolicyV3.java",
+      "blobSha": "58677bb1203dd2cd0307113062a7c6040390c494",
+      "characters": 25277,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java",
+      "blobSha": "3f0c826142070f3db9401d9d892087d1bc3ec8b3",
+      "characters": 42643,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning021V4Exploration.java",
+      "blobSha": "4d88a2cc8d8e4c14ed71ef73e2522ba16b230b09",
+      "characters": 14623,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "blobSha": "ccb9da6dc86818189cd0d92cd25bebf4957b19cc",
+      "characters": 133260,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "blobSha": "87934dd56a5107571a19b3cff0b9cff59986b74b",
+      "characters": 195908,
+      "fullBodyRead": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "blobSha": "48e8c2c4fde1f07d34aec0a983e5c796f6a1dd5f",
+      "characters": 101956,
+      "fullBodyRead": true
+    }
+  ],
+  "githubDocumentBodies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "blobSha": "ea93f3706bdbdd56203db28a08005b7f779e39b1",
+      "characters": 16889
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-021.md",
+      "blobSha": "f8670c4506f3820954f93de85819708a88082a28",
+      "characters": 10769
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/ACCEPTANCE.md",
+      "blobSha": "852b850aeda692d1e4993d03c5e60ae48d0b9f61",
+      "characters": 3014
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/ARCHITECTURE.md",
+      "blobSha": "2f7d2f72c45f9bb55c5b0880fc73d4b49025e5c1",
+      "characters": 4484
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/BUDGET.md",
+      "blobSha": "99c9b3234c04f64598518370a4f7ede513766112",
+      "characters": 1846
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/COMPATIBILITY.md",
+      "blobSha": "4919213feee98d54f253ed142859300a8cccbbe1",
+      "characters": 2838
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/CONTRACT_V1.md",
+      "blobSha": "67166e3f5f5b0cbd892b1cba450c13e370f528f5",
+      "characters": 5067
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/DELIVERY.json",
+      "blobSha": "1a7cca9a34efd81f987a069be8814c0dc87370ad",
+      "characters": 4423
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/EFFICIENCY.md",
+      "blobSha": "79cd7844f730e4e5b78f40d38c54c734cb4f2e4c",
+      "characters": 2812
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/EVIDENCE.json",
+      "blobSha": "c041a735013e067f37c203906a60b9680372231d",
+      "characters": 3619
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/EXPERIMENT_POLICY.md",
+      "blobSha": "18b15976cb52cf0e53dc26d318c055096f322a66",
+      "characters": 4847
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/HANDOFF.md",
+      "blobSha": "6cd5ea48789fcf50d69f0c2f84376ac27d3421b8",
+      "characters": 1454
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/MANIFEST.sha256",
+      "blobSha": "35b2b715187d15e23e464fe61591e13f9b081815",
+      "characters": 885
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/PLAN.md",
+      "blobSha": "825aa6612ce3d420160581fb8e8be0679a5812c2",
+      "characters": 1842
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/RESULT.md",
+      "blobSha": "9a8919d47c8420e53f344d2c9cbcf88c74b9932e",
+      "characters": 1072
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/SOURCE_POINTERS.md",
+      "blobSha": "aeeb96a2334073e12b6859c6b560338e08f55de6",
+      "characters": 2630
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/START_HERE.md",
+      "blobSha": "3bc2aa7fccad412d48508e60b7751d7d88b86a89",
+      "characters": 2288
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/TASK.md",
+      "blobSha": "f99c7a6b49cb06b32dbae22c971390f62ddac65b",
+      "characters": 5997
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-021-V4-SAFE-EXPLORATION-EFFICIENCY/TEST_MATRIX.md",
+      "blobSha": "6d85a9517194ccb5e3e5201cd1501bfced5ed34d",
+      "characters": 3483
+    }
+  ],
+  "githubParentVerifiedVia": "Read-only api.github.com/repos/kpCat/L2J/git/commits/<sourceCommit>",
+  "finalReceipt": "Docs-only append; final HEAD/parent/diff independently verified and reported in chat",
+  "diffCheck": {
+    "implementationAndNewArtifacts": "PASS",
+    "originalPackageException": {
+      "path": "ARCHITECTURE.md",
+      "line": 20,
+      "kind": "pre-existing trailing space",
+      "originalManifest": "11/11 exact, preserved"
+    }
+  },
+  "wall": {
+    "startedUtc": "2026-11-16T22:17:33Z",
+    "sourceReadbackUtc": "2026-11-16T23:01:10Z",
+    "elapsedAtSourceReadbackSeconds": 2617,
+    "finalDelivery": "approximately 46 minutes, no second GS"
+  }
 }

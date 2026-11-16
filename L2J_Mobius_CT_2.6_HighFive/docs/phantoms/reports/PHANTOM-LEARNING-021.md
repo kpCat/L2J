@@ -34,7 +34,7 @@ Original settlement: FAILED/NATIVE_ACTOR_DIED, kill0, death lower bound1,14 even
 | G5 | NOT_RUN: новый increment/checkpoint/cold отсутствуют. Parent179 exact cold и historical replay0 PASS. |
 | G6 | Contract/evidence delivered; efficiency INSUFFICIENT_SAMPLE_SIZE, superiority NOT_EVALUATED. |
 | G7 | PASS bounded runtime/cleanup/preservation; one GS93190ms, wrapper323935ms; OFF/own0/portsFree,91294 files drift0. |
-| G8 | Scoped feature publication и независимый readback фиксируются отдельным receipt/финальным SHA; manual REQUIRED. |
+| G8 | Source65a79c5a669 ordinary feature push PASS; independent GitHub HEAD/parent30a7a74/exact28/full9source+19docs blobs PASS. Docs-only delivery append проверяется отдельно; manual REQUIRED. |
 
 ## Проверки и бюджет
 

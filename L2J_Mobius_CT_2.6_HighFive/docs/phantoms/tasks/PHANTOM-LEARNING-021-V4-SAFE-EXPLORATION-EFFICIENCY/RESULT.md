@@ -6,4 +6,4 @@
 
 Полный experimental paid receipt не опубликован; **credit0, updates179, новый checkpoint/cold NOT_RUN**. Неполный root отвергается. Повторного GS нет. OFF/own0/portsFree,91294 preserved files drift0, native93190ms, wrapper323935ms. Production V4 OFF; superiority NOT_EVALUATED; NIGHT_TRAINER NOT_READY; Goal022 не начат.
 
-Факты, команды, G0–G8 и ограничения: [полный отчёт](../../reports/PHANTOM-LEARNING-021.md), [EVIDENCE](EVIDENCE.json), [контракт022–024](CONTRACT_V1.md). Публикация/readback фиксируются отдельным receipt; owner gate не закрывается автоматически.
+Факты, команды, G0–G8 и ограничения: [полный отчёт](../../reports/PHANTOM-LEARNING-021.md), [EVIDENCE](EVIDENCE.json), [контракт022–024](CONTRACT_V1.md). Source commit65a79c5a669 опубликован ordinary feature push; независимые HEAD/parent/exact28/full9source+19docs readback PASS, см. [DELIVERY](DELIVERY.json). Owner gate остаётся REQUIRED.

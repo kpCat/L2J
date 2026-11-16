@@ -28,6 +28,6 @@
   "budget": {"mainAutomaticRunsSeconds": 677.935, "focusedDiagnosticsAdditionalSecondsUpperBound": 10, "allChecksLimitSeconds": 720, "offlineMaximumObservedSeconds": 66, "nativeLimitSeconds": 480},
   "finalSourceJarSha": "75f37c80cda8d2019242e20bbd2c649fe8f0af310162a1c216c6354045782297",
   "future": {"decisionContractVersion": 1, "stepResultVersion": 1, "maxEvents": 4096, "maxBatch": 256, "rollover": "REQUIRES_VERSIONED_APPEND_ONLY_LEDGER", "nightTrainer": "NOT_READY", "productionV4": "OFF", "automaticNextStep": false, "goal022Started": false},
-  "publication": {"status": "PENDING_INDEPENDENT_READBACK", "normalFeaturePushOnly": true},
+  "publication": {"status": "SOURCE_PUSH_AND_INDEPENDENT_READBACK_VERIFIED", "sourceCommit": "65a79c5a66903bd3f207edc8eb3291db0122b549", "sourceParent": "30a7a74dd4f4777c8f8cd2670e12e3b37e2b34f8", "exactPaths": 28, "sourceFullBodies": 9, "documentFullBodies": 19, "normalFeaturePushOnly": true, "deliveryReceipt": "DELIVERY.json"},
   "scope": {"codeBuildScriptFiles": 9, "exception": "Approved021 allowlist plus original task package and required result artifacts; one learning subsystem"}
 }
