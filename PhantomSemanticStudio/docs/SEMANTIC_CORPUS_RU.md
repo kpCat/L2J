@@ -16,7 +16,7 @@ Core `CorpusCandidateIndex` хранит новые исследовательс
 
 ## Подготовка кампании из production-профилей
 
-`campaign-plan <spec.json> --workspace <отдельная-lab-папка> --source <HighFive>` сохраняет неизменяемый план квот. `campaign-check <id> --hash <PlanHash> --workspace <та-же-папка> --source <HighFive>` повторно проверяет profile/registry/evidence pins. Обе команды офлайн: не создают generation jobs, не обращаются к модели, не утверждают строки и не импортируют JSONL. Статус `PREPARED_UNAPPROVED` не является разрешением Start/Resume; worker, SQLite journal, редакционная политика и глобальный duplicate index относятся к следующим частям реализации. Настоящий100K запуск требует качественного пилота и явного утверждения политики.
+`campaign-plan <spec.json> --workspace <отдельная-lab-папка> --source <HighFive>` сохраняет неизменяемый план квот. `campaign-check <id> --hash <PlanHash> --workspace <та-же-папка> --source <HighFive>` повторно проверяет profile/registry/evidence pins. Обе команды офлайн: не создают generation jobs, не обращаются к модели, не утверждают строки и не импортируют JSONL. Статус `PREPARED_UNAPPROVED` не является разрешением автоматического утверждения. Настоящий100K запуск требует качественного пилота и явного утверждения редакционной политики.
 
 Минимальный spec (подставьте настоящий ID production promotion из лаборатории):
 
@@ -37,6 +37,30 @@ Core `CorpusCandidateIndex` хранит новые исследовательс
 Проверяется и точный итоговый SYSTEM/USER оценённого запроса: он должен совпасть с текущей сборкой того же сценария. Для этого переиспользуется сборщик LM-клиента, текст промпта не меняется. Hash Core и общих prompt resources закреплены в плане; обновление программы или ресурсов требует нового плана, старый не переписывается.
 
 Только канонический реестр142, не QA-only/экспериментальная intimacy taxonomy. Каждый API microbatch не больше20; counts не меняются планировщиком ради скорости. Уникальны ID квот и пары production/scenario. Общая цель до1000000 принятых строк, spec до4MiB/4096 квот; `MaxRequests` ограничен1000000 и должен покрывать хотя бы теоретический минимум без отбраковки. Этот минимум не обещает достаточный бюджет, качество или отсутствие дублей. Вывод показывает распределение category/mode/event/voice/relation/style и разрешения maturity/profanity; фактические доли текста появятся только после генерации и проверки. Старый корпус и сервер не затрагиваются.
+
+## Возобновляемый worker черновиков (C3A)
+
+В существующем Core работает последовательный `CorpusCampaignWorker`: закреплённый production-профиль → обычный PromptLab run → сохранённый transport receipt → строгий V4 parser → снимок проверки дублей → общий индекс → SQLite checkpoint. На данном этапе результаты имеют только `PENDING` или `REJECTED`; reviewed/approved всегда0, импорта и stage нет. Квоты accepted сохраняются как цель, а распределение попыток пока round-robin. Повторение одной ситуации не считается разнообразием контекстов или готовой массовой кампанией.
+
+CLI из той же сборки Studio:
+
+```text
+campaign-run <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> --draft-only --limit 100
+campaign-status <id> --hash <sha256> --workspace <lab-dir> --source <HighFive>
+campaign-pause <id> --hash <sha256> --workspace <lab-dir> --source <HighFive>
+campaign-resume <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> --draft-only --limit 100
+campaign-stop <id> --hash <sha256> --workspace <lab-dir> --source <HighFive>
+```
+
+`status/pause/stop` используют короткие соединения журнала и доступны, пока worker держит workspace.lock. Pause/Stop подтверждаются после текущего запроса и сохранения партии; Resume продолжает очередь, включая незавершённый checkpoint. `--limit` ограничивает порцию запуска, `MaxRequests` — всю кампанию. Одновременно допускается один worker на workspace. Модель должна быть вручную загружена владельцем: перед каждой генерацией проверяются точный instance и контекст65536; lifecycle API не вызываются.
+
+`scripts/Start-CorpusCampaign.ps1 -CampaignId <id> -PlanHash <sha256> -Workspace <абсолютный-путь> -Source <HighFive> [-Limit N] [-Resume]` проверяет план офлайн и запускает CLI скрытым отдельным процессом. `-CheckOnly` выполняет только preflight, без процесса и файлов логов. Существующие предки processes/log/receipt проверяются на junction/reparse point. В workspace остаются stdout/stderr и receipt с PID, временем старта, runner hash и статусом `STARTED_NOT_YET_PROVEN`. Сам receipt не доказывает успешную генерацию; используйте journal status и логи. Скрипт не собирает программу и не запускает модель. После обновления Core старый pinned plan не перепривязывается автоматически.
+
+Лимиты worker: 300 непроверенных строк, резерв диска256MiB, одна партия в полёте, конечный бюджет запросов, остановка после пяти отклонённых партий. Счётчики попыток, issued, schema-valid, rejected, pending и rejected batches раздельны. `Issued` — число известных или потенциально отправленных запросов по durable marker; оно не доказывает обработку на стороне API. Неизвестный POST/обрыв/отмена дают `PAUSED_INDETERMINATE`: даже Resume не повторяет такой запрос. Исчерпание бюджета даёт `BUDGET_EXHAUSTED`, а не выполнение accepted-цели. Отсутствие модели, нехватка места и очередь review имеют отдельные pause-причины.
+
+До append индекса сохраняется неизменяемый снимок соседей и исходного решения. Crash после index append восстанавливает его и не превращает собственный повтор в новый дубликат. Crash между созданием run и привязкой SQLite восстанавливается по task GUID в ExperimentId. Raw/версии/receipt/отклонённые партии не удаляются. Не использовать `campaign-resume` как способ повторной отправки неизвестного POST.
+
+`--corpus-campaign001` проверяет mock pipeline, три crash checkpoint, неизвестный POST и отдельный процесс после завершения launcher с Pause/Resume/Stop. Это `MOCK_ONLY`: не настоящий корпус, не качество Gemma, не проверка её непрерывной работы. Запуск production PowerShell launcher на настоящей Gemma, context pool, policy-bound редакционная приёмка, approved-only export и100K ещё требуют следующих проверок в том же Goal.
 
 ## Дополнительное сопоставимое сравнение
 

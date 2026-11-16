@@ -23,6 +23,7 @@ internal static partial class Program
 
     private static async Task<int> Run(string[] args)
     {
+        if (args.Length > 0 && args[0] is "--campaign-mock-launch" or "--campaign-mock-worker") return await CampaignMockProcess(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-live") return await PromptLabLive(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-targeted-family-live") return await TargetedFamilyTrial(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-targeted-family-report") return TargetedFamilyReport(args);
@@ -38,6 +39,8 @@ internal static partial class Program
         { await PromptLab001(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--corpus001")
         { await SemanticCorpus001(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
+        if (args.Length > 0 && args[0] == "--corpus-campaign001")
+        { await CorpusCampaign001(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--corpus-index-census") return CorpusIndexCensus(args);
         if (args.Length > 0 && args[0] == "--corpus-semantic-live") return await CorpusSemanticLive(args);
         if (args.Length > 0 && args[0] == "--task095")

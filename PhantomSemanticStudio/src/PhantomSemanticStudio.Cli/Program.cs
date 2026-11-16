@@ -3,13 +3,13 @@ using PhantomSemanticStudio.Core;
 
 Console.OutputEncoding = new UTF8Encoding(false);
 try { return Run(args); }
-catch (Exception error) when (error is IOException or InvalidDataException or ArgumentException or UnauthorizedAccessException or InvalidOperationException or LmStudioException or HttpRequestException or OperationCanceledException)
+catch (Exception error) when (error is IOException or InvalidDataException or ArgumentException or UnauthorizedAccessException or InvalidOperationException or LmStudioException or HttpRequestException or OperationCanceledException or Microsoft.Data.Sqlite.SqliteException)
 { Console.Error.WriteLine("ОШИБКА: " + error.Message); return 2; }
 
 static int Run(string[] args)
 {
     var options = new Dictionary<string, string>(StringComparer.Ordinal); var positional = new List<string>();
-    var flags = new[] { "--dry-run", "--reviewed", "--mature", "--help", "--markdown", "--thinking", "--mature-pilot-consent", "--intimate-holdout", "--thinking-quality", "--batch-size-probe", "--matched-profile-probe" };
+    var flags = new[] { "--dry-run", "--reviewed", "--mature", "--help", "--markdown", "--thinking", "--mature-pilot-consent", "--intimate-holdout", "--thinking-quality", "--batch-size-probe", "--matched-profile-probe", "--draft-only" };
     var valued = new[] { "--workspace", "--source", "--category", "--persona", "--relation", "--parent", "--key", "--label", "--act", "--intent", "--proposal", "--hash", "--lab", "--model", "--transport", "--reasoning", "--thinking-control", "--limit", "--profiles", "--endpoint", "--model-file", "--thinking-budget" };
     for (var i = 0; i < args.Length; i++)
     {
@@ -23,6 +23,29 @@ static int Run(string[] args)
     string Opt(string key, string? fallback = null) => options.TryGetValue(key, out var value) ? value : fallback ?? throw new InvalidDataException("Нужна опция " + key);
     string Input() => positional.Count == 2 ? Path.GetFullPath(positional[1]) : throw new InvalidDataException("Укажите один путь к файлу/папке.");
     if (positional.Count == 0 || options.ContainsKey("--help")) { Help(); return 0; }
+    if (positional[0] is "campaign-run" or "campaign-resume" or "campaign-status" or "campaign-pause" or "campaign-stop")
+    {
+        var execute = positional[0] is "campaign-run" or "campaign-resume";
+        if (positional.Count != 2 || options.Keys.Any(key => key is not ("--workspace" or "--source" or "--hash") && !(execute && key is "--limit" or "--draft-only")))
+            throw new InvalidDataException("Нужны campaign ID, --hash, --workspace, --source; запуск требует --draft-only и допускает --limit.");
+        var root = PathSafety.Canonical(Opt("--workspace")); var sourceRoot = PathSafety.Canonical(Opt("--source")); var hash = Opt("--hash");
+        CorpusCampaignStatus status;
+        if (!execute)
+            status = positional[0] == "campaign-status" ? CorpusCampaignControl.Status(root, sourceRoot, positional[1], hash)
+                : CorpusCampaignControl.Request(root, sourceRoot, positional[1], hash, positional[0] == "campaign-stop" ? "STOP" : "PAUSE");
+        else
+        {
+            if (!options.ContainsKey("--draft-only")) throw new InvalidDataException("Автоматическое утверждение не реализовано. Для worker укажите --draft-only.");
+            if (!int.TryParse(Opt("--limit", "1000000"), out var limit) || limit is < 1 or > 1000000) throw new InvalidDataException("Лимит партий: 1..1000000.");
+            using var owned = new WorkspaceStore(root, sourceRoot); using var worker = new CorpusCampaignWorker(owned);
+            using var cancel = new CancellationTokenSource();
+            ConsoleCancelEventHandler handler = (_, e) => { e.Cancel = true; cancel.Cancel(); }; Console.CancelKeyPress += handler;
+            try { status = worker.RunAsync(positional[1], hash, limit, cancel.Token, resume: positional[0] == "campaign-resume").GetAwaiter().GetResult(); }
+            finally { Console.CancelKeyPress -= handler; }
+        }
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(status, WorkspaceStore.JsonOptions));
+        return status.State is "PAUSED_INDETERMINATE" or "PAUSED_MODEL_OFFLINE" or "PAUSED_RESOURCE" or "PAUSED_QUALITY_REGRESSION" ? 1 : 0;
+    }
     if (positional[0] is "campaign-plan" or "campaign-check")
     {
         var prepare = positional[0] == "campaign-plan";
@@ -155,6 +178,9 @@ corpus-inspect-gguf --model-file <local.gguf>  Read-only GGUF v3 metadata/templa
 prompt-coverage — офлайн JSON-карта142категорий,20семейств и неподтверждённых quality gaps; модель не нужна.
 campaign-plan <spec.json> --workspace <lab-dir> --source <HighFive> — закрепить квоты production-профилей без HTTP.
 campaign-check <id> --hash <plan-sha256> --workspace <lab-dir> --source <HighFive> — проверить pins/evidence/drift; не Start/Resume.
+campaign-run <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> --draft-only [--limit N] — сохранять drafts без утверждения/импорта.
+campaign-resume <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> --draft-only [--limit N] — продолжить сохранённую очередь.
+campaign-status|campaign-pause|campaign-stop <id> --hash <sha256> --workspace <lab-dir> --source <HighFive> — независимое управление на границе партии.
 --matched-profile-probe --mature-pilot-consent — 32 matched запроса: четыре стратегии × два sampler × PvP/ролевая бравада/спокойный контроль/взрослый неграфический юмор; по4 кандидата, cap2048.
 --thinking-control none|reasoning_effort|chat_template_kwargs; --profiles <directory>.
 --mature-pilot-consent — отдельное явное разрешение взрослой части синтетического приватного пилота; по умолчанию OFF.

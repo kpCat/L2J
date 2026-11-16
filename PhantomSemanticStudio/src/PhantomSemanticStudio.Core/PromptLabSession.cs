@@ -213,7 +213,7 @@ public sealed partial class PromptLabSession : IDisposable
     }
 
     public async Task<PromptLabRun> ResumeAsync(string runId, StudioSettings settings, string apiKey, string exactModel, CancellationToken token,
-        IProgress<PromptLabProgress>? progress = null)
+        IProgress<PromptLabProgress>? progress = null, bool requireExactInstance = false)
     {
         if (disposed) throw new ObjectDisposedException(nameof(PromptLabSession));
         using var caller = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
@@ -241,7 +241,7 @@ public sealed partial class PromptLabSession : IDisposable
             try
             {
                 var inventory = await ProbeWithSafeRetry(client, actualSettings, apiKey, overall.Token).ConfigureAwait(false);
-                var matches = inventory.Loaded.Where(m => m.InstanceId == exactModel || m.ModelKey == exactModel).ToArray();
+                var matches = inventory.Loaded.Where(m => m.InstanceId == exactModel || !requireExactInstance && m.ModelKey == exactModel).ToArray();
                 V4Rules.Require(matches.Length == 1, inventory.Loaded.Count == 0 ? "MODEL_OFFLINE" : "EXACT_LOADED_INSTANCE_REQUIRED");
                 loaded = matches[0]; V4Rules.Require(loaded.ContextLength == 65536, "OWNER_CONTEXT_MISMATCH_EXPECTED_65536");
                 store.MarkIssued(run.Id);
