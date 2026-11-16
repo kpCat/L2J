@@ -12,6 +12,7 @@ public final class PhantomLearning021V4Exploration
 	public static final String PARENT = "42cfff5c02fd386a31ab1e95d4234a8eb22549a62debd729a3fc9a7a602ef96c";
 	public static void main(String[] args) throws Exception
 	{
+		if (args.length == 1 && args[0].equals("continuation-contract")) { continuationContract(); return; }
 		if (args.length == 2 && args[0].equals("diagnose")) { diagnose(Path.of(args[1])); return; }
 		if (args.length == 2 && args[0].equals("post")) { post(Path.of(args[1])); return; }
 		var parent = ActionLearningV4.load(Path.of(args[1]), PARENT);
@@ -86,6 +87,18 @@ public final class PhantomLearning021V4Exploration
 		PhantomLearning020V4Native.contracts(Path.of(args[0]));
 		System.out.println("LEARNING021_CONTRACT_GREEN parent179=true coverage=1 epsilon=.85/.15/.075 GS=0 SQL=0 trainingCredit=false");
 	}
+	static void continuationContract() throws Exception
+	{
+		Path parent = Files.createTempDirectory("learning021-continuation-"), root = Files.createDirectory(parent.resolve("train021-c1"));
+		try
+		{
+			Files.writeString(root.resolve("owner.txt"), "LEARNING002:" + "a".repeat(32));
+			PhantomLearning020V4Native.owned(root);
+			check(PhantomLearning020V4Native.experimentCount(List.of(Map.of("mode", "EXPLORE_COVERAGE", "stock", 1275, "chosen", 1230))) == 1, "IN_MEMORY_INTEGER_EXPERIMENT_SUMMARY");
+			System.out.println("LEARNING021_CONTINUATION_ADMISSION_GREEN GS=0 SQL=0");
+		}
+		finally { Files.delete(root.resolve("owner.txt")); Files.delete(root); Files.delete(parent); }
+	}
 	static void diagnose(Path root) throws Exception
 	{
 		Path rowPath; try (var paths = Files.list(root)) { rowPath = paths.filter(p -> p.getFileName().toString().endsWith(".row.bin")).findFirst().orElseThrow(); }
@@ -105,6 +118,7 @@ public final class PhantomLearning021V4Exploration
 	static void post(Path source) throws Exception
 	{
 		System.setProperty("phantom.learning.explore021", "true");
+		if (source.getFileName().toString().equals("train021-c1")) { System.setProperty("phantom.learning.explore021.continuation", "true"); }
 		if (!Files.exists(source.resolve("native021.complete.json")))
 		{
 			rejectSamples(source, "INCOMPLETE_NATIVE_PUBLICATION_ACCEPTED");
@@ -121,7 +135,7 @@ public final class PhantomLearning021V4Exploration
 			return;
 		}
 		var original = PhantomLearning020V4Native.samples(source);
-		Path parent = Files.createTempDirectory("learning021-adversarial-"), root = Files.createDirectory(parent.resolve("train021"));
+		Path parent = Files.createTempDirectory("learning021-adversarial-"), root = Files.createDirectory(parent.resolve(source.getFileName()));
 		try
 		{
 			var proof = PhantomEvaluationReplayV2.object(source.resolve("native020.json"));

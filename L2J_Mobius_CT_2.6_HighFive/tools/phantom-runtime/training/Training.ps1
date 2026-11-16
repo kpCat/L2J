@@ -6,6 +6,7 @@ param(
     [string]$ColdLineageProof,
     [string]$ActionValueCandidate,
     [ValidateSet('RunOnce','Status','Stop')][string]$ActionValue020Command='Status',
+    [switch]$ActionValue021Continuation,
     [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
     [switch]$EnableOutcome006,
     [switch]$EnableExploration007,
@@ -27,7 +28,7 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'TrainingBroker.ps1')
 if($Action -ceq 'ActionValue019'){Invoke-TrainActionValue019 $Root $ActionValueCandidate;exit}
 if($Action -ceq 'ActionValue020'){Invoke-TrainActionValue020Step $Root $ActionValueCandidate $ActionValue020Command;exit}
-if($Action -ceq 'ActionValue021'){Invoke-TrainActionValue021Step $Root $ActionValueCandidate $ActionValue020Command;exit}
+if($Action -ceq 'ActionValue021'){Invoke-TrainActionValue021Step $Root $ActionValueCandidate $ActionValue020Command -Continuation021:$ActionValue021Continuation;exit}
 $layout=if($Action -ceq 'RepairClosure017'){$null}else{Get-TrainLayout $Root}
 $script:State=$null
 $script:DirectorNonce=$Nonce

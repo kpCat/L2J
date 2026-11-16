@@ -17,6 +17,9 @@ import static org.l2jmobius.tests.phantoms.PhantomLearning019ActionValue.check;
 public final class PhantomLearning020V4Native
 {
 	static final boolean EXPERIMENT021 = Boolean.getBoolean("phantom.learning.explore021");
+	static final boolean CONTINUATION021 = EXPERIMENT021 && Boolean.getBoolean("phantom.learning.explore021.continuation");
+	static final String ROOT021 = CONTINUATION021 ? "train021-c1" : "train021";
+	static final int SQL021 = CONTINUATION021 ? 33363 : 33362, GAME021 = CONTINUATION021 ? 18023 : 18022, LOGIN021 = CONTINUATION021 ? 19323 : 19322;
 	static final String PARENT = EXPERIMENT021 ? PhantomLearning021V4Exploration.PARENT : "569295cf4d8f4172eee0e8a7e530246534dd1cf24d34ab95e07ded65c6b2f061";
 	static final int PARENT_UPDATES = EXPERIMENT021 ? 179 : 161;
 	private static ActionExplorationV4 experiment;
@@ -25,6 +28,8 @@ public final class PhantomLearning020V4Native
 	static String sha(Path p) throws Exception { return TacticalObservationV3.hash(Files.readAllBytes(p)); }
 	static void write(Path p, String value) throws Exception { Files.writeString(p, value, StandardOpenOption.CREATE_NEW); }
 	static String json(Object value) { return PhantomEvaluationOutcomeV2.jsonValue(value); }
+	static long experimentCount(List<Object> records)
+	{ return records.stream().map(PhantomEvaluationReplayV2::map).filter(r -> string(r, "mode").startsWith("EXPLORE") && ((Number)r.get("stock")).intValue() != ((Number)r.get("chosen")).intValue()).count(); }
 	static void physical(Path p) throws Exception { check(p.isAbsolute() && p.normalize().equals(p.toRealPath()), "V4_PHYSICAL_PATH_REQUIRED"); }
 	static void claimBoot(Path root, String jarSha, String preflightSha, String modelSha) throws Exception
 	{
@@ -88,7 +93,7 @@ public final class PhantomLearning020V4Native
 	}
 	static void owned(Path root) throws Exception
 	{
-		physical(root); check((EXPERIMENT021 ? root.getFileName().toString().equals("train021") : root.getFileName().toString().matches("train020(?:-c1|-[a-f0-9]{32})?"))
+		physical(root); check((EXPERIMENT021 ? root.getFileName().toString().equals(ROOT021) : root.getFileName().toString().matches("train020(?:-c1|-[a-f0-9]{32})?"))
 			&& Files.readString(root.resolve("owner.txt")).matches("LEARNING002:[a-f0-9]{32}"), "V4_OWNED_TEST020_REQUIRED");
 	}
 	static void bindings(Path root, Map<String, Object> files) throws Exception
@@ -152,9 +157,9 @@ public final class PhantomLearning020V4Native
 	}
 	static void sourceSql(Path root) throws Exception
 	{
-		owned(root); check(root.getFileName().toString().equals(EXPERIMENT021 ? "train021" : "train020-c1"), "V4_CONTINUATION_SQL_SCOPE");
+		owned(root); check(root.getFileName().toString().equals(EXPERIMENT021 ? ROOT021 : "train020-c1"), "V4_CONTINUATION_SQL_SCOPE");
 		var database = new Properties(); try (var reader = Files.newBufferedReader(root.resolve("game/config/Database.ini"))) { database.load(reader); }
-		check(database.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (EXPERIMENT021 ? 33362 : 33361) + "/phantom_learning001_train002"), "V4_PRIVATE_SOURCE_SQL");
+		check(database.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (EXPERIMENT021 ? SQL021 : 33361) + "/phantom_learning001_train002"), "V4_PRIVATE_SOURCE_SQL");
 		var candidates = list(object(root.resolve("preflight020.json")).get("candidates")); check(candidates.size() == 1, "V4_ONE_CANDIDATE"); var candidate = map(candidates.getFirst());
 		var image = PhantomAutonomousTrainingNative.soloSource020(string(candidate, "cell"), string(candidate, "sourceImage"));
 		try (var connection = java.sql.DriverManager.getConnection(database.getProperty("URL"), database.getProperty("Login"), database.getProperty("Password")))
@@ -266,7 +271,7 @@ public final class PhantomLearning020V4Native
 		{ check(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath().equals(jar), "V4_PRODUCTION_JAR_ORIGIN"); }
 		var db = new Properties(); try (var reader = Files.newBufferedReader(game.resolve("config/Database.ini"))) { db.load(reader); }
 		boolean continuation = root.getFileName().toString().equals("train020-c1") || EXPERIMENT021;
-		check(db.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (EXPERIMENT021 ? 33362 : continuation ? 33361 : 33360) + "/phantom_learning001_train002"), "V4_SEPARATE_SQL020");
+		check(db.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (EXPERIMENT021 ? SQL021 : continuation ? 33361 : 33360) + "/phantom_learning001_train002"), "V4_SEPARATE_SQL020");
 		if (continuation)
 		{
 			var sourceProof = object(root.resolve("source-sql020.json")); var reservation = object(root.resolve("boot-reserved020.json"));
@@ -275,10 +280,10 @@ public final class PhantomLearning020V4Native
 			check(bool(sourceProof, "sqlReadOnly") && number(sourceProof, "gsBoots") == 0 && number(sourceProof, "recoverySeconds") == 180
 				&& string(sourceProof, "sourceSha").equals(source.sha()) && string(sourceProof, "physicalSha").equals(source.physicalFingerprint())
 				&& string(sourceProof, "configSha").equals(sha(root.resolve("TRAIN_CONFIG.ini"))) && string(reservation, "sourceSqlSha").equals(sha(root.resolve("source-sql020.json")))
-				&& number(reservation, "goal020BootOrdinal") == (EXPERIMENT021 ? 1 : 2), "V4_SUCCESSFUL_OFFLINE_SOURCE_GATE_REQUIRED");
+				&& number(reservation, "goal020BootOrdinal") == (EXPERIMENT021 ? CONTINUATION021 ? 2 : 1 : 2), "V4_SUCCESSFUL_OFFLINE_SOURCE_GATE_REQUIRED");
 		}
 		var endpoints = new Properties(); try (var reader = Files.newBufferedReader(game.resolve("config/Server.ini"))) { endpoints.load(reader); }
-		check(endpoints.getProperty("GameserverHostname").equals("127.0.0.1") && endpoints.getProperty("GameserverPort").equals(EXPERIMENT021 ? "18022" : continuation ? "18021" : "18020") && endpoints.getProperty("LoginHost").equals("127.0.0.1") && endpoints.getProperty("LoginPort").equals(EXPERIMENT021 ? "19322" : continuation ? "19321" : "19320"), "V4_LOOPBACK020");
+		check(endpoints.getProperty("GameserverHostname").equals("127.0.0.1") && endpoints.getProperty("GameserverPort").equals(EXPERIMENT021 ? Integer.toString(GAME021) : continuation ? "18021" : "18020") && endpoints.getProperty("LoginHost").equals("127.0.0.1") && endpoints.getProperty("LoginPort").equals(EXPERIMENT021 ? Integer.toString(LOGIN021) : continuation ? "19321" : "19320"), "V4_LOOPBACK020");
 		var model = ActionLearningV4.load(root.resolve("candidate.bin"), modelSha); String off = Files.readString(config); check(off.contains("EnablePhantomSystem = False"), "V4_COLD_OFF");
 		claimBoot(root, jarSha, preflightSha, modelSha);
 		boolean booted = false; var receipts = new ConcurrentLinkedQueue<TacticalReceiptV3>(); var decisions = new ConcurrentLinkedQueue<TacticalPolicyV3.ActionValueDecision>();
@@ -354,7 +359,7 @@ public final class PhantomLearning020V4Native
 			proof.put("MODEL_REORDERED", EXPERIMENT021 ? decisions.stream().anyMatch(d -> d.reason().equals("MODEL") && !d.selected().equals(receipts.stream().filter(r -> r.attempt().selected().equals(d.selected())).findFirst().orElseThrow().attempt().baseline())) : receipts.stream().anyMatch(r -> !r.attempt().baseline().equals(r.attempt().selected())));
 			if (EXPERIMENT021)
 			{
-				long experimental = records.stream().map(PhantomEvaluationReplayV2::map).filter(r -> string(r, "mode").startsWith("EXPLORE") && integer(r, "stock") != integer(r, "chosen")).count();
+				long experimental = experimentCount(records);
 				long controls = records.stream().map(PhantomEvaluationReplayV2::map).filter(r -> string(r, "mode").equals("BASELINE")).count();
 				proof.put("EXPERIMENT_REORDERED", experimental > 0); proof.put("experimentalPaid", experimental); proof.put("baselinePaid", controls);
 				check(experimental >= 1 && controls >= 1, "V4_REAL_EXPERIMENT_AND_CONTROL_REQUIRED");
@@ -376,6 +381,70 @@ public final class PhantomLearning020V4Native
 			Files.writeString(config, off);
 			if (booted) { org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.load(); org.l2jmobius.gameserver.Shutdown.getInstance().startShutdown(null, 0, false); }
 		}
+	}
+	/** Explicit post-drain completion only for the known Integer-summary failure. Never recreates native rows/effects. */
+	static void recoverPublication021(Path root) throws Exception
+	{
+		owned(root); check(CONTINUATION021 && !Files.exists(root.resolve("native020.json")) && !Files.exists(root.resolve("manifest021.json"))
+			&& !Files.exists(root.resolve("native021.complete.json")), "V4_FRESH_OFFLINE_PUBLICATION_ONLY");
+		var safety = object(root.resolve("safety020.json"));
+		check(string(safety, "test").equals("OFF") && number(safety, "ownedProcesses") == 0 && bool(safety, "portsFree") && number(safety, "gsStarts") == 1, "V4_DRAINED_RECOVERY_ONLY");
+		for (String name : List.of("native-process.json", "sql/owned-process.json"))
+		{ check(ProcessHandle.of(number(object(root.resolve(name)), "pid")).filter(ProcessHandle::isAlive).isEmpty(), "V4_RECOVERY_PROCESS_LIVE"); }
+		String error = Files.readString(root.resolve("native.err"));
+		check(error.contains("EVAL012_INTEGER_stock") && error.contains("PhantomLearning020V4Native.lambda$nativeOnce$"), "V4_EXACT_POST_DRAIN_FAILURE_REQUIRED");
+		var cut = object(root.resolve("cut020.json"));
+		var settled = episode(object(root.resolve("episode020.json")), number(cut, "startedNanos"));
+		check(string(cut, "policySha").equals(sha(root.resolve("policy021.bin"))) && string(cut, "modelSha").equals(PARENT)
+			&& ActionLearningV4.load(root.resolve("candidate.bin"), PARENT).updates() == 179, "V4_RECOVERY_FROZEN_PARENT_POLICY");
+		var files = new TreeMap<String, Object>();
+		for (String name : List.of("preflight020.json", "cut020.json", "episode020.json", "boot-reserved020.json", "native-entered020.marker", "policy021.bin", "diagnostics021.json", "source-sql020.json", "TRAIN_CONFIG.ini", "safety020.json", "native.err", "native.out")) { files.put(name, sha(root.resolve(name))); }
+		var decisions = new ArrayList<ActionExplorationV4.Decision>(); var intents = new HashMap<Long, ActionExperimentReceiptV4.Intent>();
+		for (int i = 0; Files.exists(root.resolve("decision021-" + i + ".bin")); i++)
+		{
+			String name = "decision021-" + i + ".bin", intentName = "intent021-" + i + ".bin";
+			var d = ActionExplorationV4.Decision.restore(Files.readAllBytes(root.resolve(name)));
+			var intent = ActionExperimentReceiptV4.Intent.restore(Files.readAllBytes(root.resolve(intentName)));
+			check(d.equals(intent.decision()) && d.plan().sha256().equals(string(cut, "policySha")), "V4_RECOVERY_ORIGINAL_INTENT");
+			decisions.add(d); intents.put(d.cursor(), intent); files.put(name, sha(root.resolve(name))); files.put(intentName, sha(root.resolve(intentName)));
+		}
+		ActionExplorationV4.validateLog(decisions);
+		var counters = map(object(root.resolve("diagnostics021.json")).get("counters")); long total = 0;
+		for (String mode : List.of("BASELINE", "MODEL", "EXPLORE_COVERAGE", "EXPLORE_EPSILON"))
+		{
+			long expected = counters.containsKey(mode) ? number(counters, mode) : 0;
+			check(decisions.stream().filter(d -> d.mode().equals(mode)).count() == expected, "V4_RECOVERY_COMPLETE_MODE_LOG"); total += expected;
+		}
+		check(total == decisions.size(), "V4_RECOVERY_COMPLETE_DECISION_COUNT");
+		var records = new ArrayList<Object>();
+		try (var paths = Files.list(root))
+		{
+			for (var path : paths.filter(p -> p.getFileName().toString().matches("[a-f0-9]{64}\\.row\\.bin")).sorted().toList())
+			{
+				byte[] bytes = Files.readAllBytes(path); var row = TacticalStoreV3.decode(bytes); var receipt = row.receipt();
+				var d = decisions.stream().filter(v -> v.selected().equals(receipt.attempt().selected())).findFirst().orElseThrow();
+				String key = row.eventKey(), rawName = key + ".native.json", effectName = key + ".effect021.bin";
+				check(path.getFileName().toString().equals(key + ".row.bin"), "V4_RECOVERY_ROW_IDENTITY"); nativeRecord(row, object(root.resolve(rawName)));
+				var effect = ActionExperimentReceiptV4.bind(intents.get(d.cursor()), string(cut, "policySha"), bytes, settled, sha(root.resolve(rawName)));
+				check(Arrays.equals(effect.bytes(), Files.readAllBytes(root.resolve(effectName))), "V4_RECOVERY_ORIGINAL_EFFECT_REQUIRED");
+				files.put(key + ".row.bin", sha(path)); files.put(rawName, sha(root.resolve(rawName))); files.put(effectName, sha(root.resolve(effectName)));
+				var r = new LinkedHashMap<String, Object>(); r.put("eventKey", key); r.put("stock", d.stock().skillId()); r.put("chosen", d.selected().skillId()); r.put("mode", d.mode()); r.put("propensity", d.propensity());
+				r.put("decision", "decision021-" + d.cursor() + ".bin"); r.put("intent", "intent021-" + d.cursor() + ".bin"); r.put("effect", effectName); r.put("decisionSha", effect.decisionSha()); r.put("policy", d.plan().policyId());
+				r.put("paidHp", effect.paidHp()); r.put("paidMp", effect.paidMp()); r.put("elapsedNanos", effect.elapsedNanos()); r.put("usefulHpFraction", effect.usefulHpFraction()); r.put("scoresKnown", false); records.add(r);
+			}
+		}
+		long experimental = experimentCount(records), controls = records.stream().map(PhantomEvaluationReplayV2::map).filter(r -> string(r, "mode").equals("BASELINE")).count();
+		check(experimental == 1 && controls >= 1, "V4_RECOVERY_PAID_EXPERIMENT_AND_CONTROL_REQUIRED");
+		var recovery = Map.of("schemaVersion", 1, "reason", "POST_DRAIN_INTEGER_SUMMARY", "nativeExit", 1, "originalFiles", new TreeMap<>(files), "trainingCredit", false);
+		ActionExperimentReceiptV4.publish(root.resolve("recovery021.json"), json(recovery).getBytes(StandardCharsets.UTF_8)); files.put("recovery021.json", sha(root.resolve("recovery021.json")));
+		var logFiles = new TreeMap<String, Object>(); files.forEach((name, digest) -> { if (name.startsWith("decision021-") || name.startsWith("intent021-")) { logFiles.put(name, digest); } });
+		ActionExperimentReceiptV4.publish(root.resolve("manifest021.json"), json(Map.of("schemaVersion", 1, "decisionCount", decisions.size(), "intentCount", intents.size(), "recordCount", records.size(), "files", logFiles)).getBytes(StandardCharsets.UTF_8)); files.put("manifest021.json", sha(root.resolve("manifest021.json")));
+		var proof = new LinkedHashMap<String, Object>(); proof.put("modelSha", PARENT); proof.put("MODEL_CONSULTED", true); proof.put("MODEL_REORDERED", false); proof.put("EXPERIMENT_REORDERED", true);
+		proof.put("experimentalPaid", experimental); proof.put("baselinePaid", controls); proof.put("NATIVE_EXECUTED", true); proof.put("EFFECT_PAID", true); proof.put("nativePaid", records.size()); proof.put("newTrainSamples", records.size());
+		proof.put("settled", true); proof.put("episodeSha", settled.sha256()); proof.put("records", records); proof.put("files", files); proof.put("postDrainSummaryRecovered", true); proof.put("nativeExit", 1);
+		ActionExperimentReceiptV4.publish(root.resolve("native020.json"), json(proof).getBytes(StandardCharsets.UTF_8));
+		ActionExperimentReceiptV4.publish(root.resolve("native021.complete.json"), json(Map.of("schemaVersion", 1, "nativeSha", sha(root.resolve("native020.json")), "manifestSha", sha(root.resolve("manifest021.json")))).getBytes(StandardCharsets.UTF_8));
+		System.out.println("LEARNING021_OFFLINE_PUBLICATION_PASS originalPaid=" + records.size() + " experiment=" + experimental + " GS=0 SQL=0 trainingCredit=false nativeExit=1");
 	}
 	static void validateExperimentLog(Path root, Map<String, Object> proof, Map<String, Object> files) throws Exception
 	{
@@ -424,6 +493,7 @@ public final class PhantomLearning020V4Native
 	static List<ActionFeedbackV4> samples(Path root) throws Exception
 	{
 		owned(root); var proof = object(root.resolve("native020.json")); var files = map(proof.get("files")); bindings(root, files);
+		if (Boolean.TRUE.equals(proof.get("postDrainSummaryRecovered"))) { check(files.containsKey("recovery021.json"), "V4_RECOVERY_SOURCE_MANIFEST_REQUIRED"); bindings(root, map(object(root.resolve("recovery021.json")).get("originalFiles"))); }
 		if (EXPERIMENT021) { validateExperimentLog(root, proof, files); }
 		check(files.keySet().containsAll(List.of("preflight020.json", "cut020.json", "episode020.json", "boot-reserved020.json", "native-entered020.marker")), "V4_REQUIRED_SETTLED_BINDINGS");
 		var cut = object(root.resolve("cut020.json")); check(string(cut, "split").equals("TRAIN") && string(cut, "modelSha").equals(PARENT), "V4_PRE_CUT_TRAIN");
@@ -491,6 +561,7 @@ public final class PhantomLearning020V4Native
 			case "preflight" -> { check(args.length == 3, "V4_PREFLIGHT_ARGUMENTS"); preflight(root, Path.of(args[2])); }
 			case "contracts" -> contracts(root);
 			case "source-sql" -> sourceSql(root);
+			case "recover-publication" -> recoverPublication021(root);
 			case "native" -> { check(args.length == 5, "V4_NATIVE_ARGUMENTS"); nativeOnce(root, args[2], args[3], args[4]); }
 			case "fit" -> fit(root);
 			case "cold" -> cold(root);

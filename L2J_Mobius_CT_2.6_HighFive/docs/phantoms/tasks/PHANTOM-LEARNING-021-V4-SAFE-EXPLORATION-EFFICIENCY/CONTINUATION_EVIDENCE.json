@@ -1,0 +1,18 @@
+{
+  "schema": "PHANTOM_LEARNING021_CONTINUATION_V1",
+  "status": "NATIVE_CHAIN021_VERIFIED_G8_PENDING",
+  "manualGate": "REQUIRED",
+  "authority": "CONTINUATION_AUTHORITY.md; explicit owner answer",
+  "baseline": "d7cc02f6ec6b2720814e1f57f1fd4ab0666ee044",
+  "policy": {"id":"COVERAGE_TEST_V1","seed":21001,"cap":1,"propensity":1,"sha":"249aca9606541e6b64071a6e64c4c44cbfe9157b3adf69f1802f7a3fe4b5d9bd","decisions":16,"intents":16,"baselineDecisions":15,"exploreDecisions":1},
+  "native": {"additionalGs":1,"goalTotalGs":2,"additionalLifecycleMillis":81917,"goalTotalLifecycleMillis":175107,"wrapperMillis":343961,"wrapperExit":1,"nativeExit":1,"classId":94,"level":77,"npcId":20966,"initialHp":4827,"initialMp":2837,"episodeOutcome":"FAILED","episodeReason":"NATIVE_ACTOR_DIED","kills":0,"deathLowerBound":1,"episodeEvents":13,"episodeHp":6786,"episodeMp":625,"modelBoundPaid":9,"experimentalPaid":1,"baselinePaid":8,"MODEL_REORDERED":false,"EXPERIMENT_REORDERED":true},
+  "experiment": {"cursor":0,"stock":"1230:28","selected":"1275:14","mode":"EXPLORE_COVERAGE","propensity":1,"paidHp":328,"paidMp":35,"elapsedNanos":961041700,"hpFraction":0.026290477717217056,"eventKey":"d6625e51139aaa5b13e80be906c33130d28e44bdcebd7a2244e32d50e3c4df79","decisionSha":"a95d75b9130f5f859fd2e626193f85aeca391b1621d19b0647108669a76e9966"},
+  "provenance": {"nativeProofSha":"c49ace43444542db8cbf0ea9eef8307a0c51b7f99041ea8c1699b8233c90a90e","manifestSha":"70f7ca40bd56f897852ed808a0f00977773fae928aa632b54268a915a5e7adf7","recoverySha":"db33b02768abe1c9788b4d3ff621b9edae85aa43ce77ec7dc36c5cd854678054","episodeSha":"cc85991b1816528a6c253ca2763947875dd80f2acfc450e92fbf416a5c34a5a0","originalNativeFilesRewritten":false,"postDrainSummaryRecovered":true,"scoresKnown":false,"reason":"EVAL012_INTEGER_stock after all individual effects persisted"},
+  "model": {"beforeUpdates":179,"afterUpdates":188,"newTrainSamples":9,"parentSha":"42cfff5c02fd386a31ab1e95d4234a8eb22549a62debd729a3fc9a7a602ef96c","newSha":"90cdb499d44edde5f53819b357f1383dc65f9b9de1bd4d43120f6a154d1a55a6","atomicCreateOnly":true,"separateJvmCold":true,"replayAdditionalUpdates":0,"tamperRejected":true,"parentAfterExact":true,"otherEpisodeEventsTrainingCredit":0},
+  "negativePost": {"missingDecisionRejected":true,"summaryPropensityTamperRejected":true,"originalUnchanged":true,"trainingCredit":false},
+  "cleanup": {"test":"OFF","ownedProcesses":0,"portsFree":true,"preservedFiles":117719,"historicalDrift":0,"oldTrain021Included":true,"stop":"STOPPED_PROOF_PRESERVED"},
+  "timingsMillis": {"preflight":309,"readOnlySourceSql":660,"recoverPublication":414,"fit":445,"cold":433,"offlineFinalizeWrapper":2422},
+  "budget": {"additionalChecksLimitSeconds":420,"additionalChecksConservativeUpperBoundSeconds":390,"originalCoreChecksSeconds":677.935,"originalBudgetNotReset":true,"goalWallLimitMinutes":75},
+  "limits": {"productionV4":"OFF","nightTrainer":"NOT_READY","superiority":"NOT_EVALUATED","independentEfficacySample":"INSUFFICIENT_SAMPLE_SIZE","maxEvents":4096,"maxBatch":256,"goal022Started":false},
+  "publication": "PENDING_INDEPENDENT_READBACK"
+}

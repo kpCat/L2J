@@ -28,6 +28,7 @@ function Invoke-TrainV4Java020($Layout,[string]$ClassPath,[string]$Command,[stri
     $java=(Get-Command java.exe -CommandType Application|Select-Object -First 1).Source
     $args020=Get-TrainJavaArguments 'org.l2jmobius.tests.phantoms.PhantomLearning020V4Native' (@($Command)+$Arguments) $ClassPath ([guid]::NewGuid().ToString('N')) 2 512
     if($Layout.ContainsKey('Experiment021') -and $Layout.Experiment021){$args020=@('-Dphantom.learning.explore021=true')+$args020}
+    if($Layout.ContainsKey('Continuation021') -and $Layout.Continuation021){$args020=@('-Dphantom.learning.explore021.continuation=true')+$args020}
     $logStem=if(Test-Path -LiteralPath (Join-Path $Layout.Root ($Command+'.out'))){$Command+'-'+[guid]::NewGuid().ToString('N')}else{$Command}
     $process=Start-Process -FilePath $java -ArgumentList $args020 -WorkingDirectory $Layout.Root -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $Layout.Root ($logStem+'.out')) -RedirectStandardError (Join-Path $Layout.Root ($logStem+'.err'))
     $handle=Hold-ProcessHandle $process;$clock=[Diagnostics.Stopwatch]::StartNew()
@@ -102,12 +103,12 @@ function Invoke-TrainActionValue020Step([string]$HistoryRoot,[string]$CandidateD
     $complete=Test-TrainActionValue020Complete $root
     [ordered]@{trainerStatus=$(if($live){'RUNNING'}elseif($complete){'COMPLETED'}elseif(Test-Path -LiteralPath (Join-Path $root 'cold020.json')){'NO_GO_INCOMPLETE_OR_INVALID_PROOF'}elseif(Test-Path -LiteralPath (Join-Path $root 'native020.json')){'SETTLED_PENDING_SAVE'}else{'NO_GO_NO_SETTLED_PROOF'});updates=$(if($fit){$fit.updatesAfter}else{161});checkpointSha=$(if($fit){$fit.newSha}else{$null});automaticNextStep=$false}|ConvertTo-Json -Compress
 }
-function Invoke-TrainActionValue021Step([string]$HistoryRoot,[string]$CandidateDirectory,[ValidateSet('RunOnce','Status','Stop')][string]$Command) {
+function Invoke-TrainActionValue021Step([string]$HistoryRoot,[string]$CandidateDirectory,[ValidateSet('RunOnce','Status','Stop')][string]$Command,[switch]$Continuation021) {
     $HistoryRoot=[IO.Path]::GetFullPath($HistoryRoot).TrimEnd('\');Assert-TrainInstallation @{Root=$HistoryRoot}
     if((Split-Path $HistoryRoot -Leaf) -cne 'train'){throw 'TRAIN021_HISTORY_ROOT_REQUIRED'}
-    $root=Join-Path (Split-Path $HistoryRoot -Parent) 'train021'
+    $root=Join-Path (Split-Path $HistoryRoot -Parent) $(if($Continuation021){'train021-c1'}else{'train021'})
     if(!(Test-Path -LiteralPath $root)){
-        if($Command -ceq 'RunOnce'){Invoke-TrainActionValue020 $HistoryRoot $CandidateDirectory -Experiment021;return}
+        if($Command -ceq 'RunOnce'){Invoke-TrainActionValue020 $HistoryRoot $CandidateDirectory -Experiment021 -Continuation021:$Continuation021;return}
         Write-Output '{"trainerStatus":"NOT_STARTED","gsBoots":0,"automaticNextStep":false}';return
     }
     Assert-TrainPrivate $root;Initialize-TrainWin32
@@ -119,18 +120,22 @@ function Invoke-TrainActionValue021Step([string]$HistoryRoot,[string]$CandidateD
     }
     if($Command -ceq 'RunOnce'){
         if($live){throw 'TRAIN021_ALREADY_RUNNING'}
-        if(!(Test-Path -LiteralPath (Join-Path $root 'native020.json')) -or !(Test-Path -LiteralPath (Join-Path $root 'safety020.json'))){throw 'TRAIN021_NO_SECOND_BOOT_USED_ROOT'}
+        if(!(Test-Path -LiteralPath (Join-Path $root 'safety020.json'))){throw 'TRAIN021_NO_SECOND_BOOT_USED_ROOT'}
         $safety=Read-TrainJson (Join-Path $root 'safety020.json')
         if($safety.test -cne 'OFF' -or $safety.ownedProcesses -ne 0 -or !$safety.portsFree){throw 'TRAIN021_STOPPED_PROOF_REQUIRED'}
         $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'));$clone=Split-Path $module -Parent
         $classpath=(Join-Path $clone 'build\phantom-test\bin')+';'+(Join-Path $root 'game\libs\*')
-        $layout=@{Root=$root;Experiment021=$true};Invoke-TrainV4Java020 $layout $classpath 'fit' @($root);Invoke-TrainV4Java020 $layout $classpath 'cold' @($root)
+        $layout=@{Root=$root;Experiment021=$true;Continuation021=[bool]$Continuation021}
+        if($Continuation021 -and !(Test-Path -LiteralPath (Join-Path $root 'native020.json'))){Invoke-TrainV4Java020 $layout $classpath 'recover-publication' @($root)}
+        if(!(Test-Path -LiteralPath (Join-Path $root 'native020.json'))){throw 'TRAIN021_NO_SECOND_BOOT_USED_ROOT'}
+        Invoke-TrainV4Java020 $layout $classpath 'fit' @($root);Invoke-TrainV4Java020 $layout $classpath 'cold' @($root)
         $complete=Test-TrainActionValue020Complete $root -Experiment021
     }
     $fit=if(Test-Path -LiteralPath (Join-Path $root 'fit020.json')){Read-TrainJson (Join-Path $root 'fit020.json')}else{$null}
     [ordered]@{schemaVersion=21;stepResultVersion=1;trainerStatus=$(if($live){'RUNNING'}elseif($complete){'COMPLETED'}else{'NO_GO_INCOMPLETE_PROOF'});updates=$(if($fit){$fit.updatesAfter}else{179});checkpointSha=$(if($fit){$fit.newSha}else{$null});parentSha='42cfff5c02fd386a31ab1e95d4234a8eb22549a62debd729a3fc9a7a602ef96c';additionalUpdates=$(if($fit){[long]$fit.updatesAfter-179}else{0});sourceSnapshotSha=$(if(Test-Path -LiteralPath (Join-Path $root 'native020.json')){(Get-FileHash -LiteralPath (Join-Path $root 'native020.json')).Hash.ToLowerInvariant()}else{$null});automaticNextStep=$false}|ConvertTo-Json -Compress
 }
-function Invoke-TrainActionValue020([string]$HistoryRoot,[string]$CandidateDirectory,[switch]$PreflightOnly,[switch]$Prepared,[switch]$Continuation,[switch]$Experiment021) {
+function Invoke-TrainActionValue020([string]$HistoryRoot,[string]$CandidateDirectory,[switch]$PreflightOnly,[switch]$Prepared,[switch]$Continuation,[switch]$Experiment021,[switch]$Continuation021) {
+    if($Continuation021 -and (!$Experiment021 -or $Continuation)){throw 'TRAIN021_EXCLUSIVE_CONTINUATION'}
     $HistoryRoot=[IO.Path]::GetFullPath($HistoryRoot).TrimEnd('\');$CandidateDirectory=[IO.Path]::GetFullPath($CandidateDirectory).TrimEnd('\')
     Assert-TrainDirectory $HistoryRoot;Assert-TrainDirectory $CandidateDirectory
     if((Split-Path $HistoryRoot -Leaf) -cne 'train' -or (Read-TrainJson (Join-Path $HistoryRoot 'director.json')).phase -cne 'STOPPED'){throw 'TRAIN020_STOPPED_HISTORY_REQUIRED'}
@@ -138,9 +143,16 @@ function Invoke-TrainActionValue020([string]$HistoryRoot,[string]$CandidateDirec
     foreach($path in @('sql\owned-process.json','native-process.json','owner-process.json')){if(!(Test-TrainProcessAbsent (Read-TrainJson (Join-Path $HistoryRoot $path)))){throw 'TRAIN020_HISTORY_LIVE'}}
     $ports020=@(33357,18001,19301,33360,18020,19320,33361,18021,19321)
     if($Experiment021){$ports020+=@(33362,18022,19322)}
+    if($Continuation021){$ports020+=@(33363,18023,19323)}
     Assert-TrainPortsFree $ports020
-    $root=Join-Path (Split-Path $HistoryRoot -Parent) $(if($Experiment021){'train021'}elseif($Continuation){'train020-c1'}else{'train020'})
-    $sqlPort=if($Experiment021){33362}elseif($Continuation){33361}else{33360};$gamePort=if($Experiment021){18022}elseif($Continuation){18021}else{18020};$loginPort=if($Experiment021){19322}elseif($Continuation){19321}else{19320}
+    $root=Join-Path (Split-Path $HistoryRoot -Parent) $(if($Continuation021){'train021-c1'}elseif($Experiment021){'train021'}elseif($Continuation){'train020-c1'}else{'train020'})
+    $sqlPort=if($Continuation021){33363}elseif($Experiment021){33362}elseif($Continuation){33361}else{33360};$gamePort=if($Continuation021){18023}elseif($Experiment021){18022}elseif($Continuation){18021}else{18020};$loginPort=if($Continuation021){19323}elseif($Experiment021){19322}elseif($Continuation){19321}else{19320}
+    if($Continuation021){
+        $previous=Join-Path (Split-Path $HistoryRoot -Parent) 'train021';Assert-TrainPrivate $previous
+        $previousSafety=Read-TrainJson (Join-Path $previous 'safety020.json')
+        if($previousSafety.gsStarts -ne 1 -or $previousSafety.test -cne 'OFF' -or $previousSafety.ownedProcesses -ne 0 -or !$previousSafety.portsFree){throw 'TRAIN021_FIRST_BOOT_STOPPED_REQUIRED'}
+        foreach($p in @('native-process.json','sql\owned-process.json')){if(!(Test-TrainProcessAbsent (Read-TrainJson (Join-Path $previous $p)))){throw 'TRAIN021_PREVIOUS_PROCESS_LIVE'}}
+    }
     if($Experiment021 -and !(Test-TrainActionValue020Complete (Join-Path (Split-Path $HistoryRoot -Parent) 'train020-c1'))){throw 'TRAIN021_ACCEPTED_PARENT_PROOF_REQUIRED'}
     if($Continuation){
         $previous=Join-Path (Split-Path $HistoryRoot -Parent) 'train020';Assert-TrainPrivate $previous
@@ -149,7 +161,7 @@ function Invoke-TrainActionValue020([string]$HistoryRoot,[string]$CandidateDirec
     }
     $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'));$clone=Split-Path $module -Parent
     $bin=Join-Path $env:ProgramFiles 'MariaDB 11.4\bin'
-    $layout=@{Root=$root;Game=(Join-Path $root 'game');Sql=(Join-Path $root 'sql');Admin=(Join-Path $bin 'mariadb-admin.exe');Daemon=(Join-Path $bin 'mariadbd.exe');Experiment021=[bool]$Experiment021}
+    $layout=@{Root=$root;Game=(Join-Path $root 'game');Sql=(Join-Path $root 'sql');Admin=(Join-Path $bin 'mariadb-admin.exe');Daemon=(Join-Path $bin 'mariadbd.exe');Experiment021=[bool]$Experiment021;Continuation021=[bool]$Continuation021}
     $classpath=(Join-Path $clone 'build\phantom-test\bin')+';'+(Join-Path $module 'dist\libs\*')
     $cohort=Join-Path $HistoryRoot 'autonomous\v1\campaigns\autonomous009-learning016-g2-v1\cohorts\autonomous009-learning016-g2-v1-c000001'
     $modelSha=if($Experiment021){'42cfff5c02fd386a31ab1e95d4234a8eb22549a62debd729a3fc9a7a602ef96c'}else{'569295cf4d8f4172eee0e8a7e530246534dd1cf24d34ab95e07ded65c6b2f061'}
@@ -177,6 +189,7 @@ function Invoke-TrainActionValue020([string]$HistoryRoot,[string]$CandidateDirec
         $files+=@(Get-ChildItem -LiteralPath $CandidateDirectory -File -Recurse)
         if($Continuation){$files+=@(Get-ChildItem -LiteralPath (Join-Path (Split-Path $HistoryRoot -Parent) 'train020') -File -Recurse)}
         if($Experiment021){foreach($old in @('train019','train020','train020-c1')){$files+=@(Get-ChildItem -LiteralPath (Join-Path (Split-Path $HistoryRoot -Parent) $old) -File -Recurse)}}
+        if($Continuation021){$files+=@(Get-ChildItem -LiteralPath (Join-Path (Split-Path $HistoryRoot -Parent) 'train021') -File -Recurse);$files=@($files|Sort-Object FullName -Unique)}
         foreach($relative in @('owner.txt','geo203.json','protected207.json','TRAIN_CONFIG.ini','director.json','game\libs\GameServer.jar')){$files+=Get-Item -LiteralPath (Join-Path $HistoryRoot $relative)}
         foreach($file in $files){$pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash}
         Write-TrainJson (Join-Path $root 'preservation-before.json') $pins
@@ -203,9 +216,10 @@ function Invoke-TrainActionValue020([string]$HistoryRoot,[string]$CandidateDirec
         $preflightSha=(Get-FileHash -LiteralPath (Join-Path $root 'preflight020.json')).Hash.ToLowerInvariant()
         $args020=Get-TrainJavaArguments 'org.l2jmobius.tests.phantoms.PhantomLearning020V4Native' @('native',$root,$jarSha,$modelSha,$preflightSha) $classpath $nonce 2 4096
         if($Experiment021){$args020=@('-Dphantom.learning.explore021=true')+$args020}
+        if($Continuation021){$args020=@('-Dphantom.learning.explore021.continuation=true')+$args020}
         $null=[IO.Directory]::CreateDirectory((Join-Path $root ('attempts\'+$nonce)))
         if(Test-Path -LiteralPath (Join-Path $root 'boot-reserved020.json')){throw 'TRAIN020_NO_SECOND_BOOT'}
-        Write-TrainJson (Join-Path $root 'boot-reserved020.json') @{nonce=$nonce;jarSha=$jarSha;preflightSha=$preflightSha;modelSha=$modelSha;goal020BootOrdinal=$(if($Continuation){2}else{1});priorNativeMillis=$(if($Continuation){127510}else{0});sourceSqlSha=$(if($Continuation -or $Experiment021){(Get-FileHash -LiteralPath (Join-Path $root 'source-sql020.json')).Hash.ToLowerInvariant()}else{''})}
+        Write-TrainJson (Join-Path $root 'boot-reserved020.json') @{nonce=$nonce;jarSha=$jarSha;preflightSha=$preflightSha;modelSha=$modelSha;goal020BootOrdinal=$(if($Continuation -or $Continuation021){2}else{1});priorNativeMillis=$(if($Continuation021){93190}elseif($Continuation){127510}else{0});sourceSqlSha=$(if($Continuation -or $Experiment021){(Get-FileHash -LiteralPath (Join-Path $root 'source-sql020.json')).Hash.ToLowerInvariant()}else{''})}
         $clock=[Diagnostics.Stopwatch]::StartNew()
         $native=Start-Process -FilePath $java -ArgumentList $args020 -WorkingDirectory $layout.Game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'native.out') -RedirectStandardError (Join-Path $root 'native.err')
         $nativeHandle=Hold-ProcessHandle $native;$nativeRecord=New-TrainProcessRecord $native $java $nonce Native (Join-Path $root 'candidate.bin')
@@ -243,7 +257,7 @@ function Invoke-TrainActionValue020([string]$HistoryRoot,[string]$CandidateDirec
                 {Assert-TrainPortsFree $ports020
                  if(($native -and !$native.HasExited) -or ($sqlProcess -and !$sqlProcess.HasExited)){throw 'TRAIN020_OWN_PROCESS_REMAINS'}}
             )
-            if(!$PreflightOnly){Write-TrainJson (Join-Path $root 'safety020.json') @{gsStarts=$(if($clock){1}else{0});goal020TotalGsStarts=$(if($Continuation -and $clock){2}elseif($clock){1}else{0});nativeElapsedMillis=$(if($clock){$clock.ElapsedMilliseconds}else{0});preservedFiles=$pins.Count;historicalDrift=0;test='OFF';ownedProcesses=0;portsFree=$true}}
+            if(!$PreflightOnly){Write-TrainJson (Join-Path $root 'safety020.json') @{gsStarts=$(if($clock){1}else{0});goal020TotalGsStarts=$(if(($Continuation -or $Continuation021) -and $clock){2}elseif($clock){1}else{0});nativeElapsedMillis=$(if($clock){$clock.ElapsedMilliseconds}else{0});preservedFiles=$pins.Count;historicalDrift=0;test='OFF';ownedProcesses=0;portsFree=$true}}
         }finally{$lease.Dispose()}
         }
     }
