@@ -1441,6 +1441,53 @@ public final class PhantomAutonomousTrainingNative
 		physical.addAll(historicalPhysical);
 		return new SourceFence013(Set.copyOf(held), Set.copyOf(heldActors), Set.copyOf(physical));
 	}
+	static PhantomTrainingActors.SavedActor soloSource020(String line, String sourceJson)
+	{
+		final String[] cell = line.split("\t", -1);
+		if (cell.length != 16 || cell[1].contains(",") || !cell[2].equals("DAMAGE") || !cell[3].equals("RANGED_MAGIC")) { throw new IllegalArgumentException("V4_ONE_SOLO_SOURCE_REQUIRED"); }
+		final var image = historicalSnapshot013(PhantomEvaluationReplayV2.map(PhantomEvaluationReplayV2.parse(sourceJson)));
+		image.requireReproducible();
+		if (!image.sha().equals(cell[1]) || Integer.parseInt(image.field("classid")) != 94 || PhantomLearning020V4Native.refs(cell).size() < 2
+			|| PhantomLearning020V4Native.refs(cell).stream().anyMatch(ref -> image.learned().getOrDefault(ref.skillId(), 0) != ref.skillLevel()))
+		{ throw new IllegalArgumentException("V4_SOURCE_SHA_CLASS_OR_LEARNED_SKILLS"); }
+		return image;
+	}
+	static record Solo020(PhantomTrainingScenarios.Scene scene, List<String[]> roster,
+		List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> actions,
+		org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver.CapabilitySource capabilities, Map<Long, String> inventories, int preparationSeconds) { }
+	/** Тонкий вход020 в исходный reproduce/reproduceRoster016, без отдельного механизма выдачи состояния. */
+	static Solo020 reproduceSolo020(PhantomBackgroundSuite.ProductionAuthorityFixture authority, Path root, String line, String sourceJson, String expectedInventory) throws Exception
+	{
+		final var config = TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini"));
+		if (config.preparationSeconds() != 180) { throw new IllegalArgumentException("V4_ORIGINAL180_PREPARATION_REQUIRED"); }
+		final var image = soloSource020(line, sourceJson); final String[] fields = line.split("\t", -1); final var actions = PhantomLearning020V4Native.refs(fields);
+		final Player probe = reproduce(config, image); final Source source;
+		try
+		{
+			final var inventory = PhantomSkillInventory.acquired(probe, authority.progression());
+			if (!inventory.fingerprint().equals(expectedInventory)) { throw new IllegalStateException("V4_REPRODUCED_INVENTORY_CHANGED"); }
+			final var seed = new AutonomousTrainingV1.ActorSeed(image.sha(), probe.getActiveClass(), probe.getLevel(), probe.getClassIndex(), inventory.abilities().stream().map(PhantomSkillInventory.Ability::skill).toList(), pools(probe, inventory));
+			final var weapon = probe.getActiveWeaponItem(); final var item = probe.getActiveWeaponInstance();
+			source = new Source(image, inventory, seed, weapon == null ? "NONE" : weapon.getCrystalType().name(), item == null ? 0 : item.getEnchantLevel());
+		}
+		finally { probe.stopAllTasks(); probe.deleteMe(); }
+		final var pool = source.seed().supported().stream().filter(p -> p.family() == LegalActionV3.Family.DAMAGE && p.mode() == PhantomCombatMode.RANGED_MAGIC && p.skills().containsAll(actions)).findFirst().orElseThrow();
+		final var proposal = new AutonomousTrainingV1.Proposal(source.seed(), pool, "shortlist/" + image.sha() + "/" + pool.key(), new AutonomousTrainingV1.Shortlist(actions, Long.parseLong(fields[5]), false));
+		final var scene = new PhantomTrainingScenarios.Scene(fields[6].split(":", 2)[1], fields[7], Integer.parseInt(fields[8]), source.seed().classId(), source.seed().level(), source.grade(), source.enchant(), Integer.parseInt(fields[9]), Integer.parseInt(fields[10]), Integer.parseInt(fields[11]), actions.stream().map(ref -> ref.skillId()).toList(), "TRAIN");
+		final var cell = new Cell(fields[0], proposal, List.of(source), scene, Integer.parseInt(fields[12]), Integer.parseInt(fields[13]), Integer.parseInt(fields[14]));
+		final var roster = reproduceRoster(authority, cell, root, "TRAIN", config, null);
+		return new Solo020(scene, roster, actions, rosterSource(cell), Map.of(Long.parseLong(roster.getFirst()[2]), source.inventory().fingerprint()), config.preparationSeconds());
+	}
+	static void positionAcquired016(PhantomTrainingScenarios.Scene scene, List<Player> players, Monster target)
+	{
+		for (int i = 0; i < players.size(); i++)
+		{
+			final var player = players.get(i); final int offset = 180 + i * 20;
+			if (!GeoEngine.getInstance().canMoveToTarget(scene.x(), scene.y(), scene.z(), target.getX() + offset, target.getY(), target.getZ(), player.getInstanceId())) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_OFFSET_GEO"); }
+			player.teleToLocation(target.getX() + offset, target.getY(), target.getZ(), 0, false); player.setHeading(0); if (player.hasHeadlessOutboundSession() && player.isTeleporting()) { player.onTeleported(); }
+			PhantomLearning001ActorFixture.requireSafePartySpawn(player.getX(), player.getY(), player.getZ());
+		}
+	}
 	private static PhantomTrainingActors.SavedActor historicalSnapshot013(Map<String, Object> raw)
 	{
 		if (!"AUTONOMOUS_SAVED_ACTOR_V1".equals(raw.get("schema"))) { throw new IllegalStateException("TRAIN013_HISTORY_SNAPSHOT_VERSION"); }
@@ -2021,13 +2068,7 @@ public final class PhantomAutonomousTrainingNative
 					final var observation = org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3.collect(players.get(cell.learnerIndex()), Long.parseLong(roster.get(cell.learnerIndex())[2]), warm + 1, 20);
 					model.model().encode(observation.state());
 				}
-				for (int i = 0; i < players.size(); i++)
-				{
-					final var player = players.get(i); final int offset = 180 + i * 20;
-					if (!GeoEngine.getInstance().canMoveToTarget(scene.x(), scene.y(), scene.z(), target.getX() + offset, target.getY(), target.getZ(), player.getInstanceId())) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_OFFSET_GEO"); }
-					player.teleToLocation(target.getX() + offset, target.getY(), target.getZ(), 0, false); player.setHeading(0); if (player.hasHeadlessOutboundSession() && player.isTeleporting()) { player.onTeleported(); }
-					PhantomLearning001ActorFixture.requireSafePartySpawn(player.getX(), player.getY(), player.getZ());
-				}
+				positionAcquired016(scene, players, target);
 				final var learner = players.get(cell.learnerIndex()); final var owner = learner.getNativeWorkOwner();
 				if (owner == null || !owner.isCurrent()) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_NATIVE_OWNER"); }
 				if (family == LegalActionV3.Family.HEAL)

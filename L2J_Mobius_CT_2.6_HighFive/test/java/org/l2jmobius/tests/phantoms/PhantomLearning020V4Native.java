@@ -38,6 +38,7 @@ public final class PhantomLearning020V4Native
 	}
 	static void contracts(Path cohort) throws Exception
 	{
+		preparationContract(cohort);
 		var sample = PhantomLearning019ActionValue.source(cohort).getFirst();
 		var raw = map(parse(PhantomLearning005Native.nativeReceiptJson(sample.row().receipt()))); nativeRecord(sample.row(), raw);
 		raw.put("nativeRecord", string(raw, "nativeRecord") + " TAMPER");
@@ -57,9 +58,32 @@ public final class PhantomLearning020V4Native
 		finally { for (String name : List.of("boot-reserved020.json", "native-entered020.marker", "stop.request")) { Files.deleteIfExists(root.resolve(name)); } Files.delete(root); }
 		System.out.println("LEARNING020_CONTRACTS_PASS GS=0 SQL=0");
 	}
+	static void preparationContract(Path cohort) throws Exception
+	{
+		var candidate = candidates(cohort).getFirst();
+		check(candidates(cohort).size() == 1 && candidate.containsKey("sourceImage"), "V4_RECONSTRUCTION_SOURCE_AND_ONE_CANDIDATE_REQUIRED");
+		String source = string(candidate, "sourceImage");
+		var image = PhantomAutonomousTrainingNative.soloSource020(string(candidate, "cell"), source);
+		check(image.sha().equals(string(candidate, "sourceSha")) && image.learned().size() >= 2, "V4_CANONICAL_RECONSTRUCTIBLE_SOURCE");
+		boolean refused = false; try { PhantomAutonomousTrainingNative.soloSource020(string(candidate, "cell"), source.replace("learn001fixture", "foreign")); } catch (Exception | AssertionError expected) { refused = true; }
+		check(refused, "V4_FOREIGN_RECONSTRUCTION_SOURCE_ACCEPTED");
+		Path module = Path.of(System.getProperty("phantom.module.root", "L2J_Mobius_CT_2.6_HighFive"));
+		String route = Files.readString(module.resolve("test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java"));
+		route = route.substring(route.lastIndexOf("static TacticalEpisodeV3 encounter("), route.lastIndexOf("static void nativeOnce("));
+		preparationRoute(route); refused = false;
+		try { preparationRoute(route.replace(".positionAcquired016(", ".missingPosition(")); } catch (AssertionError expected) { refused = true; }
+		check(refused, "V4_MISSING_POSITION_STAGE_ACCEPTED");
+		System.out.println("LEARNING020_PREPARATION_CONTRACT_PASS original016=true candidate=1 recovery=180");
+	}
+	static void preparationRoute(String route)
+	{
+		int offset = 0;
+		for (String stage : List.of(".reproduceSolo020(", ".prepareAcquired(", ".realize(", ".prepareAcquiredOutcome(", ".positionAcquired016(", ".eligibility(", ".acquiredEncounterAdmission(", ".runLearning006Encounter("))
+		{ int next = route.indexOf(stage, offset); check(next >= offset, "V4_REQUIRED016_STAGE_" + stage); offset = next + stage.length(); }
+	}
 	static void owned(Path root) throws Exception
 	{
-		physical(root); check(root.getFileName().toString().matches("train020(?:-[a-f0-9]{32})?")
+		physical(root); check(root.getFileName().toString().matches("train020(?:-c1|-[a-f0-9]{32})?")
 			&& Files.readString(root.resolve("owner.txt")).matches("LEARNING002:[a-f0-9]{32}"), "V4_OWNED_TEST020_REQUIRED");
 	}
 	static void bindings(Path root, Map<String, Object> files) throws Exception
@@ -81,7 +105,9 @@ public final class PhantomLearning020V4Native
 			String[] cell = line.split("\t", -1); check(cell.length == 16, "V4_CELL_CODEC");
 			if (cell[1].contains(",") || !cell[2].equals("DAMAGE") || !cell[3].equals("RANGED_MAGIC")) { continue; }
 			var inventory = object(cohort.resolve(cell[1] + ".inventory.json"));
-			int classId = integer(inventory, "classId"); if (classId != 94 && classId != 110) { continue; }
+			int classId = integer(inventory, "classId"); if (classId != 94) { continue; }
+			String sourceImage = text(cohort.resolve(cell[1] + ".source.json"));
+			PhantomAutonomousTrainingNative.soloSource020(line, sourceImage);
 			try (var dirs = Files.list(cohort))
 			{
 				for (Path work : dirs.filter(p -> p.getFileName().toString().matches("[a-f0-9]{64}")).sorted().toList())
@@ -98,10 +124,11 @@ public final class PhantomLearning020V4Native
 					row[0] = "TRAIN"; // Новый split назначен до boot и результата, старый event не импортируется.
 					var facts = new LinkedHashMap<String, Object>(); facts.put("cell", line); facts.put("roster", String.join("\t", row));
 					facts.put("sourceSha", cell[1]); facts.put("inventorySha", sha(cohort.resolve(cell[1] + ".inventory.json")));
+					facts.put("sourceImage", sourceImage); facts.put("inventoryFingerprint", string(inventory, "fingerprint"));
 					facts.put("historicalEpisodeSha", sha(work.resolve("terminal.bin"))); facts.put("liveAdmitted", false); result.add(facts); break;
 				}
 			}
-			if (result.size() == 2) { break; }
+			if (result.size() == 1) { break; }
 		}
 		check(!result.isEmpty(), "V4_NO_SEALED_LAWFUL_CANDIDATE"); return List.copyOf(result);
 	}
@@ -118,19 +145,33 @@ public final class PhantomLearning020V4Native
 			"cohortSha", sha(cohort.resolve("cohort016.json")), "parentSha", PARENT, "candidates", candidates, "liveAdmitted", false)));
 		System.out.println("LEARNING020_PREFLIGHT_PASS candidates=" + candidates.size() + " liveAdmitted=false parentUpdates=161");
 	}
+	static void sourceSql(Path root) throws Exception
+	{
+		owned(root); check(root.getFileName().toString().equals("train020-c1"), "V4_CONTINUATION_SQL_SCOPE");
+		var database = new Properties(); try (var reader = Files.newBufferedReader(root.resolve("game/config/Database.ini"))) { database.load(reader); }
+		check(database.getProperty("URL").equals("jdbc:mysql://127.0.0.1:33361/phantom_learning001_train002"), "V4_PRIVATE_SOURCE_SQL");
+		var candidates = list(object(root.resolve("preflight020.json")).get("candidates")); check(candidates.size() == 1, "V4_ONE_CANDIDATE"); var candidate = map(candidates.getFirst());
+		var image = PhantomAutonomousTrainingNative.soloSource020(string(candidate, "cell"), string(candidate, "sourceImage"));
+		try (var connection = java.sql.DriverManager.getConnection(database.getProperty("URL"), database.getProperty("Login"), database.getProperty("Password")))
+		{
+			connection.setReadOnly(true); var actual = PhantomTrainingActors.readSavedActor(connection, image.sourceId());
+			check(actual.sha().equals(image.sha()) && actual.physicalFingerprint().equals(image.physicalFingerprint()), "V4_PRIVATE_SOURCE_IMAGE_DRIFT_NO_GO");
+		}
+		var config = TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini")); check(config.preparationSeconds() == 180, "V4_ORIGINAL180_REQUIRED");
+		write(root.resolve("source-sql020.json"), json(Map.of("sourceSha", image.sha(), "physicalSha", image.physicalFingerprint(), "sqlReadOnly", true, "gsBoots", 0, "recoverySeconds", 180, "configSha", config.sha256())));
+		System.out.println("LEARNING020_SOURCE_SQL_PASS GS=0 sourceExact=true recovery=180");
+	}
 	static TacticalEpisodeV3 encounter(Path root, Map<String, Object> candidate, int ordinal, PhantomBackgroundSuite.ProductionAuthorityFixture authority,
 		LearningPolicy policy, ActionValueV4 model, ConcurrentLinkedQueue<TacticalReceiptV3> receipts, ConcurrentLinkedQueue<TacticalPolicyV3.ActionValueDecision> decisions) throws Exception
 	{
-		String[] cell = string(candidate, "cell").split("\t", -1), row = string(candidate, "roster").split("\t", -1); var actions = refs(cell);
-		var scene = new PhantomTrainingScenarios.Scene(cell[6].split(":", 2)[1], cell[7], Integer.parseInt(cell[8]), Integer.parseInt(row[4]), Integer.parseInt(row[5]),
-			"ACQUIRED", 0, Integer.parseInt(cell[9]), Integer.parseInt(cell[10]), Integer.parseInt(cell[11]), actions.stream().map(a -> a.skillId()).toList(), "TRAIN");
+		String[] cell = string(candidate, "cell").split("\t", -1);
+		var prepared = PhantomAutonomousTrainingNative.reproduceSolo020(authority, root, string(candidate, "cell"), string(candidate, "sourceImage"), string(candidate, "inventoryFingerprint"));
+		var scene = prepared.scene(); var row = prepared.roster().getFirst(); var actions = prepared.actions();
 		var point = new PhantomTopologyPoint(Integer.parseInt(cell[12]), Integer.parseInt(cell[13]), Integer.parseInt(cell[14]), 0);
 		var tactical = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, _ -> { });
 		tactical.actionValueTest(TacticalPolicyV3.Mode.ON, model, d -> { check(decisions.size() < 64, "V4_DECISION_BOUND"); decisions.add(d); });
 		tactical.damageObserver(r -> { check(receipts.size() < 32, "V4_RECEIPT_BOUND"); receipts.add(r); });
-		var capability = new PhantomCombatCapabilityResolver.CapabilityEvidence(PhantomCombatMode.RANGED_MAGIC.capabilityKey(), "autonomous-frozen", 850,
-			actions.stream().map(a -> new PhantomCombatLoadout.SelectedSkill(a.skillId(), a.skillLevel())).toList());
-		PhantomCombatCapabilityResolver.CapabilitySource frozen = classId -> classId == scene.classId() ? List.of(capability) : List.of();
+		PhantomCombatCapabilityResolver.CapabilitySource frozen = prepared.capabilities();
 		Monster target = null; java.util.function.Supplier<TacticalEpisodeV3> terminal = null;
 		try (var runtime = new PhantomLearning001ShadowNative.Runtime(authority, root.resolve("game"), policy, root.resolve("stop.request"), true, 1, tactical, true, frozen))
 		{
@@ -138,9 +179,11 @@ public final class PhantomLearning020V4Native
 			{
 				var local = PhantomEncounterLocalSource.resolve(authority, scene, point).orElseThrow(() -> new IllegalStateException("V4_LOCAL_SOURCE_REQUIRED"));
 				runtime.localEncounterSource(local);
-				runtime.prepareAcquired(scene, List.<String[]>of(row), false, PhantomCombatMode.RANGED_MAGIC, actions, Map.of(Long.parseLong(row[2]), row[7]), 40, () -> Files.exists(root.resolve("stop.request")));
+				runtime.preparationObserver014(facts -> { try { Files.writeString(root.resolve("preparation020.jsonl"), json(facts) + "\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND); } catch (Exception failure) { throw new IllegalStateException("V4_PREPARATION_DIAGNOSTIC_FAILED", failure); } });
+				runtime.prepareAcquired(scene, prepared.roster(), false, PhantomCombatMode.RANGED_MAGIC, actions, prepared.inventories(), prepared.preparationSeconds(), () -> Files.exists(root.resolve("stop.request")));
 				var spawn = PhantomEncounterLocalSource.realize(local); target = (Monster) spawn.doSpawn(false); spawn.stopRespawn();
 				runtime.prepareAcquiredOutcome(target); var actor = runtime.evaluationPlayers().getFirst(); var geo = GeoEngine.getInstance();
+				PhantomAutonomousTrainingNative.positionAcquired016(scene, runtime.evaluationPlayers(), target);
 				check(target.getX() == point.x() && target.getY() == point.y() && target.getZ() == point.z() && !target.isMoving() && !target.isInCombat()
 					&& target.getAttackByList().isEmpty() && !target.isInvul() && target.isTargetable() && target.isAutoAttackable(actor), "V4_FRESH_NATIVE_TARGET_REQUIRED");
 				check(geo.hasGeo(actor.getX(), actor.getY()) && geo.hasGeo(target.getX(), target.getY()) && geo.canSeeTarget(actor, target) && geo.canMoveToTarget(actor, target), "V4_NATIVE_GEO_LOS");
@@ -160,6 +203,11 @@ public final class PhantomLearning020V4Native
 					catch (Exception failure) { throw new IllegalStateException("V4_DURABLE_CUT_FAILED", failure); }
 				});
 			}
+			catch (Exception | AssertionError failure)
+			{
+				var snapshots = runtime.evaluationPlayers().stream().map(p -> Map.ofEntries(Map.entry("hp", p.getCurrentHp()), Map.entry("maxHp", p.getMaxHp()), Map.entry("mp", p.getCurrentMp()), Map.entry("maxMp", p.getMaxMp()), Map.entry("moving", p.isMoving()), Map.entry("sitting", p.isSitting()), Map.entry("attacking", p.isAttackingNow()), Map.entry("casting", p.isCastingNow()), Map.entry("reason", String.valueOf(failure.getMessage())))).toList();
+				write(root.resolve("preparation-refusal020.json"), json(snapshots)); throw failure;
+			}
 			finally
 			{
 				if (terminal == null) { runtime.cancelAcquiredEncounter(); runtime.settleTraining(); }
@@ -178,9 +226,20 @@ public final class PhantomLearning020V4Native
 		for (Class<?> type : List.of(org.l2jmobius.gameserver.GameServer.class, TacticalPolicyV3.class, ActionValueV4.class))
 		{ check(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath().equals(jar), "V4_PRODUCTION_JAR_ORIGIN"); }
 		var db = new Properties(); try (var reader = Files.newBufferedReader(game.resolve("config/Database.ini"))) { db.load(reader); }
-		check(db.getProperty("URL").equals("jdbc:mysql://127.0.0.1:33360/phantom_learning001_train002"), "V4_SEPARATE_SQL020");
+		boolean continuation = root.getFileName().toString().equals("train020-c1");
+		check(db.getProperty("URL").equals("jdbc:mysql://127.0.0.1:" + (continuation ? 33361 : 33360) + "/phantom_learning001_train002"), "V4_SEPARATE_SQL020");
+		if (continuation)
+		{
+			var sourceProof = object(root.resolve("source-sql020.json")); var reservation = object(root.resolve("boot-reserved020.json"));
+			var frozenCandidates = list(object(root.resolve("preflight020.json")).get("candidates")); check(frozenCandidates.size() == 1, "V4_ONE_SOURCE_SQL_GATE");
+			var frozen = map(frozenCandidates.getFirst()); var source = PhantomAutonomousTrainingNative.soloSource020(string(frozen, "cell"), string(frozen, "sourceImage"));
+			check(bool(sourceProof, "sqlReadOnly") && number(sourceProof, "gsBoots") == 0 && number(sourceProof, "recoverySeconds") == 180
+				&& string(sourceProof, "sourceSha").equals(source.sha()) && string(sourceProof, "physicalSha").equals(source.physicalFingerprint())
+				&& string(sourceProof, "configSha").equals(sha(root.resolve("TRAIN_CONFIG.ini"))) && string(reservation, "sourceSqlSha").equals(sha(root.resolve("source-sql020.json")))
+				&& number(reservation, "goal020BootOrdinal") == 2, "V4_SUCCESSFUL_OFFLINE_SOURCE_GATE_REQUIRED");
+		}
 		var endpoints = new Properties(); try (var reader = Files.newBufferedReader(game.resolve("config/Server.ini"))) { endpoints.load(reader); }
-		check(endpoints.getProperty("GameserverHostname").equals("127.0.0.1") && endpoints.getProperty("GameserverPort").equals("18020") && endpoints.getProperty("LoginHost").equals("127.0.0.1") && endpoints.getProperty("LoginPort").equals("19320"), "V4_LOOPBACK020");
+		check(endpoints.getProperty("GameserverHostname").equals("127.0.0.1") && endpoints.getProperty("GameserverPort").equals(continuation ? "18021" : "18020") && endpoints.getProperty("LoginHost").equals("127.0.0.1") && endpoints.getProperty("LoginPort").equals(continuation ? "19321" : "19320"), "V4_LOOPBACK020");
 		var model = ActionLearningV4.load(root.resolve("candidate.bin"), modelSha); String off = Files.readString(config); check(off.contains("EnablePhantomSystem = False"), "V4_COLD_OFF");
 		claimBoot(root, jarSha, preflightSha, modelSha);
 		boolean booted = false; var receipts = new ConcurrentLinkedQueue<TacticalReceiptV3>(); var decisions = new ConcurrentLinkedQueue<TacticalPolicyV3.ActionValueDecision>();
@@ -195,7 +254,7 @@ public final class PhantomLearning020V4Native
 			TacticalEpisodeV3 settled = null;
 			try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 			{
-				var candidates = list(object(root.resolve("preflight020.json")).get("candidates")); check(!candidates.isEmpty() && candidates.size() <= 2, "V4_CANDIDATE_BOUND");
+				var candidates = list(object(root.resolve("preflight020.json")).get("candidates")); check(candidates.size() == 1, "V4_CANDIDATE_BOUND");
 				for (int i = 0; i < candidates.size(); i++)
 				{
 					try { settled = encounter(root, map(candidates.get(i)), i, authority, policy, model, receipts, decisions); break; }
@@ -258,6 +317,14 @@ public final class PhantomLearning020V4Native
 	{
 		var parent = ActionLearningV4.load(root.resolve("candidate.bin"), PARENT); var samples = samples(root); var learned = ActionLearningV4.fit(parent, samples);
 		check(learned.updates() == 161 + samples.size() && !learned.sha256().equals(PARENT), "V4_NEW_INCREMENT_REQUIRED");
+		if (Files.exists(root.resolve("fit020.json")))
+		{
+			var previous = object(root.resolve("fit020.json")); String name = string(previous, "candidate");
+			check(name.equals("candidate020-" + learned.sha256() + ".bin") && string(previous, "newSha").equals(learned.sha256()) && string(previous, "nativeSha").equals(sha(root.resolve("native020.json"))), "V4_RETRY_CHANGED_FIT_SOURCE");
+			var saved = ActionLearningV4.load(root.resolve(name), learned.sha256());
+			check(Arrays.equals(saved.bytes(), learned.bytes()) && ActionLearningV4.fit(saved, samples).sha256().equals(saved.sha256()), "V4_RETRY_REPLAY_ZERO");
+			System.out.println("LEARNING020_FIT_REPLAY_PASS additionalUpdates=0 sha=" + saved.sha256()); return;
+		}
 		Path path = root.resolve("candidate020-" + learned.sha256() + ".bin"); ActionLearningV4.save(path, learned);
 		write(root.resolve("fit020.json"), json(Map.of("nativeSha", sha(root.resolve("native020.json")), "parentSha", PARENT, "newSha", learned.sha256(), "candidate", path.getFileName().toString(), "updatesBefore", 161, "updatesAfter", learned.updates(), "newTrainSamples", samples.size())));
 		System.out.println("LEARNING020_FIT_PASS updates=" + learned.updates() + " sha=" + learned.sha256());
@@ -269,7 +336,8 @@ public final class PhantomLearning020V4Native
 		var model = ActionLearningV4.load(root.resolve(name), string(fit, "newSha")); var samples = samples(root);
 		check(model.updates() == number(fit, "updatesAfter") && ActionLearningV4.fit(model, samples).sha256().equals(model.sha256()), "V4_COLD_REPLAY_ZERO");
 		byte[] damaged = model.bytes(); damaged[damaged.length - 1] ^= 1; PhantomLearning019ActionValue.rejects(() -> ActionValueV4.restore(damaged, model.sha256()));
-		write(root.resolve("cold020.json"), json(Map.of("sha", model.sha256(), "updates", model.updates(), "replayAdditionalUpdates", 0, "tamperRejected", true, "separateJvm", true)));
+		if (!Files.exists(root.resolve("cold020.json"))) { write(root.resolve("cold020.json"), json(Map.of("sha", model.sha256(), "updates", model.updates(), "replayAdditionalUpdates", 0, "tamperRejected", true, "separateJvm", true))); }
+		else { var previous = object(root.resolve("cold020.json")); check(string(previous, "sha").equals(model.sha256()) && number(previous, "updates") == model.updates() && number(previous, "replayAdditionalUpdates") == 0, "V4_RETRY_COLD_PROOF_CHANGED"); }
 		System.out.println("LEARNING020_COLD_PASS replay=0 sha=" + model.sha256());
 	}
 	public static void main(String[] args) throws Exception
@@ -279,6 +347,7 @@ public final class PhantomLearning020V4Native
 		{
 			case "preflight" -> { check(args.length == 3, "V4_PREFLIGHT_ARGUMENTS"); preflight(root, Path.of(args[2])); }
 			case "contracts" -> contracts(root);
+			case "source-sql" -> sourceSql(root);
 			case "native" -> { check(args.length == 5, "V4_NATIVE_ARGUMENTS"); nativeOnce(root, args[2], args[3], args[4]); }
 			case "fit" -> fit(root);
 			case "cold" -> cold(root);

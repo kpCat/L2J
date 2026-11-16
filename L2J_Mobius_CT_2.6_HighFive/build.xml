@@ -1291,6 +1291,7 @@
 	<target name="phantom-learning020-test" depends="compile-tests" description="Bounded native raw binding and one-use ingress contracts over genuine sealed016 input; no SQL or GameServer.">
 		<fail unless="phantom.learning020.cohort" message="Explicit physical sealed016 cohort required." />
 		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning020V4Native" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="256m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
 			<arg value="contracts" /><arg value="${phantom.learning020.cohort}" />
 		</java>
 	</target>

@@ -22,6 +22,15 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
 if($ActionValue020){
+    # NOT_NATIVE: незавершённая запись не является COMPLETED; Stop до process-record обязан пережить гонку старта.
+    $fixture=Join-Path ([IO.Path]::GetTempPath()) ('Train020-Step-'+[guid]::NewGuid().ToString('N'))
+    $null=[IO.Directory]::CreateDirectory($fixture)
+    try{
+        Write-TrainJson (Join-Path $fixture 'cold020.json') @{sha=('a'*64)}
+        Require (!(Test-TrainActionValue020Complete $fixture)) 'TRAIN020_INCOMPLETE_COLD_FALSE_COMPLETED'
+        $null=Request-TrainActionValue020Stop $fixture $false $false
+        Require (Test-Path -LiteralPath (Join-Path $fixture 'stop.request')) 'TRAIN020_STOP_BEFORE_PROCESS_RECORD_LOST'
+    }finally{foreach($n in @('cold020.json','stop.request')){[IO.File]::Delete((Join-Path $fixture $n))};[IO.Directory]::Delete($fixture)}
     $cleanup=[Collections.Generic.List[string]]::new();$failed=$false
     try{Invoke-TrainCleanup020 @({throw 'EXPECTED_CLEANUP_FAILURE'},{ $cleanup.Add('SQL_STOP_ATTEMPTED') })}catch{$failed=$true}
     Require ($failed -and $cleanup.Contains('SQL_STOP_ATTEMPTED')) 'TRAIN020_CLEANUP_SKIPPED_SQL'
