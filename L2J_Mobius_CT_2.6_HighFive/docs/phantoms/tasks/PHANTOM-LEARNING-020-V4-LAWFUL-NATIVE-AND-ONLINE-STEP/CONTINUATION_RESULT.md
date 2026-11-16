@@ -1,6 +1,8 @@
 # Goal020 — результат ограниченного продолжения
 
-**FULL020_REAL_V4_NATIVE_AND_INCREMENT для заявленного Solo single-step scope. Manual gate REQUIRED.** Техническая цепочка теперь подтверждена настоящим новым native CUT,18 оплаченными V4-связанными действиями,18 новыми TRAIN samples, обновлением161→179, отдельным create-only checkpoint и холодной загрузкой/replay0. Публикация и независимый readback закрывают G8 после записи этого отчёта; их точный commit — в финальном сообщении.
+**ACCEPTED_FULL020_REAL_V4_NATIVE_AND_INCREMENT для заявленного Solo single-step scope. Manual gate ACCEPTED_FULL.** Владелец16.11.2026 явно принял G0–G8 и независимо проверенную GitHub реализацию HEAD `8ae662a4296076b879c8e95c43f7df4fc220b2bf`: новый native CUT,18 оплаченных V4-связанных действий, original settlement,18 новых TRAIN samples, обновление161→179, checkpoint SHA `42cfff5c02fd386a31ab1e95d4234a8eb22549a62debd729a3fc9a7a602ef96c`, cold reload и replay0.
+
+Ручная приёмка закрыта по прямому подтверждению владельца. `MODEL_REORDERED=false` и `COMBAT_SUPERIORITY=NOT_EVALUATED` сохраняются без переоценки. Acceptance-правка затрагивает только этот документ и CONTINUATION_EVIDENCE.json; исходники, данные, checkpoints, бюджеты и журналы не меняются. Новых GS запусков нет, Goal021 не начат.
 
 Первый результат f6ebaa20ee5b86e2e65506f21e32605692f4d7d5 **не переписан**: его40с preparation, два отказа до CUT, один GS/127510мс и прежний BLOCKED остаются историей. Продолжение разрешено владельцем отдельно в CONTINUATION_AUTHORITY.md. Новый запуск — **второй в общем Goal020**, первый и единственный в продолжении; третьего нет. Goal021 не создан.
 
@@ -71,7 +73,7 @@ Stop на незавершённом owned root всегда сохраняет 
 |G5|PASS:18 fresh updates161→179, new SHA, immutable save, separate JVM cold/replay0/tamper reject.|
 |G6|PASS для bounded single-step CLI: actual Status/RunOnce/Stop, repeat0, retained proof/checkpoints, no automatic next generation.|
 |G7|PASS по явному продолжению:1 additional GS/88177мс,2total/215687мс, no third; OFF/own0/portsFree.|
-|G8|Scoped non-force publication + independent GitHub HEAD/parent/exact diff/full source readback; финальный receipt после commit в ответе. Manual REQUIRED.|
+|G8|PASS: scoped non-force publication, независимый GitHub HEAD/parent/exact diff/full source readback и подтверждение владельца для HEAD8ae662a4296076b879c8e95c43f7df4fc220b2bf. Manual ACCEPTED_FULL.|
 
 **Полнота этого результата не доказывает смену выбора либо улучшение боевой эффективности.** Новые веса/SHA доказаны; новый before/after score-control отдельно не измерялся. MODEL_REORDERED=false. Ночь/8h scheduler, PvP, Party/heal/tank/control/debuff и общий интеллект не проверены и не объявляются.
 

@@ -3,7 +3,20 @@
   "date": "2026-11-16",
   "baseline": "f6ebaa20ee5b86e2e65506f21e32605692f4d7d5",
   "status": "FULL020_REAL_V4_NATIVE_AND_INCREMENT",
-  "manualGate": "REQUIRED",
+  "manualGate": "ACCEPTED_FULL",
+  "acceptance": {
+    "status": "ACCEPTED_FULL020_REAL_V4_NATIVE_AND_INCREMENT",
+    "date": "2026-11-16",
+    "authority": "Прямое подтверждение владельца в этом чате",
+    "scope": "Solo single-step",
+    "acceptedImplementationHead": "8ae662a4296076b879c8e95c43f7df4fc220b2bf",
+    "gates": "G0–G8 подтверждены владельцем",
+    "independentGitHubCheck": "Подтверждена владельцем",
+    "modelReordered": false,
+    "combatSuperiority": "NOT_EVALUATED",
+    "additionalGameServerStarts": 0,
+    "goal021Started": false
+  },
   "authority": "CONTINUATION_AUTHORITY.md; user approved exactly one additional GS",
   "source": {
     "classId": 94,
@@ -118,8 +131,8 @@
     "G5": "PASS_161_TO_179_ATOMIC_COLD_REPLAY0",
     "G6": "PASS_BOUNDED_CLI_STEP_NO_AUTOMATIC_NEXT",
     "G7": "PASS_ONE_ADDITIONAL_BOOT_TWO_TOTAL_EXPLICIT_AUTHORITY",
-    "G8": "SCOPED_PUSH_AND_INDEPENDENT_READBACK_FINAL_RECEIPT_REQUIRED"
+    "G8": "PASS_PUBLISHED_INDEPENDENT_READBACK_OWNER_CONFIRMED_ACCEPTED_FULL"
   },
   "goal021Started": false,
-  "publication": "FINAL_COMMIT_AND_GITHUB_READBACK_RECEIPT_IN_HANDOFF"
+  "publication": "IMPLEMENTATION_HEAD_8ae662a4296076b879c8e95c43f7df4fc220b2bf_INDEPENDENTLY_VERIFIED_AND_ACCEPTED_BY_OWNER"
 }
