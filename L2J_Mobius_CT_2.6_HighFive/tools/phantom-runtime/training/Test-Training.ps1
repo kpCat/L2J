@@ -30,6 +30,11 @@ if($Readiness016){
         $file=Join-Path $fixture 'TRAIN_CONFIG.ini'
         try{Write-TrainConfig $file $values;$loaded=Read-TrainConfig $file}catch{throw 'READINESS016_COMMON_CONFIG_51_REJECTED'}
         Require ($loaded.episodesPerBatch -ceq '51') 'READINESS016_CONFIG_DID_NOT_ROUNDTRIP'
+        $g2=$values.Clone();$g2.autonomous009Campaign='autonomous009-learning016-g2-v1';$g2.outcome006DatasetId='autonomous009-learning016-g2-v1-c000001'
+        try{Write-TrainConfig $file $g2;$g2Loaded=Read-TrainConfig $file}catch{throw 'READINESS016_GENERATION2_REJECTED'}
+        Require ($g2Loaded.episodesPerBatch -ceq '51') 'READINESS016_GENERATION2_BATCH_CHANGED'
+        $bad=$g2.Clone();$bad.autonomous009Campaign='autonomous009-learning016-g3-v1';$bad.outcome006DatasetId='autonomous009-learning016-g3-v1-c000001'
+        $refused=$false;try{Assert-TrainConfig $bad}catch{$refused=$true};Require $refused 'READINESS016_THIRD_GENERATION_ALLOWED'
         foreach($change in @(@{episodesPerBatch='84'},@{episodesPerBatch='48'},@{autonomous016Version='2'},@{autonomous013Version='0'},
             @{autonomous009EvaluationOnly='true'},@{autonomous009Phase='EVAL'},@{autonomous009SmokeMaxStarts='4'},@{autonomous009SmokeMaxNativeMinutes='76'},
             @{autonomous009CycleLimit='0'},@{autonomous009Campaign='autonomous009-goal015-s2'})){
@@ -42,7 +47,8 @@ if($Readiness016){
         $budget=Get-TrainNativeBudget013 $budgetFile 16
         Require ($budget.schemaVersion -eq 16 -and $budget.maximumStarts -eq 3 -and [long]$budget.maximumNativeMillis -eq 4500000L) 'READINESS016_NATIVE_LEDGER_INHERITED_013_BUDGET'
         foreach($ordinal in 1..3){
-            $reserved=Reserve-TrainNativeBudget013 $budgetFile 'autonomous009-learning016-v1-c000001' $false 210000L 16
+            $scope016=if($ordinal -eq 2){'autonomous009-learning016-g2-v1-c000001'}else{'autonomous009-learning016-v1-c000001'}
+            $reserved=Reserve-TrainNativeBudget013 $budgetFile $scope016 $false 210000L 16
             $settled=Complete-TrainNativeBudget013 $budgetFile $reserved.pending 1000L 'OWN_HELD_HANDLE_EXIT_TIME' 16
             $duplicate=Complete-TrainNativeBudget013 $budgetFile $reserved.pending 1000L 'OWN_HELD_HANDLE_EXIT_TIME' 16
             Require ($settled.starts -eq $ordinal -and $settled.nativeMillis -eq $ordinal*1000 -and $duplicate.nativeMillis -eq $settled.nativeMillis) 'READINESS016_NATIVE_CHARGE_REPLAY'
@@ -56,7 +62,7 @@ if($Readiness016){
         $refused=$false;try{$null=Get-TrainNativeBudget013 $budgetFile 16}catch{$refused=$true};Require $refused 'READINESS016_DELETED_LEDGER_RESET'
         $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Training.ps1'),[ref]$tokens,[ref]$errors)
         Require ($errors.Count -eq 0) 'READINESS016_SOURCE_PARSE'
-        $definitions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -cin @('Test-TrainIncremental016','Get-TrainReadinessWindow016','Assert-TrainReadinessMode016','Open-TrainHeadless013','Read-TrainSourceConfig')},$false)
+        $definitions=$ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -cin @('Test-TrainIncremental016','Get-TrainReadinessWindow016','Assert-TrainReadinessMode016','Save-TrainReadinessControl016','Open-TrainHeadless013','Read-TrainSourceConfig')},$false)
         $script:SourceScripts016=$PSScriptRoot
         # AST functions have no file path; preserve the real script-root dependency explicitly.
         . ([scriptblock]::Create((($definitions|ForEach-Object {$_.Extent.Text}) -join "`n").Replace('$PSScriptRoot','$script:SourceScripts016')))
@@ -66,6 +72,23 @@ if($Readiness016){
         $prior2=[pscustomobject]@{schemaVersion=16;session=2;elapsedMillis=599000L;finishedUtc=$now.AddSeconds(1199).ToString('o');ownedWorkerAbsent=$true;sqlAbsent=$true;withinCap=$true}
         $third=Get-TrainReadinessWindow016 3 @($prior1,$prior2) $now.AddSeconds(1200)
         Require ($first.maximumSeconds -eq 600 -and $second.priorElapsedMillis -eq 599000 -and $third.priorElapsedMillis -eq 1198000 -and $third.priorElapsedMillis+$third.maximumSeconds*1000 -le 1800000) 'READINESS016_CUMULATIVE_TIME_RESET'
+        $parentCost=[pscustomobject]@{schemaVersion=16;session=1;elapsedMillis=72430L;finishedUtc=$now.AddSeconds(73).ToString('o');ownedWorkerAbsent=$true;sqlAbsent=$true;withinCap=$true}
+        $carried=Get-TrainReadinessWindow016 2 @($parentCost) $now.AddSeconds(200) 100160L
+        Require ($carried.priorElapsedMillis -eq 172590L -and $carried.maximumSeconds -eq 600) 'READINESS016_GENERATION_RESET_OR_LOST_BUILD_COST'
+        & {
+            $rollover=Join-Path $fixture 'generation2-control';$layout=@{Root=$rollover;Sql=(Join-Path $rollover 'sql')};$script:Config=$g2.Clone()
+            $parentScope=Join-Path $rollover 'autonomous/v1/campaigns/autonomous009-learning016-v1/cohorts/autonomous009-learning016-v1-c000001'
+            $null=[IO.Directory]::CreateDirectory($parentScope);$null=[IO.Directory]::CreateDirectory((Join-Path $rollover 'sql'));$null=[IO.Directory]::CreateDirectory((Join-Path $rollover 'autonomous/v16'))
+            $op=Join-Path $parentScope 'headless-operation013.json';Write-TrainJson $op @{goalVersion=16;session=1;exitProven=$true;worker=@{unitFixture=$true};status='ERROR'}
+            $parentSha=(Get-FileHash -LiteralPath $op).Hash;Write-TrainJson (Join-Path $rollover 'sql/owned-process.json') @{unitFixture=$true}
+            Write-TrainJson (Join-Path $rollover 'autonomous/v16/generation2-issued.json') @{schema='TRAIN016_GENERATION2_ISSUED_V1';campaign=$g2.autonomous009Campaign;dataset=$g2.outcome006DatasetId;parentFiles=@{'headless-operation013.json'=$parentSha}}
+            $script:heldChecks016=0
+            function Test-TrainProcessAbsent {param($Record) Require ([bool]$Record.unitFixture) 'READINESS016_WRONG_PARENT_PROCESS';$script:heldChecks016++;return $true}
+            function Test-TrainExitReceipt {param($Layout,$Record) Require ([bool]$Record.unitFixture) 'READINESS016_WRONG_PARENT_EXIT';$script:heldChecks016++;return $true}
+            Save-TrainReadinessControl016 (Join-Path $rollover 'autonomous/v16/campaigns/autonomous009-learning016-g2-v1') 2
+            Require ((Get-FileHash -LiteralPath $op).Hash -ceq $parentSha -and $script:heldChecks016 -eq 4 -and !(Test-Path -LiteralPath (Join-Path $rollover 'autonomous/v16/readiness/session1-control'))) 'READINESS016_PARENT_CONTROLS_ARCHIVED_OR_UNPROVEN'
+        }
+        $script:Config=$values.Clone()
         foreach($case in @(@{session=4;prior=@($prior1,$prior2)},@{session=2;prior=@()},@{session=1;prior=@($prior1)})){
             $refused=$false;try{$null=Get-TrainReadinessWindow016 $case.session $case.prior $now.AddSeconds(1200)}catch{$refused=$true};Require $refused 'READINESS016_SESSION_REPLAY_ALLOWED'
         }

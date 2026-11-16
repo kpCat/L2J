@@ -365,6 +365,16 @@ public final class AutonomousTrainingChecks
 			try { config = TrainingConfig.load(path); }
 			catch (IllegalArgumentException rejected) { throw new AssertionError("TRAIN016_CONFIG_51_REJECTED", rejected); }
 			check(config.episodesPerBatch() == 51 && AutonomousTrainingV1.cohortCellLimit(51) == 3, "TRAIN016_BATCH_IS_NOT_THREE_17_SLOT_CELLS");
+			final String generation2 = body.replace("autonomous009-learning016-v1", "autonomous009-learning016-g2-v1");
+			java.nio.file.Files.writeString(path, generation2, java.nio.charset.StandardCharsets.UTF_8);
+			try { check(TrainingConfig.load(path).episodesPerBatch() == 51, "TRAIN016_GENERATION2_BATCH_CHANGED"); }
+			catch (IllegalArgumentException rejected) { throw new AssertionError("TRAIN016_GENERATION2_REJECTED", rejected); }
+			final var parent = new java.util.TreeMap<String, Object>(); body.lines().forEach(line -> { final int equals = line.indexOf('='); if (equals > 0) { parent.put(line.substring(0, equals), line.substring(equals + 1)); } });
+			check(TrainingConfig.load(path).preparationCompatible016(parent), "TRAIN016_GENERATION2_CONFIG_COMPATIBILITY_NOT_PROVEN");
+			parent.put("seed", "999"); check(!TrainingConfig.load(path).preparationCompatible016(parent), "TRAIN016_INCOMPATIBLE_PARENT_CONFIG_ACCEPTED");
+			java.nio.file.Files.writeString(path, generation2.replace("learning016-g2-v1", "learning016-g3-v1"), java.nio.charset.StandardCharsets.UTF_8);
+			boolean thirdRejected = false; try { TrainingConfig.load(path); } catch (IllegalArgumentException expected) { thirdRejected = true; }
+			check(thirdRejected, "TRAIN016_THIRD_GENERATION_ALLOWED");
 			for (String invalid : List.of(body.replace("Batch=51", "Batch=84"), body.replace("Batch=51", "Batch=48"), body.replace("autonomous016Version=1", "autonomous016Version=2"),
 				body.replace("autonomous013Version=1", "autonomous013Version=0"), body.replace("EvaluationOnly=false", "EvaluationOnly=true"), body.replace("Phase=OFF", "Phase=EVAL"),
 				body.replace("MaxStarts=3", "MaxStarts=4"), body.replace("NativeMinutes=75", "NativeMinutes=76"), body.replace("CycleLimit=1", "CycleLimit=0"),

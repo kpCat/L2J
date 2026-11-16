@@ -1,3 +1,63 @@
+# Команды разрешённого продолжения016
+
+Продолжается та же задача. Прямое разрешение владельца покрывает ровно одну новую frozen generation, оставшиеся headless sessions, штатные GS/FIT послеG3, scoped commits и обычный push feature/phantom-world. Source004 использовался для разработки; TEST006 — единственная разрешённая TEST-среда. MAIN не редактировался. Новых веток/worktrees/clones нет.
+
+Дополнительные точные формы Git-команд (cwd SOURCE004, если не указан MAIN):
+
+```text
+git rev-parse --show-toplevel HEAD
+git symbolic-ref --short HEAD
+git status --short
+git status --short --untracked-files=no
+git status --short --untracked-files=all
+git fetch --no-tags origin refs/heads/feature/phantom-world:refs/remotes/origin/feature/phantom-world
+git rev-parse HEAD origin/feature/phantom-world
+git merge-base HEAD origin/feature/phantom-world
+git merge-base --is-ancestor HEAD origin/feature/phantom-world
+git diff --name-status HEAD origin/feature/phantom-world -- AGENTS.md L2J_Mobius_CT_2.6_HighFive
+git diff --name-status HEAD origin/feature/phantom-world -- PhantomSemanticStudio
+git merge --ff-only origin/feature/phantom-world
+git diff --name-status 00afe4a0f3b4c70dc94fd9b4cdd4b24e7171766e -- <exact7>
+git diff --unified=2 00afe4a0f3b4c70dc94fd9b4cdd4b24e7171766e -- <exact6changedCode>
+git diff --check -- <exact30>
+git add -- <exact30>
+git diff --check --cached -- <exact30>
+git diff --name-status --cached -- <exact30>
+git commit -m "feat(phantoms): link one frozen TRAIN016 continuation"
+git push origin HEAD:refs/heads/feature/phantom-world
+git ls-tree -r HEAD -- <exact30>
+git commit -m "docs(phantoms): verify native Goal016 continuation delivery"
+```
+
+`<exact7>` — утверждённый кодовый allowlist из IMPLEMENTATION_PLAN016.md; `<exact6changedCode>` исключает неизменённый в продолжении build.xml. `<exact30>` перечисляется scope guard:7code+12immutable task inputs+9task outputs+report+только новый/current016roadmap section. Это список точных аргументов paths, не `add .`/StageAll. Fresh clean SOURCE1c8f15ed→00afe4a0f3b fast-forward сохранил34Studio paths; HighFive/AGENTS diff отсутствовал. Перед каждой публикацией origin проверяется снова; окончательный parent записывается READBACK. Никаких reset/rebase/clean/stash/force/history rewrite. Reviewer читал только scoped diff, не менял файлы.
+
+Поведенческие RED/GREEN продолжения: существующий `ant -f .\L2J_Mobius_CT_2.6_HighFive\build.xml phantom-learning016-test` и `powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Test-Training.ps1 -Readiness016`. RED/log/SHA отражены EVIDENCE. Финальные7Ant targets016/015/autonomous/008/007/jar/content выполнялись последовательно, exit0. PS Readiness016/015/014,Headless013,`-Action Test-Cycle013`,`-Action Test-Config`,`-Action Test-Atomic` последовательно exit0. Broad `ant verify` не запускался.5известныхjavacwarnings сохранены.
+
+Внешние helpers, каждый как `powershell -NoProfile -ExecutionPolicy Bypass -File <external g2/script>`: Setup-G0 (copies/ACL/parent10SHA), Sync-Test016-G2 (exact6/23artifacts/backups/protected3), Issue-Generation2 (one issuance/59SHA/originalconfig/compatibility/oldbudget), Capture-G3 (actualclosure/coverage/heldexits), Capture-Preparation (exactimport/state/refusals/costs), Read-NativeProgress (read-only settledclosure checks), Capture-ColdStop (PS5.1 heldexits/absence/freeports), Sample-Owned (PID+creation sampling), Capture-NativeFinal (allrawclosures/events/outcomes/costs), Finalize-Off (afterStop only3lifecycleflags), Read-Safety/Invoke-ColdLineage/Read-LineageDelta/Capture-Preservation/Capture-Cost, Write-Reports/Append-Commands, Scope-Guard016/Build-Readback016. Исторические helpers/receipts не переписывались; новые версии — отдельный g2. Полные SHA логов/evidence опубликованы; приватные SQL/defaults/raw receipts не копируются в GitHub.
+
+Canonical TEST actions (cwd TEST006; runtime `.phantom-local/learning002/train`):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Preflight -Autonomous -Root <runtime>
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Prepare -Autonomous -Readiness016Session 2 -Root <runtime>
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Start -Autonomous -Root <runtime>
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Pause -Autonomous -Root <runtime>
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Stop -Autonomous -Root <runtime>
+powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive\tools\phantom-runtime\training\Training.ps1 -Action Resume -Autonomous -Root <runtime>
+```
+
+Все эти control actions exit0. Prepare2 сделал настоящий canonical TEST build/stamp, READY/G3. Start далGS1; Pause/Stop подтвердили11settled exact/Native489573msheldexit0/SQL+Workerheldexit0; Director absent безheldexitreceipt, exitcodeне выдуман. Resume далGS2/dispatchslot11. Финальный Stop после окончания native подтверждается отдельным log и cold-final receipt. Вызовы FIT только из замороженного director, самостоятельной EVAL/probe/fit/promotion нет. Export до/после — canonical `-Action Export -Autonomous` с единственным приватным клиентом/fiveSELECT: старые183строки сравниваются по полному содержимому и ключу, законные новые rows учитываются отдельно.
+
+Первый ad-hoc reader запущен вPS7 и не совпал с canonicalPS5.1 JSON integer/date typing; доказательство повторено подPS5.1, runtimeне менялся. Внешний preparation reader сначала ошибочно назвал полеrosterCounts, после чтения source использован настоящий rosterVisits; это ошибка диагностики, не RED продукта. Внешний final reader исправлен: PSCustomObject для Measure-Object, distinct NPC kills вместо повторных Party actor credits, явный UTF-8 для чтения fit-result. UTF-8/BOM исходника внешних отчётных PS5helpers и действительный backup path File.Replace исправлены до записи итоговых документов; это ошибки оркестрации, не productRED. Частный ACL read безэскалации получил AccessDenied; read-only запрос выполнен в разрешённом привилегированном процессе, ACL/история не ослаблялись. Automatic approval review не отклонял разрешённые операции.
+
+После collection.complete и cold NO_FIT director получил TRAIN013_STATE_VERSION_OR_PHASE: DONE016 содержит цифры, общий validator принимает только ^[A-Z_]{1,32}$. Persisted phaseFIT/fits0, checkpointNO_FIT, historical183rows exact, optimizer updates0. Native51results/399events сохранены. Runtimeпослеfreeze не исправлялся, повторный FIT/RESUME/newgeneration не запускались. Результат PARTIAL/G4finalcommitFAIL, FULLне заявляется. Canonical finalStop и3lifecycleflagsOFF подтверждены; sampler2637samples/13identities штатно завершён. Остаток native-бюджета не использовался.
+
+Финальный scope guard: MANIFEST11 exact, foreign dirt guard, exactallowlist, `git diff --check`, две отдельные полные rg-проверки mojibake и escapedCyrillic/XML. `Build-Readback016` сверяет полные локальные bytes с GitblobSHA1 (raw/LF по реальному blob), затем GitHub `fetch_file(encoding=base64,ref=immutableSHA)` независимо сверяет все30полных тел/SHA256/bytecount/blobSHA. Connector branchref, commitparent/tree и comparepaths проверяются отдельно. Окончательный внешний FINAL_GITHUB_READBACK016_G2.json снимает self-reference; старый FINAL_GITHUB_READBACK016.json не изменяется. Результат/manualREQUIRED и никакого nextGoal.
+
+---
+
+Исторический журнал первой попытки016:
+
 # Команды016 и полномочия
 
 Git использован. Основание: прямое разрешение владельца на bounded inspection/актуализацию чистого SOURCE, scoped commits и обычный non-force push только feature/phantom-world; root AGENTS допускает scope guard. Новые ветки/worktrees/clones, reset/clean/stash/restore, force push и изменение истории не выполнялись.

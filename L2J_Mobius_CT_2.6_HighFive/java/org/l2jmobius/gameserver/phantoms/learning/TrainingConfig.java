@@ -92,6 +92,14 @@ public final class TrainingConfig
 
 	public String text(String key, String fallback) { return _values.getOrDefault(key, fallback); }
 	public String sha256() { return _sha; }
+	public boolean preparationCompatible016(Map<String, Object> parent)
+	{
+		final var before = new java.util.TreeMap<String, String>();
+		for (var entry : parent.entrySet()) { if (!(entry.getValue() instanceof String value)) { return false; } before.put(entry.getKey(), value); }
+		final var after = new java.util.TreeMap<>(_values);
+		for (String identity : List.of("autonomous009Campaign", "outcome006DatasetId", "autonomous009Phase", "autonomous009Enabled", "outcome006Enabled")) { before.remove(identity); after.remove(identity); }
+		return before.equals(after);
+	}
 	public int integer(String key, int fallback, int minimum, int maximum)
 	{ return (int) longValue(key, fallback, minimum, maximum); }
 	public long longValue(String key, long fallback, long minimum, long maximum)
@@ -132,8 +140,8 @@ public final class TrainingConfig
 		if (incremental016 && (!loop013 || integer("episodesPerBatch", 48, 48, 256) != 51
 			|| !text("autonomous009EvaluationOnly", "false").equals("false") || text("autonomous009Phase", "OFF").equals("EVAL")
 			|| integer("evaluationOutcomeVersion", 1, 1, 2) != 1 || integer("autonomous009CycleLimit", 0, 0, 1000000) != 1
-			|| !text("autonomous009Campaign", "").equals("autonomous009-learning016-v1")
-			|| !text("outcome006DatasetId", "").equals("autonomous009-learning016-v1-c000001")
+			|| !Set.of("autonomous009-learning016-v1", "autonomous009-learning016-g2-v1").contains(text("autonomous009Campaign", ""))
+			|| !text("outcome006DatasetId", "").equals(text("autonomous009Campaign", "") + "-c000001")
 			|| !text("autonomous009AcceptanceSmoke", "false").equals("true")))
 		{ throw new IllegalArgumentException("TRAIN016_FIXED_51_TRAIN_ONLY_CAMPAIGN_REQUIRED"); }
 		if (incremental016) { integer("autonomous009SmokeMaxStarts", 3, 1, 3); integer("autonomous009SmokeMaxNativeMinutes", 75, 1, 75); }

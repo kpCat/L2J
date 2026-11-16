@@ -68,29 +68,43 @@ function Assert-TrainReadinessMode016($Values,[int]$Session) {
     if(Test-TrainIncremental016 $Values){
         Assert-TrainConfig $Values
         if($Session -notin @(0,1,2,3) -or ($Action -ceq 'Prepare' -and $Session -eq 0)){throw 'TRAIN016_BOUNDED_READINESS_REQUIRED'}
+        if($Values.autonomous009Campaign -ceq 'autonomous009-learning016-g2-v1' -and $Session -gt 0 -and $Session -notin @(2,3)){throw 'TRAIN016_GENERATION2_REQUIRES_REMAINING_SESSIONS'}
     }
 }
-function Get-TrainReadinessWindow016([int]$Session,[object[]]$Prior,[datetime]$Now=[DateTime]::UtcNow) {
+function Get-TrainReadinessWindow016([int]$Session,[object[]]$Prior,[datetime]$Now=[DateTime]::UtcNow,[long]$HistoricalExtraMillis=0) {
     $rows=@($Prior|Where-Object {$null -ne $_});$elapsed=0L;$ordinal=0
     if($Session -lt 1 -or $Session -gt 3 -or $rows.Count -ne $Session-1){throw 'TRAIN016_READINESS_ORDINAL_OR_REPLAY'}
+    if($HistoricalExtraMillis -notin @(0L,100160L) -or ($Session -eq 1 -and $HistoricalExtraMillis -ne 0)){throw 'TRAIN016_HISTORICAL_CHARGE_CHANGED'}
     foreach($row in $rows){
         $ordinal++
         if($row.schemaVersion -ne 16 -or $row.session -ne $ordinal -or !$row.ownedWorkerAbsent -or !$row.sqlAbsent -or !$row.withinCap -or
            [long]$row.elapsedMillis -lt 0 -or [long]$row.elapsedMillis -gt 600000L -or ([datetime]$row.finishedUtc).ToUniversalTime() -gt $Now.ToUniversalTime()){throw 'TRAIN016_PRIOR_EXIT_OR_CAP'}
         $elapsed+=[long]$row.elapsedMillis
     }
+    $elapsed+=$HistoricalExtraMillis
     $maximum=[int][Math]::Min(600,[Math]::Floor((1800000L-$elapsed)/1000))
     if($maximum -le 210){throw 'TRAIN016_HEADLESS_BUDGET_EXHAUSTED'}
-    return [pscustomobject]@{schemaVersion=13;goalVersion=16;session=$Session;nonce=[guid]::NewGuid().ToString('N');issuedUtc=$Now.ToUniversalTime().ToString('o');hardDeadlineUtc=$Now.ToUniversalTime().AddSeconds($maximum).ToString('o');maximumSeconds=$maximum;priorElapsedMillis=$elapsed;drainReserveSeconds=210;trainingCredit=$false}
+    return [pscustomobject]@{schemaVersion=13;goalVersion=16;session=$Session;nonce=[guid]::NewGuid().ToString('N');issuedUtc=$Now.ToUniversalTime().ToString('o');hardDeadlineUtc=$Now.ToUniversalTime().AddSeconds($maximum).ToString('o');maximumSeconds=$maximum;priorElapsedMillis=$elapsed;historicalExtraMillis=$HistoricalExtraMillis;drainReserveSeconds=210;trainingCredit=$false}
 }
 function Save-TrainReadinessControl016([string]$PassRoot,[int]$Session) {
     if($Session -eq 1){return}
-    $scope=Join-Path $layout.Root 'autonomous\v1\campaigns\autonomous009-learning016-v1\cohorts\autonomous009-learning016-v1-c000001'
+    $scope=Join-Path $layout.Root ('autonomous\v1\campaigns\'+$script:Config.autonomous009Campaign+'\cohorts\'+$script:Config.outcome006DatasetId)
+    $fromParent=$Session -eq 2 -and $script:Config.autonomous009Campaign -ceq 'autonomous009-learning016-g2-v1'
+    if($fromParent){
+        if(Test-Path -LiteralPath (Join-Path $scope 'headless-operation013.json')){throw 'TRAIN016_GENERATION2_SESSION_ALREADY_EXISTS'}
+        $scope=Join-Path $layout.Root 'autonomous\v1\campaigns\autonomous009-learning016-v1\cohorts\autonomous009-learning016-v1-c000001'
+    }
     if(Test-Path -LiteralPath (Join-Path $scope 'cohort016.complete.json')){throw 'TRAIN016_ALREADY_SEALED_NO_MORE_READINESS'}
     $old=Read-TrainJson (Join-Path $scope 'headless-operation013.json')
     if($old.goalVersion -ne 16 -or $old.session -ne $Session-1 -or !$old.exitProven -or !$old.worker -or !(Test-TrainProcessAbsent $old.worker) -or !(Test-TrainExitReceipt $layout $old.worker)){throw 'TRAIN016_PREVIOUS_WORKER_EXIT_UNPROVEN'}
     $sql=Read-TrainJson (Join-Path $layout.Sql 'owned-process.json')
     if(!(Test-TrainProcessAbsent $sql) -or !(Test-TrainExitReceipt $layout $sql)){throw 'TRAIN016_PREVIOUS_SQL_EXIT_UNPROVEN'}
+    if($fromParent){
+        $issued=Read-TrainJson (Join-Path $layout.Root 'autonomous\v16\generation2-issued.json')
+        if($issued.schema -cne 'TRAIN016_GENERATION2_ISSUED_V1' -or $issued.campaign -cne $script:Config.autonomous009Campaign -or $issued.dataset -cne $script:Config.outcome006DatasetId -or $old.status -cne 'ERROR'){throw 'TRAIN016_GENERATION2_PARENT_CONTROL_CHANGED'}
+        Assert-TrainHash (Join-Path $scope 'headless-operation013.json') $issued.parentFiles.'headless-operation013.json'
+        return # The original campaign controls are immutable; no archive/remove/rewrite.
+    }
     $ownerSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'owner.txt')).Hash
     $backup=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ('PhantomLearning016\control-backups\'+$ownerSha+'\session'+($Session-1))
     if(!(Test-Path -LiteralPath $backup)){
@@ -154,7 +168,7 @@ function Read-TrainSourceConfig {
         }
         if((Test-TrainIncremental016 $values) -and $Action -ceq 'Prepare'){$values.autonomous009Enabled='true';$values.outcome006Enabled='true';$values.autonomous009Phase='PREPARE'}
         if((Test-TrainIncremental016 $values) -and $Action -cin @('Start','Resume')){
-            $seal=Join-Path $layout.Root 'autonomous\v1\campaigns\autonomous009-learning016-v1\cohorts\autonomous009-learning016-v1-c000001\cohort016.complete.json'
+            $seal=Join-Path $layout.Root ('autonomous\v1\campaigns\'+$values.autonomous009Campaign+'\cohorts\'+$values.outcome006DatasetId+'\cohort016.complete.json')
             if(!(Test-Path -LiteralPath $seal)){throw 'TRAIN016_G3_REQUIRED_BEFORE_START'}
         }
         Assert-TrainReadinessMode016 $values $Readiness016Session
@@ -1861,7 +1875,8 @@ try {
                                 Assert-TrainHash (Join-Path $budgetRoot ('session'+$priorOrdinal+'-issued.json')) $prior.issuedSha
                                 $priorResults+=@($prior)
                             }}
-                            $pass=Get-TrainReadinessWindow016 $script:ReadinessSession $priorResults
+                            $extra016=if($script:Config.autonomous009Campaign -ceq 'autonomous009-learning016-g2-v1'){100160L}else{0L}
+                            $pass=Get-TrainReadinessWindow016 $script:ReadinessSession $priorResults -HistoricalExtraMillis $extra016
                             Save-TrainReadinessControl016 $passRoot $script:ReadinessSession
                             $pass|Add-Member configSha $configSha;$pass|Add-Member jarSha $jar
                             Write-TrainJson $issuedPath014 $pass;Write-TrainJson $passPath $pass

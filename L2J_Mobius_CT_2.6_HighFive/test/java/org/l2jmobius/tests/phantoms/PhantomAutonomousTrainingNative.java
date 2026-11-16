@@ -73,17 +73,25 @@ public final class PhantomAutonomousTrainingNative
 	{
 		private final Path path;
 		private final String pinsSha;
+		private final boolean readOnly;
+		private final boolean generationLink;
+		private final String parentLinkSha;
 		private Map<String, Object> state = Map.of();
 		private int count;
 		private int pairs;
 		private String last = "";
 		Journal016(Path path, Map<String, Object> pins) throws Exception
+		{ this(path, pins, false); }
+		Journal016(Path path, Map<String, Object> pins, boolean readOnly) throws Exception
 		{
 			if (!"TRAIN016_INCREMENTAL_PRECUT_V1".equals(pins.get("schema"))) { throw new IllegalStateException("TRAIN016_FOREIGN_PROTOCOL"); }
-			this.path = path; Files.createDirectories(path);
+			this.path = path; this.readOnly = readOnly; generationLink = pins.containsKey("parentLinkSha"); if (!readOnly) { Files.createDirectories(path); }
+			parentLinkSha = String.valueOf(pins.getOrDefault("parentLinkSha", ""));
+			if (generationLink && !parentLinkSha.matches("[a-f0-9]{64}")) { throw new IllegalStateException("TRAIN016_PARENT_LINK_CODEC"); }
 			if (!path.equals(path.toRealPath())) { throw new IllegalStateException("TRAIN016_JOURNAL_REPARSE"); }
 			final String contract = json016(pins); pinsSha = hash(contract);
-			atomic016(path.resolve("contract016.json"), contract, false);
+			if (readOnly) { if (!Files.readString(path.resolve("contract016.json")).equals(contract)) { throw new IllegalStateException("TRAIN016_PARENT_CONTRACT_CHANGED"); } }
+			else { atomic016(path.resolve("contract016.json"), contract, false); }
 			final List<Path> entries;
 			try (var files = Files.list(path))
 			{
@@ -102,6 +110,8 @@ public final class PhantomAutonomousTrainingNative
 				{ throw new IllegalStateException("TRAIN016_TRANSITION_CHAIN_CHANGED"); }
 				bindings016(path.getParent(), PhantomEvaluationReplayV2.map(raw.get("files")));
 				final var next = PhantomEvaluationReplayV2.map(raw.get("state")); final String phase = PhantomEvaluationReplayV2.string(raw, "phase");
+				if (count == 0 && generationLink && !phase.equals("GENERATION_IMPORTED")) { throw new IllegalStateException("TRAIN016_GENERATION_GENESIS_REQUIRED"); }
+				if (phase.equals("GENERATION_IMPORTED") && (!generationLink || !parentLinkSha.equals(PhantomEvaluationReplayV2.map(raw.get("files")).get("generation016.json")))) { throw new IllegalStateException("TRAIN016_GENERATION_DESCRIPTOR_NOT_PINNED"); }
 				transition016(path.getParent(), state, next, phase, PhantomEvaluationReplayV2.map(raw.get("files"))); if (phase.equals("PAIRED_PRECUT")) { pairs++; }
 				state = next; count++; last = sha; hashes.add(sha);
 			}
@@ -109,17 +119,20 @@ public final class PhantomAutonomousTrainingNative
 			if (Files.exists(head))
 			{
 				final var raw = PhantomEvaluationReplayV2.object(head); final int n = PhantomEvaluationReplayV2.integer(raw, "count");
-				if (n < 0 || n > count || count - n > 1 || !hashes.get(n).equals(raw.get("lastSha")) || !pinsSha.equals(raw.get("pinsSha")))
+				if (n < 0 || n > count || count - n > (readOnly ? 0 : 1) || !hashes.get(n).equals(raw.get("lastSha")) || !pinsSha.equals(raw.get("pinsSha")))
 				{ throw new IllegalStateException("TRAIN016_JOURNAL_HEAD_CHANGED"); }
 			}
 			else if (count != 0) { throw new IllegalStateException("TRAIN016_JOURNAL_HEAD_MISSING"); }
-			writeHead();
+			if (!readOnly) { writeHead(); }
 		}
 		private void writeHead() throws Exception
 		{ atomic016(path.resolve("head016.json"), json016(Map.of("count", count, "lastSha", last, "pinsSha", pinsSha)), true); }
 		void append(String phase, Map<String, Object> next, Map<String, Object> files) throws Exception
 		{
-			if (count >= 8192 || !Set.of("STATE", "PROPOSED", "STOCK_READY_PRECUT", "PAIRED_PRECUT", "STALE_OR_REFUSED").contains(phase)) { throw new IllegalStateException("TRAIN016_TRANSITION_BOUND"); }
+			if (readOnly) { throw new IllegalStateException("TRAIN016_PARENT_READ_ONLY"); }
+			if (count == 0 && generationLink && !phase.equals("GENERATION_IMPORTED")) { throw new IllegalStateException("TRAIN016_GENERATION_GENESIS_REQUIRED"); }
+			if (phase.equals("GENERATION_IMPORTED") && (!generationLink || !parentLinkSha.equals(files.get("generation016.json")))) { throw new IllegalStateException("TRAIN016_GENERATION_DESCRIPTOR_NOT_PINNED"); }
+			if (count >= 8192 || !Set.of("STATE", "PROPOSED", "STOCK_READY_PRECUT", "PAIRED_PRECUT", "STALE_OR_REFUSED", "GENERATION_IMPORTED").contains(phase)) { throw new IllegalStateException("TRAIN016_TRANSITION_BOUND"); }
 			bindings016(path.getParent(), files);
 			transition016(path.getParent(), state, next, phase, files);
 			final String body = json016(PhantomEvaluationOutcomeV2.fields("schema", "TRAIN016_TRANSITION_V1", "phase", phase,
@@ -130,8 +143,23 @@ public final class PhantomAutonomousTrainingNative
 	}
 	private static void transition016(Path base, Map<String, Object> before, Map<String, Object> after, String phase, Map<String, Object> files) throws Exception
 	{
-		if (!Set.of("STATE", "PROPOSED", "STOCK_READY_PRECUT", "PAIRED_PRECUT", "STALE_OR_REFUSED").contains(phase) || number016(after, "sequence") < 0 || number016(after, "sequence") > 48 || strings016(after, "refusalSamples").size() > 128) { throw new IllegalStateException("TRAIN016_INVALID_SELECTION_STATE"); }
+		if (!Set.of("STATE", "PROPOSED", "STOCK_READY_PRECUT", "PAIRED_PRECUT", "STALE_OR_REFUSED", "GENERATION_IMPORTED").contains(phase) || number016(after, "sequence") < 0 || number016(after, "sequence") > 48 || strings016(after, "refusalSamples").size() > 128) { throw new IllegalStateException("TRAIN016_INVALID_SELECTION_STATE"); }
 		final var oldRows = strings016(before, "rows"); final var rows = strings016(after, "rows");
+		if (phase.equals("GENERATION_IMPORTED"))
+		{
+			final var descriptor = PhantomEvaluationReplayV2.object(base.resolve("generation016.json"));
+			if (!before.isEmpty() || !rows.isEmpty() || !files.keySet().equals(Set.of("generation016.json")) || after.containsKey("attempt") || !descriptor.get("parentStateSha").equals(after.get("parentStateSha")) || !descriptor.get("configSha").equals(after.get("configSha"))) { throw new IllegalStateException("TRAIN016_GENERATION_GENESIS_CHANGED"); }
+			final var parent = PhantomEvaluationReplayV2.map(descriptor.get("parentState"));
+			for (String logical : List.of("sequence", "pendingIndex", "visits", "cursors", "sceneCounts", "rosterVisits", "refusalCounts", "refusalSamples"))
+			{ if (!json016(parent.get(logical)).equals(json016(after.get(logical)))) { throw new IllegalStateException("TRAIN016_GENERATION_LOGICAL_STATE_CHANGED"); } }
+			final var oldPending = strings016(parent, "pendingRows"); final var newPending = strings016(after, "pendingRows");
+			if (oldPending.size() != newPending.size()) { throw new IllegalStateException("TRAIN016_GENERATION_PENDING_ORDER_CHANGED"); }
+			for (int index = 0; index < oldPending.size(); index++)
+			{
+				final String oldRow = oldPending.get(index), newRow = newPending.get(index);
+				if (!oldRow.substring(0, oldRow.lastIndexOf('\t')).equals(newRow.substring(0, newRow.lastIndexOf('\t'))) || !newRow.endsWith("\t" + hash(EncounterAdmissionV1.VERSION + "/" + after.get("configSha")))) { throw new IllegalStateException("TRAIN016_GENERATION_PENDING_ORDER_CHANGED"); }
+			}
+		}
 		if (!phase.equals("PAIRED_PRECUT")) { if (!oldRows.equals(rows)) { throw new IllegalStateException("TRAIN016_ROWS_WITHOUT_COMPLETE_PAIR"); } return; }
 		final var pending = strings016(before, "pendingRows"); final int index = Math.toIntExact(number016(before, "pendingIndex"));
 		if (rows.size() != oldRows.size() + 1 || rows.size() > 3 || !rows.subList(0, oldRows.size()).equals(oldRows) || index < 0 || index >= pending.size() || !pending.get(index).equals(rows.getLast())
@@ -176,6 +204,59 @@ public final class PhantomAutonomousTrainingNative
 	}
 	private static String json016(Object value) { return PhantomEvaluationOutcomeV2.jsonValue(canonical016(value)); }
 	private static boolean incremental016(TrainingConfig config) { return config.integer("autonomous016Version", 0, 0, 1) == 1; }
+	private static boolean generation2of016(TrainingConfig config) { return incremental016(config) && config.text("autonomous009Campaign", "").equals("autonomous009-learning016-g2-v1"); }
+	private static void initializeGeneration016(Journal016 journal, Path root, List<Source> sources, TrainingConfig config) throws Exception
+	{
+		if (!journal.state.isEmpty()) { return; }
+		final var descriptor = generationParent016(root, config, pins016(root, sources, config));
+		final Path file = journal.path.getParent().resolve("generation016.json"); atomic016(file, json016(descriptor), false);
+		final var parent = PhantomEvaluationReplayV2.map(descriptor.get("parentState")); final var pending = new ArrayList<Cell>();
+		for (String row : strings016(parent, "pendingRows"))
+		{
+			final String[] fields = row.split("\t", -1);
+			if (fields.length != 16 || !fields[15].equals(hash(EncounterAdmissionV1.VERSION + "/" + parent.get("configSha")))) { throw new IllegalStateException("TRAIN016_PARENT_PENDING_PROTOCOL_CHANGED"); }
+			fields[15] = hash(EncounterAdmissionV1.VERSION + "/" + config.sha256()); pending.add(cellFromRow016(String.join("\t", fields), sources, config));
+		}
+		final var imported = new LinkedHashMap<>(parent); imported.remove("attempt"); imported.put("configSha", config.sha256());
+		imported.put("pendingRows", pending.stream().map(cell -> cellRow016(cell, config)).toList());
+		imported.put("proposalShas", pending.stream().collect(java.util.stream.Collectors.toMap(Cell::key, cell -> encounterProposal(cell, config).fingerprint())));
+		imported.put("parentStateSha", descriptor.get("parentStateSha"));
+		journal.append("GENERATION_IMPORTED", imported, Map.of("generation016.json", NeuralPolicy.sha256(Files.readAllBytes(file))));
+	}
+	private static Map<String, Object> generationParent016(Path root, TrainingConfig config, Map<String, Object> current) throws Exception
+	{
+		if (!generation2of016(config)) { throw new IllegalStateException("TRAIN016_GENERATION2_IDENTITY_REQUIRED"); }
+		final Path issuedPath = root.resolve("autonomous/v16/generation2-issued.json"); final var issued = PhantomEvaluationReplayV2.object(issuedPath);
+		if (!issuedPath.equals(issuedPath.toRealPath()) || !"TRAIN016_GENERATION2_ISSUED_V1".equals(issued.get("schema")) || !config.text("autonomous009Campaign", "").equals(issued.get("campaign")) || !config.text("outcome006DatasetId", "").equals(issued.get("dataset"))) { throw new IllegalStateException("TRAIN016_GENERATION2_ISSUANCE_CHANGED"); }
+		final Path parent = root.resolve("autonomous/v1/campaigns/autonomous009-learning016-v1/cohorts/autonomous009-learning016-v1-c000001");
+		final var files = PhantomEvaluationReplayV2.map(issued.get("parentFiles")); if (files.size() != 59) { throw new IllegalStateException("TRAIN016_PARENT_FILE_COUNT"); } bindings016(parent, files);
+		try (var paths = Files.walk(parent))
+		{
+			final var actual = new HashSet<String>();
+			for (Path path : paths.toList())
+			{
+				if (!path.equals(path.toRealPath())) { throw new IllegalStateException("TRAIN016_PARENT_REPARSE"); }
+				final String relative = parent.relativize(path).toString().replace('\\', '/');
+				if (Files.isRegularFile(path)) { actual.add(relative); }
+				else if (!relative.isEmpty() && files.keySet().stream().noneMatch(name -> name.startsWith(relative + "/"))) { throw new IllegalStateException("TRAIN016_PARENT_FOREIGN_DIRECTORY"); }
+			}
+			if (!actual.equals(files.keySet())) { throw new IllegalStateException("TRAIN016_PARENT_FILE_SET_CHANGED"); }
+		}
+		final Path directorPath = root.resolve("autonomous/v16/campaigns/autonomous009-learning016-v1/director-state.json"), basePath = directorPath.resolveSibling("base-config.json");
+		final String baseSha = NeuralPolicy.sha256(Files.readAllBytes(basePath)), directorSha = NeuralPolicy.sha256(Files.readAllBytes(directorPath));
+		if (!basePath.equals(basePath.toRealPath()) || !directorPath.equals(directorPath.toRealPath()) || !baseSha.equals(issued.get("parentBaseSha")) || !directorSha.equals(issued.get("parentDirectorSha"))) { throw new IllegalStateException("TRAIN016_PARENT_DIRECTOR_CHANGED"); }
+		final var director = PhantomEvaluationReplayV2.object(directorPath); final var base = PhantomEvaluationReplayV2.object(basePath);
+		if (!"autonomous009-learning016-v1".equals(director.get("campaign")) || !baseSha.equalsIgnoreCase(String.valueOf(director.get("configSha"))) || !config.preparationCompatible016(base)) { throw new IllegalStateException("TRAIN016_PARENT_CONFIG_INCOMPATIBLE"); }
+		final var oldPins = PhantomEvaluationReplayV2.object(parent.resolve("incremental016/contract016.json"));
+		final var old = new Journal016(parent.resolve("incremental016"), oldPins, true);
+		if (old.pairs != 0 || !strings016(old.state, "rows").isEmpty() || Files.exists(parent.resolve("cohort016.complete.json")) || !NeuralPolicy.sha256(Files.readAllBytes(parent.resolve("incremental016/head016.json"))).equals(issued.get("parentHeadSha"))) { throw new IllegalStateException("TRAIN016_PARENT_NOT_FAILED_UNSEALED_ZERO_PAIRS"); }
+		if (!"autonomous009-learning016-v1".equals(oldPins.get("campaign")) || !"autonomous009-learning016-v1-c000001".equals(oldPins.get("dataset")) || !old.state.get("configSha").equals(oldPins.get("configSha")) || !oldPins.get("configSha").equals(issued.get("parentCollectConfigSha")) || !PhantomEvaluationReplayV2.map(director.get("parentCheckpoint")).get("optimizerSha").equals(oldPins.get("parentAdamSha"))) { throw new IllegalStateException("TRAIN016_PARENT_IDENTITY_CHANGED"); }
+		for (String pin : List.of("owner.txt", "geo203.json", "protected207.json", "seed", "modelSha", "parentAdamSha", "sources"))
+		{ if (!json016(oldPins.get(pin)).equals(json016(current.get(pin)))) { throw new IllegalStateException("TRAIN016_PARENT_PHYSICAL_OR_SOURCE_INCOMPATIBLE"); } }
+		return PhantomEvaluationOutcomeV2.fields("schema", "TRAIN016_FROZEN_GENERATION_V1", "campaign", config.text("autonomous009Campaign", ""), "dataset", config.text("outcome006DatasetId", ""), "configSha", config.sha256(),
+			"parentCampaign", oldPins.get("campaign"), "parentDataset", oldPins.get("dataset"), "issuedSha", NeuralPolicy.sha256(Files.readAllBytes(issuedPath)), "parentHeadSha", issued.get("parentHeadSha"), "parentLastSha", old.last,
+			"parentStateSha", hash(json016(old.state)), "parentState", old.state, "parentFiles", files, "parentBaseSha", baseSha, "parentDirectorSha", directorSha, "importedPairs", 0, "trainingCredit", false);
+	}
 	private static boolean physicalRiskContract016(boolean evaluation, TrainingConfig config) { return evaluation || incremental016(config); }
 	private static Path physicalRiskPin016(boolean evaluation, boolean party, Path directory, String cell, TrainingConfig config)
 	{ return physicalRiskContract016(evaluation, config) && party ? directory.resolve(cell + ".risk.tsv") : null; }
@@ -241,8 +322,8 @@ public final class PhantomAutonomousTrainingNative
 		{ for (Path file : entries.filter(Files::isRegularFile).toList()) { files.put(directory.relativize(file).toString().replace('\\', '/'), NeuralPolicy.sha256(Files.readAllBytes(file))); } }
 		bindings016(directory, files); return files;
 	}
-	private static Map<String, Object> parentCheckpoint016(Path root) throws Exception
-	{ return PhantomEvaluationReplayV2.map(PhantomEvaluationReplayV2.object(root.resolve("autonomous/v16/campaigns/autonomous009-learning016-v1/director-state.json")).get("parentCheckpoint")); }
+	private static Map<String, Object> parentCheckpoint016(Path root, TrainingConfig config) throws Exception
+	{ return PhantomEvaluationReplayV2.map(PhantomEvaluationReplayV2.object(root.resolve("autonomous/v16/campaigns/" + config.text("autonomous009Campaign", "") + "/director-state.json")).get("parentCheckpoint")); }
 	private static void requirePairFresh016(List<EvaluationArm> arms)
 	{
 		if (arms.size() != 2 || arms.getFirst().physical().isEmpty() || !arms.getFirst().physical().equals(arms.getLast().physical())
@@ -260,6 +341,7 @@ public final class PhantomAutonomousTrainingNative
 		final var files = new java.util.TreeMap<String, Object>();
 		for (String name : List.of("cells.tsv", "training-admission013.json", "schedule.tsv", "planning-refusals.json", "scene-catalog-counts.json", "source-coverage.json"))
 		{ files.put(name, NeuralPolicy.sha256(Files.readAllBytes(directory.resolve(name)))); }
+		if (generation2of016(config)) { files.put("generation016.json", NeuralPolicy.sha256(Files.readAllBytes(directory.resolve("generation016.json")))); }
 		try (var entries = Files.list(directory))
 		{ for (Path file : entries.filter(p -> p.getFileName().toString().matches("[a-f0-9]{64}\\.(?:source|inventory)\\.json")).toList()) { files.put(file.getFileName().toString(), NeuralPolicy.sha256(Files.readAllBytes(file))); } }
 		try (var entries = Files.list(journalPath))
@@ -273,6 +355,7 @@ public final class PhantomAutonomousTrainingNative
 		final var allowed = cohortNames016(directory, journal, config);
 		try (var entries = Files.list(directory))
 		{ for (Path work : entries.filter(p -> p.getFileName().toString().matches("[a-f0-9]{64}")).toList()) { if (allowed.contains(work.getFileName().toString())) { files.putAll(workBindings016(directory, work)); } } }
+		if (generation2of016(config) && (!contract.get("parentLinkSha").equals(files.get("generation016.json")) || !contract.get("parentLinkSha").equals(hash(json016(generationParent016(configPathRoot016(directory), config, contract)))))) { throw new IllegalStateException("TRAIN016_GENERATION_LINK_CHANGED"); }
 		bindings016(directory, files);
 		final String manifest = json016(PhantomEvaluationOutcomeV2.fields("schema", "TRAIN016_INCREMENTAL_PRECUT_V1", "configSha", config.sha256(), "pinsSha", journal.pinsSha,
 			"cells", cells.size(), "classes", cells.stream().map(c -> c.proposal().actor().classId()).distinct().count(), "scopes", 2, "slots", 51, "files", files, "trainingCredit", false, "afterCut", false));
@@ -293,6 +376,7 @@ public final class PhantomAutonomousTrainingNative
 		cohortNames016(directory, journal, config);
 		if (journal.pairs != 3 || !journal.pinsSha.equals(raw.get("pinsSha")) || !config.sha256().equals(contract.get("configSha")) || !strings016(journal.state, "pendingRows").isEmpty() || strings016(journal.state, "rows").size() != 3) { throw new IllegalStateException("TRAIN016_SEAL_CONTRACT_CHANGED"); }
 		final Path root = configPathRoot016(directory);
+		if (generation2of016(config) && (!hash(json016(generationParent016(root, config, contract))).equals(contract.get("parentLinkSha")) || !contract.get("parentLinkSha").equals(files.get("generation016.json")))) { throw new IllegalStateException("TRAIN016_GENERATION_LINK_CHANGED"); }
 		for (String name : List.of("owner.txt", "geo203.json", "protected207.json", "build.json", "game/libs/GameServer.jar"))
 		{ if (!root.resolve(name).equals(root.resolve(name).toRealPath()) || !NeuralPolicy.sha256(Files.readAllBytes(root.resolve(name))).equals(contract.get(name))) { throw new IllegalStateException("TRAIN016_STALE_RUNTIME_PIN"); } }
 		final var admission = PhantomEvaluationReplayV2.object(directory.resolve("training-admission013.json"));
@@ -308,6 +392,7 @@ public final class PhantomAutonomousTrainingNative
 		final var allowed = new HashSet<>(List.of("cells.tsv", "training-admission013.json", "schedule.tsv", "planning-refusals.json", "scene-catalog-counts.json", "source-coverage.json",
 			"cohort016.json", "cohort016.complete.json", "incremental016", "headless-operation013.json", "headless-result013.json", "headless-recovery013.json",
 			"preparation-cost014.json", "preparation-cost014.jsonl", "stop.request", "pause.request", "protocol.json", "collection.complete", "samples"));
+		if (generation2of016(config)) { allowed.add("generation016.json"); }
 		final var contract = PhantomEvaluationReplayV2.object(journal.path.resolve("contract016.json"));
 		for (String source : strings016(contract, "sources")) { final String sha = source.split("/", 2)[0]; allowed.add(sha + ".source.json"); allowed.add(sha + ".inventory.json"); }
 		try (var events = Files.list(journal.path))
@@ -387,9 +472,10 @@ public final class PhantomAutonomousTrainingNative
 	private static Map<String, Object> pins016(Path root, List<Source> sources, TrainingConfig config) throws Exception
 	{
 		final var pins = new java.util.TreeMap<String, Object>(); pins.put("schema", "TRAIN016_INCREMENTAL_PRECUT_V1"); pins.put("campaign", config.text("autonomous009Campaign", "")); pins.put("dataset", config.text("outcome006DatasetId", ""));
-		pins.put("configSha", config.sha256()); pins.put("seed", config.seed()); pins.put("modelSha", config.text("autonomous009ModelSha", "")); pins.put("parentAdamSha", parentCheckpoint016(root).get("optimizerSha"));
+		pins.put("configSha", config.sha256()); pins.put("seed", config.seed()); pins.put("modelSha", config.text("autonomous009ModelSha", "")); pins.put("parentAdamSha", parentCheckpoint016(root, config).get("optimizerSha"));
 		for (String name : List.of("owner.txt", "geo203.json", "protected207.json", "build.json", "game/libs/GameServer.jar")) { final Path file = root.resolve(name); if (!file.equals(file.toRealPath())) { throw new IllegalStateException("TRAIN016_PIN_REPARSE"); } pins.put(name, NeuralPolicy.sha256(Files.readAllBytes(file))); }
 		pins.put("sources", sources.stream().map(s -> s.image().sha() + "/" + s.image().physicalFingerprint() + "/" + s.inventory().fingerprint() + "/" + s.seed().classId() + "/" + s.seed().classIndex() + "/" + s.seed().level()).toList());
+		if (generation2of016(config)) { pins.put("parentLinkSha", hash(json016(generationParent016(root, config, pins)))); }
 		return pins;
 	}
 	private static void commitPair016(Cell cell, Map<String, Object> files) throws Exception
@@ -551,6 +637,7 @@ public final class PhantomAutonomousTrainingNative
 			final var scene = new PhantomTrainingScenarios.Scene(hash("scene/" + i), (20000 + i) + "@DB_FREE_NOT_NATIVE", 20000 + i, source.seed().classId(), 77, "NONE", 0, 100 + i, 200, 300, List.of(7001, 7002), "UNASSIGNED");
 			cells.add(new Cell(hash("cell/" + i), proposal, i == 1 ? List.copyOf(sources) : List.of(source), scene, 500 + i, 600, 700));
 		}
+		generationFixture016(root, sources, cells, config);
 		final var pins = pins016(root, sources, config); Journal016 journal = new Journal016(directory.resolve("incremental016"), pins);
 		final var visits = new HashMap<String, Long>(); final var cursors = new HashMap<String, Long>(); final var scenes = new HashMap<String, Long>(); final var rosters = new HashMap<String, Long>(); final var refusals = new Refusals(); refusals.add("SYNTHETIC_REFUSAL");
 		for (int i = 0; i < 3; i++)
@@ -606,6 +693,58 @@ public final class PhantomAutonomousTrainingNative
 		Files.writeString(work.resolve("result.json"), "changed"); refused016(() -> reserveSlot016(directory, work, slot, id, "d".repeat(32)), "TRAIN016_CHANGED_SETTLEMENT_ACCEPTED");
 		final Path orphan = Files.createDirectory(directory.resolve(hash("orphan"))); refused016(() -> reserveSlot016(directory, orphan, slot, id, "e".repeat(32)), "TRAIN016_DIRECTORY_BECAME_RESERVATION");
 		if (DatabaseFactory.isInitialized()) { throw new AssertionError("TRAIN016_FIXTURE_TOUCHED_SQL"); }
+	}
+	private static void generationFixture016(Path original, List<Source> sources, List<Cell> cells, TrainingConfig parentConfig) throws Exception
+	{
+		final Path root = Files.createDirectory(original.resolveSibling("generation-fixture"));
+		try (var files = Files.walk(original))
+		{ for (Path file : files.filter(Files::isRegularFile).toList()) { final Path copy = root.resolve(original.relativize(file)); Files.createDirectories(copy.getParent()); Files.copy(file, copy); } }
+		final Path parent = cohort(root, parentConfig), parentDirector = root.resolve("autonomous/v16/campaigns/autonomous009-learning016-v1");
+		final var settings = new java.util.TreeMap<String, Object>(); Files.readAllLines(root.resolve("TRAIN_CONFIG.ini")).forEach(line -> { final int equals = line.indexOf('='); if (equals > 0) { settings.put(line.substring(0, equals), line.substring(equals + 1)); } });
+		Files.writeString(parentDirector.resolve("base-config.json"), json016(settings));
+		Files.writeString(parentDirector.resolve("director-state.json"), json016(Map.of("campaign", "autonomous009-learning016-v1", "configSha", hash(json016(settings)).toUpperCase(java.util.Locale.ROOT), "parentCheckpoint", Map.of("optimizerSha", "e".repeat(64)))));
+		final var old = new Journal016(parent.resolve("incremental016"), pins016(root, sources, parentConfig)); final var refusals = new Refusals(); refusals.add("PARENT_REFUSAL");
+		old.append("PROPOSED", state016(1, List.of(), cells.subList(0, 2), 0, Map.of("class/94", 2L), Map.of(cells.getFirst().proposal().shortlistKey(), 8L), Map.of("seen", 7L), Map.of("roster", 3L), refusals, parentConfig), Map.of());
+		final var raw = fixtureArms016(parent, cells.getFirst(), parentConfig, 50); final String first = raw.keySet().stream().filter(k -> k.endsWith("/admission-only.json")).sorted().findFirst().orElseThrow().substring(0, 64);
+		final var stock = new java.util.TreeMap<String, Object>(); raw.forEach((k, v) -> { if (k.startsWith(first + "/")) { stock.put(k, v); } }); old.append("STOCK_READY_PRECUT", old.state, stock);
+		final var readOnly = new Journal016(parent.resolve("incremental016"), pins016(root, sources, parentConfig), true);
+		refused016(() -> readOnly.append("STATE", old.state, Map.of()), "TRAIN016_READ_ONLY_PARENT_ACCEPTED_APPEND");
+		for (int n = 0; ; n++) { final long count; try (var files = Files.walk(parent)) { count = files.filter(Files::isRegularFile).count(); } if (count >= 59) { if (count != 59) { throw new AssertionError("TRAIN016_PARENT_FIXTURE_SIZE"); } break; } Files.writeString(parent.resolve("parent-history-" + n + ".json"), "DB_FREE_HISTORY_NOT_TRAIN"); }
+		final var expected = new java.util.TreeMap<String, Object>(); try (var files = Files.walk(parent)) { for (Path file : files.filter(Files::isRegularFile).toList()) { expected.put(parent.relativize(file).toString().replace('\\', '/'), NeuralPolicy.sha256(Files.readAllBytes(file))); } }
+		final var issued = PhantomEvaluationOutcomeV2.fields("schema", "TRAIN016_GENERATION2_ISSUED_V1", "campaign", "autonomous009-learning016-g2-v1", "dataset", "autonomous009-learning016-g2-v1-c000001", "parentFiles", expected,
+			"parentHeadSha", NeuralPolicy.sha256(Files.readAllBytes(parent.resolve("incremental016/head016.json"))), "parentCollectConfigSha", parentConfig.sha256(), "parentBaseSha", NeuralPolicy.sha256(Files.readAllBytes(parentDirector.resolve("base-config.json"))), "parentDirectorSha", NeuralPolicy.sha256(Files.readAllBytes(parentDirector.resolve("director-state.json"))));
+		Files.writeString(root.resolve("autonomous/v16/generation2-issued.json"), json016(issued));
+		Files.writeString(root.resolve("TRAIN_CONFIG.ini"), Files.readString(root.resolve("TRAIN_CONFIG.ini")).replace("autonomous009-learning016-v1", "autonomous009-learning016-g2-v1"));
+		final var config = TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini")); final Path currentDirector = root.resolve("autonomous/v16/campaigns/autonomous009-learning016-g2-v1"); Files.createDirectories(currentDirector);
+		Files.writeString(currentDirector.resolve("director-state.json"), json016(Map.of("parentCheckpoint", Map.of("optimizerSha", "e".repeat(64)))));
+		final Path current = cohort(root, config); final var pins = pins016(root, sources, config); Journal016 journal = new Journal016(current.resolve("incremental016"), pins); final String headBefore = Files.readString(current.resolve("incremental016/head016.json"));
+		atomic016(current.resolve("generation016.json"), json016(generationParent016(root, config, pins)), false);
+		journal = new Journal016(current.resolve("incremental016"), pins); // Crash after link publication, before genesis.
+		initializeGeneration016(journal, root, sources, config);
+		if (number016(journal.state, "sequence") != 1 || journal.pairs != 0 || number016(PhantomEvaluationReplayV2.map(journal.state.get("visits")), "class/94") != 2 || strings016(journal.state, "pendingRows").size() != 2 || !strings016(journal.state, "refusalSamples").equals(List.of("PARENT_REFUSAL"))) { throw new AssertionError("TRAIN016_GENERATION_STATE_NOT_IMPORTED"); }
+		final String imported = json016(journal.state); atomic016(current.resolve("incremental016/head016.json"), headBefore, true);
+		final var cold = new Journal016(current.resolve("incremental016"), pins); initializeGeneration016(cold, root, sources, config);
+		if (cold.count != 1 || !json016(cold.state).equals(imported) || cold.pairs != 0) { throw new AssertionError("TRAIN016_GENERATION_CRASH_REPLAY_CHANGED_STATE"); }
+		final Path invalid = Files.createDirectories(current.resolveSibling("invalid-generation-codec"));
+		Files.copy(current.resolve("generation016.json"), invalid.resolve("generation016.json"));
+		final var invalidJournal = new Journal016(invalid.resolve("incremental016"), pins); final var invalidState = new LinkedHashMap<>(cold.state); invalidState.put("visits", Map.of("class/94", 3L));
+		final var link = Map.<String, Object>of("generation016.json", NeuralPolicy.sha256(Files.readAllBytes(invalid.resolve("generation016.json"))));
+		refused016(() -> invalidJournal.append("GENERATION_IMPORTED", invalidState, link), "TRAIN016_GENERATION_COUNTER_REWRITE_ACCEPTED");
+		refused016(() -> invalidJournal.append("STATE", cold.state, Map.of()), "TRAIN016_GENERATION_PARENT_LINK_BYPASSED");
+		final var forged = new LinkedHashMap<>(PhantomEvaluationReplayV2.object(current.resolve("generation016.json")));
+		final var forgedParent = new LinkedHashMap<>(PhantomEvaluationReplayV2.map(forged.get("parentState"))); forgedParent.put("visits", Map.of("class/94", 3L));
+		forged.put("parentState", forgedParent); forged.put("parentStateSha", hash(json016(forgedParent)));
+		final var forgedState = new LinkedHashMap<>(cold.state); forgedState.put("visits", forgedParent.get("visits")); forgedState.put("parentStateSha", forged.get("parentStateSha"));
+		Files.writeString(invalid.resolve("generation016.json"), json016(forged));
+		final var forgedLink = Map.<String, Object>of("generation016.json", hash(json016(forged)));
+		refused016(() -> invalidJournal.append("GENERATION_IMPORTED", forgedState, forgedLink), "TRAIN016_GENERATION_DESCRIPTOR_REBOUND_COUNTERS");
+		final String forgedEvent = json016(PhantomEvaluationOutcomeV2.fields("schema", "TRAIN016_TRANSITION_V1", "phase", "GENERATION_IMPORTED", "pinsSha", invalidJournal.pinsSha, "previousSha", "", "state", forgedState, "files", forgedLink, "trainingCredit", false));
+		Files.writeString(invalid.resolve("incremental016/000000-" + hash(forgedEvent) + ".json"), forgedEvent);
+		refused016(() -> new Journal016(invalid.resolve("incremental016"), pins), "TRAIN016_GENERATION_FORGED_DESCRIPTOR_REPLAYED");
+		bindings016(parent, expected);
+		final Path changed = parent.resolve("parent-history-0.json"); final byte[] preserved = Files.readAllBytes(changed); Files.writeString(changed, "CHANGED"); refused016(() -> pins016(root, sources, config), "TRAIN016_PARENT_TAMPER_ACCEPTED"); Files.write(changed, preserved);
+		refused016(() -> pins016(root, sources.reversed(), config), "TRAIN016_PARENT_SOURCE_ORDER_CHANGED");
+		bindings016(parent, expected);
 	}
 	static String comparisonCellKey(int ordinal, String sourcePhysical, String pool, boolean party, String scene, List<String> roster, boolean v2)
 	{ return hash((v2 ? "cell/v2/" : "cell/" + ordinal + "/") + sourcePhysical + "/" + pool + "/" + party + "/" + scene + (v2 ? "/roster/" + roster : "")); }
@@ -1403,7 +1542,11 @@ public final class PhantomAutonomousTrainingNative
 		final Journal016 journal = incremental016(config) && nativeAdmission != null ? new Journal016(directory.resolve("incremental016"), pins016(PhantomTrainingActors.physicalRoot(configPathRoot016(directory)), sources, config)) : null;
 		if (journal != null)
 		{
-			if (journal.state.isEmpty()) { journal.append("STATE", state016(0, planned, List.of(), 0, visits, cursors, sceneCounts, rosterVisits, refusals, config), Map.of()); }
+			if (journal.state.isEmpty())
+			{
+				if (generation2of016(config)) { initializeGeneration016(journal, configPathRoot016(directory), sources, config); }
+				else { journal.append("STATE", state016(0, planned, List.of(), 0, visits, cursors, sceneCounts, rosterVisits, refusals, config), Map.of()); }
+			}
 			if (!strings016(journal.state, "pendingRows").isEmpty()) { admitPending016(journal, sources, config, nativeAdmission, requested); }
 			planned.addAll(strings016(journal.state, "rows").stream().map(r -> cellFromRow016(r, sources, config)).toList());
 			restoreMap016(visits, journal.state, "visits"); restoreMap016(cursors, journal.state, "cursors"); restoreMap016(sceneCounts, journal.state, "sceneCounts"); restoreMap016(rosterVisits, journal.state, "rosterVisits"); restoreMap016(refusals.counts, journal.state, "refusalCounts"); refusals.samples.addAll(strings016(journal.state, "refusalSamples"));
@@ -2355,7 +2498,7 @@ public final class PhantomAutonomousTrainingNative
 					final var model = tactical.candidate(config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE));
 					if (model == null || !model.sha().equals(config.text("autonomous009ModelSha", ""))) { throw new IllegalStateException("TRAIN013_PREPARE_MODEL_CHANGED"); }
 					final var stock = new LearningStore(settings.getProperty("URL"), settings.getProperty("Login"), settings.getProperty("Password"), root.resolve("game")).accepted(1);
-					if (incremental016(config) && !tactical.optimizationParent().sha().equals(parentCheckpoint016(root).get("optimizerSha"))) { throw new IllegalStateException("TRAIN016_PREPARE_PARENT_ADAM_CHANGED"); }
+					if (incremental016(config) && !tactical.optimizationParent().sha().equals(parentCheckpoint016(root, config).get("optimizerSha"))) { throw new IllegalStateException("TRAIN016_PREPARE_PARENT_ADAM_CHANGED"); }
 					final var sources = measured014(planned, Map.of("scope", "COHORT"), "SOURCE_DISCOVERY", () -> trainingSources013(root, discoverSources(root, planned, config, authority, () -> requested(planned)), config));
 					final var cells = planCells(planned, sources, config, authority, () -> requested(planned),
 						(cell, ordinal) -> admitHeadlessCell(root, planned, config, authority, tactical, model, stock.model(), cell, ordinal));

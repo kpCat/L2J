@@ -1,3 +1,17 @@
+# Стоимость продолжения016
+
+Headless: выдано2из3сессий. Session1историческая:72430msissued,172590msполныйPrepare; carriedextra100160ms. Session2:393000msissued, полный наблюдавшийся Prepare window469879ms (от создания redirectlog до finishedUtc, не отдельный stopwatch), для строгого итогового учёта взят больший верхний charge600000ms. Суммарный conservative charge=772590/1800000ms. Неиспользованная session3не выдавалась. Runtime issued/results не переписаны ради conservative отчёта.
+
+Три завершённые A/B-пары: сумма arm phases0.4872408s /271.2728319s /0.3498561s; sharedscan/build/startup сюда не входят. Party naturalrecovery134.39/134.51s, не bypass. Полные phase aggregates и costsSHA в EVIDENCE. Native TRAIN costs учтены отдельно, не входят в pre-CUT суммы.
+
+Native: GS1=489573 ms held exit0; всего 2 starts / 4269588 ms = 71.1598 мин из75. Остаток не расширялся. Conditional FIT=0. Новая EVAL0. После завершения sampler остановлен, own processes0/free ports. CPU/RAM: 2637 samples по PID+creation identity, 13 own identities; sampled CPU/working/private maxima и настоящий OS peakWorkingSet каждого процесса находятся в EVIDENCE. Это sampled CPU, не непрерывный итоговый CPU каждого умершего процесса.
+
+TargetedAnt выполнялись последовательно; PowerShellпроверки продолжения последовательно. Историческое пересечение DB-freePS/Ant первой попытки ниже не скрывается. Никаких stress/broadDBverify. Сборка5известныхjavacwarnings. Ошибки компиляции/fixture/внешнего reader (включая PS7типизацию и rosterCounts→подтверждённый rosterVisits) не countedRED.
+
+---
+
+Исторический отчёт первой попытки016, опубликованный в1c8f15ed; его факты ниже сохранены. Продолжение выше разрешено владельцем отдельно.
+
 # Стоимость016
 
 |Измерение|Факт|

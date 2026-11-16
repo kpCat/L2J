@@ -96,6 +96,22 @@ FULL016 возможен только по G0–G8 и настоящим native 
 
 ## Git-команды при read-only аудите плана
 
+### Разрешённое продолжение016 от 16 ноября 2026
+
+Владелец явно разрешил ровно одну новую frozen generation и доказуемый переход; это продолжение того жеGoal, не новая задача. Предыдущий PARTIAL, исходная кампания/59файлов/SHA/errors/cost остаются историей. Новая identity: `autonomous009-learning016-g2-v1`, dataset `autonomous009-learning016-g2-v1-c000001`. Третья generation запрещена validators. Source актуализирован до `00afe4a0f3b4c70dc94fd9b4cdd4b24e7171766e`, новые34Studio paths сохранены, HighFive/AGENTS diff отсутствует.
+
+Bounded реализация в прежнем exact7: config Java/PowerShell допускают только две точные identities; существующий Journal получает read-only replay для parent и один genesis import; existing016 planner/директор используют текущую campaign identity. Новый planner/SQL schema/gameplay rule не вводятся. Изменить предполагается6из7 (build.xml target016 уже существует). Артефакты/журнал исполнения — внешний g2 directory; входные12task files неизменны.
+
+1. Parent validator сверяет все59ожидаемых файлов по первоначальным опубликованным hashes, точный file set, оригинальные base/director SHA, chain/head,0paired/0seal, fixed parent identity. Parent replay ничего не создаёт и не исправляет, включая head. Новый issuance marker/parent link публикуются только в новых paths.
+2. Сравнить полную конфигурацию, исключив только campaign/dataset и lifecycle enabled/phase; все остальные значения должны совпасть. Проверить owner/Geo/protected/model/terminalAdam/seed и точный ordered source+physical+ability inventory. JAR/build/source меняются явным новым freeze, а не repin parent. При несовместимости STOP без сброса/подбора с нуля.
+3. Единственный импорт переносит sequence/visits/cursors/scene+roster counts/refusals/samples/pending index и порядок строк. Незавершённые raw A/B/attempt identities не переносятся. Pending descriptions декодируются тем же codec против актуальных sources/skills; только новый protocol/config SHA пересчитывается и связывается с parent state SHA. Каждая новая рука получает fresh objects/owner и полный native recheck. Genesis transition идемпотентен после crash;0старых training credits/pairs.
+4. RED→GREEN: только identity2 accepted/identity3 rejected; parent59/head/base/pins/config/source tamper rejected; перенос точных logical counters/order без pair credit; crash до/после импортного marker; NPC distinct objectId с generation1 accepted, reused object/actor owner rejected. Штатные targeted Java/PS/legacy tests, source jar и fresh independent review continuation delta до live.
+5. Original session1-issued/result не менять. Global016 budgets остаются общими. Новая подготовка использует только session2 и при необходимом штатном STOP/TIMEOUT session3. Консервативно учитывать дополнительную build-часть session1:100160ms сверх её issued72430ms; суммарно исходные172590ms сохраняются. Старый cohort/control не архивировать с удалением; новый generation session2 лишь проверяет его held exits. Session3 может архивировать только собственные generation2 controls.
+6. После3complete distinct lawful pairs/≥2classes/Solo+Party немедленно seal, без четвёртого native admission. Только после полногоG3 штатный GS TRAIN, максимум3/75native минут и1conditionalFIT, без EVAL/promotion. Если новая подготовка получает новый blocker — остановить активную работу, сохранить диагностику, закрытьPARTIAL; никаких новых generations/лимитов/цепочек исправлений.
+7. Postflight/history/scope/two encoding checks, scoped commits/non-force feature push и полный independent GitHub readback. Отчёт обязательно разделяет actual pre-CUT, реальные TRAIN события/расходы/terminal и offline fixtures. Manual acceptance результата REQUIRED, следующий Goal не начинать.
+
+Ruling: подробный generation-переход выше развивает прямо разрешённое продолжение и не вводит дополнительный существенный архитектурный выбор вне него. Риск несовместимости закрывается отказом полного validator, не молчаливой конверсией; runtime переноса до его GREEN нет. Новый parent issuance публикуется с известными первоначальными59SHA, а не выводится задним числом из текущих неизвестных bytes.
+
 Разрешение: текущий TASK требует fresh remote/ancestry/dirty inventory; root AGENTS разрешает bounded inspection. Ниже точные уникальные команды; повторы проверки и fetch не меняли рабочие файлы. Commit/push/merge/reset/checkout не выполнялись.
 
 ```text

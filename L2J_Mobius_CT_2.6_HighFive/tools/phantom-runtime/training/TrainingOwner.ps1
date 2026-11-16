@@ -245,7 +245,7 @@ function Assert-TrainAutonomousConfig($Values) {
     if($incremental016){
         if(!$loop013 -or $Values.episodesPerBatch -cne '51' -or $Values.autonomous009EvaluationOnly -cne 'false' -or $Values.autonomous009Phase -ceq 'EVAL' -or
            ($Values.ContainsKey('evaluationOutcomeVersion') -and $Values.evaluationOutcomeVersion -cne '1') -or $Values.autonomous009CycleLimit -cne '1' -or
-           $Values.autonomous009Campaign -cne 'autonomous009-learning016-v1' -or $Values.outcome006DatasetId -cne 'autonomous009-learning016-v1-c000001' -or
+           $Values.autonomous009Campaign -cnotin @('autonomous009-learning016-v1','autonomous009-learning016-g2-v1') -or $Values.outcome006DatasetId -cne ($Values.autonomous009Campaign+'-c000001') -or
            $Values.autonomous009AcceptanceSmoke -cne 'true'){throw 'TRAIN016_FIXED_51_TRAIN_ONLY_CAMPAIGN_REQUIRED'}
         $starts016=0;$minutes016=0
         if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts016) -or $starts016 -lt 1 -or $starts016 -gt 3 -or
@@ -297,7 +297,7 @@ function Get-TrainNativeBudget013([string]$Path,[int]$Goal=13) {
     return $budget
 }
 function Reserve-TrainNativeBudget013([string]$Path,[string]$Scope,[bool]$Evaluation,[long]$DrainReserve,[int]$Goal=13) {
-    if($Goal -eq 16 -and ($Evaluation -or $Scope -cne 'autonomous009-learning016-v1-c000001')){throw 'TRAIN016_TRAIN_ONLY_BUDGET'}
+    if($Goal -eq 16 -and ($Evaluation -or $Scope -cnotin @('autonomous009-learning016-v1-c000001','autonomous009-learning016-g2-v1-c000001'))){throw 'TRAIN016_TRAIN_ONLY_BUDGET'}
     $budget=Get-TrainNativeBudget013 $Path $Goal
     if($budget.pending){throw 'TRAIN013_PENDING_NATIVE_REQUIRES_RECOVERY'}
     if($Scope -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$' -or $DrainReserve -lt 0){throw 'TRAIN013_RESERVATION_SCOPE'}

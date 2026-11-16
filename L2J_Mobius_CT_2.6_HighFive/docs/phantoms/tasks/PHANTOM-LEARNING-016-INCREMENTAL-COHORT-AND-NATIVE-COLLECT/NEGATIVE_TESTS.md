@@ -1,3 +1,17 @@
+# RED→GREEN продолжения016
+
+До headless session2 зафиксированы поведенческие RED: configJava/PS rejectgeneration2; fullconfigcompatibility; linkedgenerationimport; readonlyparentnoappend/headrepair; budgetcarry100160; realuppercase directorhash; importedfairnesscountertamper; descriptorpincoherenttamper. Последние GREEN: green-generation-counter-guard, green-controls-corrected, green-review-parent-link. NPC regression retained: разныеobjectIdсspawnGeneration1 допустимы, reuseobjectId/staleactorowner запрещены.
+
+Focusedcontracts существующих runners покрывают crashдо/после descriptor/genesis/head, idempotentreplay, exactpendingorder/counters/refusalhistory, incompletearmsбезpair/credit, strictparent59closure/config/orderedsourcepins, atomicpairdurability, marker-lastpartialseal/tamper/reparse, reserveuncertain no replay, global3starts/75min и≤1conditionalFIT/noEVAL. Новых testprojects нет; suite016добавлен в первойпопытке, build.xml сейчасне менялся.
+
+7/7targetedAntPASS:016,015,autonomous,008,007,jar,content. PowerShellPASS:Readiness016/015/014,Headless013,Cycle013,Config,Atomic. Живое доказательство отдельно: G3threepairs/seal, GS1Pause/Stop→GS2Resume,11settledclosurebytesexact/новыйdispatchslot11; nativepaidcasts/MP/kill/death. Directorheldexitreceiptотсутствует, подтвержденаidentityabsence; этот факт не заменёнexitcode0. Compilerfixtureerrors/PS7reader/внешнийreportreader не behavioralRED. Посленовогоliveblockerфиксы не запускались; frozenruntimeне менялся.
+
+Реальный новый отказ после51settled и coldNO_FIT: Training.ps1:1217 присваивает DONE016, TrainingOwner.ps1:346 требует ^[A-Z_]{1,32}$, возникает TRAIN013_STATE_VERSION_OR_PHASE. Успешные focused suites этот финальный переход не поймали. Ошибка не исправлялась послеfreeze, regressionGREEN для неё не заявляется; результат PARTIAL. Внешние агрегационные поправки (Hashtable→PSCustomObject для Measure-Object, distinct NPCkills вместо двух Party actor credits, явный UTF-8reader fit-result) исправляют отчёт, не runtime и не raw receipts.
+
+---
+
+Исторический отчёт первой попытки016, опубликованный в1c8f15ed; его факты ниже сохранены. Продолжение выше разрешено владельцем отдельно.
+
 # Проверки016: границы доказательств
 
 |Контракт|RED / GREEN evidence|
