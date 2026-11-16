@@ -1,6 +1,10 @@
 # Goal021 — результат разрешённого продолжения
 
-**FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK. Manual gate REQUIRED.** G8: source7e26020c464 ordinary feature push, independent HEAD/parent/exact9/full9 bodies PASS, см. CONTINUATION_DELIVERY.json. Это тот же Goal021, не022. Исходные PARTIAL RESULT/EVIDENCE и первый train021 сохранены.
+**ACCEPTED_FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK в пределах Solo/DAMAGE scope. Manual gate ACCEPTED_FULL.** Владелец17.11.2026 явно принял Goal021 и независимо проверенный GitHub HEAD `5126ee89cb2b2237601858661ac3a1fed7f21555`: подтверждённый экспериментальный выбор,1 оплаченный эксперимент,8 контрольных действий,9 новых TRAIN samples, обновления179→188, checkpoint, cold reload и replay0.
+
+Ручная приёмка закрыта по прямому подтверждению владельца. Без переоценки сохраняются `nativeExit=1` с последующим проверенным offline recovery, `NATIVE_ACTOR_DIED`, `MODEL_REORDERED=false` и `SUPERIORITY=NOT_EVALUATED`. Acceptance-правка затрагивает только этот документ и CONTINUATION_EVIDENCE.json; исходники, checkpoints, runtime, бюджеты и исходные доказательства не меняются. GS не запускался, Goal022 не начат.
+
+G8 реализации: source7e26020c464 ordinary feature push, independent HEAD/parent/exact9/full9 bodies PASS, см. CONTINUATION_DELIVERY.json. Это тот же Goal021, не022. Исходные PARTIAL RESULT/EVIDENCE и первый train021 сохранены.
 
 Владелец отдельно разрешил один fresh GS≤8min и дополнительные проверки≤7min, см. CONTINUATION_AUTHORITY.md. Fresh train021-c1, loopback33363/18023/19323, тот же fixed production JAR75f37c80…5782297 и immutable parent179/42cfff…ef96c. Изменены4 TEST/CLI файла; production Java/JAR/skills/resources/Geo не менялись. New branch/worktree/provider/scheduler отсутствуют.
 
@@ -40,7 +44,7 @@ Original episode FAILED/NATIVE_ACTOR_DIED: kill0, death lower bound1,13 paid eve
 |G5|Parent179→188, immutable checkpoint SHA90cdb499…a55a6, atomic save, separate cold/replay0/tamper.|
 |G6|Observed grouped metrics/SD/sample caveats, stable CONTRACT_V1 for022–024,4096 cap/256 batch/append-only rollover STOP.|
 |G7|Дополнительный GS81917ms; всего2 явно разрешённых GS/175107ms. Wrapper343961ms; extra focused checks малые, весь additional budget<420s. OFF/own0/portsFree;117719 files drift0, включая весь old train021; Geo203/protected207 exact.|
-|G8|Scoped ordinary feature push и independent full readback фиксируются в CONTINUATION_DELIVERY; owner manual gate REQUIRED.|
+|G8|Scoped ordinary feature push и independent full readback зафиксированы в CONTINUATION_DELIVERY; owner manual gate ACCEPTED_FULL для HEAD5126ee89cb2.|
 
 Focused javac двух существующих TEST classes + continuation admission RED→GREEN, existing021 policy/legacy020/parent179 replay regression GREEN, PS proof contracts GREEN. Production rebuilt не был: GS использовал exact уже исправленный75f JAR. Source-SQL660ms, preflight309ms; offline recovery414ms, fit445ms, cold433ms (отдельные процессы). Offline finalization wrapper2422ms; post exit0. First RunOnce343961ms exit1 не объявлен exit0. Дополнительные тесты/диагностика/публикация укладываются отдельно разрешённым7min; исходный бюджет677.935s не обнулён. Полные suites/campaigns/ночь не запускались.
 

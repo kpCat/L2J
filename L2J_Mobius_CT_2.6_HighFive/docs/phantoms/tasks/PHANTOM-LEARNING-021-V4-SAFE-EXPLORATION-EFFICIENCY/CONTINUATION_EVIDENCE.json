@@ -1,7 +1,22 @@
 {
   "schema": "PHANTOM_LEARNING021_CONTINUATION_V1",
-  "status": "FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK",
-  "manualGate": "REQUIRED",
+  "status": "ACCEPTED_FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK",
+  "manualGate": "ACCEPTED_FULL",
+  "acceptance": {
+    "status": "ACCEPTED_FULL021_V4_NATIVE_EXPLORATION_AND_FEEDBACK",
+    "date": "2026-11-17",
+    "authority": "Прямое подтверждение владельца в этом чате",
+    "scope": "Solo/DAMAGE",
+    "acceptedImplementationHead": "5126ee89cb2b2237601858661ac3a1fed7f21555",
+    "independentGitHubCheck": "Подтверждена владельцем",
+    "confirmed": {"experimentalSelection": true, "paidExperiments": 1, "controlActions": 8, "newTrainSamples": 9, "updatesBefore": 179, "updatesAfter": 188, "checkpoint": true, "coldReload": true, "replayAdditionalUpdates": 0},
+    "preservedFacts": {"nativeExit": 1, "verifiedOfflineRecovery": true, "episodeReason": "NATIVE_ACTOR_DIED", "MODEL_REORDERED": false, "SUPERIORITY": "NOT_EVALUATED"},
+    "documentationOnly": true,
+    "additionalGameServerStarts": 0,
+    "sourceCodeChanged": false,
+    "checkpointsChanged": false,
+    "goal022Started": false
+  },
   "authority": "CONTINUATION_AUTHORITY.md; explicit owner answer",
   "baseline": "d7cc02f6ec6b2720814e1f57f1fd4ab0666ee044",
   "policy": {"id":"COVERAGE_TEST_V1","seed":21001,"cap":1,"propensity":1,"sha":"249aca9606541e6b64071a6e64c4c44cbfe9157b3adf69f1802f7a3fe4b5d9bd","decisions":16,"intents":16,"baselineDecisions":15,"exploreDecisions":1},
@@ -14,5 +29,5 @@
   "timingsMillis": {"preflight":309,"readOnlySourceSql":660,"recoverPublication":414,"fit":445,"cold":433,"offlineFinalizeWrapper":2422},
   "budget": {"additionalChecksLimitSeconds":420,"additionalChecksConservativeUpperBoundSeconds":390,"originalCoreChecksSeconds":677.935,"originalBudgetNotReset":true,"goalWallLimitMinutes":75},
   "limits": {"productionV4":"OFF","nightTrainer":"NOT_READY","superiority":"NOT_EVALUATED","independentEfficacySample":"INSUFFICIENT_SAMPLE_SIZE","maxEvents":4096,"maxBatch":256,"goal022Started":false},
-  "publication": {"status":"VERIFIED","sourceCommit":"7e26020c464438d1b728614c1befc1fefdee9e60","parent":"d7cc02f6ec6b2720814e1f57f1fd4ab0666ee044","exactPaths":9,"fullBodies":9,"manualGate":"REQUIRED"}
+  "publication": {"status":"VERIFIED","sourceCommit":"7e26020c464438d1b728614c1befc1fefdee9e60","parent":"d7cc02f6ec6b2720814e1f57f1fd4ab0666ee044","exactPaths":9,"fullBodies":9,"manualGate":"ACCEPTED_FULL"}
 }
