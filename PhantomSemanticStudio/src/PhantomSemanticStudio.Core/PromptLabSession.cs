@@ -19,6 +19,7 @@ public sealed partial class PromptLabSession : IDisposable
     {
         V4Rules.Require(PromptProfiles.Strategies.Contains(strategy), "UNKNOWN_PROMPT_STRATEGY");
         return store.SaveVersion(new() { Name = name, System = PromptProfiles.Default.Resources[strategy + ".v1.md"],
+            User = PromptProfiles.Default.GenerationUserTask,
             RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"], Scenario = scenario });
     }
 
@@ -36,7 +37,7 @@ public sealed partial class PromptLabSession : IDisposable
                 "Прямой личный разговор отличается от знакомств, флирта и шуток; нельзя подменять им существующую категорию dating.") } : [];
         return store.SaveVersion(new() { Name = name, ReadyForGeneration = !mature, CategorySuggestions = suggestions,
             System = PromptProfiles.Default.Resources["dialogue-context.v1.md"] + "\n\nОтдельный речевой профиль: " + name + ". " + preset.Instruction,
-            User = "Самостоятельные живые альтернативы на последний ход. Исполни именно выбранный речевой профиль и не пересказывай его описание.",
+            User = PromptProfiles.Default.GenerationUserTask + "\nИсполни именно выбранный речевой профиль и не пересказывай его описание.",
             RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"],
             Scenario = new() { Category = category, ProfanityLimit = styleId is "strong_profanity" or "vulgar_humor" ? "STRONG" : "NONE",
                 Style = new() { Category = category, StyleId = styleId, Voice = styleId switch { "strong_profanity" or "vulgar_humor" => "rough_joker", "double_meanings" => "dry_wit", "intimate_conversation" => "warm_friend", _ => "playful_tease" },
@@ -51,7 +52,7 @@ public sealed partial class PromptLabSession : IDisposable
         var snapshot = PromptHierarchy.Default.Freeze(scenario, PromptProfiles.Default, store.EffectiveRegistry());
         var family = PromptHierarchy.Default.FamilyFor(scenario.Category);
         return store.SaveVersion(new() { Name = name ?? family.Label, System = snapshot.FamilyInstruction,
-            User = "Создай одну партию самостоятельных альтернатив по указанной категории и сцене.",
+            User = PromptProfiles.Default.GenerationUserTask,
             RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"], Scenario = scenario with { Components = snapshot } });
     }
 

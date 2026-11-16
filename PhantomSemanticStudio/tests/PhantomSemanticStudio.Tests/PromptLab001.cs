@@ -13,7 +13,7 @@ internal static partial class Program
     private sealed record TargetedFamilyCase(string Family, string Case, V4GenerationRequest Request);
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed record TargetedFamilyArm(string Id, Dictionary<string, string> CategoryInstructions, Dictionary<string, string> FamilyInstructions,
-        Dictionary<string, PromptFamilyExample[]> Examples, string? ContextPresentation = null);
+        Dictionary<string, PromptFamilyExample[]> Examples, string? ContextPresentation = null, string? User = null);
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed record TargetedFamilySampler(string Id, PromptLabApiOptions Options);
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -47,6 +47,8 @@ internal static partial class Program
             if (arm == null || !Label(arm.Id) || arm.CategoryInstructions == null || arm.FamilyInstructions == null || arm.Examples == null)
                 throw new InvalidDataException("TARGETED_SPEC_ARM");
             V4Rules.Require(arm.ContextPresentation is null or "READABLE_SCENE", "TARGETED_SPEC_CONTEXT_PRESENTATION");
+            V4Rules.Require(arm.User == null || !string.IsNullOrWhiteSpace(arm.User) && V4Rules.Utf8.GetByteCount(arm.User) <= 12 * 1024
+                && !arm.User.Any(c => char.IsControl(c) && c is not ('\r' or '\n' or '\t')), "TARGETED_SPEC_USER");
             V4Rules.Require(arm.CategoryInstructions.Keys.All(categories.Contains) && arm.FamilyInstructions.Keys.All(familyIds.Contains)
                 && arm.Examples.Keys.All(familyIds.Contains), "TARGETED_SPEC_UNUSED_OVERRIDE");
             foreach (var examples in arm.Examples)
@@ -80,7 +82,7 @@ internal static partial class Program
                 previous = store.SaveVersion(lab.PrepareVersion(new PromptLabVersion { ProfileId = previous?.ProfileId ?? "", ParentId = previous?.Id ?? "",
                     Name = "Сравнение по spec · " + family, System = scopes[0].Components!.FamilyInstruction,
                     ContextPresentation = arm.ContextPresentation,
-                    User = "Создай самостоятельные русские альтернативы одного следующего хода. Это не цепочка разговора.",
+                    User = arm.User ?? "Создай самостоятельные русские альтернативы одного следующего хода. Это не цепочка разговора.",
                     RefinerSystem = PromptProfiles.Default.Resources["refiner.v1.md"], Scenario = scopes[0], AdditionalScenarios = scopes.Skip(1).ToArray(),
                     CategoryInstructions = scopes.Select(s => s.Components!.CategoryInstruction).ToArray() }));
                 versions.Add((family, arm.Id), previous);
@@ -548,6 +550,23 @@ internal static partial class Program
 
     private static async Task PromptLab001()
     {
+        Test("001 new profile factories freeze role-aware USER without migrating a saved custom prompt", () =>
+        {
+            using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "workspace"), f.Module);
+            var store = new PromptLabStore(workspace); using var lab = new PromptLabSession(store);
+            var original = store.SaveVersion(new() { User = "Собственная сохранённая USER-инструкция." });
+            store.AcceptVersion(original.Id); var hash = store.VersionHash(original.Id);
+            var request = new V4GenerationRequest { Category = "lineage.commerce.bargaining", Mode = "TRIGGER", Count = 1,
+                Style = new() { Category = "lineage.commerce.bargaining" } };
+            var family = lab.CreateFamilyProfile(request); var strategy = lab.CreateProfile("Новая стратегия", "situation-first", request);
+            True(family.User.Contains("TRIGGER:", StringComparison.Ordinal)); True(family.User.Contains("REPLY:", StringComparison.Ordinal));
+            True(family.User.Contains("INITIATIVE:", StringComparison.Ordinal));
+            True(lab.CreateSpeechProfile("strong_profanity").User.StartsWith(family.User, StringComparison.Ordinal));
+            Equal(family.User, strategy.User); Equal(hash, store.VersionHash(original.Id));
+            Equal("Собственная сохранённая USER-инструкция.", store.GetVersion(original.Id).User);
+            Equal(original.Id, store.GetProfile(original.ProfileId).AcceptedVersionId);
+            True(store.GetProfile(family.ProfileId).AcceptedVersionId.Length == 0);
+        });
         await TestAsync("001 context presentation is immutable prompt data and readable rendering preserves the response contract", async () =>
         {
             using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "workspace"), f.Module);
@@ -587,9 +606,9 @@ internal static partial class Program
             var request = new V4GenerationRequest { Category = category, Count = 4, Style = new() { Category = category } };
             var examples = new[] { new PromptFamilyExample(category, "Я поторопился, теперь жду.", "Бывает. Дальше вместе пойдём.", "editorial_reference_not_corpus", "EXPERIMENTAL") };
             var spec = new { Schema = "pw-targeted-family-spec/1", Cases = new[] { new { Family = "party_coordination", Case = "holdout", Request = request } },
-                Arms = new[] { new { Id = "seed", CategoryInstructions = new Dictionary<string, string>(), FamilyInstructions = new Dictionary<string, string>(), Examples = new Dictionary<string, PromptFamilyExample[]>() },
+                Arms = new[] { new { Id = "seed", CategoryInstructions = new Dictionary<string, string>(), FamilyInstructions = new Dictionary<string, string>(), Examples = new Dictionary<string, PromptFamilyExample[]>(), User = "Отдельный USER для первого варианта." },
                     new { Id = "examples", CategoryInstructions = new Dictionary<string, string> { [category] = "Прими исправление, не начинай новый конфликт." },
-                        FamilyInstructions = new Dictionary<string, string>(), Examples = new Dictionary<string, PromptFamilyExample[]> { ["party_coordination"] = examples } } },
+                        FamilyInstructions = new Dictionary<string, string>(), Examples = new Dictionary<string, PromptFamilyExample[]> { ["party_coordination"] = examples }, User = "Отдельный USER для второго варианта." } },
                 Samplers = new[] { new { Id = "balanced", Options = new PromptLabApiOptions() } } };
             var path = Path.Combine(f.Root, "spec.json"); File.WriteAllBytes(path, JsonSerializer.SerializeToUtf8Bytes(spec, WorkspaceStore.JsonOptions));
             var root = Path.Combine(f.Root, "data-trial"); var handler = new PromptLabWorkflowHandler();
@@ -600,6 +619,8 @@ internal static partial class Program
             {
                 var store = new PromptLabStore(workspace); Equal(1, store.ListProfiles().Count);
                 var versions = store.ListVersions(store.ListProfiles()[0].Id); Equal(2, versions.Count);
+                True(versions.Any(v => v.User == "Отдельный USER для первого варианта."));
+                True(versions.Any(v => v.User == "Отдельный USER для второго варианта."));
                 True(versions.Any(v => v.Scenario.Components!.Examples.Count == 1 && v.Scenario.Components.Examples[0] == examples[0]));
                 True(store.ListProfiles().All(p => p.AcceptedVersionId.Length == 0));
                 var plan = JsonSerializer.Deserialize<TargetedFamilyPlan>(File.ReadAllBytes(Path.Combine(root, "targeted-family-plan.json")), WorkspaceStore.JsonOptions)!;
@@ -618,6 +639,11 @@ internal static partial class Program
             True(File.Exists(Path.Combine(root, "targeted-family-spec.json")));
             File.AppendAllText(path, " ");
             await ThrowsAsync(() => TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);
+            var invalidUser = JsonNode.Parse(JsonSerializer.Serialize(spec, WorkspaceStore.JsonOptions))!;
+            invalidUser["Arms"]![0]!["User"] = " ";
+            File.WriteAllText(path, invalidUser.ToJsonString()); args[1] = Path.Combine(f.Root, "invalid-user-trial");
+            await ThrowsAsync(() => TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);
+            True(!Directory.Exists(Path.Combine(args[1], "labs", "prompt-lab", "versions")));
             File.WriteAllText(path, "{\"Schema\":\"pw-targeted-family-spec/1\",\"Cases\":[],\"Arms\":[],\"Samplers\":[],\"Invented\":true}");
             args[1] = Path.Combine(f.Root, "invalid-data-trial");
             await ThrowsAsync(() => TargetedFamilyTrial(args, _ => new HttpClient(handler, false))); Equal(0, handler.Requests);

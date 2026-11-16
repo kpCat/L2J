@@ -36,6 +36,9 @@ public sealed class PromptProfiles
     public IReadOnlyList<CorpusStylePreset> Styles { get; }
     public string Hash { get; }
     public string DirectoryPath { get; }
+    // Only new laboratory versions consume this resource; their VersionHash freezes its text.
+    internal string GenerationUserTask => V4Rules.Utf8.GetString(V4Rules.ReadBytes(
+        PathSafety.ResolveRelative(DirectoryPath, "user-task.v1.md"), 12 * 1024));
     internal IReadOnlyDictionary<string, string> Resources => resources;
     internal static readonly JsonSerializerOptions ConfigJson = new()
     { PropertyNameCaseInsensitive = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping, MaxDepth = 24, WriteIndented = true };
