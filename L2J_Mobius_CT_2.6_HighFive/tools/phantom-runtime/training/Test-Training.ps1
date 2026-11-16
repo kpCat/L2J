@@ -8,6 +8,7 @@ param(
     [switch]$Readiness016,
     [switch]$Closure017,
     [switch]$ActionValue019,
+    [switch]$ActionValue020,
     [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
@@ -20,6 +21,21 @@ if (!(Test-Path -LiteralPath $owner -PathType Leaf)) { throw 'TRAIN002_OWNER_CON
 . $owner
 $layout=Get-TrainLayout $Root
 function Require([bool]$Condition,[string]$Reason) { if (!$Condition) { throw $Reason } }
+if($ActionValue020){
+    $cleanup=[Collections.Generic.List[string]]::new();$failed=$false
+    try{Invoke-TrainCleanup020 @({throw 'EXPECTED_CLEANUP_FAILURE'},{ $cleanup.Add('SQL_STOP_ATTEMPTED') })}catch{$failed=$true}
+    Require ($failed -and $cleanup.Contains('SQL_STOP_ATTEMPTED')) 'TRAIN020_CLEANUP_SKIPPED_SQL'
+    # Только контракт proof; эти данные никогда не передаются оптимизатору.
+    $sha='a'*64
+    $valid=[pscustomobject]@{modelSha=$sha;MODEL_CONSULTED=$true;NATIVE_EXECUTED=$true;EFFECT_PAID=$true;nativePaid=1;settled=$true;episodeSha=('b'*64);newTrainSamples=1}
+    Assert-TrainActionValue020Proof 0 $valid $sha
+    foreach($field in @('settled','newTrainSamples','episodeSha')){
+        $bad=$valid.PSObject.Copy();$bad.$field=$(if($field -ceq 'settled'){$false}elseif($field -ceq 'newTrainSamples'){0}else{''})
+        $refused=$false;try{Assert-TrainActionValue020Proof 0 $bad $sha}catch{$refused=$true}
+        Require $refused ('TRAIN020_INCOMPLETE_NATIVE_PROOF_ACCEPTED_'+$field)
+    }
+    Write-Output 'TRAIN020_PROOF_CONTRACT_PASS NOT_NATIVE GS=0 SQL=0';return
+}
 if($ActionValue019){
     # NOT_NATIVE proof fixtures, never game samples or optimizer input. A process exit0 cannot prove a paid cast.
     $sha='a'*64

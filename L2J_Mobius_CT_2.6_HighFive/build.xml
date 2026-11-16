@@ -1288,6 +1288,13 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning020-test" depends="compile-tests" description="Bounded native raw binding and one-use ingress contracts over genuine sealed016 input; no SQL or GameServer.">
+		<fail unless="phantom.learning020.cohort" message="Explicit physical sealed016 cohort required." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning020V4Native" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="256m">
+			<arg value="contracts" /><arg value="${phantom.learning020.cohort}" />
+		</java>
+	</target>
+
 	<target name="phantom-learning019-test" depends="compile-tests" description="Bounded real native016 action import, V4 update, cold restore and stock fallback; no SQL or GameServer.">
 		<fail unless="phantom.learning019.cohort" message="Explicit physical native016 cohort required; synthetic training is forbidden." />
 		<fail unless="phantom.learning019.output" message="Explicit fresh V4 candidate output directory required." />
