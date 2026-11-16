@@ -4,6 +4,7 @@ namespace PhantomSemanticStudio.WinForms;
 
 public partial class MainForm : Form
 {
+    private readonly string? startupWorkspace;
     private WorkspaceStore? store;
     private HttpClient? http;
     private LmStudioClient? lm;
@@ -35,6 +36,11 @@ public partial class MainForm : Form
         InitializeComponent();
     }
 
+    public MainForm(string workspace) : this()
+    {
+        startupWorkspace = PathSafety.Canonical(workspace);
+    }
+
     private WorkspaceStore Store => store ?? throw new InvalidOperationException("Workspace не открыт.");
     private PackSnapshot Snapshot => snapshot ?? throw new InvalidOperationException("Сначала импортируйте Semantic Pack на вкладке Настройки.");
     private LmStudioClient Model => lm ?? throw new InvalidOperationException("LM Studio-клиент ещё не создан.");
@@ -51,7 +57,7 @@ public partial class MainForm : Form
     {
         await RunAsync("Открываю собственный workspace…", async token =>
         {
-            var workspace = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhantomSemanticStudio", "workspace");
+            var workspace = startupWorkspace ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhantomSemanticStudio", "workspace");
             // Изолированный UI smoke: process-only override, только artifacts собственной source-сборки.
             var smokeWorkspace = Environment.GetEnvironmentVariable("PSS_UI_SMOKE_WORKSPACE");
             if (!string.IsNullOrEmpty(smokeWorkspace))
@@ -60,7 +66,7 @@ public partial class MainForm : Form
                 if (!PathSafety.IsWithin(smokeWorkspace, artifacts)) throw new InvalidDataException("UI smoke workspace должен быть внутри artifacts Studio.");
                 workspace = smokeWorkspace;
             }
-            store = new WorkspaceStore(workspace, settings.HighFiveRoot);
+            store = WorkspaceStore.OpenConfigured(workspace, settings.HighFiveRoot);
             settings = Store.LoadSettings(); settings.Validate(); Store.ProtectSource(settings.HighFiveRoot);
             session = await Task.Run(Store.LoadSession, token);
             http = LmStudioClient.CreateHttpClient(); lm = new LmStudioClient(http);

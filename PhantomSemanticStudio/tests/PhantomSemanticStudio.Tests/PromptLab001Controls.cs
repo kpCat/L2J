@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Diagnostics;
 using PhantomSemanticStudio.Core;
 
 internal static partial class Program
@@ -8,6 +9,52 @@ internal static partial class Program
         var studio = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         var path = args.Length > 1 ? Path.GetFullPath(args[1]) : Path.Combine(studio, "src/PhantomSemanticStudio.WinForms/bin/Release/net10.0-windows/PhantomSemanticStudio.dll");
         var assembly = Assembly.LoadFrom(path);
+        Test("001 explicit workspace startup is design-safe and checks an isolated root without GUI or inference", () =>
+        {
+            using var f = new Fixture(); var root = Path.Combine(f.Root, "external laboratory");
+            var type = assembly.GetType("PhantomSemanticStudio.WinForms.MainForm", true)!;
+            True(type.GetConstructor([typeof(string)]) != null);
+            using var defaultForm = (IDisposable)Activator.CreateInstance(type)!;
+            using var selectedForm = (IDisposable)Activator.CreateInstance(type, [root])!;
+            True(!Directory.Exists(root));
+            var result = CheckWorkspace(["--workspace", root, "--check-workspace"]);
+            Equal(0, result.ExitCode); True(result.Output.Contains(PathSafety.Canonical(root), StringComparison.Ordinal));
+            Equal("workspace.lock", string.Join(",", Directory.GetFiles(root).Select(Path.GetFileName)));
+            using var workspace = new WorkspaceStore(root, f.Module);
+            Equal(2, CheckWorkspace(["--check-workspace", "--workspace", root]).ExitCode);
+        });
+        Test("001 explicit workspace startup rejects malformed arguments protected roots and smoke ambiguity without GUI", () =>
+        {
+            var type = assembly.GetType("PhantomSemanticStudio.WinForms.MainForm", true)!;
+            True(type.GetConstructor([typeof(string)]) != null);
+            using var f = new Fixture(); var root = Path.Combine(f.Root, "never created");
+            foreach (var invalid in new string[][] {
+                ["--workspace"], ["--check-workspace"], ["--workspace", "relative", "--check-workspace"],
+                ["--workspace", root, "--workspace", root, "--check-workspace"],
+                ["--workspace", root, "--unknown", "--check-workspace"],
+                ["--workspace", root, "--check-workspace", "--check-workspace"] })
+                Equal(2, CheckWorkspace(invalid).ExitCode);
+            Equal(2, CheckWorkspace(["--workspace", root, "--check-workspace"], root).ExitCode);
+            True(!Directory.Exists(root));
+            var protectedRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "../../../../../../L2J_Mobius_CT_2.6_HighFive"));
+            Equal(2, CheckWorkspace(["--workspace", protectedRoot, "--check-workspace"]).ExitCode);
+            var configured = Path.Combine(f.Root, "configured"); Directory.CreateDirectory(configured);
+            File.WriteAllText(Path.Combine(configured, "settings.json"), System.Text.Json.JsonSerializer.Serialize(new StudioSettings { HighFiveRoot = configured }));
+            Equal(2, CheckWorkspace(["--workspace", configured, "--check-workspace"]).ExitCode);
+            True(!File.Exists(Path.Combine(configured, "workspace.lock")));
+        });
+
+        (int ExitCode, string Output) CheckWorkspace(string[] arguments, string? smokeRoot = null)
+        {
+            var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            start.ArgumentList.Add(path); foreach (var argument in arguments) start.ArgumentList.Add(argument);
+            start.Environment.Remove("PSS_UI_SMOKE_WORKSPACE");
+            if (smokeRoot != null) start.Environment["PSS_UI_SMOKE_WORKSPACE"] = smokeRoot;
+            using var process = Process.Start(start)!;
+            var output = process.StandardOutput.ReadToEndAsync(); var error = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(15000)) { process.Kill(true); throw new InvalidOperationException("Workspace check did not terminate: " + string.Join(" | ", arguments)); }
+            return (process.ExitCode, output.GetAwaiter().GetResult() + error.GetAwaiter().GetResult());
+        }
         Test("001 prompt laboratory is a headless design-safe control with separate editors readable grids and disabled inference before context", () =>
         {
             var type = assembly.GetType("PhantomSemanticStudio.WinForms.PromptLabControl", true)!;

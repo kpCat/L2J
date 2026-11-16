@@ -8,7 +8,7 @@ $preimage=Join-Path $SnapshotRoot 'preimage/PhantomSemanticStudio'
 $manifestPath=Join-Path $SnapshotRoot 'SOURCE_MANIFEST.json'
 if (!(Test-Path -LiteralPath $manifestPath) -or !(Test-Path -LiteralPath $preimage)) { throw 'Нужны исходный SHA manifest и физический preimage snapshot.' }
 $allowed=@(
- 'src/PhantomSemanticStudio.Core/LmStudioClient.cs','src/PhantomSemanticStudio.Core/Models.cs','src/PhantomSemanticStudio.Core/BatchGeneration.cs',
+ 'src/PhantomSemanticStudio.Core/LmStudioClient.cs','src/PhantomSemanticStudio.Core/Models.cs','src/PhantomSemanticStudio.Core/BatchGeneration.cs','src/PhantomSemanticStudio.Core/WorkspaceStore.cs',
  'src/PhantomSemanticStudio.Core/PhantomSemanticStudio.Core.csproj','src/PhantomSemanticStudio.Cli/Program.cs','tests/PhantomSemanticStudio.Tests/Program.cs','README_RU.md',
  'src/PhantomSemanticStudio.Core/PromptProfiles.cs','src/PhantomSemanticStudio.Core/LmStudioClient.Corpus.cs','src/PhantomSemanticStudio.Core/V4CorpusGeneration.cs',
  'src/PhantomSemanticStudio.Core/CorpusCampaign.cs','src/PhantomSemanticStudio.Core/CorpusQuality.cs','tests/PhantomSemanticStudio.Tests/SemanticCorpus001.cs',
@@ -16,7 +16,7 @@ $allowed=@(
  'prompts/corpus001/mature-rough.v1.md','prompts/corpus001/styles.v1.json','prompts/corpus001/pilot-cases.v1.json','prompts/corpus001/samplers.v1.json',
  'scripts/Invoke-CorpusLab.ps1','scripts/Start-CorpusLab.cmd','scripts/Verify-CorpusOverlay.ps1','docs/SEMANTIC_CORPUS_RU.md',
  'src/PhantomSemanticStudio.Core/PromptLab.cs','src/PhantomSemanticStudio.Core/PromptLabStore.cs','src/PhantomSemanticStudio.Core/PromptLabSession.cs','src/PhantomSemanticStudio.Core/LmStudioClient.PromptLab.cs',
- 'src/PhantomSemanticStudio.WinForms/MainForm.cs','src/PhantomSemanticStudio.WinForms/MainForm.Designer.cs','src/PhantomSemanticStudio.WinForms/PhantomSemanticStudio.WinForms.csproj',
+ 'src/PhantomSemanticStudio.WinForms/MainForm.cs','src/PhantomSemanticStudio.WinForms/MainForm.Designer.cs','src/PhantomSemanticStudio.WinForms/PhantomSemanticStudio.WinForms.csproj','src/PhantomSemanticStudio.WinForms/Program.cs',
  'src/PhantomSemanticStudio.WinForms/PromptLabControl.cs','src/PhantomSemanticStudio.WinForms/PromptLabControl.Designer.cs','src/PhantomSemanticStudio.WinForms/PromptLabControl.resx',
  'tests/PhantomSemanticStudio.Tests/PromptLab001.cs','tests/PhantomSemanticStudio.Tests/PromptLab001Controls.cs','docs/PROMPT_LAB_RU.md','prompts/corpus001/refiner.v1.md',
  'src/PhantomSemanticStudio.Core/PromptLabAuthoring.cs','src/PhantomSemanticStudio.Core/PromptLabRouting.cs',

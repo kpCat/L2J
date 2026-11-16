@@ -14,6 +14,16 @@ public sealed class WorkspaceStore : IDisposable
     private readonly FileStream exclusiveLock;
     public string Root { get; }
     public string ProtectedRoot { get; private set; }
+    public static WorkspaceStore OpenConfigured(string root, string sourceModule)
+    {
+        root = PathSafety.Canonical(root);
+        PathSafety.AssertDisjoint(PathSafety.RepositoryBoundary(sourceModule), root);
+        var settings = Read<StudioSettings>(root, "settings.json") ?? new StudioSettings();
+        settings.Validate();
+        // Проверяем сохранённый source до создания каталога и эксклюзивного lock.
+        PathSafety.AssertDisjoint(PathSafety.RepositoryBoundary(settings.HighFiveRoot), root);
+        return new WorkspaceStore(root, settings.HighFiveRoot);
+    }
     public WorkspaceStore(string root, string sourceModule)
     {
         Root = PathSafety.Canonical(root); ProtectedRoot = PathSafety.RepositoryBoundary(sourceModule);
@@ -75,9 +85,10 @@ public sealed class WorkspaceStore : IDisposable
         return PathSafety.ResolveRelative(Root, "exports/review-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..8] + ".zip");
     }
     public void Check() => PathSafety.AssertDisjoint(ProtectedRoot, Root);
-    private T? Read<T>(string relative)
+    private T? Read<T>(string relative) => Read<T>(Root, relative);
+    private static T? Read<T>(string root, string relative)
     {
-        var path = PathSafety.ResolveRelative(Root, relative);
+        var path = PathSafety.ResolveRelative(root, relative);
         if (!File.Exists(path)) return default;
         if (new FileInfo(path).Length > MaxStateBytes) throw new InvalidDataException("Слишком большой файл workspace: " + relative);
         return JsonSerializer.Deserialize<T>(File.ReadAllBytes(path), JsonOptions);
