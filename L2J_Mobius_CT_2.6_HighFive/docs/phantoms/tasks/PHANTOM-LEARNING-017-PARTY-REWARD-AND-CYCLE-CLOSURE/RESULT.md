@@ -18,7 +18,7 @@
 |G5|PARTIAL / NOT_RUN_NATIVE|0 новых и0 восстановленных native Party receipts. Offline fixtures явно NOT_NATIVE|
 |G6|PASS|GS0/native0мин/FIT0/EVAL0/promotion0; повторов кампании и боёв нет|
 |G7|PASS|Targeted Java/PS, jar/content, SQL held exits0, TEST OFF/ports free; CPU/RAM peak UNKNOWN|
-|G8|PENDING_PUBLICATION|Exact25, команды и evidence подготовлены; публикация/независимый readback отражаются в READBACK.json|
+|G8|PASS_DELIVERY|Обычный push0d7216ba, свежий GitHub parent/exact25/full25 SHA/blob и unchanged13 MANIFEST совпали; финальный receipt-only HEAD проверяется отдельно, manual gate REQUIRED|
 
 FULL017 не заявляется, поскольку G1/G2/G5 не доказывают пригодный native Party результат.
 
@@ -112,3 +112,5 @@ Git использовался по явному заданию017 и approved p
 Финальные проверки кодировки после assembly отражаются в EVIDENCE/READBACK: mojibake-маркеры в изменённых файлах проверены; escaped Cyrillic в изменённых файлах проверены. Старые совпадения вне изменённых строк не исправляются.
 
 После передачи нужен ответ владельца по manual gate. Не запускаются следующий Goal, будущий72-slot dataset, FIT, EVAL или production promotion.
+
+Независимая публикационная проверка: delivery commit `0d7216ba43d1bdf26c5557375caddff367bed6f6`, parent `eed183b70dd8eb6e1a6db98b3d5fb825281b5a2f`; GitHub connector и отдельный HTTPS readback подтвердили25exact changes/25full bodies, Git blob SHA1 и SHA256,13 byte-exact inputs/MANIFEST. Источником проверки был GitHub, не local origin cache. Публичный READBACK фиксирует этот delivery commit. Следующий commit меняет только RESULT/EVIDENCE/READBACK; его fresh HEAD/parent/exact3 и все25 тел проверяются после push во внешнем receipt, окончательный SHA сообщается владельцу. Это исключает бесконечное переписывание self-hash. Дополнительная точная git-команда: `git ls-tree HEAD -- <all25 exact paths from READBACK.json>` с тем же одноразовым SOURCE safe.directory prefix, чтобы сопоставить ожидаемые blobs. Source hashes physical CRLF в настоящем cold receipt не изменились.

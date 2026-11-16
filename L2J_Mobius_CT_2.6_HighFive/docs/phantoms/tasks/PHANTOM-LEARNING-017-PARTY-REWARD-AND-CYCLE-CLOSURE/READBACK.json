@@ -1,6 +1,245 @@
 {
+  "status": "PASS_DELIVERY_FULL_BODY",
+  "observedUtc": "2026-11-16T16:17:56.598397+00:00",
+  "head": "0d7216ba43d1bdf26c5557375caddff367bed6f6",
+  "parent": "eed183b70dd8eb6e1a6db98b3d5fb825281b5a2f",
+  "branch": "feature/phantom-world",
+  "repository": "kpCat/L2J",
+  "exactChangedPaths": [
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-017.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/ACCEPTANCE.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/COMMANDS.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/DATA_SUFFICIENCY.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/DIRECTOR_CLOSURE.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/EVIDENCE.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/GIT_AND_PRESERVATION.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/HANDOFF.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/IMPLEMENTATION_PLAN017.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/MANIFEST.sha256",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PARTY_REWARD_CONTRACT.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PLAN.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PRE_AUDIT.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/READBACK.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/RESULT.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/SOURCE_POINTERS.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/START_HERE.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/TASK.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/TEST_MATRIX.md",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1"
+  ],
+  "changedCount": 25,
+  "fullBodyCount": 25,
+  "inputsManifest": "PASS_12_CONTENTS_AND_MANIFEST_BYTE_EXACT",
+  "files": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 312314,
+      "gitBlobSha1": "bac30b8fb02741fe7d80981249fa3014d328f02b",
+      "sha256": "7a700f53517f296cf17138d01b7a6aa1f070250b6a6fe408178fe3007f12d262",
+      "physicalSha256": "be9d322daf59daed76b3559430c353e7233733ff01aaeae0fd25644282a564c0",
+      "lineEndingComparison": "EXISTING_CRLF_WORKTREE_TO_LF_GIT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "bytes": 108970,
+      "gitBlobSha1": "361be0a0034d30673beb37c7b2d3c756482005b6",
+      "sha256": "876e85bba24515c8cd8097500abb3c08e4c2b2b76fcef65aac1d7207db300cef",
+      "physicalSha256": "5b84a208242d7c85302280ac2be4b99764803f7ab4d5b217c17e95f788a9a9cb",
+      "lineEndingComparison": "EXISTING_CRLF_WORKTREE_TO_LF_GIT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "bytes": 67947,
+      "gitBlobSha1": "cf7cc32f5a9da83c95f9d6851efda16dd365cc35",
+      "sha256": "76afe4ec08ef3153c9e9b6718d82872728c8b081a7e700caa9f8679d01a83b76",
+      "physicalSha256": "5f846a595459cbd3694a743db8b7fc288c02898c27c03ef62b9970c35f28288e",
+      "lineEndingComparison": "EXISTING_CRLF_WORKTREE_TO_LF_GIT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "bytes": 198011,
+      "gitBlobSha1": "a5e8a4b8c7dbdc92733772dbdba67273b821fda1",
+      "sha256": "9617cd4b4e8b37743fe1b7f7de290975516277e84e124e4480b28e5c1ddfc00e",
+      "physicalSha256": "ff12058331b7506c43e2693753c2afd76ac5045634e0b30a31049fcae87a97f2",
+      "lineEndingComparison": "EXISTING_CRLF_WORKTREE_TO_LF_GIT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "bytes": 128945,
+      "gitBlobSha1": "975bcad7b9ccbeedfe565c4759f1b285d7f9655b",
+      "sha256": "7cb5d61e7b2178c2663593e9b828ee66c70104921067c30d210f4762803a563d",
+      "physicalSha256": "a45005ea684f41d614e51d00b434cd2a8fd104a9c0deae8cd210ae6eb77f1b4c",
+      "lineEndingComparison": "EXISTING_CRLF_WORKTREE_TO_LF_GIT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/IMPLEMENTATION_PLAN017.md",
+      "bytes": 34670,
+      "gitBlobSha1": "6cc908ebe292704cc0b9e9cd9932d95c563fd15f",
+      "sha256": "496e867fd370996e62204c593045ecca190e03ac5fef446d07db6a78295f59d1",
+      "physicalSha256": "496e867fd370996e62204c593045ecca190e03ac5fef446d07db6a78295f59d1",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/RESULT.md",
+      "bytes": 19604,
+      "gitBlobSha1": "916dcb4fdb8145649fa9eb4b7296970bc981fdeb",
+      "sha256": "97c43d571f714a56abf66b8df0b47186882962835f00e926ae9100c2a3f0edb5",
+      "physicalSha256": "97c43d571f714a56abf66b8df0b47186882962835f00e926ae9100c2a3f0edb5",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/EVIDENCE.json",
+      "bytes": 89995,
+      "gitBlobSha1": "9084cb4de2ccd5826cc29d095de14098a813c122",
+      "sha256": "d86f9d840386cc7d12ca61c92724dde168777f564604466f154905b4baaf4dd9",
+      "physicalSha256": "f2f1b1a8f76f333a53f7ec5acd4fb50126e1c644b8531de5e0a95a992a2f6c28",
+      "lineEndingComparison": "EXISTING_CRLF_WORKTREE_TO_LF_GIT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/COMMANDS.md",
+      "bytes": 11386,
+      "gitBlobSha1": "7622eda5f286d781e6d07cb03c2f767f200df323",
+      "sha256": "1131539d1c8886f9c03d48a31eb20b30fac28a55fa8e9ddf737534d79500ecbd",
+      "physicalSha256": "1131539d1c8886f9c03d48a31eb20b30fac28a55fa8e9ddf737534d79500ecbd",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/READBACK.json",
+      "bytes": 3102,
+      "gitBlobSha1": "ca6b443aa011e23e01d6540352ffa42844fc2252",
+      "sha256": "be4b58304306c9d04466d3c7885b0b707da70b22beb84caca24eb22a4c3745da",
+      "physicalSha256": "be4b58304306c9d04466d3c7885b0b707da70b22beb84caca24eb22a4c3745da",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-017.md",
+      "bytes": 1427,
+      "gitBlobSha1": "8f7082022b405bb8e1cdd4f8ffe2d3115322bf1f",
+      "sha256": "c23516aad8df8cb54f417421513e68832e2c11ae77c30347be4e8ca8f545d3b6",
+      "physicalSha256": "c23516aad8df8cb54f417421513e68832e2c11ae77c30347be4e8ca8f545d3b6",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "bytes": 18525,
+      "gitBlobSha1": "3137cee8062feacddd70eefa8afda25825d43a39",
+      "sha256": "90ebf5d5709610d393591d5a5badfbe78bc31f0566b7c28ed91ac5a6ee9fafe4",
+      "physicalSha256": "2747f26d6ea3f3bf253bad8bd198c62d5976353dba0f1ebc547e72fb2f545a57",
+      "lineEndingComparison": "EXISTING_CRLF_WORKTREE_TO_LF_GIT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/START_HERE.md",
+      "bytes": 2804,
+      "gitBlobSha1": "f7f2f63491c13e33dab27304139af2ebcd0f2ebc",
+      "sha256": "342f0ef0902ea2fded6e07d30691036e324e9ec899ccaa022f0e1a7a52b317f6",
+      "physicalSha256": "342f0ef0902ea2fded6e07d30691036e324e9ec899ccaa022f0e1a7a52b317f6",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/TASK.md",
+      "bytes": 6944,
+      "gitBlobSha1": "0611cf8dc858f1d5ed3104c30ca0089041c2e37b",
+      "sha256": "9c0b2ff57dd1c41d004d7cb5cd3c676aa5eace13493077edb69d69362fb6ca66",
+      "physicalSha256": "9c0b2ff57dd1c41d004d7cb5cd3c676aa5eace13493077edb69d69362fb6ca66",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PRE_AUDIT.md",
+      "bytes": 5424,
+      "gitBlobSha1": "73d3510e81e452874635e01334be9452ac496b61",
+      "sha256": "f875488fc7a5f5c8bc5a1ec801040f069e07cb27a2755f92363c3b2ce3f0b912",
+      "physicalSha256": "f875488fc7a5f5c8bc5a1ec801040f069e07cb27a2755f92363c3b2ce3f0b912",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PARTY_REWARD_CONTRACT.md",
+      "bytes": 4561,
+      "gitBlobSha1": "4f590c70323bfa143f16099ae1f8cef414ce38bf",
+      "sha256": "378161efe378605e7858cbbe50e054c81ef44f2c318da262a5abb07a11e5974c",
+      "physicalSha256": "378161efe378605e7858cbbe50e054c81ef44f2c318da262a5abb07a11e5974c",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/DATA_SUFFICIENCY.md",
+      "bytes": 3524,
+      "gitBlobSha1": "fe26fdd74126c562e217b2277c5ef2b515cc6301",
+      "sha256": "6c427d3f7c1948df5937d66b9a629707359ec9b028aeb5d167d3444c88a117d3",
+      "physicalSha256": "6c427d3f7c1948df5937d66b9a629707359ec9b028aeb5d167d3444c88a117d3",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/DIRECTOR_CLOSURE.md",
+      "bytes": 3661,
+      "gitBlobSha1": "3720fb51d9958dc451e970b210d18dc3933e1030",
+      "sha256": "cba4e6452c66d365ccf0432a6afc113ab3389b5311048982e6481331e3c566c8",
+      "physicalSha256": "cba4e6452c66d365ccf0432a6afc113ab3389b5311048982e6481331e3c566c8",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/PLAN.md",
+      "bytes": 5663,
+      "gitBlobSha1": "cf54ad544c3496762f87c3cf12f91386a942c90d",
+      "sha256": "99326569c5155e54e21f8564e9a6aea83f3b33112f6fa9e293486ef6bc511283",
+      "physicalSha256": "99326569c5155e54e21f8564e9a6aea83f3b33112f6fa9e293486ef6bc511283",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/TEST_MATRIX.md",
+      "bytes": 2974,
+      "gitBlobSha1": "17600df3dc81409f7470d7c21b1d6f6fa9cc7a6a",
+      "sha256": "121071a1d5525247c574a41800b03d4bfaa5300df80fbb2778aa62b6b3be1cf0",
+      "physicalSha256": "121071a1d5525247c574a41800b03d4bfaa5300df80fbb2778aa62b6b3be1cf0",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/ACCEPTANCE.md",
+      "bytes": 3244,
+      "gitBlobSha1": "6520af97491d7151c596caa9308677c97b6dd10c",
+      "sha256": "0e1cdca2402b029be12017bdbef5975f1c348b228c87408d205d31f4749c0bf5",
+      "physicalSha256": "0e1cdca2402b029be12017bdbef5975f1c348b228c87408d205d31f4749c0bf5",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/GIT_AND_PRESERVATION.md",
+      "bytes": 4382,
+      "gitBlobSha1": "cde4851a0699fc5bbb8a51145f338fc836e812ce",
+      "sha256": "608d9eecfb08fa9e5240bdb8a58f41e709af82c84b2fca331616ca547e6b6bda",
+      "physicalSha256": "608d9eecfb08fa9e5240bdb8a58f41e709af82c84b2fca331616ca547e6b6bda",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/HANDOFF.md",
+      "bytes": 3114,
+      "gitBlobSha1": "7f5c669d702d75e3f2da91b522a9ab097f860b2d",
+      "sha256": "0d0769b052130cb12ec4dd78c38740c2ff0490cdce5585da88315ecc1d94cb57",
+      "physicalSha256": "0d0769b052130cb12ec4dd78c38740c2ff0490cdce5585da88315ecc1d94cb57",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/SOURCE_POINTERS.md",
+      "bytes": 1996,
+      "gitBlobSha1": "bce7ef0cdf8de926a4b23a2b5453b0794a549a7b",
+      "sha256": "e9fb98898bb70c6361297a1e939adecc4e33dd905f9441c1e6758414d44c6a29",
+      "physicalSha256": "e9fb98898bb70c6361297a1e939adecc4e33dd905f9441c1e6758414d44c6a29",
+      "lineEndingComparison": "BYTE_EXACT"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/MANIFEST.sha256",
+      "bytes": 983,
+      "gitBlobSha1": "2a3a11c461d55eb7cc2ac04ed11b7e0efa83d97e",
+      "sha256": "e5232ab15feb867dccb3886e8d2d5f085bad09e3f6efc9b29288cb9ddc3b9134",
+      "physicalSha256": "e5232ab15feb867dccb3886e8d2d5f085bad09e3f6efc9b29288cb9ddc3b9134",
+      "lineEndingComparison": "BYTE_EXACT"
+    }
+  ],
+  "freshHeadBeforeAndAfter": true,
+  "method": "Independent GitHub API and raw HTTPS GET; local Git tree used only as expected blobs",
   "schema": "PHANTOM_LEARNING017_READBACK_V1",
-  "status": "PENDING_PUBLICATION",
   "ownerManualGate": "REQUIRED",
   "expectedPaths": [
     "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
@@ -29,5 +268,18 @@
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/SOURCE_POINTERS.md",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-017-PARTY-REWARD-AND-CYCLE-CLOSURE/MANIFEST.sha256"
   ],
-  "contract": "Independent fresh GitHub HEAD/parents/exact diff/full bodies; final receipt-only follow-up checked externally to avoid self-hash recursion"
+  "deliveryCommit": "0d7216ba43d1bdf26c5557375caddff367bed6f6",
+  "connectorChecks": {
+    "freshHead": "0d7216ba43d1bdf26c5557375caddff367bed6f6",
+    "parent": "eed183b70dd8eb6e1a6db98b3d5fb825281b5a2f",
+    "compareExactFiles": 25
+  },
+  "finalReceiptCheck": {
+    "contract": "Second commit modifies only RESULT/EVIDENCE/READBACK; final fresh GitHub HEAD/parent/exact3 diff and all25 bodies are checked externally after its ordinary push",
+    "attestation": "Final response and retained EVIDENCE017/GITHUB_READBACK_FINAL017.json; no recursive self-hash commit"
+  },
+  "encoding": {
+    "mojibake": "PASS_25_FILES_ZERO_MATCHES",
+    "escapedCyrillic": "PASS_25_FILES_ZERO_MATCHES"
+  }
 }

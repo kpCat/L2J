@@ -24,7 +24,7 @@
     "G5": "PARTIAL / NOT_RUN_NATIVE: NOT_NATIVE offline fixture only, no reconstructed native Party receipt",
     "G6": "PASS: GS0/FIT0/EVAL0/promotion0; no campaign or repeated fight",
     "G7": "PASS: targeted tests, owned SQL held exits, OFF/ports free, bounded evidence",
-    "G8": "PENDING_PUBLICATION: exact25; independent full-body GitHub readback required; manual gate REQUIRED"
+    "G8": "PASS_DELIVERY: ordinary feature push, fresh GitHub parent/exact25/full25 SHA/blob and unchanged13 MANIFEST verified; final receipt-only HEAD checked externally; manual gate REQUIRED"
   },
   "trainedModel": false,
   "gameAdvantage": "NOT_EVALUATED",
@@ -2650,8 +2650,16 @@
     "fitsCurrent017Budget": false
   },
   "publication": {
-    "status": "PENDING",
-    "readback": "READBACK.json; final receipt-only HEAD verified separately"
+    "status": "PASS_DELIVERY_FULL_BODY",
+    "deliveryCommit": "0d7216ba43d1bdf26c5557375caddff367bed6f6",
+    "parent": "eed183b70dd8eb6e1a6db98b3d5fb825281b5a2f",
+    "exactPaths": 25,
+    "fullBodies": 25,
+    "readbackArtifactSha256": "bfe3f2f0b79dd3bc29d9c60b165215e05c8567521fed74a81939d290a149753f",
+    "finalReceiptCheck": "Fresh final receipt-only HEAD/parent/exact3/all25 bodies attested in final response and EVIDENCE017; avoids recursive self-hash",
+    "gitCommandsUsed": true,
+    "authorization": "Explicit user017 and approved IMPLEMENTATION_PLAN017.md",
+    "additionalExactCommand": "git -c safe.directory=D:/Codex/repos/L2J-learning-004 -C D:\\Codex\\repos\\L2J-learning-004 ls-tree HEAD -- <all exact25 paths in READBACK.json>"
   },
   "encoding": {
     "mojibake": "PASS_25_FILES_ZERO_MATCHES",
