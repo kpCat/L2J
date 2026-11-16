@@ -353,7 +353,15 @@ public sealed partial class PromptLabSession : IDisposable
                     }
                 }
             }
-            catch (Exception error) when (error is InvalidDataException or JsonException or InvalidOperationException)
+            catch (JsonException error)
+            {
+                var reason = response.Content.TrimStart().StartsWith("```", StringComparison.Ordinal)
+                    ? "Модель обернула JSON в Markdown-блок. Нужен чистый JSON без тройных обратных кавычек."
+                    : "Модель вернула некорректный JSON: " + error.Message;
+                failure = "PROMPT_LAB_RESPONSE_JSON: " + reason
+                    + " Полный ответ сохранён в истории; результат не принят. Проверьте ответ и инструкцию, затем создайте новый запрос. Эта попытка повторно не отправляется.";
+            }
+            catch (Exception error) when (error is InvalidDataException or InvalidOperationException)
             { failure = error.Message; }
         }
         if (queued.Purpose == "GENERATION" && failure.Length > 0 && rows.Length == 0)

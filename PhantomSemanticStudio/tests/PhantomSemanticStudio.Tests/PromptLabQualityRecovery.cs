@@ -123,6 +123,24 @@ internal static partial class Program
             Equal("COMPLETE", (await reopened.ResumeAsync(repair.Id, new(), "", "instance-1", CancellationToken.None)).State);
             Equal(1, handler.Posts); True(original.SequenceEqual(File.ReadAllBytes(Path.Combine(store.Root, "runs", source.Id, "outcome.json"))));
         });
+        await TestAsync("recovery invalid JSON explains the model format failure preserves evidence and never repeats the POST", async () =>
+        {
+            foreach (var content in new[] { "```json\n{\"records\":[]}\n```", "{" })
+            {
+                using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "workspace"), f.Module);
+                var store = new PromptLabStore(workspace); var version = store.SaveVersion(new());
+                using var handler = new RecoveryHandler(content); using var lab = new PromptLabSession(store, _ => new HttpClient(handler, false));
+                var run = await lab.GenerateAsync(version.Id, new() { HighFiveRoot = f.Module }, "", "instance-1", CancellationToken.None);
+                Equal("REJECTED", run.State); Equal(content, run.Response!.Content); Equal(0, run.Rows.Count);
+                True(run.Failure.Contains("JSON", StringComparison.Ordinal));
+                True(run.Failure.Contains("сохранён в истории", StringComparison.Ordinal));
+                True(run.Failure.Contains("новый запрос", StringComparison.Ordinal));
+                if (content.StartsWith("```", StringComparison.Ordinal)) True(run.Failure.Contains("Markdown", StringComparison.Ordinal));
+                True(store.GetTransport(run.Id) != null); Equal(1, handler.Posts);
+                Equal("REJECTED", (await lab.ResumeAsync(run.Id, new() { HighFiveRoot = f.Module }, "", "instance-1", CancellationToken.None)).State);
+                Equal(1, handler.Posts); Equal(1, store.ListVersions(version.ProfileId).Count);
+            }
+        });
     }
 
     private sealed class RecoveryHandler(string proposal) : HttpMessageHandler

@@ -35,6 +35,18 @@ internal static class Program
             return 2;
         }
         ApplicationConfiguration.Initialize();
+        if (workspace == null && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PSS_UI_SMOKE_WORKSPACE")))
+        {
+            using var picker = new FolderBrowserDialog
+            {
+                Description = "Выберите workspace Studio с вашими профилями и историей. Данные из других каталогов не переносятся.",
+                UseDescriptionForTitle = true,
+                InitialDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhantomSemanticStudio"),
+                ShowNewFolderButton = true
+            };
+            if (picker.ShowDialog() != DialogResult.OK) return 0;
+            workspace = PathSafety.Canonical(picker.SelectedPath);
+        }
         Application.Run(workspace == null ? new MainForm() : new MainForm(workspace));
         return 0;
     }
