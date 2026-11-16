@@ -145,7 +145,7 @@ public sealed partial class PromptLabStore
             experimentId = experimentId.Length > 0 ? experimentId : baseline?.ExperimentId.Length > 0 ? baseline.ExperimentId : Guid.NewGuid().ToString("N"); RequireId(experimentId);
             var run = new PromptLabRun { Id = Guid.NewGuid().ToString("N"), VersionId = versionId, VersionHash = VersionHash(versionId),
                 Purpose = purpose, BaselineRunId = baselineRunId, CreatedAtUtc = DateTimeOffset.UtcNow, ApiOptions = options, Scenario = scenario,
-                InputContext = inputContext!, ExperimentId = experimentId, RegistryHash = EffectiveRegistry().Hash };
+                InputContext = inputContext!, ExperimentId = experimentId, RegistryHash = EffectiveRegistry().Hash, RequiresTransportBinding = true };
             Write("runs/" + run.Id + "/request.json", "RUN_REQUEST", run, false); return run;
         }
     }
@@ -238,14 +238,25 @@ public sealed partial class PromptLabStore
         lock (sync)
         {
             var run = GetRun(runId); V4Rules.Require(run.State == "ISSUED", "PROMPT_LAB_TRANSPORT_RUN_STATE");
-            Write("runs/" + runId + "/transport.json", "TRANSPORT", receipt, false);
+            var requestHash = V4Rules.Hash(CompactData("runs/" + runId + "/request.json", "RUN_REQUEST"));
+            if (receipt.RunId != null || receipt.VersionHash != null || receipt.RequestHash != null)
+                V4Rules.Require(receipt.RunId == runId && receipt.VersionHash == run.VersionHash && receipt.RequestHash == requestHash, "PROMPT_LAB_TRANSPORT_BINDING");
+            Write("runs/" + runId + "/transport.json", "TRANSPORT", receipt with { RunId = runId, VersionHash = run.VersionHash, RequestHash = requestHash }, false);
         }
     }
 
     public PromptLabTransportReceipt? GetTransport(string runId)
     {
         RequireId(runId); var relative = "runs/" + runId + "/transport.json";
-        return File.Exists(Local(relative)) ? Read<PromptLabTransportReceipt>(relative, "TRANSPORT") : null;
+        if (!File.Exists(Local(relative))) return null;
+        var receipt = Read<PromptLabTransportReceipt>(relative, "TRANSPORT");
+        var request = Read<PromptLabRun>("runs/" + runId + "/request.json", "RUN_REQUEST");
+        var requestHash = V4Rules.Hash(CompactData("runs/" + runId + "/request.json", "RUN_REQUEST"));
+        if (request.RequiresTransportBinding || receipt.RunId != null || receipt.VersionHash != null || receipt.RequestHash != null)
+            V4Rules.Require(receipt.RunId == runId && receipt.VersionHash == request.VersionHash
+                && receipt.RequestHash == requestHash, "PROMPT_LAB_TRANSPORT_BINDING");
+        // Legacy provenance is attached in memory; the archived receipt remains unchanged.
+        return receipt with { RunId = runId, VersionHash = request.VersionHash, RequestHash = requestHash };
     }
 
     public string SaveCandidateJsonl(string runId, string jsonl)
@@ -291,6 +302,7 @@ public sealed partial class PromptLabStore
         => V4Rules.Require(actual.Id == expected.Id && actual.VersionId == expected.VersionId && actual.VersionHash == expected.VersionHash
             && actual.Purpose == expected.Purpose && actual.BaselineRunId == expected.BaselineRunId && actual.CreatedAtUtc == expected.CreatedAtUtc
             && actual.ExperimentId == expected.ExperimentId && actual.InputContext == expected.InputContext && actual.RegistryHash == expected.RegistryHash
+            && actual.RequiresTransportBinding == expected.RequiresTransportBinding
             && JsonSerializer.Serialize(actual.ApiOptions, PromptProfiles.CompactJson) == JsonSerializer.Serialize(expected.ApiOptions, PromptProfiles.CompactJson)
             && JsonSerializer.Serialize(actual.Scenario, PromptProfiles.CompactJson) == JsonSerializer.Serialize(expected.Scenario, PromptProfiles.CompactJson), "PROMPT_LAB_RUN_SCOPE");
 

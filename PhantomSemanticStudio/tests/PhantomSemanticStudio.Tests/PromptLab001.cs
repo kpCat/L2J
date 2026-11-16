@@ -550,6 +550,7 @@ internal static partial class Program
 
     private static async Task PromptLab001()
     {
+        await PromptLabDurableCycleTests();
         Test("001 new profile factories freeze role-aware USER without migrating a saved custom prompt", () =>
         {
             using var f = new Fixture(); using var workspace = new WorkspaceStore(Path.Combine(f.Root, "workspace"), f.Module);

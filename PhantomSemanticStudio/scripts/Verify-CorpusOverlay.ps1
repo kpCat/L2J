@@ -18,7 +18,7 @@ $allowed=@(
  'src/PhantomSemanticStudio.Core/PromptLab.cs','src/PhantomSemanticStudio.Core/PromptLabStore.cs','src/PhantomSemanticStudio.Core/PromptLabSession.cs','src/PhantomSemanticStudio.Core/LmStudioClient.PromptLab.cs',
  'src/PhantomSemanticStudio.WinForms/MainForm.cs','src/PhantomSemanticStudio.WinForms/MainForm.Designer.cs','src/PhantomSemanticStudio.WinForms/PhantomSemanticStudio.WinForms.csproj','src/PhantomSemanticStudio.WinForms/Program.cs',
  'src/PhantomSemanticStudio.WinForms/PromptLabControl.cs','src/PhantomSemanticStudio.WinForms/PromptLabControl.Designer.cs','src/PhantomSemanticStudio.WinForms/PromptLabControl.resx',
- 'tests/PhantomSemanticStudio.Tests/PromptLab001.cs','tests/PhantomSemanticStudio.Tests/PromptLab001Controls.cs','docs/PROMPT_LAB_RU.md','prompts/corpus001/refiner.v1.md',
+ 'tests/PhantomSemanticStudio.Tests/PromptLab001.cs','tests/PhantomSemanticStudio.Tests/PromptLab001Controls.cs','tests/PhantomSemanticStudio.Tests/PromptLabRefinementCycle.cs','docs/PROMPT_LAB_RU.md','prompts/corpus001/refiner.v1.md',
  'src/PhantomSemanticStudio.Core/PromptLabAuthoring.cs','src/PhantomSemanticStudio.Core/PromptLabRouting.cs',
  'scripts/Verify-Designer.ps1','tests/PhantomSemanticStudio.Tests/Batch081Controls.cs','tests/PhantomSemanticStudio.Tests/Pss005.cs',
  'src/PhantomSemanticStudio.Core/PromptHierarchy.cs','prompts/corpus001/families.v1.json','prompts/corpus001/user-task.v1.md','src/PhantomSemanticStudio.Core/CorpusCandidateIndex.cs',

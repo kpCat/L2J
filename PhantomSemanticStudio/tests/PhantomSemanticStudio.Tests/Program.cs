@@ -25,6 +25,7 @@ internal static partial class Program
     {
         if (args.Length > 0 && args[0] is "--campaign-mock-launch" or "--campaign-mock-worker") return await CampaignMockProcess(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-live") return await PromptLabLive(args);
+        if (args.Length > 0 && args[0] == "--prompt-lab-feedback-cycle") return await PromptLabRefinementCycle(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-targeted-family-live") return await TargetedFamilyTrial(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-targeted-family-report") return TargetedFamilyReport(args);
         if (args.Length > 0 && args[0] == "--prompt-lab-description-live") return await PromptLabDescriptionLive(args);

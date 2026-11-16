@@ -153,7 +153,14 @@ public sealed partial class PromptLabSession : IDisposable
     public Task<PromptLabRun> RefineAsync(string runId, StudioSettings settings, string apiKey, string exactModel, CancellationToken token,
         IProgress<PromptLabProgress>? progress = null, PromptLabApiOptions? apiOptions = null, string? sourceVersionId = null)
     {
-        token.ThrowIfCancellationRequested(); var source = store.GetRun(runId);
+        token.ThrowIfCancellationRequested(); var queued = QueueRefinement(runId, apiOptions, sourceVersionId);
+        return ResumeAsync(queued.Id, settings, apiKey, exactModel, token, progress);
+    }
+
+    public PromptLabRun QueueRefinement(string runId, PromptLabApiOptions? apiOptions = null, string? sourceVersionId = null)
+    {
+        if (disposed) throw new ObjectDisposedException(nameof(PromptLabSession));
+        var source = store.GetRun(runId);
         var feedback = store.LatestFeedback(runId) ?? throw new InvalidDataException("REFINEMENT_REQUIRES_SAVED_FEEDBACK");
         V4Rules.Require(feedback.BatchComment.Length > 0 || feedback.Ratings.Any(r => r.Vote != "NONE" || r.Comment.Length > 0), "REFINEMENT_REQUIRES_FEEDBACK");
         var context = FeedbackContext(source, feedback);
@@ -161,8 +168,7 @@ public sealed partial class PromptLabSession : IDisposable
         var original = store.GetVersion(source.VersionId);
         var sourceScope = source.Scenario ?? original.Scenario;
         var bound = BindEvaluationScenario(original, selected, sourceScope, "REFINEMENT");
-        var queued = store.BeginRun(selected.Id, "REFINEMENT", runId, context, apiOptions, bound);
-        return ResumeAsync(queued.Id, settings, apiKey, exactModel, token, progress);
+        return store.BeginRun(selected.Id, "REFINEMENT", runId, context, apiOptions, bound);
     }
 
     public async Task<IReadOnlyList<PromptLabRun>> ResumeExperimentAsync(string memberRunId, StudioSettings settings, string apiKey, string exactModel,
@@ -186,13 +192,19 @@ public sealed partial class PromptLabSession : IDisposable
     public Task<PromptLabRun> CompareAsync(string baselineRunId, string newVersionId, StudioSettings settings, string apiKey, string exactModel,
         CancellationToken token, IProgress<PromptLabProgress>? progress = null)
     {
-        token.ThrowIfCancellationRequested(); var baseline = store.GetRun(baselineRunId);
+        token.ThrowIfCancellationRequested(); var queued = QueueComparison(baselineRunId, newVersionId);
+        return ResumeAsync(queued.Id, settings, apiKey, exactModel, token, progress);
+    }
+
+    public PromptLabRun QueueComparison(string baselineRunId, string newVersionId)
+    {
+        if (disposed) throw new ObjectDisposedException(nameof(PromptLabSession));
+        var baseline = store.GetRun(baselineRunId);
         V4Rules.Require(baseline.Purpose == "GENERATION" && baseline.CompletedAtUtc.HasValue, "COMPARISON_BASELINE_REQUIRED");
         var old = store.GetVersion(baseline.VersionId);
         var selected = store.GetVersion(newVersionId);
         var scenario = BindEvaluationScenario(old, selected, baseline.Scenario ?? old.Scenario, "COMPARISON");
-        var queued = store.BeginRun(newVersionId, baselineRunId: baselineRunId, apiOptions: baseline.ApiOptions ?? old.Generation, scenario: scenario);
-        return ResumeAsync(queued.Id, settings, apiKey, exactModel, token, progress);
+        return store.BeginRun(newVersionId, baselineRunId: baselineRunId, apiOptions: baseline.ApiOptions ?? old.Generation, scenario: scenario);
     }
 
     private V4GenerationRequest BindEvaluationScenario(PromptLabVersion original, PromptLabVersion selected, V4GenerationRequest scenario, string operation)

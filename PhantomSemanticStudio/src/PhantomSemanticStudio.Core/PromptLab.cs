@@ -133,6 +133,8 @@ public sealed record PromptLabRun
     public V4GenerationRequest? Scenario { get; init; }
     public string InputContext { get; init; } = "";
     public string RegistryHash { get; init; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool RequiresTransportBinding { get; init; }
     public string Purpose { get; init; } = "GENERATION";
     public string State { get; init; } = "QUEUED";
     public DateTimeOffset CreatedAtUtc { get; init; }
@@ -152,5 +154,13 @@ public sealed record PromptLabRun
 public sealed record PromptLabProgress(string Stage, double ElapsedSeconds, long ReceivedBytes, long MessageCharacters, long ReasoningCharacters);
 public sealed record PromptLabResponse(CorpusGenerationResult Response, string RawStream, string EffectiveSystem, string EffectiveUser, bool TransportComplete = false);
 public sealed record PromptLabRevisionProposal(string System, string User, string Explanation);
-public sealed record PromptLabTransportReceipt(PromptLabResponse Reply, string ModelId, int ModelContext, string Endpoint);
+public sealed record PromptLabTransportReceipt(PromptLabResponse Reply, string ModelId, int ModelContext, string Endpoint)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RunId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? VersionHash { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RequestHash { get; init; }
+}
 public sealed record PromptLabMetrics(int Records, int ExactDuplicates, int NearDuplicatePairs, double TokenDiversity);
