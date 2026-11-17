@@ -1,0 +1,181 @@
+{
+  "schema": "PHANTOM_LEARNING022_OWNER_RECHECK_V1",
+  "sameGoal": "PHANTOM-LEARNING-022",
+  "newGoalCreated": false,
+  "status": "FULL022_V4_AUTONOMOUS_SOLO_DAMAGE_TEST_READY_RECONFIRMED",
+  "manualGate": "REQUIRED",
+  "originalBaseline": "74a1c2ce6bc231fb21b61875272ff1667a606bde",
+  "workspaceBaseline": "e974419530280cdef90875ed7cb3247b2ef34b2c",
+  "branch": "feature/phantom-world",
+  "budget": {
+    "historicalUsed": 3,
+    "totalLimit": 3,
+    "newGsBoots": 0,
+    "newSqlStarts": 0,
+    "remainingNativeBoots": 0,
+    "reset": false,
+    "newNativeRound": "NOT_RUN_ALREADY_COMPLETED_THIRD_BOOT",
+    "training480Minutes": "NOT_RUN",
+    "nextGoalStartedDuringRecheck": false
+  },
+  "physical": {
+    "checkpoint206": "99ebcd8fe606ab54379f59dc411fec0f493b8d388009b0f564eec548f76ba537",
+    "checkpoint216": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+    "head": "1ff7547d9d4571673e1e5bfa58a1f3ac3799e4d95f587a32db9ae39622df2f69",
+    "globalKeys": 302,
+    "sequence": 2,
+    "cursor": 4,
+    "status": "AUTO_STOPPED",
+    "ownedProcessesClosed": true,
+    "geoFilesVerified": 203,
+    "protectedFilesVerified": 207,
+    "originalParent188ExactShaVerified": true,
+    "authoritySha": "1039643EA733AB14989D32F56B10E76CA67FA941051B89AB7A814D06ABB44BDA",
+    "claimSha": "E571C195D130EB755F1097EAFEC9F3CFEFC94B47AB1BD133DE61CBE293182783"
+  },
+  "freshOfflineProof": {
+    "episodes": [
+      {
+        "stock": 17,
+        "experiment": 1,
+        "paid": 18,
+        "episode": "87ec3316a01a91468e29053aeb6b444caa9f089374ba9a8ce8465eca14880711",
+        "localReplay": 0,
+        "parent": "90cdb499d44edde5f53819b357f1383dc65f9b9de1bd4d43120f6a154d1a55a6",
+        "globalReplay": 0,
+        "nativeExit": 0,
+        "candidate": "99ebcd8fe606ab54379f59dc411fec0f493b8d388009b0f564eec548f76ba537",
+        "coldSeparateJvm": true,
+        "coldBytesUnchanged": true,
+        "updates": 206,
+        "cursor": 0
+      },
+      {
+        "stock": 10,
+        "experiment": 0,
+        "paid": 10,
+        "episode": "561a9fb48b3cb4e5b09fd8426cbcc681563f6f9aa7a2e0b83d3074ffbd7ac9b8",
+        "localReplay": 0,
+        "parent": "99ebcd8fe606ab54379f59dc411fec0f493b8d388009b0f564eec548f76ba537",
+        "globalReplay": 0,
+        "nativeExit": 0,
+        "candidate": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+        "coldSeparateJvm": true,
+        "coldBytesUnchanged": true,
+        "updates": 216,
+        "cursor": 2
+      }
+    ],
+    "historicalBoots": 3,
+    "productionV4": "OFF",
+    "manualGate": "REQUIRED",
+    "newSqlStarts": 0,
+    "headUnchanged": true,
+    "lineage": [
+      188,
+      206,
+      216
+    ],
+    "newNativeBoots": 0,
+    "recoveryTwiceOneMetric": true,
+    "status": "GREEN",
+    "distinctNativeKeys": 28
+  },
+  "focused": {
+    "controlChecks": 30,
+    "postV2NegativeCases": 15,
+    "originalFilesByteIdentical": 1944,
+    "exitCode": 0,
+    "sealedProofExitCode": 0,
+    "fixtureOnlyFailure": "Generic copier omitted nested attempts/exit.json; copied exact original receipts with SHA before rerun",
+    "originalHistoryWritten": false,
+    "codeChanged": false
+  },
+  "gates": {
+    "G0": "RECONFIRMED_PHYSICAL_PRIVATE_SOURCE_PINS",
+    "G1": "RECONFIRMED_EXISTING_CONTROL_AND_POSTV2_REGRESSION",
+    "G2": "RECONFIRMED_PARENT206_DISTINCT_EPISODE_CURSOR2_TO4",
+    "G3": "RECONFIRMED_TWO_AUTHENTIC_SEALED_EPISODES_28_DISTINCT_PAID",
+    "G4": "RECONFIRMED_188_206_216_SEPARATE_COLD_LOCAL_GLOBAL_REPLAY0",
+    "G5": "RECONFIRMED_SOURCE_NEGATIVES_AND_DOUBLE_POSTCOMMIT_RECOVERY",
+    "G6": "HISTORICAL_PHYSICAL_SYNTHETIC_ROLLOVER_PRESERVED_NO_NEW_NATIVE_CREDIT",
+    "G7": "DESCRIPTIVE_ONLY_SUPERIORITY_NOT_EVALUATED",
+    "G8": "RECONFIRMED_VERSIONED_V2_THREE_BOOT_CAP_ALREADY_USED",
+    "G9": "ORIGINAL_SOURCE_READBACK_RECONFIRMED_RECHECK_DOCS_PUBLICATION_OWNER_GATE_REQUIRED"
+  },
+  "originalPublication": {
+    "source": "9dbf16ee2e0529d13e51758a7698ccd389af8c2a",
+    "directParent": "74a1c2ce6bc231fb21b61875272ff1667a606bde",
+    "ahead": 1,
+    "behind": 0,
+    "exactDiffFiles": 9,
+    "independentFullBodiesRecomputedSha1": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-022-CONTINUATION.md",
+        "blobSha": "235f08302a971224bfcb4cf0a1bff244bfc2dd27",
+        "bytes": 9107
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_DELIVERY.json",
+        "blobSha": "3a297c9a245468996a44acf09a407bbb4ff36f17",
+        "bytes": 490
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_RESULT.json",
+        "blobSha": "510b138b4d4ee3ec4501f28e6fa32aa33ea3960b",
+        "bytes": 32404
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_SCOPE.txt",
+        "blobSha": "130f4ef0b80dfac80b3aef99c82b8fa0d25f755e",
+        "bytes": 937
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_V2.md",
+        "blobSha": "b38ca91f9a8dff2a42e18a62fbb92d7849a70109",
+        "bytes": 5545
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java",
+        "blobSha": "c4fb7391d7bec3aa9de76a445d6cadb74075d73a",
+        "bytes": 54971
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java",
+        "blobSha": "8d8bcf9da0081e3977335c9e8e18cba21c7d2bd9",
+        "bytes": 9637
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training022.ps1",
+        "blobSha": "200723babbbb4538bb193573002cd1b72ea6695e",
+        "bytes": 6313
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1",
+        "blobSha": "dff37e7eba55b3293c01d590d75605934e930ed5",
+        "bytes": 45328
+      }
+    ]
+  },
+  "scope": {
+    "newDocuments": [
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-022-RECHECK-20261117.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/OWNER_RECHECK_20261117.json"
+    ],
+    "historicalDocumentsRewritten": false,
+    "productionCodeChanged": false
+  },
+  "limitations": {
+    "modelSuperiority": "NOT_EVALUATED",
+    "productionV4": "OFF",
+    "eightHourCampaign": "NOT_RUN",
+    "ownerAcceptance": "REQUIRED",
+    "recheckNativeStart": "Forbidden by exhausted 3/3 budget"
+  },
+  "publication": {
+    "mojibake": "PASS_27_MARKERS_ZERO",
+    "escapedCyrillic": "PASS_SIX_PATTERNS_ZERO",
+    "mode": "SCOPED_DOCS_ONLY_ORDINARY_PUSH_FEATURE",
+    "finalShaAndIndependentReadback": "Owner response and local owner-recheck-20261117/recheck-github-readback.json"
+  }
+}
