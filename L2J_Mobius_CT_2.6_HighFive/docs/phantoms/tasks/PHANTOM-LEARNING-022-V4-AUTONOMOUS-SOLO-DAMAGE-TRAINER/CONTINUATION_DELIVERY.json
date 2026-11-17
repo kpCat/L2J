@@ -1,0 +1,17 @@
+{
+  "schema": "PHANTOM_LEARNING022_CONTINUATION_DELIVERY_V2",
+  "status": "PENDING_SCOPED_COMMIT_PUSH_READBACK",
+  "manualGate": "REQUIRED",
+  "baseline": "74a1c2ce6bc231fb21b61875272ff1667a606bde",
+  "branch": "feature/phantom-world",
+  "nativeBoots": 3,
+  "additionalNativePermitted": false,
+  "updates": [
+    188,
+    206,
+    216
+  ],
+  "checkpointSha": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+  "training480Minutes": "NOT_RUN",
+  "nextGoalStarted": false
+}

@@ -165,13 +165,15 @@ public final class PhantomLearning020V4Native
 	{
 		owned(root); var parent = ActionLearningV4.load(root.resolve("candidate.bin"), PARENT); check(parent.updates() == PARENT_UPDATES, "V4_EXACT_PARENT_REQUIRED");
 		var candidates = candidates(cohort);
-		if (AUTONOMOUS022) { candidates = List.of(PhantomLearning022V4Trainer.curriculum(candidates.getFirst(), Long.getLong("phantom.learning022.round", -1))); }
+		if (AUTONOMOUS022) { candidates = List.of(PhantomLearning022V4Trainer.curriculum(candidates.getFirst(), Long.getLong("phantom.learning022.cursor", Long.getLong("phantom.learning022.round", -1)))); }
 		String nonce = UUID.randomUUID().toString().replace("-", "");
 		if (AUTONOMOUS022)
 		{
 			Path reservation = root.getParent().getParent().resolve("reservations/" + root.getFileName().toString().substring(5) + ".json");
 			Files.write(root.resolve("reservation022.json"), Files.readAllBytes(reservation), StandardOpenOption.CREATE_NEW);
 			nonce = string(object(reservation), "nonce"); check(nonce.matches("[a-f0-9]{32}"), "022_RESERVED_NONCE_REQUIRED");
+			var reserved = object(reservation);
+			if (reserved.containsKey("cursor")) { check(number(reserved, "cursor") == ((Number) candidates.getFirst().get("cursor022")).longValue(), "022_RESERVED_CURSOR_REQUIRED"); }
 		}
 		var frozen = new LinkedHashMap<String, Object>(Map.of("schema", "V4_SINGLE_STEP020", "split", SPLIT022, "nonce", nonce,
 			"cohortSha", sha(cohort.resolve("cohort016.json")), "parentSha", PARENT, "candidates", candidates, "liveAdmitted", false));

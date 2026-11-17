@@ -1,0 +1,9 @@
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training022.ps1
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_V2.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_SCOPE.txt
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_RESULT.json
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_DELIVERY.json
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-022-CONTINUATION.md

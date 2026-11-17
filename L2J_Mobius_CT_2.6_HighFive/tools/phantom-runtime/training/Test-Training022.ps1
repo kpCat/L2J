@@ -41,4 +41,24 @@ Check022 (!(Test-Train022CpuExceeded $cpu 100 10 2.1 $false)) '022 cold GS start
 Check022 (!(Test-Train022CpuExceeded $cpu 200 60 2.1 $true)) '022 ready baseline missing'
 Check022 (!(Test-Train022CpuExceeded $cpu 201 70 2.1 $true)) '022 startup cumulative CPU leaked into active delta'
 Check022 (Test-Train022CpuExceeded $cpu 231 80 2.1 $true) '022 sustained CPU cap disabled'
-Write-Output 'TRAIN022_CONTROL_CONTRACT_GREEN cases=18 GS=0 SQL=0'
+$authority=[pscustomobject]@{schema='GOAL022_CONTINUATION_V2';authority='EXPLICIT_OWNER_CHAT';baseline='74a1c2ce6bc231fb21b61875272ff1667a606bde';parentSha='99ebcd8fe606ab54379f59dc411fec0f493b8d388009b0f564eec548f76ba537';historicalBoots=2;additionalBoots=1;totalBootLimit=3;cursor=2;bootPins=@(1,2)}
+Assert-Train022ContinuationContract $authority
+foreach($field in @('historicalBoots','additionalBoots','totalBootLimit','cursor')){
+    $saved=$authority.$field;$authority.$field=0;$rejected=$false
+    try{Assert-Train022ContinuationContract $authority}catch{$rejected=$true}
+    Check022 $rejected ('022 continuation reset accepted: '+$field);$authority.$field=$saved
+}
+$authority.authority='INFERRED';$rejected=$false;try{Assert-Train022ContinuationContract $authority}catch{$rejected=$true}
+Check022 $rejected '022 continuation inferred without owner'
+$cursorConfig=[pscustomobject]@{cursorStart=2}
+Check022 ((Get-Train022Cursor @{Root=$temp} $cursorConfig 0) -eq 2) '022 continuation reset curriculum cursor'
+Check022 ((Get-Train022Cursor @{Root=$temp} @{cursorStart=2} 0) -eq 2) '022 hashtable cursor reset'
+Check022 ((Get-Train022Context @{Root=$temp;History=$temp;BuildRoot=$temp} @{round=0;cursor=2;modelSha=('a'*64);localUpdates=206;split='TRAIN';head=('b'*64);bootsBefore=2;step=1;configSha=('c'*64)}).Cursor -eq 2) '022 controller context cursor reset'
+$continuationConfig=@{startedUtc=$start.ToString('o');deadlineUtc=$start.AddMinutes(15).ToString('o');minDiskBytes=8GB;maxBoots=3;maxNoData=3;maxStagnation=3}
+Check022 ((Get-Train022StopReason $continuationConfig $start.AddMinutes(1) 100GB 2 0) -ceq '') '022 authorized third boot refused'
+Check022 ((Get-Train022StopReason $continuationConfig $start.AddMinutes(1) 100GB 3 0) -ceq 'BOOT_LIMIT') '022 unauthorized fourth boot admitted'
+$stale=@{ledgerHead=('a'*64);modelSha=('b'*64);globalUpdates=206;localUpdates=206;segment=0;completedEpisodes=0;metrics=@(@{round=0})}
+$committed=[pscustomobject]@{head=('c'*64);modelSha=('d'*64);globalUpdates=216;localUpdates=216;segment=0}
+Sync-Train022CommittedState $stale $committed
+Check022 ($stale.ledgerHead -ceq $committed.head -and $stale.modelSha -ceq $committed.modelSha -and $stale.globalUpdates -eq 216 -and $stale.completedEpisodes -eq 1) '022 committed HEAD lost when stale status hits boot limit'
+Write-Output 'TRAIN022_CONTROL_CONTRACT_GREEN cases=30 GS=0 SQL=0'

@@ -51,6 +51,10 @@ public final class PhantomLearning022V4Trainer
 				check(!first.get("policy022").equals(second.get("policy022")) && !first.get("cursor022").equals(second.get("cursor022"))
 					&& curriculum(original, 0).equals(first), "022_DETERMINISTIC_CURRICULUM");
 				check(curriculum(original, 2).get("policy022").equals("MODEL_V1") && curriculum(original, 3).get("policy022").equals("EPSILON_V1"), "022_MODEL_AND_EPSILON_ROUTES_REQUIRED");
+				System.setProperty("phantom.learning022.step", "1");
+				var continuation = curriculum(original, ((Number) first.get("nextCursor022")).longValue());
+				check(continuation.get("cursor022").equals(2L) && continuation.get("nextCursor022").equals(4L) && continuation.get("policy022").equals("BASELINE_V1"), "022_CONTINUATION_CURSOR_AND_MODEL_STEP");
+				System.clearProperty("phantom.learning022.step");
 				new ActionExplorationV4.Plan(1, "BASELINE_V1", 22001, 1, .15, "AUDIT", "a".repeat(64), "b".repeat(64), ACCEPTED, List.of("1230:28", "1275:14"));
 				PhantomLearning019ActionValue.rejects(() -> new ActionExplorationV4.Plan(1, "COVERAGE_TEST_V1", 22001, 1, .15, "AUDIT", "a".repeat(64), "b".repeat(64), ACCEPTED, List.of("1230:28", "1275:14")));
 				System.out.println("LEARNING022_CURRICULUM_HELDOUT_PASS GS=0 SQL=0");
@@ -60,6 +64,15 @@ public final class PhantomLearning022V4Trainer
 				check(parent.updates() == 188, "022_PARENT188_REQUIRED"); System.out.println(json(summary(ActionContinuationV4.initialize(root, parent))));
 			}
 			case "head" -> System.out.println(json(summary(ActionContinuationV4.load(root))));
+			case "proposal" -> {
+				check(args.length == 6, "022_PROPOSAL_ARGUMENTS");
+				var state = ActionContinuationV4.load(root); String episode = args[5];
+				check(episode.matches("[a-f0-9]{64}") && !state.episodes().containsKey(episode), "022_NEW_EPISODE_REQUIRED");
+				System.setProperty("phantom.learning022.step", args[4]);
+				var proposal = curriculum(PhantomLearning020V4Native.candidates(Path.of(args[2])).getFirst(), Long.parseLong(args[3]));
+				System.out.println(json(Map.of("state", summary(state), "episodeId", episode, "cursor", proposal.get("cursor022"), "nextCursor", proposal.get("nextCursor022"),
+					"policy", proposal.get("policy022"), "cell", proposal.get("cell"), "sourceSha", proposal.get("sourceSha"), "GS", 0, "SQL", 0)));
+			}
 			case "cold" -> { check(args.length == 3, "022_COLD_ARGUMENTS"); ActionContinuationV4.cold(root, args[2]); }
 			case "commit" -> { check(args.length == 4, "022_COMMIT_ARGUMENTS"); System.out.println(json(summary(ActionContinuationV4.commit(root, args[2], args[3])))); }
 			case "prepare" -> {

@@ -1,0 +1,19 @@
+# Продолжение того же Goal022 — V2
+
+Baseline: `74a1c2ce6bc231fb21b61875272ff1667a606bde`. Владелец не принял PARTIAL и явно разрешил ровно один дополнительный TEST GameServer boot после offline GREEN. Исторические два boots сохраняются; общий предел — три. Это отдельное versioned исключение к первоначальному G8, без изменения TASK, SAFETY, ACCEPTANCE, RESULT V1, DELIVERY V1 и старых campaign contracts. Исходный 150-минутный период завершён и не обнуляется; продолжение ограничено одним дополнительным раундом, private deadline15 минут, native≤8 минут и прежним cumulative≤16 минут. 480 минут и следующая задача не разрешены.
+
+Прочитаны root/module AGENTS, входной READ_SET, текущие CONTEXT/SAFETY/ACCEPTANCE/ARCHITECTURE/TASK/TEST_MATRIX, опубликованные RESULT/DELIVERY, фактические campaign/status/reservation/preflight/commit206 и физический checkpoint. Повторный просмотр кода ограничен четырьмя изменяемыми файлами и ближайшими ownership/ledger symbols.
+
+Переиспользуются `Write-Train022Immutable`, `Get-Train022Context`, canonical curriculum/preflight, authenticated native samples, segmented `ActionContinuationV4`, отдельные cold JVM, owned process guards и ordinary feature publication. Стек Java25/Ant/PowerShell5, V4/1 codec и production OFF сохранены.
+
+Исправлены два связанных риска продолжения: сброс curriculum cursor между кампаниями и локальный вместо исторического счётчик boots. Нормальный source proposal использует сохранённый nextCursor2 и sequence1 для BASELINE. Новый TEST contract `GOAL022_CONTINUATION_V2` фиксирует parent206, old HEAD/config, два historical boot hashes, cursor2 и общий предел3. Create-only claim допускает единственное продолжение. Старый ledger копируется побайтово с SHA, включая global keys и cold/seals; исходные данные не меняются.
+
+Порядок: focused PS/Java regression и offline fault/rollover → read-only parent206/source/proposal/protected checks → create-only ready reservation с новым episode ID → один native раунд → original complete/receipts → prepare/verify/cold/commit → replay обоих rounds → OFF/process0/portsFree → exact scoped publication/readback. До native было доказано: parent206 SHA, globalKeys292, cursor2→4, sequence1, TRAIN/BASELINE, actual source skills1230:28/1275:14 и NPC20966. Готовность не означает гарантированный native outcome.
+
+Изменяемая artifact family остаётся TEST022 learning. Четыре code/test paths и этот versioned документ, отдельные continuation result/report/delivery/allowlist составляют bounded exception до девяти файлов; исторические отчёты не переписываются. Native evidence и checkpoints остаются private, в Git только sanitized поля и hashes. Проверки и окончательные ограничения перечислены в `CONTINUATION_RESULT.json` и `../../reports/PHANTOM-LEARNING-022-CONTINUATION.md`.
+
+Оператор продолжения использовал обычный `Training.ps1 -Action ActionValue022 -ActionValue022Command Start -Root <approved-history-train> -ActionValue022Minutes 15 -ActionValue022BootLimit 1` после offline подготовки V2. Start/Status/Report не меняют старый contract. После исчерпания общего бюджета последующий Start получает отказ create-only claim/previous-campaign guard; Resume сохраняет maxBoots3 и deadline, четвёртый boot не допускается. Статус/отчёт читаются тем же CLI; Stop подтверждает OFF. Для 8h нужен отдельный owner gate и отдельное разрешение, этот документ его не даёт.
+
+После native offline дополнительно закрыто окно committed HEAD→status: восстановление отсутствующей metric аутентифицирует source через replay0; status берётся из фактического ledger до проверки BOOT_LIMIT. Проверка на настоящем sealed раунде дважды восстановила stale206→216 с одной metric и без нового credit/GS. Это изменение относится только к recovery; оригинальные contracts/native records не переписывались.
+
+Manual gate остаётся REQUIRED. FULL можно заявить только по совокупности старых подлинных доказательств и нового фактического native результата, с явным V2 исключением G8.
