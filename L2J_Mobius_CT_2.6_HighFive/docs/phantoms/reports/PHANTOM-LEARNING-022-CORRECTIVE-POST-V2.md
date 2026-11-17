@@ -2,7 +2,7 @@
 
 Тот же Goal022. Owner gate **REQUIRED**; Goal023 не начат. Production V4 **OFF**, SUPERIORITY=NOT_EVALUATED.
 Baseline `0cf5681cf156219a43930bbdeb283e126c2d7ccc`, branch `feature/phantom-world`.
-Статус публикации и финальные SHA — в `CORRECTIVE-POST-V2/RESULT_CORRECTIVE.json`.
+**CORRECTIVE022_POST_V2_READY_FOR_OWNER_REVIEW**. G0–G7 PASS; owner gate REQUIRED. Source commit `2cf50de22c95381b9b5e64087a1299a92faccd05` опубликован ordinary push/exit0; независимый GitHub readback подтвердил HEAD, direct parent, exact15 diff и все15 full bodies/blob SHA. Факты — в `CORRECTIVE-POST-V2/RESULT_CORRECTIVE.json`; docs-only follow-up фиксирует этот readback, его окончательный SHA сообщается владельцу отдельно.
 
 ## Причина и исправление
 
@@ -37,7 +37,7 @@ G4: prepare-only проходит реальный bootstrap на собстве
 G5: claim missing/wrong, spoof authority, stale active206, HEAD/model/cursor tamper, incomplete reservation, foreign controller/native PID, stale source, исторический receipt tamper и четвёртый boot REJECT.
 G5 также проверяет corrupt cold→сохранённый old pointer+orphan, повтор incomplete admission REJECT, Status во время preparation, concurrent fresh Start и duplicate prepare, Pause/Stop/deadline.
 G6: существующие30 checks и15 negative cases GREEN/exit0; positive/race/rollback/legacy cases тоже PASS;1944 исходных файла byte-identical. Status/Report read-only, 020/021 dispatch unchanged.
-G7: exact scope, полный diff, diff --check, две encoding проверки, scoped commit, ordinary feature push и независимый GitHub HEAD/parent/diff/full bodies; результат фиксируется после readback.
+G7 PASS/exit0: exact15 scope, полный diff, diff --check, две encoding проверки, scoped commit и ordinary feature push. GitHub: HEAD2cf50de, parent0cf5681, ahead1/behind0, exact15 diff,15 полных файлов/blob matches; direct parent отдельно прочитан через GitHub Git commit API.
 
 До исправления реальный Start на V2-копии дал `TRAIN022_CONTINUATION_PREVIOUS_CAMPAIGN`; RED runner exit1: `post-V2 CLI switches missing`.
 Дополнительный RED выявил отсутствие явного REJECT на RECOVERY_REQUIRED; corrected. Fixture-only ошибки cohort metadata, private ACL и test-process nonce исправлены без ослабления production gates.
@@ -61,7 +61,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\L2J_Mobius_CT_2.6_HighFive
 PowerShell runner запускает только offline Java verifier. GameServer starts0, SQL starts0, native rounds0, 480min starts0. Full Ant verify/performance/native/production trials NOT_RUN.
 git использован по прямому TASK/user разрешению: `status --short --branch`, `status --porcelain=v1 -uno`, `symbolic-ref --short HEAD`, `rev-parse HEAD HEAD^ origin/feature/phantom-world`, `worktree list`, `fetch origin feature/phantom-world`.
 Также exact-path `diff --name-only <baseline> -- <three PS paths>`, `diff --stat -- <three PS paths>`, `diff -- <three PS paths>`, `diff --check -- <allowlist>` и `diff --cached --name-only/--check/--stat`, `ls-tree -r HEAD -- <allowlist>`.
-Публикация: `git add --pathspec-from-file=<SCOPE_ALLOWLIST.txt>`, scoped `git commit -m <message>`, `git push origin HEAD:feature/phantom-world`; docs-only follow-up допускается для фактического readback. Force/history rewrite нет.
+Публикация: `git add --pathspec-from-file=<SCOPE_ALLOWLIST.txt>`, scoped `git commit -m <message>`, `git push origin HEAD:feature/phantom-world`; для docs-only readback follow-up — `git add -- <этот report> <CORRECTIVE-POST-V2/RESULT_CORRECTIVE.json>` (ровно2 exact allowlist paths). Force/history rewrite нет.
 Mojibake-маркеры в изменённых файлах проверены:27 markers ×15 файлов, совпадений0, exit0 проверки (rg1 означает отсутствие совпадений).
 Escaped Cyrillic в изменённых файлах проверены: все6 regex ×15 файлов, совпадений0, exit0 проверки.
 
@@ -70,4 +70,4 @@ Escaped Cyrillic в изменённых файлах проверены: все
 Это offline corrective, не доказательство480min устойчивости или качества combat AI. Физические private artifacts доступны локально; GitHub содержит только код, документы и sanitized hashes.
 Source script TrainingV4 намеренно обновлён corrective; исторический native build/owner/catalog pins остаются строгими. Старые config/authority/checkpoints не переписываются.
 Future native runtime требует отдельного решения владельца. Manual gate REQUIRED; ACCEPTED_FULL022 не объявлен.
-Внезапное отключение питания и directory metadata durability не тестировались; orphan admission требует ручного анализа. Elapsed и финальная публикация — в result.
+Внезапное отключение питания и directory metadata durability не тестировались; orphan admission требует ручного анализа. Elapsed до source readback — около31мин (точные секунды в result), внутри55мин; окончательный docs-only HEAD/readback сообщается владельцу после публикации.

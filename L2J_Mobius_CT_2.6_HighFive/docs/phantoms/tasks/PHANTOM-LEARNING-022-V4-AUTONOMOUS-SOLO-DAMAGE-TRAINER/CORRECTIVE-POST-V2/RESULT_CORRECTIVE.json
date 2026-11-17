@@ -1,6 +1,6 @@
 {
   "schema": "GOAL022_CORRECTIVE_POST_V2_RESULT_V1",
-  "status": "OFFLINE_GREEN_PUBLICATION_PENDING",
+  "status": "CORRECTIVE022_POST_V2_READY_FOR_OWNER_REVIEW",
   "manualGate": "REQUIRED",
   "baseline": "0cf5681cf156219a43930bbdeb283e126c2d7ccc",
   "branch": "feature/phantom-world",
@@ -19,7 +19,7 @@
     "G4": "PASS_REAL_CLI_PREPARE_ONLY_480MIN_BOOT2",
     "G5": "PASS_NEGATIVE_ROLLBACK_AND_CONCURRENT_START",
     "G6": "PASS_30_EXISTING_AND_FOCUSED_POST_V2",
-    "G7": "PENDING_SCOPED_PUBLICATION_READBACK"
+    "G7": "PASS_EXACT15_SCOPE_ENCODING_ORDINARY_PUSH_INDEPENDENT_GITHUB_READBACK"
   },
   "tests": {
     "runner": "tools/phantom-runtime/training/Test-Training022.ps1 -CorrectiveHistoryRoot <read-only-owner-history> -EvidenceRoot <fresh-owned-evidence>",
@@ -78,14 +78,116 @@
     "escapedCyrillic": "PASS_SIX_PATTERNS_15_FILES_ZERO"
   },
   "publication": {
-    "status": "PENDING",
+    "status": "SOURCE_PUSH_AND_INDEPENDENT_READBACK_VERIFIED",
     "ordinaryPush": true,
-    "independentGitHubReadback": "PENDING"
+    "independentGitHubReadback": "PASS_HEAD_DIRECT_PARENT_EXACT15_DIFF_ALL15_FULL_BODIES_BLOB_MATCH",
+    "sourceCommit": "2cf50de22c95381b9b5e64087a1299a92faccd05",
+    "sourceParent": "0cf5681cf156219a43930bbdeb283e126c2d7ccc",
+    "branchHead": "2cf50de22c95381b9b5e64087a1299a92faccd05",
+    "aheadBy": 1,
+    "behindBy": 0,
+    "totalCommits": 1,
+    "mergeBase": "0cf5681cf156219a43930bbdeb283e126c2d7ccc",
+    "files": [
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-022-CORRECTIVE-POST-V2.md",
+        "sha": "7839723b955348d758097f6196b42ad48effb226",
+        "bodyChars": 7731,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/ACCEPTANCE.md",
+        "sha": "13afae4a39150680bebd988d6473e8baa53a20ab",
+        "bodyChars": 2283,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/ARCHITECTURE.md",
+        "sha": "47650b4bd5050c26e1e48f9da321543d88def686",
+        "bodyChars": 3535,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/CONTEXT.md",
+        "sha": "10c456a0575d1d5076b3623c18c47b24488e2229",
+        "bodyChars": 2569,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/OPERATOR_NOTE_RU.md",
+        "sha": "c0bd6ed7eb3f7c261c3a4d893c20e1206916f739",
+        "bodyChars": 2219,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/PACKAGE_MANIFEST.json",
+        "sha": "4f46bb76c6883150ada54d8e2f0fd6507eec649e",
+        "bodyChars": 2372,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/RESULT_CORRECTIVE.json",
+        "sha": "48c37a7a7d445bd6472cef474044f7837eca20f5",
+        "bodyChars": 3864,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/SAFETY.md",
+        "sha": "ff70279300d4911438543a107b9100ab0f91dd2a",
+        "bodyChars": 1751,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/SCOPE_ALLOWLIST.txt",
+        "sha": "6126c04a3bdf5ba885ede95df23ce74a851f65e4",
+        "bodyChars": 1821,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/TASK.md",
+        "sha": "bcd4f7a948ea086c89e05cae8f895d35d8888db3",
+        "bodyChars": 5545,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/TEST_MATRIX.md",
+        "sha": "9c118d4c7eb6a9059442c6511a43d25b884740ac",
+        "bodyChars": 2176,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/Test-PostV2.ps1",
+        "sha": "ffc17b73e4922af4354c0a7e0208b665fb11c39c",
+        "bodyChars": 20053,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training022.ps1",
+        "sha": "460e888a239f399933d1bff0f8b52804731b9163",
+        "bodyChars": 6601,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "sha": "a1ace38242366c66a487d905973c7a8fda70fcb7",
+        "bodyChars": 196586,
+        "match": true
+      },
+      {
+        "name": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1",
+        "sha": "d37ba7fc8e51048fef357227d758e03870cba031",
+        "bodyChars": 57756,
+        "match": true
+      }
+    ],
+    "directParentVerified": true,
+    "finalDeliveryPolicy": "Docs-only follow-up records this verified source publication; final follow-up SHA and readback are reported in the owner response."
   },
   "sourceFileSha256": {
     "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training022.ps1": "D0D5CA999EE25446A8CB6642C025189B89EF569B2B59804B221813990BFE8E98",
     "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1": "38816960A46F31719C7799719CA35BFFDB0ADE88F28255CBE0E7AA6369BA7C04",
     "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1": "AA80E0188C9D8E32B6B433C130DA6AB7F6E0835FE98C4246A81212754EA685A6"
   },
-  "engineeringSecondsAtOfflineGate": 1631
+  "engineeringSecondsAtOfflineGate": 1631,
+  "engineeringSecondsThroughSourceReadback": 1892
 }
