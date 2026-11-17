@@ -1,0 +1,13 @@
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning024V4Batch.java
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingQualityV4.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingBatchV4.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-TrainingBatch024.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Build-TrainingBatch024.xml
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-024-NATIVE-MULTI-EPISODE-SINGLE-GS/EXECUTION024.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-024-NATIVE-MULTI-EPISODE-SINGLE-GS/RESULT024.json
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-024-NATIVE-MULTI-EPISODE-SINGLE-GS/SCOPE_ALLOWLIST024.txt
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-024-NATIVE-MULTI-EPISODE-SINGLE-GS.md

@@ -7,7 +7,7 @@ param(
     [string]$ActionValueCandidate,
     [ValidateSet('RunOnce','Status','Stop')][string]$ActionValue020Command='Status',
     [switch]$ActionValue021Continuation,
-    [ValidateSet('Start','Status','Pause','Resume','Stop','Report')][string]$ActionValue022Command='Status',
+    [ValidateSet('Start','Status','Pause','Resume','Stop','Report','Batch024Prepare','Batch024Run','Batch024Recover','Batch024Report')][string]$ActionValue022Command='Status',
     [ValidateRange(1,480)][int]$ActionValue022Minutes=480,
     [ValidateRange(0,96)][int]$ActionValue022BootLimit=0,
     [switch]$ActionValue022NewCampaign,

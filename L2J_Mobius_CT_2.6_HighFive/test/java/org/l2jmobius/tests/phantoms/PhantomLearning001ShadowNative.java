@@ -1602,6 +1602,8 @@ public final class PhantomLearning001ShadowNative
 			check(materialization.shutdown().state() == PhantomMaterializationService.ServiceState.STOPPED, "MATERIALIZATION_STOP");
 			progression.beginStop();
 			await(progression::finishStop, Duration.ofSeconds(30), "PROGRESSION_STOP");
+			if (Boolean.getBoolean("phantom.learning.batch024"))
+			{ check(outcomeListeners.isEmpty() && materialization.list().isEmpty(), "024_RUNTIME_RELEASE_UNPROVEN"); }
 			System.out.println("LEARNING001_NATIVE_OWNERS_STOP " + policy.counters());
 			return null; });
 		}

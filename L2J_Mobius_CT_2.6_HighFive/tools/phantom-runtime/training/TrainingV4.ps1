@@ -1,6 +1,7 @@
 ﻿param([switch]$Controller022,[string]$HistoryRoot022,[string]$Nonce022)
 # Explicit TEST-only profile. Dot-sourcing defines functions without starting anything.
 . (Join-Path $PSScriptRoot 'TrainingQualityV4.ps1')
+. (Join-Path $PSScriptRoot 'TrainingBatchV4.ps1')
 function Write-Train022Immutable([string]$Path,$Value) {
     Assert-TrainDirectory (Split-Path $Path -Parent)
     $bytes=$script:TrainUtf8.GetBytes(($Value|ConvertTo-Json -Depth 16))
@@ -73,7 +74,8 @@ function Assert-Train022Assets($Context,$Config) {
 }
 function Get-Train022JavaFlags($Layout) {
     $c=$Layout.Context022
-    return @('-Dphantom.learning.autonomous022=true',('-Dphantom.learning022.rootName='+(Split-Path $c.Root -Leaf)),('-Dphantom.learning022.parent='+$c.ModelSha),('-Dphantom.learning022.updates='+$c.LocalUpdates),('-Dphantom.learning022.round='+$c.Round),('-Dphantom.learning022.cursor='+$c.Cursor),('-Dphantom.learning022.split='+$c.Split),('-Dphantom.learning022.boot='+($c.BootsBefore+1)),('-Dphantom.learning022.step='+$c.Step))
+    $batch=@();if($c.ContainsKey('Batch024') -and $c.Batch024){$batch=@('-Dphantom.learning.batch024=true')}
+    return $batch+@('-Dphantom.learning.autonomous022=true',('-Dphantom.learning022.rootName='+(Split-Path $c.Root -Leaf)),('-Dphantom.learning022.parent='+$c.ModelSha),('-Dphantom.learning022.updates='+$c.LocalUpdates),('-Dphantom.learning022.round='+$c.Round),('-Dphantom.learning022.cursor='+$c.Cursor),('-Dphantom.learning022.split='+$c.Split),('-Dphantom.learning022.boot='+($c.BootsBefore+1)),('-Dphantom.learning022.step='+$c.Step))
 }
 function Test-Train022Property($Value,[string]$Name) {
     if($Value -is [Collections.IDictionary]){return $Value.Contains($Name)}
@@ -193,6 +195,7 @@ function Get-Train022IndependentSource($Layout,[string[]]$Visited=@()) {
     return @{campaignId=$config.campaignId;configSha=(Get-FileHash -LiteralPath (Join-Path $Layout.Root 'campaign022.json')).Hash;head=$last;cursor=[long]$candidate.nextCursor022;preflightSha=(Get-FileHash -LiteralPath $preflightPath).Hash;context=$lastContext;historicalBoots=3;claimSha=(Get-FileHash -LiteralPath $claimPath).Hash;authoritySha=$claim.authoritySha}
 }
 function Assert-Train022Round([string]$History,$Context) {
+    if($Context.ContainsKey('Batch024') -and $Context.Batch024){Assert-Train024Round $Context;return}
     $layout=Get-Train022Layout $History;Assert-TrainInstallation $layout
     if($Context.Root -cne (Join-Path $layout.Root ('rounds\round'+([int]$Context.Round).ToString('D6'))) -or $Context.ModelSha -cnotmatch '^[a-f0-9]{64}$' -or
         [int]$Context.LocalUpdates -lt 0 -or $Context.Split -cnotin @('TRAIN','TUNING','AUDIT') -or $Context.BuildRoot -ine $layout.BuildRoot){throw 'TRAIN022_ROUND_SCOPE'}
@@ -208,6 +211,7 @@ function Get-Train022Command($Layout) {
     return $command.kind
 }
 function Assert-Train022Boundary($Context,[switch]$Fast) {
+    if($Context.ContainsKey('Batch024') -and $Context.Batch024){Assert-Train024Boundary $Context -Fast:$Fast;return}
     $layout=Get-Train022Layout $Context.History;$config=Read-TrainJson (Join-Path $layout.Root 'campaign022.json')
     Assert-TrainHash (Join-Path $layout.Root 'campaign022.json') $Context.ConfigSha
     $actualBoots=Get-Train022HistoricalBoots $layout $config
@@ -223,7 +227,7 @@ function Assert-Train022Boundary($Context,[switch]$Fast) {
     if(!$Fast){foreach($pin in $config.sources.PSObject.Properties){Assert-TrainHash $pin.Name $pin.Value}}
 }
 function Request-Train022Drain($Context,[Diagnostics.Process]$Process,[Diagnostics.Stopwatch]$Clock) {
-    $layout=Get-Train022Layout $Context.History;$config=Read-TrainJson (Join-Path $layout.Root 'campaign022.json')
+    $layout=if($Context.ContainsKey('Batch024') -and $Context.Batch024){$Context.Layout024}else{Get-Train022Layout $Context.History};$config=Read-TrainJson (Join-Path $layout.Root 'campaign022.json')
     $reason=''
     try{Assert-Train022Boundary $Context -Fast}catch{$reason=$_.Exception.Message}
     $resources=Get-TrainProcessResources $Process
@@ -246,6 +250,7 @@ function Test-Train022CpuExceeded($Context,[double]$Cpu,[double]$Seconds,[double
     return $rate -gt $Limit
 }
 function Invoke-Train022Java($Layout,[string]$Command,[string[]]$Arguments,$Context=$null) {
+    if($Command.StartsWith('batch-',[StringComparison]::Ordinal)){return Invoke-Train024Java $Layout $Command.Substring(6) $Arguments $Context}
     $java=(Get-Command java.exe -CommandType Application|Select-Object -First 1).Source
     $classpath=(Join-Path $Layout.BuildRoot 'phantom-test\bin')+';'+(Join-Path $Layout.BuildRoot 'runtime-libs\*')
     if($Command -ceq 'verify-history'){
@@ -302,7 +307,9 @@ function Save-Train022Status($Layout,$State,[string]$Status,[string]$Reason='') 
     Write-TrainText (Join-Path $Layout.Root 'report022.md') ($text -join "`r`n")
 }
 function Get-Train022Context($Layout,$Reservation) {
-    return @{Root=(Join-Path $Layout.Root ('rounds\round'+([int]$Reservation.round).ToString('D6')));History=$Layout.History;BuildRoot=$Layout.BuildRoot;Round=[int]$Reservation.round;Cursor=$(if(Test-Train022Property $Reservation 'cursor'){[long]$Reservation.cursor}else{[long]$Reservation.round});ModelSha=$Reservation.modelSha;LocalUpdates=[long]$Reservation.localUpdates;Split=$Reservation.split;Head=$Reservation.head;BootsBefore=[int]$Reservation.bootsBefore;Step=[long]$Reservation.step;ConfigSha=$Reservation.configSha}
+    $context=@{Root=(Join-Path $Layout.Root ('rounds\round'+([int]$Reservation.round).ToString('D6')));History=$Layout.History;BuildRoot=$Layout.BuildRoot;Round=[int]$Reservation.round;Cursor=$(if(Test-Train022Property $Reservation 'cursor'){[long]$Reservation.cursor}else{[long]$Reservation.round});ModelSha=$Reservation.modelSha;LocalUpdates=[long]$Reservation.localUpdates;Split=$Reservation.split;Head=$Reservation.head;BootsBefore=[int]$Reservation.bootsBefore;Step=[long]$Reservation.step;ConfigSha=$Reservation.configSha}
+    if((Test-Train022Property $Reservation 'batchSchema') -and $Reservation.batchSchema -ceq 'NATIVE_BATCH024_V1'){$context.Batch024=$true;$context.Layout024=$Layout}
+    return $context
 }
 function Stop-Train022Children($Context) {
     if(!(Test-Path -LiteralPath $Context.Root)){Assert-TrainPortsFree @(33364,18024,19324);return}
@@ -347,6 +354,7 @@ function Stop-Train022Children($Context) {
     if(!(Test-Path -LiteralPath (Join-Path $Context.Root 'recovery-stop022.json'))){Write-Train022Immutable (Join-Path $Context.Root 'recovery-stop022.json') @{test='OFF';ownedProcesses=0;portsFree=$true;processes=$facts;nativeCreditCreated=$false;checkedUtc=[datetime]::UtcNow.ToString('o')}}
 }
 function Get-Train022Metrics($Context) {
+    if($Context.ContainsKey('Batch024') -and $Context.Batch024){return Get-Train024Metrics $Context}
     $proof=Read-TrainJson (Join-Path $Context.Root 'native020.json');$episode=Read-TrainJson (Join-Path $Context.Root 'episode020.json');$preflight=Read-TrainJson (Join-Path $Context.Root 'preflight020.json')
     $groups=@()
     foreach($group in @($proof.records|Group-Object { $_.mode+'/'+$_.chosen+':'+$_.chosenLevel })){
@@ -374,7 +382,7 @@ function Complete-Train022Round($Layout,$Context,$State) {
 }
 function Sync-Train022CommittedState($State,$Head) {
     $State.ledgerHead=$Head.head;$State.modelSha=$Head.modelSha;$State.globalUpdates=$Head.globalUpdates;$State.localUpdates=$Head.localUpdates;$State.segment=$Head.segment
-    $State.completedEpisodes=@($State.metrics).Count
+    $count=0;foreach($metric in $State.metrics){$count+=if(Test-Train022Property $metric 'episodeCount'){[int]$metric.episodeCount}else{1}};$State.completedEpisodes=$count
 }
 function Restore-Train022CommittedMetric($Layout,$Context,$State) {
     if(@($State.metrics|Where-Object {$_.round -eq $Context.Round}).Count){return}
@@ -497,7 +505,11 @@ function Assert-Train022Closed($Context) {
         }
     }
 }
-function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','Status','Pause','Resume','Stop','Report')][string]$Command,[int]$Minutes=480,[int]$BootLimit=0,[switch]$PrepareOnly,[switch]$NewCampaign) {
+function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','Status','Pause','Resume','Stop','Report','Batch024Prepare','Batch024Run','Batch024Recover','Batch024Report')][string]$Command,[int]$Minutes=480,[int]$BootLimit=0,[switch]$PrepareOnly,[switch]$NewCampaign) {
+    if($Command.StartsWith('Batch024',[StringComparison]::Ordinal)){
+        if($PrepareOnly -or $NewCampaign){throw 'TRAIN024_EXPLICIT_COMMAND_ONLY'}
+        Invoke-TrainMiniBatch024 $HistoryRoot $Command.Substring(8)|ConvertTo-Json -Depth 16;return
+    }
     if(($PrepareOnly -or $NewCampaign) -and $Command -cne 'Start'){throw 'TRAIN022_NEW_OPTIONS_START_ONLY'}
     $layout=Get-Train022Layout $HistoryRoot
     if($Command -cin @('Status','Report')){

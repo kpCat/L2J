@@ -1,0 +1,24 @@
+<project name="learning024-isolated" default="compile" basedir="../../..">
+  <property name="out" location=".phantom-local/learning024-build"/>
+  <target name="seed">
+    <mkdir dir="${out}/phantom-test/bin"/>
+    <copy todir="${out}/phantom-test/bin"><fileset dir=".phantom-local/learning022-build/phantom-test/bin"/></copy>
+    <copy todir="${out}/runtime-libs"><fileset dir=".phantom-local/learning022-build/runtime-libs"/></copy>
+  </target>
+  <target name="compile" depends="seed">
+    <delete><fileset dir="${out}/phantom-test/bin/org/l2jmobius/tests/phantoms" includes="PhantomLearning020V4Native*.class,PhantomLearning001ShadowNative*.class,PhantomLearning024V4Batch*.class"/></delete>
+    <javac srcdir="test/java" destdir="${out}/phantom-test/bin" source="25" target="25" encoding="UTF-8" includeantruntime="false" sourcepath="">
+      <classpath><pathelement location="${out}/phantom-test/bin"/><fileset dir="${out}/runtime-libs" includes="*.jar"/></classpath>
+      <include name="org/l2jmobius/tests/phantoms/PhantomLearning024V4Batch.java"/>
+      <include name="org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java"/>
+      <include name="org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java"/>
+    </javac>
+  </target>
+  <target name="verifier" description="Compile only the offline verifier; preserve the classes used by the native boot.">
+    <mkdir dir=".phantom-local/learning024-verifier"/>
+    <javac srcdir="test/java" destdir=".phantom-local/learning024-verifier" source="25" target="25" encoding="UTF-8" includeantruntime="false" sourcepath="">
+      <classpath><pathelement location="${out}/phantom-test/bin"/><fileset dir="${out}/runtime-libs" includes="*.jar"/></classpath>
+      <include name="org/l2jmobius/tests/phantoms/PhantomLearning024V4Batch.java"/>
+    </javac>
+  </target>
+</project>

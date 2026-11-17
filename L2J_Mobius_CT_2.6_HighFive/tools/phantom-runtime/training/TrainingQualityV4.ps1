@@ -75,7 +75,8 @@ function Get-Train023Guard($Layout) {
                 # Canonical samples authenticate split/owner/episode/paid bytes and anti-replay.
                 # Offline verifier logs stay in the current campaign, not its historical parents.
                 $verifyLayout=@{};foreach($k in $roundLayout.Keys){$verifyLayout[$k]=$roundLayout[$k]};$verifyLayout.Root=$Layout.Root
-                $null=Invoke-Train022Java $verifyLayout 'verify-history' @($roundLayout.Ledger,$context.Root) $context
+                if($context.ContainsKey('Batch024') -and $context.Batch024){$null=Invoke-Train022Java $verifyLayout 'batch-history' @($roundLayout.Ledger,$context.Root) $context}
+                else{$null=Invoke-Train022Java $verifyLayout 'verify-history' @($roundLayout.Ledger,$context.Root) $context}
                 $metric=Get-Train022Metrics $context;$metric.candidateSha=$commit.modelSha;$metrics+=@($metric)
                 if($metric.deathsLowerBound -gt 0){$safetyReview=$true}
                 $pins+= (Get-FileHash -LiteralPath $commitPath).Hash
@@ -135,6 +136,14 @@ function Write-Train023Progress($Layout,$State) {
     $rows=[ordered]@{'Решение'=$answer;'Качество'=$guard.quality;'Оценка'=$guard.evaluation;'Статус'=$State.trainerStatus;'Причина STOP'=$State.reason;'Quality STOP'=$guard.stopReason;'Кампания'=$config.campaignId;'Фаза'=$guard.phase;'Нативных завершённых эпизодов'=@($guard.metrics).Count;'Зарезервировано TRAIN'=$guard.trainReservations;'Осталось TRAIN до TUNING/AUDIT'=$guard.trainRemaining;'Следующий split'=$guard.nextSplit;'Лимит boots'=$config.maxBoots;'Использовано boots'=$State.gsBoots;'Прошло секунд с создания кампании'=[Math]::Round($elapsed,1);'Срок UTC'=$config.deadlineUtc;'Latest committed SHA'=$State.modelSha;'Глобальные updates'=$State.globalUpdates;'Reference anchor SHA'=$guard.referenceAnchor;'Роль reference'=$guard.referenceRole;'Best verified'='null — ещё не доказан';'Независимых валидных окон'=$guard.validWindows;'Coverage'=$guard.coverage;'Достоверность / uncertainty'='UNKNOWN';'Last quality evidence SHA'='null';'CPU / RAM / disk'='UNKNOWN: новые процессы в Goal023 не измерялись';'Отказы'=$State.refusedAttempts;'Неполные эпизоды'=$State.unknownEpisodes;'Что требуется для приёмки'=$guard.required;'Owner gate'='REQUIRED';'Production V4'='OFF'}
     $splitCounts=@(foreach($split in @('TRAIN','TUNING','AUDIT')){@($guard.metrics|Where-Object {$_.split -ceq $split}).Count})
     $rows['Завершённые TRAIN / TUNING / AUDIT']=$splitCounts -join ' / '
+    $batches=@($guard.metrics|Where-Object { (Test-Train022Property $_ 'batch024') -and $_.batch024 })
+    if($batches.Count){
+        $episodes=0;foreach($metric in $guard.metrics){$episodes+=if(Test-Train022Property $metric 'episodeCount'){[int]$metric.episodeCount}else{1}}
+        $rows['Batches']=$batches.Count;$rows['Episodes']=$episodes;$rows['Episodes per boot']=$episodes/[Math]::Max(1,[int]$State.gsBoots)
+        $rows['Native duration, seconds']=($batches|Measure-Object nativeProcessSeconds -Sum).Sum
+        $rows['Estimated overhead, seconds']=($batches|Measure-Object estimatedOverheadSeconds -Sum).Sum
+        $rows['Нативных завершённых эпизодов']=$episodes
+    }
     $paid=0;$invalid=0
     foreach($metric in $guard.metrics){$paid+=[int]$metric.paidActions;$invalid+=[int]$metric.unknownOrUnpaidDecisions}
     $rows['Paid / invalid или unpaid']=$paid.ToString()+' / '+$invalid.ToString()
