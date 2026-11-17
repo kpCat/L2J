@@ -15,7 +15,7 @@ public final class ActionExplorationV4
 			skills = List.copyOf(skills);
 			if (schemaVersion != 1 || !Set.of("COVERAGE_TEST_V1", "EPSILON_V1", "BASELINE_V1", "MODEL_V1").contains(policyId)
 				|| cap < 1 || cap > 16 || policyId.equals("COVERAGE_TEST_V1") && cap != 1 || !Double.isFinite(epsilon) || epsilon < .05 || epsilon > .20
-				|| !"TRAIN".equals(split) || episode == null || !episode.matches("[a-f0-9]{64}") || !sourceSha.matches("[a-f0-9]{64}") || !modelSha.matches("[a-f0-9]{64}")
+				|| !("TRAIN".equals(split) || Set.of("TUNING", "AUDIT").contains(split) && policyId.equals("BASELINE_V1")) || episode == null || !episode.matches("[a-f0-9]{64}") || !sourceSha.matches("[a-f0-9]{64}") || !modelSha.matches("[a-f0-9]{64}")
 				|| skills.size() < 2 || skills.size() > 16 || new HashSet<>(skills).size() != skills.size() || skills.stream().anyMatch(s -> !s.matches("[1-9][0-9]*:[1-9][0-9]*")))
 			{ throw new IllegalArgumentException("Invalid frozen V4 experiment plan"); }
 		}

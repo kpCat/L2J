@@ -1,0 +1,12 @@
+{
+  "schema": "PHANTOM_LEARNING022_DELIVERY_V1",
+  "status": "PENDING_SCOPED_COMMIT_PUSH_READBACK",
+  "acceptance": "PARTIAL022_NATIVE_SEQUENCE_BUDGET_EXHAUSTED",
+  "manualGate": "REQUIRED",
+  "branch": "feature/phantom-world",
+  "baseline": "d952a73b3d96ff2d35243251c7f9ae31c635484a",
+  "nativeBoots": 2,
+  "additionalNativePermitted": false,
+  "training480Minutes": "NOT_RUN",
+  "nextGoalStarted": false
+}

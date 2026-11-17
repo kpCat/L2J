@@ -1288,6 +1288,22 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning022-test" depends="compile" description="Focused V4 continuation, rollover and curriculum; no SQL or GameServer.">
+		<fail unless="phantom.learning022.cohort" message="Explicit immutable sealed016 cohort required." />
+		<fail unless="phantom.learning022.parent" message="Explicit accepted physical checkpoint188 required." />
+		<mkdir dir="${build.test.bin}" />
+		<javac srcdir="${test.src}" classpathref="test.classpath" destdir="${build.test.bin}" compiler="modern" includeantruntime="false" source="25" target="25" encoding="UTF-8">
+			<include name="org/l2jmobius/gameserver/phantoms/learning/ActionContinuation022Checks.java" />
+			<include name="org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java" />
+			<include name="org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java" />
+			<include name="org/l2jmobius/tests/phantoms/PhantomLearning021V4Exploration.java" />
+		</javac>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning022V4Trainer" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<arg value="offline" /><arg value="${phantom.learning022.cohort}" /><arg value="${phantom.learning022.parent}" />
+		</java>
+	</target>
+
 	<target name="phantom-learning021-test" depends="compile-tests" description="V4 safe exploration contracts; no SQL or GameServer.">
 		<fail unless="phantom.learning021.cohort" message="Explicit sealed016 cohort required." />
 		<fail unless="phantom.learning021.parent" message="Explicit immutable checkpoint179 required." />

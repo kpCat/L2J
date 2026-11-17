@@ -1,0 +1,38 @@
+{
+  "taskId": "PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER",
+  "gitBaseline": "d952a73b3d96ff2d35243251c7f9ae31c635484a",
+  "referenceAcceptedCheckpoint": "90cdb499d44edde5f53819b357f1383dc65f9b9de1bd4d43120f6a154d1a55a6",
+  "archiveExtractRoot": "D:\\Codex\\repos\\L2J-phantom-world\\L2J_Mobius_CT_2.6_HighFive\\docs",
+  "relativeTaskRoot": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER",
+  "createdFor": "Goal022 task definition only; not executed",
+  "files": {
+    "TASK.md": {
+      "sha256": "acd0be4a7adb283de441f817b10bb5016c849a6b5e3f379d33819cdf35f37a80",
+      "lines": 31
+    },
+    "CONTEXT.md": {
+      "sha256": "c13ce9addb2abbdc674e63c69fd618b8612c02e8a895bdee39d190cd5071e204",
+      "lines": 28
+    },
+    "ARCHITECTURE.md": {
+      "sha256": "71c68a99a22dd800741c25155516a513a30b1fa33f1c59d11d2c4e0b2dd13594",
+      "lines": 34
+    },
+    "ACCEPTANCE.md": {
+      "sha256": "3c99cfcccdd2a4bc36213f8730542048121e68380c654dac621cd1394217f07a",
+      "lines": 20
+    },
+    "TEST_MATRIX.md": {
+      "sha256": "bd7a72f4c5b0acbbcade56431a0f83875ac6fb32367c6926e1cf371d9e790bb0",
+      "lines": 26
+    },
+    "SAFETY.md": {
+      "sha256": "589f0801e9cde4f7ae5232555b1d5d0458e36cec9ac9a0c1cf869a2dae01812c",
+      "lines": 12
+    },
+    "RUNBOOK_RU.md": {
+      "sha256": "31b43dd5e39c1816f11c8b07b43c681283c47100a696aa8d1c1dfa4461276643",
+      "lines": 26
+    }
+  }
+}

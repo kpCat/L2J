@@ -1,12 +1,15 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight','Prepare','RepairClosure017','ActionValue019','ActionValue020','ActionValue021')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight','Prepare','RepairClosure017','ActionValue019','ActionValue020','ActionValue021','ActionValue022')][string]$Action,
     [string]$Root,
     [string]$RepairEvidenceRoot,
     [string]$ColdLineageProof,
     [string]$ActionValueCandidate,
     [ValidateSet('RunOnce','Status','Stop')][string]$ActionValue020Command='Status',
     [switch]$ActionValue021Continuation,
+    [ValidateSet('Start','Status','Pause','Resume','Stop','Report')][string]$ActionValue022Command='Status',
+    [ValidateRange(1,480)][int]$ActionValue022Minutes=480,
+    [ValidateRange(0,96)][int]$ActionValue022BootLimit=0,
     [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
     [switch]$EnableOutcome006,
     [switch]$EnableExploration007,
@@ -26,6 +29,7 @@ Set-StrictMode -Version Latest
 [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'TrainingOwner.ps1')
 . (Join-Path $PSScriptRoot 'TrainingBroker.ps1')
+if($Action -ceq 'ActionValue022'){. (Join-Path $PSScriptRoot 'TrainingV4.ps1');Invoke-TrainActionValue022 $Root $ActionValue022Command $ActionValue022Minutes $ActionValue022BootLimit;exit}
 if($Action -ceq 'ActionValue019'){Invoke-TrainActionValue019 $Root $ActionValueCandidate;exit}
 if($Action -ceq 'ActionValue020'){Invoke-TrainActionValue020Step $Root $ActionValueCandidate $ActionValue020Command;exit}
 if($Action -ceq 'ActionValue021'){Invoke-TrainActionValue021Step $Root $ActionValueCandidate $ActionValue020Command -Continuation021:$ActionValue021Continuation;exit}
