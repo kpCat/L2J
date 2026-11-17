@@ -1,5 +1,6 @@
 ﻿param([switch]$Controller022,[string]$HistoryRoot022,[string]$Nonce022)
 # Explicit TEST-only profile. Dot-sourcing defines functions without starting anything.
+. (Join-Path $PSScriptRoot 'TrainingQualityV4.ps1')
 function Write-Train022Immutable([string]$Path,$Value) {
     Assert-TrainDirectory (Split-Path $Path -Parent)
     $bytes=$script:TrainUtf8.GetBytes(($Value|ConvertTo-Json -Depth 16))
@@ -247,6 +248,11 @@ function Test-Train022CpuExceeded($Context,[double]$Cpu,[double]$Seconds,[double
 function Invoke-Train022Java($Layout,[string]$Command,[string[]]$Arguments,$Context=$null) {
     $java=(Get-Command java.exe -CommandType Application|Select-Object -First 1).Source
     $classpath=(Join-Path $Layout.BuildRoot 'phantom-test\bin')+';'+(Join-Path $Layout.BuildRoot 'runtime-libs\*')
+    if($Command -ceq 'verify-history'){
+        $historyBin=Join-Path ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))) '.phantom-local\learning023-build\phantom-test\bin'
+        Assert-G0PhysicalFile (Join-Path $historyBin 'org\l2jmobius\tests\phantoms\PhantomLearning022V4Trainer.class')
+        $classpath=$historyBin+';'+$classpath
+    }
     $nonce=[guid]::NewGuid().ToString('N');$stem=Join-Path $Layout.Root ('logs\'+$Command+'-'+$nonce)
     $arguments022=Get-TrainJavaArguments 'org.l2jmobius.tests.phantoms.PhantomLearning022V4Trainer' (@($Command)+$Arguments) $classpath $nonce 2 512
     if($Context){$arguments022=@(Get-Train022JavaFlags @{Context022=$Context})+$arguments022}
@@ -276,6 +282,13 @@ function Get-Train022Status($Layout) {
 }
 function Save-Train022Status($Layout,$State,[string]$Status,[string]$Reason='') {
     $State.trainerStatus=$Status;$State.reason=$Reason;$State.observedUtc=[datetime]::UtcNow.ToString('o')
+    $configPath=Join-Path $Layout.Root 'campaign022.json'
+    if((Test-Path -LiteralPath $configPath) -and (Test-Train022Property (Read-TrainJson $configPath) 'qualityPolicySha')){
+        Write-Train023Progress $Layout $State
+        Write-TrainJson (Join-Path $Layout.Root 'status022.json') $State
+        Write-TrainJson (Join-Path $Layout.Root 'report022.json') $State
+        return
+    }
     Write-TrainJson (Join-Path $Layout.Root 'status022.json') $State
     Write-TrainJson (Join-Path $Layout.Root 'report022.json') $State
     $text=@('# Автономный V4 TEST trainer022',('Статус: '+$Status),('Причина: '+$Reason),('Срок UTC: '+$State.deadlineUtc),('Глобальные updates: '+$State.globalUpdates),('Native boots: '+$State.gsBoots),'SUPERIORITY=NOT_EVALUATED; production V4 OFF.','Kills/deaths описывают эпизод и не доказывают причинный вклад одного действия.',('Подлинные измерения и UNKNOWN: '+(Join-Path $Layout.Root 'rounds')))
@@ -357,6 +370,7 @@ function Complete-Train022Round($Layout,$Context,$State) {
     $State.ledgerHead=$committed.head;$State.modelSha=$committed.modelSha;$State.globalUpdates=$committed.globalUpdates;$State.localUpdates=$committed.localUpdates;$State.segment=$committed.segment
     if(!(Test-Path -LiteralPath (Join-Path $Context.Root 'commit022.json'))){Write-Train022Immutable (Join-Path $Context.Root 'commit022.json') $committed}
     if(!@($State.metrics|Where-Object {$_.round -eq $Context.Round}).Count){$metric=Get-Train022Metrics $Context;$metric.parentSha=$Context.ModelSha;$metric.candidateSha=$committed.modelSha;$metric.ledgerHead=$committed.head;$State.metrics=@($State.metrics)+@($metric)}
+    $null=Assert-Train023Admission $Layout
 }
 function Sync-Train022CommittedState($State,$Head) {
     $State.ledgerHead=$Head.head;$State.modelSha=$Head.modelSha;$State.globalUpdates=$Head.globalUpdates;$State.localUpdates=$Head.localUpdates;$State.segment=$Head.segment
@@ -431,7 +445,8 @@ function Invoke-Train022Controller($Layout,[string]$Nonce) {
             if($reason){Save-Train022Status $Layout $state 'AUTO_STOPPED' $reason;return}
             $head=Invoke-Train022Java $Layout 'head' @($Layout.Ledger)
             $round=@(Get-ChildItem -LiteralPath (Join-Path $Layout.Root 'reservations') -File).Count
-            $split=if($round % 8 -eq 6){'TUNING'}elseif($round % 8 -eq 7){'AUDIT'}else{'TRAIN'}
+            $quality=Assert-Train023Admission $Layout
+            $split=$quality.nextSplit
             $episodeNonce=[guid]::NewGuid().ToString('N');$digest=[Security.Cryptography.SHA256]::Create()
             try{$episodeId=[BitConverter]::ToString($digest.ComputeHash([Text.Encoding]::UTF8.GetBytes($episodeNonce+'/0'))).Replace('-','').ToLowerInvariant()}finally{$digest.Dispose()}
             $reservation=@{schemaVersion=22;round=$round;cursor=(Get-Train022Cursor $Layout $config $round);episodeId=$episodeId;nonce=$episodeNonce;head=$head.head;modelSha=$head.modelSha;localUpdates=$head.localUpdates;step=[long]$head.sequence;split=$split;bootsBefore=[int]$state.gsBoots;reservedUtc=[datetime]::UtcNow.ToString('o');sourceCatalogSha=$config.sourceCatalogSha;configSha=(Get-FileHash -LiteralPath (Join-Path $Layout.Root 'campaign022.json')).Hash}
@@ -459,7 +474,11 @@ function Invoke-Train022Controller($Layout,[string]$Nonce) {
         if($command -cin @('Pause','Stop')){
             try{if($context -and (Test-Path -LiteralPath $context.Root)){Assert-Train022Closed $context}else{Assert-TrainPortsFree @(33364,18024,19324)};$closed=$true}catch{$closed=$false}
         }
-        if($closed){Save-Train022Status $Layout $state $(if($command -ceq 'Pause'){'PAUSED'}else{'STOPPED'}) 'OPERATOR_DRAIN_CONFIRMED'}
+        if($state.lastError -like 'TRAIN023_PAUSED_*'){
+            Save-Train022Status $Layout $state 'PAUSED' $state.lastError
+            return
+        }
+        elseif($closed){Save-Train022Status $Layout $state $(if($command -ceq 'Pause'){'PAUSED'}else{'STOPPED'}) 'OPERATOR_DRAIN_CONFIRMED'}
         else{Save-Train022Status $Layout $state 'BLOCKED' $state.lastError}
         throw
     }finally{$lock.Dispose()}
@@ -481,7 +500,12 @@ function Assert-Train022Closed($Context) {
 function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','Status','Pause','Resume','Stop','Report')][string]$Command,[int]$Minutes=480,[int]$BootLimit=0,[switch]$PrepareOnly,[switch]$NewCampaign) {
     if(($PrepareOnly -or $NewCampaign) -and $Command -cne 'Start'){throw 'TRAIN022_NEW_OPTIONS_START_ONLY'}
     $layout=Get-Train022Layout $HistoryRoot
-    if($Command -cin @('Status','Report')){Get-Train022Status $layout|ConvertTo-Json -Depth 16;return}
+    if($Command -cin @('Status','Report')){
+        $status=Get-Train022Status $layout
+        $configPath=Join-Path $layout.Root 'campaign022.json'
+        if((Test-Path -LiteralPath $configPath) -and (Test-Train022Property (Read-TrainJson $configPath) 'qualityPolicySha')){Write-Train023Progress $layout $status;Write-TrainJson (Join-Path $layout.Root 'report022.json') $status}
+        $status|ConvertTo-Json -Depth 16;return
+    }
     Initialize-TrainWin32
     $hash=[Security.Cryptography.SHA256]::Create()
     try{$key=[BitConverter]::ToString($hash.ComputeHash([Text.Encoding]::UTF8.GetBytes($layout.BaseRoot))).Replace('-','')}finally{$hash.Dispose()}
@@ -489,6 +513,10 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
     try{
         $held=$mutex.WaitOne(15000);if(!$held){throw 'TRAIN022_START_LOCK_TIMEOUT'}
         $layout=Get-Train022Layout $HistoryRoot
+        $qualityConfig=Join-Path $layout.Root 'campaign022.json'
+        if($Command -cin @('Start','Resume') -and (Test-Path -LiteralPath $qualityConfig) -and (Test-Train022Property (Read-TrainJson $qualityConfig) 'qualityPolicySha')){
+            $null=Assert-Train023Admission $layout
+        }
         if($NewCampaign -and !(Test-Path -LiteralPath (Join-Path $layout.Root 'status022.json'))){throw 'TRAIN022_NEW_SOURCE_REQUIRED'}
         if($Command -ceq 'Start'){
             if($Minutes -lt 1 -or $Minutes -gt 480){throw 'TRAIN022_DURATION_1_480'}
@@ -545,7 +573,9 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
             New-TrainPrivateRoot $layout
             foreach($name in @('logs','ledger','rounds','reservations')){$null=[IO.Directory]::CreateDirectory((Join-Path $layout.Root $name))}
             $now=[datetime]::UtcNow;$sources=@{}
-            foreach($path in @((Join-Path $PSScriptRoot 'TrainingV4.ps1'),(Join-Path $PSScriptRoot 'TrainingOwner.ps1'),(Join-Path $layout.BuildRoot 'runtime-libs\GameServer.jar'))){$sources[$path]=(Get-FileHash -LiteralPath $path).Hash}
+            foreach($path in @((Join-Path $PSScriptRoot 'TrainingV4.ps1'),(Join-Path $PSScriptRoot 'TrainingQualityV4.ps1'),(Join-Path $PSScriptRoot 'TrainingOwner.ps1'),(Join-Path $layout.BuildRoot 'runtime-libs\GameServer.jar'))){$sources[$path]=(Get-FileHash -LiteralPath $path).Hash}
+            $historyVerifier=Join-Path $layout.Module '.phantom-local\learning023-build\phantom-test\bin\org\l2jmobius\tests\phantoms\PhantomLearning022V4Trainer.class'
+            Assert-G0PhysicalFile $historyVerifier;$sources[$historyVerifier]=(Get-FileHash -LiteralPath $historyVerifier).Hash
             $approvalPath=Join-Path $layout.BaseRoot 'approved-protected022.json';if(Test-Path -LiteralPath $approvalPath){$sources[$approvalPath]=(Get-FileHash -LiteralPath $approvalPath).Hash}
             $testBin=Join-Path $layout.BuildRoot 'phantom-test\bin\org\l2jmobius\tests\phantoms'
             foreach($prefix in @('PhantomLearning020V4Native','PhantomLearning022V4Trainer','PhantomAutonomousTrainingNative','PhantomLearning001ShadowNative','PhantomTrainingActors')){foreach($file in @(Get-ChildItem -LiteralPath $testBin -Filter ($prefix+'*.class') -File)){$sources[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}}
@@ -558,7 +588,11 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
                 $config.cursorStart=$source.cursor;$config.cursorPreflightSha=$source.preflightSha;$config.previousConfigSha=$source.configSha
                 $config.historicalV2Boots=3;$config.consumedAuthoritySha=$source.authoritySha;$config.consumedClaimSha=$source.claimSha
                 $config.prepareOnly=[bool]$PrepareOnly
+                $config.qualityStartSequence=$source.head.sequence
             }
+            if(!$layout.ContainsKey('Independent')){throw 'TRAIN023_REFERENCE216_NEW_CAMPAIGN_REQUIRED'}
+            Write-Train022Immutable (Join-Path $layout.Root 'quality-policy023.json') (New-Train023Policy $layout $config)
+            $config.qualityPolicySha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'quality-policy023.json')).Hash
             Write-Train022Immutable (Join-Path $layout.Root 'campaign022.json') $config
             if($layout.ContainsKey('PreviousLedger')){
                 $ledgerPins=@{}
@@ -616,7 +650,7 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
             }
         }
         if($PrepareOnly){if($Command -cne 'Start'){throw 'TRAIN022_PREPARE_ONLY_START'};Get-Train022Status $layout|ConvertTo-Json -Depth 16;return}
-        if(!$live -and ($Command -ceq 'Resume' -or (Get-Train022Status $layout).trainerStatus -ceq 'NOT_STARTED')){Start-Train022Broker $layout}
+        if(!$live -and ($Command -ceq 'Resume' -or (Get-Train022Status $layout).trainerStatus -ceq 'NOT_STARTED')){$null=Assert-Train023Admission $layout;Start-Train022Broker $layout}
         Get-Train022Status $layout|ConvertTo-Json -Depth 16
     }finally{if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
 }

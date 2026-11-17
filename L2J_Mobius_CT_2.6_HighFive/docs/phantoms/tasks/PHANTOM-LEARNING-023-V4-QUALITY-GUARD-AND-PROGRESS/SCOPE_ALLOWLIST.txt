@@ -1,0 +1,17 @@
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingQualityV4.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-TrainingQuality023.ps1
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/TASK.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/CONTEXT.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/ARCHITECTURE.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/ACCEPTANCE.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/TEST_MATRIX.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/SAFETY.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/PROGRESS_CONTRACT.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/EFFICIENCY_HANDOFF.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/PACKAGE_MANIFEST.json
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/EXECUTION.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/RESULT023.json
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/SCOPE_ALLOWLIST.txt

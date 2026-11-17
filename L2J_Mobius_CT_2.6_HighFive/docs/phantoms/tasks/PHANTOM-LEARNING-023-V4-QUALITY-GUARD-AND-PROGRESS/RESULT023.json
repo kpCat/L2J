@@ -1,0 +1,186 @@
+{
+  "schema": "PHANTOM_LEARNING023_RESULT_V1",
+  "status": "FULL023_TEST_SAFETY_AND_PROGRESS_READY",
+  "manualGate": "REQUIRED",
+  "baseline": "8926e4da5b59d9b9a376dbac8fce05c8fe3a934f",
+  "branch": "feature/phantom-world",
+  "quality": "QUALITY_UNPROVEN",
+  "evaluation": "INSUFFICIENT_EVAL",
+  "superiority": "NOT_EVALUATED",
+  "bestVerified": null,
+  "productionV4": "OFF",
+  "GS": 0,
+  "SQL": 0,
+  "nativeRounds": 0,
+  "training480Minutes": "NOT_RUN",
+  "goal024": "NOT_STARTED",
+  "gates": {
+    "G0": "PASS_FRESH_BASELINE_AND_ORIGINAL_PRESERVATION",
+    "G1": "PASS_FAIL_CLOSED_QUOTA_NOT_UPDATES",
+    "G2": "PASS_UNTRUSTED_SOURCE_CANNOT_CERTIFY_QUALITY",
+    "G3": "PASS_ADMISSION_POST_COMMIT_RECOVERY_LINEAGE_AND_LATCH",
+    "G4": "PASS_SYNTHETIC_SUPPORTED_CONTRACT_ONLY_REAL_QUALITY_UNPROVEN",
+    "G5": "PASS_OFFLINE_HTML_MD_JSON_CONTRACT_OWNER_VISUAL_REQUIRED",
+    "G6": "PASS_EXISTING30_POSTV2_NEGATIVE15_QUALITY44",
+    "G7": "PASS_ZERO_GS_SQL_NATIVE_HISTORY_UNCHANGED",
+    "G8": "PENDING_SCOPED_PUBLICATION_INDEPENDENT_READBACK_OWNER_REQUIRED"
+  },
+  "lineage": {
+    "referenceAnchor": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+    "referenceRole": "REFERENCE_ANCHOR_UNEVALUATED",
+    "head": "1ff7547d9d4571673e1e5bfa58a1f3ac3799e4d95f587a32db9ae39622df2f69",
+    "updates": 216,
+    "globalKeys": 302,
+    "sequence": 2,
+    "cursor": 4,
+    "originalPhysicalFilesUnchanged": 1944,
+    "originalPackagePayloadHashesUnchanged": 8
+  },
+  "guard": {
+    "version": "QUALITY_POLICY023_V1",
+    "maxNewTrainReservations": 6,
+    "split": "TRAIN0_5_TUNING6_AUDIT7",
+    "afterCycle": "PAUSED_EVAL_COVERAGE_GAP",
+    "authenticatedComparator": "UNAVAILABLE",
+    "validWindows": 0,
+    "missingWindowsPatience": 0,
+    "syntheticOnlySupportedVerdicts": [
+      "IMPROVEMENT_SUPPORTED",
+      "PAUSED_REGRESSION",
+      "PAUSED_NO_SUPPORTED_GAIN"
+    ],
+    "singleAuthenticDeath": "PAUSED_SAFETY_REVIEW_NOT_PROVEN_REGRESSION",
+    "ownerUnlock": "NOT_IMPLEMENTED",
+    "ledgerWritesByGuard": 0,
+    "historyVerifier": "CANONICAL_NATIVE_FINGERPRINT_MEMBERSHIP_CURRENT_LEDGER_READ_ONLY",
+    "historyVerifierBuild": "SEPARATE_learning023-build_PINNED_learning022-build_UNCHANGED"
+  },
+  "tests": {
+    "focusedChecks": 44,
+    "existingChecks": 30,
+    "postV2NegativeCases": 15,
+    "finalExitCodes": {
+      "focused": 0,
+      "existingPostV2": 0,
+      "javac": 0,
+      "psSyntax": 0
+    },
+    "focusedRuns": 13,
+    "focusedRedOrIntermediateFailures": 7,
+    "focusedGreenRuns": 6,
+    "existingPostV2Runs": 4,
+    "existingPostV2Failures": 1,
+    "javacRuns": 1,
+    "antVerifyRuns": 0,
+    "jarRuns": 0,
+    "logs": ".phantom-local/logs/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/",
+    "finalFocused": "delivery-quality-fixed.log",
+    "finalExistingPostV2": "delivery-postv2-fixed.log",
+    "negativeCoverage": [
+      "no_eval_train7",
+      "missing_windows_not_plateau",
+      "duplicate_eval_window",
+      "synthetic_supported_gain_regression_plateau",
+      "real_historical_commits_after_later_HEAD",
+      "missing_tail_orphan",
+      "inherited_quota",
+      "Start_Resume_NewCampaign_latch",
+      "fake_status_and_audit_JSON",
+      "report_JSON_projection",
+      "corrupt_policy_Stop_drain",
+      "TRAIN_reused_AUDIT",
+      "changed_model_source_owner_episode",
+      "missing_physical_receipt",
+      "corrupt_outer_seal",
+      "duplicate_paid_replay",
+      "HTML_injection",
+      "deadline479_480_clock_disk_boot_noData",
+      "postV2_concurrency_idempotency_cursor4"
+    ]
+  },
+  "review": {
+    "independent": true,
+    "importantFindings": 2,
+    "fixed": [
+      "historical_verify_prepared_cannot_verify_advanced_HEAD",
+      "missing_reservation_tail_and_commit_sequence"
+    ],
+    "canonicalStatusProjection": "RED_GREEN",
+    "stopDrainDuringIntegrityFailure": "PASS",
+    "deferredMinors": [],
+    "declinedToJudge": []
+  },
+  "historicalCosts": {
+    "nativeSeconds": [
+      89.808,
+      89.615
+    ],
+    "episodeSeconds": [
+      44.865,
+      36.328
+    ],
+    "approximateResidualSeconds": [
+      44.943,
+      53.287
+    ],
+    "scope": "scenario_specific_preparation_start_shutdown_not_startup_benchmark",
+    "newCpuCost": "UNKNOWN",
+    "throughput480Minutes": "NOT_MEASURED"
+  },
+  "scope": {
+    "exactPaths": [
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingQualityV4.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-TrainingQuality023.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/TASK.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/CONTEXT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/ARCHITECTURE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/ACCEPTANCE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/TEST_MATRIX.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/SAFETY.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/PROGRESS_CONTRACT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/EFFICIENCY_HANDOFF.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/PACKAGE_MANIFEST.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/EXECUTION.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/RESULT023.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/SCOPE_ALLOWLIST.txt"
+    ],
+    "codeTestFiles": 4,
+    "documentFiles": 13,
+    "boundedException": "Original task package9 published unchanged with delivery artifacts, one TEST family",
+    "initialReadSet": 12,
+    "additionalSourceDocFiles": 13,
+    "exactHistoricalLogReads": 3,
+    "prePatchSearches": 3,
+    "fullReadsOver1000Lines": 0
+  },
+  "encoding": {
+    "mojibake": "PASS_27_MARKERS_17_FILES_ZERO",
+    "escapedCyrillic": "PASS_SIX_PATTERNS_17_FILES_ZERO"
+  },
+  "gitAudit": {
+    "freshRefs": 16,
+    "uniqueBranchCommits": 0,
+    "branchIntegration": "NOT_NEEDED_ALL_ANCESTORS",
+    "droppedRedundantStash": "780d63ef1ab9216a3e029c598c908b3ab80880ca",
+    "identicalStashBlobs": 15,
+    "recoveryPatchSha256": "246B5E059DD886DAABC386E72CEEE0F6322D671B27A4B84D2F83F78339D57C7B",
+    "retainedUniqueStash": "d9926911fa4dc05dd94f1e615c2ba81d41d143a4",
+    "reasonRetained": "Unique WIP plus rollback of accepted guards; whole apply unsafe; no proven required integration"
+  },
+  "limitations": [
+    "Real authenticated matched V4 comparator absent: no actual supported improvement/best/regression verdict",
+    "No GS/SQL/native/480min run",
+    "No production promotion or policy/codec change",
+    "Visual preview NOT_RUN: browser file protocol denied; no workaround",
+    "Owner gate REQUIRED before future native trials or Goal024"
+  ],
+  "publication": {
+    "status": "PENDING",
+    "ordinaryPush": true,
+    "independentGithubReadback": "PENDING"
+  },
+  "engineeringSecondsAtOfflineGate": 2537
+}

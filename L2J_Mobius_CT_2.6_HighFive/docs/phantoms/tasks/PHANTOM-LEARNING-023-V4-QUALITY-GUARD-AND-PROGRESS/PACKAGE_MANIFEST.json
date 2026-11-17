@@ -1,0 +1,58 @@
+{
+  "taskId": "PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS",
+  "unpackInto": "D:\\Codex\\repos\\L2J-phantom-world\\L2J_Mobius_CT_2.6_HighFive\\docs\\",
+  "baseGitHubHead": "8926e4da5b59d9b9a376dbac8fce05c8fe3a934f",
+  "zipRoot": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS",
+  "files": [
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/TASK.md",
+      "bytes": 8869,
+      "sha256": "77f28a9dc8f39be341e1ed0764f4f62c8ab0f0b7d4fb73f779d3da1fb734afda"
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/CONTEXT.md",
+      "bytes": 3122,
+      "sha256": "8d1b993bc19c9a47e8a84b71d21d6479deb8afb90563ebd7a2529c3fb975ebb6"
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/ARCHITECTURE.md",
+      "bytes": 4226,
+      "sha256": "13cc5b42cc69b7419b104c96a33aa6e0604b387699ed7e1547a0dd9d258059c3"
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/ACCEPTANCE.md",
+      "bytes": 2385,
+      "sha256": "937a7e926b2db520b0d9093408c152e75a85c6bc30f726643532227485955d48"
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/TEST_MATRIX.md",
+      "bytes": 2149,
+      "sha256": "45e18d984f7ad7bc6f912c9ec82ebc11c6edcfaf0a59444e3c3ea462fa017895"
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/SAFETY.md",
+      "bytes": 2100,
+      "sha256": "711190fcd4f2078d5d17c83c6a1cfcb3c49ae1c4dc8c8b35b02a33b1fed24a0f"
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/PROGRESS_CONTRACT.md",
+      "bytes": 3406,
+      "sha256": "524adecf972d95b392dc8028ccfb03ff98bf90bbbd568ed527aad3fb42b5b847"
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/EFFICIENCY_HANDOFF.md",
+      "bytes": 2220,
+      "sha256": "13551c08ceadd81871a2b39ebdd4e447a8ebb78b8eb84414ccd7ee0e83d31d71"
+    }
+  ],
+  "limits": {
+    "gameServerBoots": 0,
+    "sqlBoots": 0,
+    "nativeRounds": 0,
+    "eightHourRuns": 0,
+    "engineeringMinutes": 75
+  },
+  "modelSuggestion": "GPT-6 or strongest available Codex",
+  "thinking": "High",
+  "note": "Task23 safety and observability, not a claim of V4 superiority; Goal024 separate multi-episode GS milestone."
+}

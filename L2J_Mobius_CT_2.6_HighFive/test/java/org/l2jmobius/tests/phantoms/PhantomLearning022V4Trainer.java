@@ -64,6 +64,23 @@ public final class PhantomLearning022V4Trainer
 				check(parent.updates() == 188, "022_PARENT188_REQUIRED"); System.out.println(json(summary(ActionContinuationV4.initialize(root, parent))));
 			}
 			case "head" -> System.out.println(json(summary(ActionContinuationV4.load(root))));
+			case "verify-history" -> {
+				check(args.length == 3, "023_HISTORY_ARGUMENTS"); Path round = Path.of(args[2]);
+				var complete = PhantomEvaluationReplayV2.object(round.resolve("native021.complete.json"));
+				check(PhantomEvaluationReplayV2.string(complete, "nativeSha").equals(PhantomLearning020V4Native.sha(round.resolve("native020.json")))
+					&& PhantomEvaluationReplayV2.string(complete, "manifestSha").equals(PhantomLearning020V4Native.sha(round.resolve("manifest021.json"))), "023_HISTORY_COMPLETE_SOURCE");
+				// load authenticates the entire current ledger chain, not just its last model.
+				// Membership uses the canonical native fingerprint; no copied numeric quality fields.
+				var current = ActionContinuationV4.load(root); var samples = PhantomLearning020V4Native.samples(round, true);
+				var keys = new HashSet<String>();
+				for (var sample : samples)
+				{
+					check(keys.add(sample.row().eventKey()) && sample.fingerprint().equals(current.events().get(sample.row().eventKey()))
+						&& sample.row().split().equals(current.episodes().get(sample.episodeId())), "023_HISTORY_COMMITTED_NATIVE_MEMBERSHIP");
+				}
+				check(!keys.isEmpty(), "023_HISTORY_EMPTY");
+				System.out.println(json(Map.of("authenticatedEvents", keys.size(), "quality", "QUALITY_UNPROVEN", "GS", 0, "SQL", 0)));
+			}
 			case "proposal" -> {
 				check(args.length == 6, "022_PROPOSAL_ARGUMENTS");
 				var state = ActionContinuationV4.load(root); String episode = args[5];

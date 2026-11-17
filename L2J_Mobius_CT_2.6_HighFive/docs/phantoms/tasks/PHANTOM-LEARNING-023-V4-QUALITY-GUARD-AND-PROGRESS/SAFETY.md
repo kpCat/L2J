@@ -1,0 +1,10 @@
+# Non-negotiable safety / scope
+
+- 0 GameServer, 0 owned or shared SQL, 0 native new evidence, 0 night run. No `ant verify` on default DB lane; only safe DB-free verification. Do not modify MAIN/PLAY/private checkpoints/Geo203/protected207.
+- No production enable, auto-promotion, model rewrite, silent rollback or optimizer changes; maintain accepted Goal020/021/022 bytes and global event/episode ledger. Preserve existing owner-config/Alt+B.
+- Scoped paths: existing `tools/phantom-runtime/training/TrainingV4.ps1`, `Test-Training022.ps1`, optionally `Training.ps1`; optional new `TrainingQualityV4.ps1` and `Test-TrainingQuality023.ps1`; optional one TEST-only Java verifier (`test/java/org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java`) **only if strictly needed** for authentic read-only verification; docs in `docs/phantoms/tasks/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/` and one report `docs/phantoms/reports/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS.md`. Every other path requires user approval.
+- No worktrees/branches/clones, no `git clean`, no `reset --hard`, no stash/add-all/force, and no deletion of historical TEST roots. Git inspect/edit/commit/push limited to selected paths on feature/phantom-world.
+- Native `TUNING/AUDIT` currently **not proven** as quality evaluation. Do not backfill purported performance from synthetic fixtures or with hindsight. Stop uncertain cases, expose reason and required proof. Never claim no risk of overfitting.
+- New guard must not trap owner in an unresumable state: controlled owner unlock may be designed but **not** auto-activated. New campaign should inherit quality stop/provenance; no bypass by resetting counters. A past existing campaign lacking quality schema must not silently inherit fabricated quality evidence.
+- Stop mid-battle: request drain safely using existing protocol; never kill foreign process; STOPPED only after own GS/SQL absent and ports free. All quality checks at boundaries, not hot cast loop.
+- If unable to satisfy safety, publish honest `BLOCKED` and explain; do not weaken gates.
