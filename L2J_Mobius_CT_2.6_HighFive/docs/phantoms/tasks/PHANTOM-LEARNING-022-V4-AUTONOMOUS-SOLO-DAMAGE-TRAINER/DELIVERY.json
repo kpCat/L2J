@@ -1,12 +1,163 @@
 {
   "schema": "PHANTOM_LEARNING022_DELIVERY_V1",
-  "status": "PENDING_SCOPED_COMMIT_PUSH_READBACK",
+  "status": "SOURCE_PUSH_AND_INDEPENDENT_READBACK_VERIFIED",
   "acceptance": "PARTIAL022_NATIVE_SEQUENCE_BUDGET_EXHAUSTED",
   "manualGate": "REQUIRED",
   "branch": "feature/phantom-world",
   "baseline": "d952a73b3d96ff2d35243251c7f9ae31c635484a",
+  "sourceCommit": "eeb35c05a587c153bc1d7603e9fd1795c0a64508",
+  "sourceParent": "d952a73b3d96ff2d35243251c7f9ae31c635484a",
+  "ordinaryPush": true,
+  "independentSourceBranchHead": "eeb35c05a587c153bc1d7603e9fd1795c0a64508",
+  "independentCompare": {
+    "aheadBy": 1,
+    "behindBy": 0,
+    "totalCommits": 1,
+    "exactPaths": 24,
+    "mergeBase": "d952a73b3d96ff2d35243251c7f9ae31c635484a"
+  },
+  "independentFullBodies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "sha": "fbf50101db3982fa7cd5d6970823f88994c5710c",
+      "bodyChars": 339546
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-022.md",
+      "sha": "d188bdbf8adce66940117ecb89609741b0ba5285",
+      "bodyChars": 9918
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/ACCEPTANCE.md",
+      "sha": "cccf4517ffe7a8d1b4936b8d8c3cdf317c3b80c1",
+      "bodyChars": 3963
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/ARCHITECTURE.md",
+      "sha": "0ec46d7c551b446b863ec5063732a925e2bc63e9",
+      "bodyChars": 7413
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTEXT.md",
+      "sha": "f6f52c4bd354fa98d5bc5093c467393ca43c39f4",
+      "bodyChars": 3513
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/DELIVERY.json",
+      "sha": "704810538b17189d1ed6b490558f0311393113b6",
+      "bodyChars": 408
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/OPERATOR_RUNBOOK_RU.md",
+      "sha": "5cd960eb882a917030357a506beb0db934fb57df",
+      "bodyChars": 4712
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/PACKAGE_MANIFEST.json",
+      "sha": "4693fbd2e2d865163f9155faf8303a1371d12d51",
+      "bodyChars": 1420
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/PLAN.md",
+      "sha": "d3d7bf4c6e94bf8892cfa02e616ff300bad7c84e",
+      "bodyChars": 2834
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/RESULT.json",
+      "sha": "c50981e27d7d23aed2f8ca4c67d4f3e803758874",
+      "bodyChars": 19507
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/RUNBOOK_RU.md",
+      "sha": "f25bffc9ea677f974298a63f2df461d2ee4e4830",
+      "bodyChars": 2413
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/SAFETY.md",
+      "sha": "23c07150c376a7f610ac356e4252ef21fd31a209",
+      "bodyChars": 2878
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/SCOPE_ALLOWLIST.txt",
+      "sha": "5bf11dc8c1e9519be1c688412205c5ba62750f2e",
+      "bodyChars": 2433
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/TASK.md",
+      "sha": "9e95012c186c363be281115468ba1fa1157eb618",
+      "bodyChars": 6887
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/TEST_MATRIX.md",
+      "sha": "65d918977430fc4dba10cb5f84e49e43d45d8ce2",
+      "bodyChars": 4149
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionContinuationV4.java",
+      "sha": "56e40dc447af7ee4068b8a5db9a5f5abde134959",
+      "bodyChars": 14759
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionExplorationV4.java",
+      "sha": "d0ba6997c5b1b2a1601686f534316e5d0e4219cc",
+      "bodyChars": 10385
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/ActionContinuation022Checks.java",
+      "sha": "7c0c098fb909666efda8cd6766a800de52a9b017",
+      "bodyChars": 9108
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java",
+      "sha": "72f7f1565cfb3f5686c064f3d041e8987b9c8031",
+      "bodyChars": 54595
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java",
+      "sha": "b79135f306058cba11d076399e101217d0009b7b",
+      "bodyChars": 8476
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training022.ps1",
+      "sha": "a7ef618f79208a8857c27c3950354059767fef06",
+      "bodyChars": 3982
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "sha": "14ca8a5e0cbabefa2503287264acde9d1804d0bc",
+      "bodyChars": 196426
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+      "sha": "52f8f1290e63d85c9973a1b6b4981cb795fe3945",
+      "bodyChars": 106543
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1",
+      "sha": "c8c28a2e0214462b323753bdc5081f56d9f5187a",
+      "bodyChars": 38384
+    }
+  ],
+  "gitCommandsPublication": [
+    "git add --pathspec-from-file=<exact24 allowlist>",
+    "git -c core.whitespace=cr-at-eol diff --cached --check",
+    "git diff --cached --name-only",
+    "git ls-tree -r HEAD -- <exact24 paths>",
+    "git commit -m <scoped source or delivery message>",
+    "git push origin HEAD:feature/phantom-world"
+  ],
   "nativeBoots": 2,
   "additionalNativePermitted": false,
+  "candidateUpdates": 206,
+  "candidateSha": "99ebcd8fe606ab54379f59dc411fec0f493b8d388009b0f564eec548f76ba537",
+  "replayAdditionalUpdates": 0,
   "training480Minutes": "NOT_RUN",
-  "nextGoalStarted": false
+  "nextGoalStarted": false,
+  "usageBeforeDelivery": {
+    "tokens": 524851,
+    "seconds": 8423
+  },
+  "tokenGuideException": "Accidental branch/stash/index recovery with487 verified copies; stale protected207 audit/explicit owner authority; lifecycle/resource/fault fixes.150-minute wall ceiling and2 boots not extended.",
+  "deliveryCommit": "Docs-only follow-up; exact final SHA is reported after ordinary push/readback",
+  "finalChecks": "Exact24 source scope; full mojibake marker set and six escaped-Cyrillic regex zero; CR-at-EOL whitespace; two final static verifier runs stored outside Git."
 }

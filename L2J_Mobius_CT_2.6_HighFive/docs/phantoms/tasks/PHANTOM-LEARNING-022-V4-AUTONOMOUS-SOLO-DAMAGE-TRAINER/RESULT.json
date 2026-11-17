@@ -18,7 +18,7 @@
     "G6": "OFFLINE_PHYSICAL_ROLLOVER_PASS_NOT_NATIVE_EVIDENCE",
     "G7": "BOUNDED_MEASURED_REPORT_NOT_CAUSAL",
     "G8": "TWO_BOOTS_CLOSED_OFF",
-    "G9": "PENDING_SCOPED_PUBLICATION"
+    "G9": "SCOPED_SOURCE_PUSH_READBACK_PASS_PARTIAL_ACCEPTANCE"
   },
   "ownerSnapshot": {
     "geoFiles": 203,
@@ -422,8 +422,12 @@
     "No further GS in this Goal; owner gate REQUIRED"
   ],
   "publication": {
+    "status": "SOURCE_VERIFIED",
     "branch": "feature/phantom-world",
-    "status": "PENDING",
+    "sourceCommit": "eeb35c05a587c153bc1d7603e9fd1795c0a64508",
+    "exactPaths": 24,
+    "fullBodies": 24,
+    "blobMatches": 24,
     "delivery": "DELIVERY.json"
   }
 }
