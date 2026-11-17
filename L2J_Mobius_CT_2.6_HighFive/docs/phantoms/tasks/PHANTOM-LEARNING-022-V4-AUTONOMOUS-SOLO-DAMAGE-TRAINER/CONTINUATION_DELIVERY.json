@@ -1,10 +1,71 @@
 {
   "schema": "PHANTOM_LEARNING022_CONTINUATION_DELIVERY_V2",
-  "status": "PENDING_SCOPED_COMMIT_PUSH_READBACK",
+  "status": "SOURCE_PUSH_AND_INDEPENDENT_READBACK_VERIFIED",
+  "acceptance": "FULL022_V4_AUTONOMOUS_SOLO_DAMAGE_TEST_READY",
   "manualGate": "REQUIRED",
   "baseline": "74a1c2ce6bc231fb21b61875272ff1667a606bde",
   "branch": "feature/phantom-world",
+  "sourceCommit": "9dbf16ee2e0529d13e51758a7698ccd389af8c2a",
+  "sourceParent": "74a1c2ce6bc231fb21b61875272ff1667a606bde",
+  "ordinaryPush": true,
+  "independentSourceBranchHead": "9dbf16ee2e0529d13e51758a7698ccd389af8c2a",
+  "independentCompare": {
+    "aheadBy": 1,
+    "behindBy": 0,
+    "totalCommits": 1,
+    "mergeBase": "74a1c2ce6bc231fb21b61875272ff1667a606bde",
+    "exactPaths": 9
+  },
+  "independentFullBodies": [
+    {
+      "sha": "235f08302a971224bfcb4cf0a1bff244bfc2dd27",
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-022-CONTINUATION.md",
+      "bodyChars": 7153
+    },
+    {
+      "sha": "3a297c9a245468996a44acf09a407bbb4ff36f17",
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_DELIVERY.json",
+      "bodyChars": 490
+    },
+    {
+      "sha": "510b138b4d4ee3ec4501f28e6fa32aa33ea3960b",
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_RESULT.json",
+      "bodyChars": 32404
+    },
+    {
+      "sha": "130f4ef0b80dfac80b3aef99c82b8fa0d25f755e",
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_SCOPE.txt",
+      "bodyChars": 937
+    },
+    {
+      "sha": "b38ca91f9a8dff2a42e18a62fbb92d7849a70109",
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CONTINUATION_V2.md",
+      "bodyChars": 3956
+    },
+    {
+      "sha": "c4fb7391d7bec3aa9de76a445d6cadb74075d73a",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning020V4Native.java",
+      "bodyChars": 54853
+    },
+    {
+      "sha": "8d8bcf9da0081e3977335c9e8e18cba21c7d2bd9",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning022V4Trainer.java",
+      "bodyChars": 9637
+    },
+    {
+      "sha": "200723babbbb4538bb193573002cd1b72ea6695e",
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training022.ps1",
+      "bodyChars": 6297
+    },
+    {
+      "sha": "dff37e7eba55b3293c01d590d75605934e930ed5",
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1",
+      "bodyChars": 45104
+    }
+  ],
+  "finalDelivery": "Docs-only follow-up; exact final SHA/readback reported in final response",
   "nativeBoots": 3,
+  "bootException": "Explicit owner V2: historical2 plus exactly1",
   "additionalNativePermitted": false,
   "updates": [
     188,
@@ -12,6 +73,35 @@
     216
   ],
   "checkpointSha": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+  "nativePaidReceipts": 28,
+  "experimentPaid": 1,
+  "stockPaid": 27,
+  "localReplayAdditionalUpdates": 0,
+  "globalReplayAdditionalUpdates": 0,
+  "cleanup": "OFF_PROCESS0_PORTSFREE_HISTORICAL_DRIFT0",
   "training480Minutes": "NOT_RUN",
-  "nextGoalStarted": false
+  "nextGoalStarted": false,
+  "productionV4": "OFF",
+  "SUPERIORITY": "NOT_EVALUATED",
+  "nightReadiness": "TEST_ONLY_OWNER_TRIAL",
+  "focused": {
+    "ant": "PASS_EXIT0_50_SECONDS",
+    "powershell": "PASS_EXIT0_30_CASES",
+    "actualPostCommitRecovery": "PASS_STALE206_TO216_TWICE_ONE_METRIC_NO_CREDIT_NO_GS",
+    "review": "NO_REMAINING_CRITICAL_OR_IMPORTANT",
+    "mojibake": "PASS_27_MARKERS_9_FILES_ZERO",
+    "escapedCyrillic": "PASS_SIX_REGEX_9_FILES_ZERO",
+    "exactScope": "NINE_PATHS"
+  },
+  "historicalRecords": "Original V1 reports/contracts/checkpoints unchanged",
+  "usageBeforeFinalDelivery": {
+    "tokens": 823541,
+    "seconds": 10735,
+    "historicalBeforeContinuation": {
+      "tokens": 544050,
+      "seconds": 8933
+    }
+  },
+  "budgetNote": "Same Goal; counters never reset. Original150-minute period and V1 partial preserved. Owner resumed bounded work for exactly1 extra GS; ~30 additional engineering minutes before delivery. Native3/3 and cumulative223226ms<960000ms. Prior token guide exceeded as recorded in V1; no new token budget created.",
+  "gitAuthority": "Explicit TASK and current owner instructions; exact commands in continuation report"
 }

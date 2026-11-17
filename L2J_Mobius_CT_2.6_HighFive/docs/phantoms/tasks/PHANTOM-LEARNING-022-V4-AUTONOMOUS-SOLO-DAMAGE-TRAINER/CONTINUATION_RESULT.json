@@ -1,11 +1,11 @@
 {
   "schema": "PHANTOM_LEARNING022_CONTINUATION_RESULT_V2",
-  "status": "G0_G8_VERIFIED_G9_PUBLICATION_PENDING",
+  "status": "FULL022_V4_AUTONOMOUS_SOLO_DAMAGE_TEST_READY",
   "manualGate": "REQUIRED",
   "baseline": "74a1c2ce6bc231fb21b61875272ff1667a606bde",
   "sameGoal": "PHANTOM-LEARNING-022",
   "productionV4": "OFF",
-  "nightReadiness": "PENDING_PUBLICATION",
+  "nightReadiness": "TEST_ONLY_OWNER_TRIAL",
   "SUPERIORITY": "NOT_EVALUATED",
   "training480Minutes": "NOT_RUN",
   "nextGoalStarted": false,
@@ -40,7 +40,7 @@
     "G6": "PASS_PHYSICAL_SYNTHETIC_ROLLOVER_NOT_NATIVE",
     "G7": "PASS_MEASURED_DESCRIPTIVE_NOT_CAUSAL",
     "G8": "PASS_THREE_HISTORICAL_BOOTS_EXPLICIT_OWNER_V2",
-    "G9": "PENDING_SCOPED_PUBLICATION_READBACK"
+    "G9": "PASS_EXACT9_SOURCE_PUSH_INDEPENDENT_HEAD_PARENT_DIFF_FULL_BODIES"
   },
   "lineage": {
     "updates": [
@@ -705,7 +705,10 @@
   ],
   "publication": {
     "branch": "feature/phantom-world",
-    "status": "PENDING",
-    "delivery": "CONTINUATION_DELIVERY.json"
+    "status": "SOURCE_PUSH_READBACK_VERIFIED",
+    "delivery": "CONTINUATION_DELIVERY.json",
+    "sourceCommit": "9dbf16ee2e0529d13e51758a7698ccd389af8c2a",
+    "exactPaths": 9,
+    "fullBodiesAndBlobMatches": 9
   }
 }
