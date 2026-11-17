@@ -38,7 +38,7 @@ G4 PASS_CONTRACT_ONLY: genuine historical source validation; supported verdicts 
 G5 PASS_OFFLINE_CONTRACT: HTML/MD/JSON; owner visual gate REQUIRED.
 G6 PASS: delivery quality44 + existing30/post-V2 negatives15, exit0;1944 originals byte-identical.
 G7 PASS: GS=0, SQL=0, native=0, 480min NOT_RUN; production/codec/Geo не изменены.
-G8 PUBLICATION_PENDING; owner gate REQUIRED, не ACCEPTED автоматически.
+G8 DELIVERED: source ordinary push и GitHub readback подтверждены; owner gate REQUIRED.
 
 Focused Goal023:44 checks GREEN. Existing30 + post-V2 negative15 GREEN на окончательном code tree.
 Команды (из корня, $history — approved read-only history, $logs — свежие owned output paths):
@@ -82,4 +82,9 @@ Stash780d63ef удалён exact drop после15/15 blob equality; recovery pa
 Mojibake-маркеры в изменённых файлах проверены:27 markers ×17 files,0 matches, exit0.
 Escaped Cyrillic в изменённых файлах проверены:6 patterns ×17 files,0 matches, exit0.
 Machine-readable results, counters, elapsed и публикация — task RESULT023.json.
-Финальные source/delivery SHA и независимый GitHub readback будут записаны после публикации.
+Goal usage при source readback:461824 tokens/2920s; основной бюджет75мин соблюдён.
+Увеличение token usage связано с source-integrity/historical API review и отдельным Git-аудитом владельца.
+Source commit `9710d134ff79a6ac1bdfa656e7dff09b5c7a12e5`, direct parent8926e4da, ordinary push exit0.
+GitHub independent ref+Git commit API: HEAD/source и parent совпали; compare ahead1/behind0/exact17.
+Все17 full bodies прочитаны через GitHub,159049 bytes; Git blob SHA1 пересчитан и совпал с local tree.
+Docs-only follow-up фиксирует этот readback; его SHA и независимый readback — в ответе владельцу.

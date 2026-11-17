@@ -23,7 +23,7 @@
     "G5": "PASS_OFFLINE_HTML_MD_JSON_CONTRACT_OWNER_VISUAL_REQUIRED",
     "G6": "PASS_EXISTING30_POSTV2_NEGATIVE15_QUALITY44",
     "G7": "PASS_ZERO_GS_SQL_NATIVE_HISTORY_UNCHANGED",
-    "G8": "PENDING_SCOPED_PUBLICATION_INDEPENDENT_READBACK_OWNER_REQUIRED"
+    "G8": "DELIVERED_SOURCE_READBACK_VERIFIED_OWNER_GATE_REQUIRED"
   },
   "lineage": {
     "referenceAnchor": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
@@ -178,9 +178,18 @@
     "Owner gate REQUIRED before future native trials or Goal024"
   ],
   "publication": {
-    "status": "PENDING",
+    "status": "SOURCE_PUSH_AND_INDEPENDENT_READBACK_VERIFIED",
     "ordinaryPush": true,
-    "independentGithubReadback": "PENDING"
+    "goalTokensAtSourceReadback": 461824,
+    "independentGithubReadback": "PASS_HEAD_DIRECT_PARENT_EXACT17_DIFF_17_FULL_BODIES_RECOMPUTED_GIT_SHA1",
+    "sourceCommit": "9710d134ff79a6ac1bdfa656e7dff09b5c7a12e5",
+    "sourceParent": "8926e4da5b59d9b9a376dbac8fce05c8fe3a934f",
+    "sourceAheadBy": 1,
+    "sourceBehindBy": 0,
+    "fullBodiesVerified": 17,
+    "sourceReceipt": ".phantom-local/logs/PHANTOM-LEARNING-023-V4-QUALITY-GUARD-AND-PROGRESS/source-github-readback.json",
+    "finalDeliveryPolicy": "Docs-only follow-up records verified source publication; final follow-up SHA/readback in owner response and local delivery-github-readback.json",
+    "engineeringSecondsThroughSourceReadback": 2889
   },
   "engineeringSecondsAtOfflineGate": 2537
 }
