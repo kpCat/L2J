@@ -1,4 +1,5 @@
-﻿$ErrorActionPreference='Stop'
+﻿param([string]$CorrectiveHistoryRoot,[string]$EvidenceRoot)
+$ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'TrainingOwner.ps1')
 . (Join-Path $PSScriptRoot 'TrainingBroker.ps1')
@@ -62,3 +63,7 @@ $committed=[pscustomobject]@{head=('c'*64);modelSha=('d'*64);globalUpdates=216;l
 Sync-Train022CommittedState $stale $committed
 Check022 ($stale.ledgerHead -ceq $committed.head -and $stale.modelSha -ceq $committed.modelSha -and $stale.globalUpdates -eq 216 -and $stale.completedEpisodes -eq 1) '022 committed HEAD lost when stale status hits boot limit'
 Write-Output 'TRAIN022_CONTROL_CONTRACT_GREEN cases=30 GS=0 SQL=0'
+if($CorrectiveHistoryRoot){
+    . (Join-Path $PSScriptRoot '..\..\..\docs\phantoms\tasks\PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER\CORRECTIVE-POST-V2\Test-PostV2.ps1')
+    Test-Train022PostV2 $CorrectiveHistoryRoot $EvidenceRoot
+}

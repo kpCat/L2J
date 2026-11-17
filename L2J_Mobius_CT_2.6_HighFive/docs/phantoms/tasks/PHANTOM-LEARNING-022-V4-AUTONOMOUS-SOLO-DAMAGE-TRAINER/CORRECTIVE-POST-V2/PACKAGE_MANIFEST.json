@@ -1,0 +1,54 @@
+{
+  "format": "GOAL022_CORRECTIVE_POST_V2_ZIP_V1",
+  "baseCommit": "0cf5681cf156219a43930bbdeb283e126c2d7ccc",
+  "repository": "kpCat/L2J",
+  "branch": "feature/phantom-world",
+  "taskId": "PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER",
+  "logicalGoal": "PHANTOM-LEARNING-022",
+  "unpackInto": "D:\\Codex\\repos\\L2J-phantom-world\\L2J_Mobius_CT_2.6_HighFive\\docs\\",
+  "files": [
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/TASK.md",
+      "sha256": "ad04b6d353b0bdd1f1c4aa74fddb5c23d1cd4b7c6086f3cfabb4efbf28f3233c",
+      "bytes": 8077
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/CONTEXT.md",
+      "sha256": "2d10106899050c0ec95d4e294d6608d165a51c6402698e7d27ada2a52a702b00",
+      "bytes": 3056
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/ARCHITECTURE.md",
+      "sha256": "834dbc98f58518774eb0c3ec3cfa11e7d6ca34d88cd6f23f423348d1723e2ef1",
+      "bytes": 5297
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/ACCEPTANCE.md",
+      "sha256": "516dd66dbb01c38650e0b32f948ded8f9c6cb9dbe6c0a594362e265416608843",
+      "bytes": 2998
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/TEST_MATRIX.md",
+      "sha256": "015c7cae007ba025f63e22ff4c55a0ad35371bef665e5ad8cda755d1d05eb58d",
+      "bytes": 2596
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/SAFETY.md",
+      "sha256": "d3418599c30a1603d2c17332f13cba2e364f125534f8cc159899bc8a6b6f7bbf",
+      "bytes": 2598
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/OPERATOR_NOTE_RU.md",
+      "sha256": "08498d4d68169b89ea82813f8e6e0e4d0bdc4d015a9b83ccfacf726e61a41636",
+      "bytes": 3326
+    },
+    {
+      "path": "phantoms/tasks/PHANTOM-LEARNING-022-V4-AUTONOMOUS-SOLO-DAMAGE-TRAINER/CORRECTIVE-POST-V2/SCOPE_ALLOWLIST.txt",
+      "sha256": "e43b138521fbedf838e02b79751e386a263dc0f4230a663c132512c2cbfced01",
+      "bytes": 1821
+    }
+  ],
+  "nativeBootsAuthorized": 0,
+  "sqlBootsAuthorized": 0,
+  "newGoal": false
+}

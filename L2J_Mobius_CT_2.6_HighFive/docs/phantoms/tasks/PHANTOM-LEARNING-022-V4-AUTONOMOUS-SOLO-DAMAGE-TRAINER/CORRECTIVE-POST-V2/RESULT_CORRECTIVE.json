@@ -1,0 +1,91 @@
+{
+  "schema": "GOAL022_CORRECTIVE_POST_V2_RESULT_V1",
+  "status": "OFFLINE_GREEN_PUBLICATION_PENDING",
+  "manualGate": "REQUIRED",
+  "baseline": "0cf5681cf156219a43930bbdeb283e126c2d7ccc",
+  "branch": "feature/phantom-world",
+  "GS": 0,
+  "SQL": 0,
+  "nativeRounds": 0,
+  "training480Minutes": "NOT_RUN",
+  "productionV4": "OFF",
+  "SUPERIORITY": "NOT_EVALUATED",
+  "nextGoalStarted": false,
+  "gates": {
+    "G0": "PASS_FRESH_ORIGIN_AND_INDEPENDENT_GITHUB_BASELINE",
+    "G1": "PASS_IMMUTABLE_V2_THREE_RECEIPTS_NO_REUSE",
+    "G2": "PASS_EXPLICIT_INTENT_AND_IDEMPOTENT_START",
+    "G3": "PASS_PHYSICAL216_KEYS302_CURSOR4_STEP2",
+    "G4": "PASS_REAL_CLI_PREPARE_ONLY_480MIN_BOOT2",
+    "G5": "PASS_NEGATIVE_ROLLBACK_AND_CONCURRENT_START",
+    "G6": "PASS_30_EXISTING_AND_FOCUSED_POST_V2",
+    "G7": "PENDING_SCOPED_PUBLICATION_READBACK"
+  },
+  "tests": {
+    "runner": "tools/phantom-runtime/training/Test-Training022.ps1 -CorrectiveHistoryRoot <read-only-owner-history> -EvidenceRoot <fresh-owned-evidence>",
+    "finalEvidence": ".phantom-local/logs/PHANTOM-LEARNING-022-CORRECTIVE-POST-V2/final",
+    "finalLog": ".phantom-local/logs/PHANTOM-LEARNING-022-CORRECTIVE-POST-V2/final-run.log",
+    "exitCode": 0,
+    "existingCases": 30,
+    "negativeCases": 15,
+    "originalPhysicalFilesVerified": 1944,
+    "freshConcurrentStart": "PASS_EXACTLY_ONE_NEW_CAMPAIGN",
+    "statusDuringAdmission": "PASS_READ_ONLY_AVAILABLE",
+    "duplicatePreparedStart": "PASS_SAME_ID_CONFIG_DEADLINE",
+    "liveStart": "PASS_AUTHENTICATED_TEST_PROCESS_NO_BROKER",
+    "coldTamper": "REJECT_OLD_POINTER_PRESERVED_ORPHAN_RETAINED",
+    "emptySessionNextStart": "PASS_VERIFIED_INHERITED_CURSOR_15MIN_BOOT1",
+    "pauseStop": "PASS_CONFIG_DEADLINE_UNCHANGED",
+    "exhaustedV2Resume": "REJECT_BEFORE_BROKER",
+    "review": "NO_REMAINING_CRITICAL_OR_IMPORTANT",
+    "red": {
+      "exitCode": 1,
+      "realLegacyCode": "TRAIN022_CONTINUATION_PREVIOUS_CAMPAIGN",
+      "runnerFailure": "post-V2 CLI switches missing",
+      "headNegativeRegression": "RECOVERY_REQUIRED_START_NOW_EXPLICIT_REJECT"
+    }
+  },
+  "lineage": {
+    "modelShaBeforeAndAfter": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+    "headBeforeAndAfter": "1ff7547d9d4571673e1e5bfa58a1f3ac3799e4d95f587a32db9ae39622df2f69",
+    "authorityShaBeforeAndAfter": "1039643EA733AB14989D32F56B10E76CA67FA941051B89AB7A814D06ABB44BDA",
+    "claimShaBeforeAndAfter": "E571C195D130EB755F1097EAFEC9F3CFEFC94B47AB1BD133DE61CBE293182783",
+    "thirdBootShaBeforeAndAfter": "E0F819A3D74FEBAB33A512E0D86CF5F31D8E863BACF8BA7824A926EBCC93E351",
+    "globalUpdates": 216,
+    "globalKeys": 302,
+    "sequence": 2,
+    "segment": 0,
+    "cursorStart": 4,
+    "nextPolicy": "MODEL_V1",
+    "v2HistoricalBoots": 3,
+    "newSessionBoots": 0,
+    "newSessionMinutes": 480,
+    "newSessionBootLimit": 2,
+    "oldOwnerActiveAndHistory": "BYTE_IDENTICAL_READ_ONLY"
+  },
+  "notRun": [
+    "GameServer",
+    "SQL",
+    "native rounds",
+    "480-minute training",
+    "full Ant verify",
+    "performance",
+    "production trial"
+  ],
+  "scopePaths": 15,
+  "encoding": {
+    "mojibakeMarkers": "PASS_27_MARKERS_15_FILES_ZERO",
+    "escapedCyrillic": "PASS_SIX_PATTERNS_15_FILES_ZERO"
+  },
+  "publication": {
+    "status": "PENDING",
+    "ordinaryPush": true,
+    "independentGitHubReadback": "PENDING"
+  },
+  "sourceFileSha256": {
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training022.ps1": "D0D5CA999EE25446A8CB6642C025189B89EF569B2B59804B221813990BFE8E98",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1": "38816960A46F31719C7799719CA35BFFDB0ADE88F28255CBE0E7AA6369BA7C04",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingV4.ps1": "AA80E0188C9D8E32B6B433C130DA6AB7F6E0835FE98C4246A81212754EA685A6"
+  },
+  "engineeringSecondsAtOfflineGate": 1631
+}

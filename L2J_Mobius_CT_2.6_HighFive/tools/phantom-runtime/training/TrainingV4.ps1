@@ -93,7 +93,11 @@ function Get-Train022HistoricalBoots($Layout,$Config) {
         if(!$full.StartsWith($Layout.BaseRoot+'\',[StringComparison]::OrdinalIgnoreCase) -or $allowed.ContainsKey($full)){throw 'TRAIN022_HISTORICAL_BOOT_SCOPE'}
         Assert-G0PhysicalFile $full;Assert-TrainHash $full $pin.sha256;$allowed[$full]=$true
     }
-    $boots=@(Get-ChildItem -LiteralPath $Layout.BaseRoot -Filter 'boot-reserved020.json' -Recurse -File)
+    # V2 owns only its frozen historical campaigns and its own rounds. Later
+    # independent sessions must never add to, or reset, this one-time budget.
+    $roots=@($Layout.Root)
+    foreach($pin in $authority.bootPins){$roots+=Join-Path $Layout.BaseRoot (($pin.relativePath -split '\\rounds\\')[0])}
+    $boots=@(foreach($root in @($roots|Select-Object -Unique)){Get-ChildItem -LiteralPath (Join-Path $root 'rounds') -Filter 'boot-reserved020.json' -Recurse -File})
     foreach($boot in $boots){if(!$allowed.ContainsKey($boot.FullName) -and !$boot.FullName.StartsWith((Join-Path $Layout.Root 'rounds')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'TRAIN022_UNACCOUNTED_HISTORICAL_BOOT'}}
     if($boots.Count -gt 3 -or $boots.Count -lt 2){throw 'TRAIN022_HISTORICAL_BOOT_LIMIT'}
     return $boots.Count
@@ -103,6 +107,89 @@ function Get-Train022Cursor($Layout,$Config,[int]$Round) {
     $path=Join-Path $Layout.Root ('rounds\round'+($Round-1).ToString('D6')+'\preflight020.json')
     if(Test-Path -LiteralPath $path){return [long](Read-TrainJson $path).candidates[0].nextCursor022}
     return [long]$Round
+}
+function Assert-Train022NoController($Layout) {
+    $path=Join-Path $Layout.Root 'controller022.json'
+    if(Test-Path -LiteralPath $path){
+        $record=Read-TrainJson $path
+        # Any current occupant of the recorded PID is an uncertain identity.
+        if(Get-CimInstance Win32_Process -Filter "ProcessId=$($record.pid)"){throw 'TRAIN022_SOURCE_CONTROLLER_LIVE_OR_FOREIGN'}
+    }
+}
+function Get-Train022IndependentSource($Layout,[string[]]$Visited=@()) {
+    if($Visited.Count -ge 32 -or $Layout.Root -cin $Visited){throw 'TRAIN022_CURSOR_LINEAGE_CYCLE'}
+    $Visited+= $Layout.Root
+    Assert-Train022NoController $Layout
+    $config=Read-TrainJson (Join-Path $Layout.Root 'campaign022.json')
+    $status=Get-Train022Status $Layout
+    if($status.trainerStatus -cnotin @('STOPPED','AUTO_STOPPED')){throw 'TRAIN022_SOURCE_NOT_STOPPED'}
+    $authorityPath=Join-Path $Layout.BaseRoot 'continuation022-v2.json'
+    $claimPath=Join-Path $Layout.BaseRoot 'continuation022-v2.claim.json'
+    # Published immutable V2 authority and its consumed claim; never re-created.
+    Assert-TrainHash $authorityPath '1039643EA733AB14989D32F56B10E76CA67FA941051B89AB7A814D06ABB44BDA'
+    Assert-TrainHash $claimPath 'E571C195D130EB755F1097EAFEC9F3CFEFC94B47AB1BD133DE61CBE293182783'
+    $authority=Read-TrainJson $authorityPath;Assert-Train022ContinuationContract $authority
+    $claim=Read-TrainJson $claimPath
+    if($claim.authoritySha -ine (Get-FileHash -LiteralPath $authorityPath).Hash -or $claim.campaignId -cnotmatch '^[a-f0-9]{32}$'){throw 'TRAIN022_CONSUMED_CLAIM_BINDING'}
+    if($config.campaignId -cne (Split-Path $Layout.Root -Leaf) -or
+       ($config.campaignId -cne $claim.campaignId -and (!(Test-Train022Property $config 'transition') -or $config.transition -cne 'INDEPENDENT_TEST022_V1'))){throw 'TRAIN022_SOURCE_NOT_POST_V2'}
+    $v2=@{};foreach($key in $Layout.Keys){$v2[$key]=$Layout[$key]}
+    $v2.Root=Join-Path $Layout.BaseRoot ('campaigns\'+$claim.campaignId);$v2.Ledger=Join-Path $v2.Root 'ledger'
+    Assert-TrainInstallation $v2;Assert-Train022NoController $v2
+    Assert-TrainHash (Join-Path $v2.Root 'campaign022.json') 'CECDAE6E7DCA60436C74865B18B9C65D44233FAEEEECCD2FF40E3BF0D6A7D160'
+    Assert-TrainHash (Join-Path $v2.Root 'rounds\round000000\boot-reserved020.json') 'E0F819A3D74FEBAB33A512E0D86CF5F31D8E863BACF8BA7824A926EBCC93E351'
+    $v2config=Read-TrainJson (Join-Path $v2.Root 'campaign022.json');$v2state=Get-Train022Status $v2
+    if($v2config.continuationSha -ine $claim.authoritySha -or $v2config.previousCampaign -cne $authority.previousCampaign -or
+       $v2state.trainerStatus -cnotin @('STOPPED','AUTO_STOPPED') -or $v2state.gsBoots -ne 3 -or (Get-Train022HistoricalBoots $v2 $v2config) -ne 3){throw 'TRAIN022_V2_NOT_SEALED_THREE_BOOTS'}
+    $previous=Join-Path $Layout.BaseRoot ('campaigns\'+$authority.previousCampaign)
+    Assert-TrainHash (Join-Path $previous 'campaign022.json') $authority.previousConfigSha
+    if([IO.File]::ReadAllText((Join-Path $previous 'ledger\HEAD')) -cne $authority.previousHead){throw 'TRAIN022_CONTINUATION_HEAD_CHANGED'}
+    $catalog=Join-Path $Layout.History 'autonomous\v1\campaigns\autonomous009-learning016-g2-v1\cohorts\autonomous009-learning016-g2-v1-c000001\cohort016.json'
+    Assert-TrainHash $catalog $config.sourceCatalogSha
+    foreach($pin in $config.sources.PSObject.Properties){
+        # This corrective changes the orchestrator, never its pinned native inputs.
+        if($pin.Name -ine (Join-Path $PSScriptRoot 'TrainingV4.ps1')){Assert-TrainHash $pin.Name $pin.Value}
+    }
+    $last=$null;$lastContext=$null
+    foreach($path in @(Get-ChildItem -LiteralPath (Join-Path $Layout.Root 'reservations') -File|Sort-Object Name)){
+        $reservation=Read-TrainJson $path.FullName
+        $context=Get-Train022Context $Layout $reservation
+        Assert-Train022Closed $context
+        foreach($name in @('native-process.json','sql\owned-process.json')){
+            $identityPath=Join-Path $context.Root $name
+            if(Test-Path -LiteralPath $identityPath){$identity=Read-TrainJson $identityPath;if(Get-CimInstance Win32_Process -Filter "ProcessId=$($identity.pid)"){throw 'TRAIN022_SOURCE_NATIVE_LIVE_OR_FOREIGN'}}
+        }
+        Assert-TrainHash (Join-Path $Layout.Root 'campaign022.json') $reservation.configSha
+        $commitPath=Join-Path $context.Root 'commit022.json'
+        if(Test-Path -LiteralPath $commitPath){
+            $commit=Read-TrainJson $commitPath
+            if(!$last -or [long]$commit.sequence -gt [long]$last.sequence){$last=$commit;$lastContext=$context}
+        }elseif(!(Test-Path -LiteralPath (Join-Path $context.Root 'aborted022.json'))){throw 'TRAIN022_INCOMPLETE_SOURCE_RESERVATION'}
+    }
+    if(!$last -and (Test-Train022Property $config 'transition') -and $config.transition -ceq 'INDEPENDENT_TEST022_V1'){
+        if($config.previousCampaign -cnotmatch '^[a-f0-9]{32}$'){throw 'TRAIN022_CURSOR_PREVIOUS_SCOPE'}
+        $parentLayout=@{};foreach($key in $Layout.Keys){$parentLayout[$key]=$Layout[$key]}
+        $parentLayout.Root=Join-Path $Layout.BaseRoot ('campaigns\'+$config.previousCampaign);$parentLayout.Ledger=Join-Path $parentLayout.Root 'ledger'
+        Assert-TrainHash (Join-Path $parentLayout.Root 'campaign022.json') $config.previousConfigSha
+        $inherited=Get-Train022IndependentSource $parentLayout $Visited
+        if($config.previousHead -cne $inherited.head.head -or $config.previousModelSha -cne $inherited.head.modelSha -or
+           $config.cursorStart -ne $inherited.cursor -or $config.cursorPreflightSha -ine $inherited.preflightSha){throw 'TRAIN022_INHERITED_CURSOR_CHANGED'}
+        $last=$inherited.head;$lastContext=$inherited.context
+    }
+    if(!$last){throw 'TRAIN022_COMMITTED_CURSOR_REQUIRED'}
+    if([IO.File]::ReadAllText((Join-Path $Layout.Ledger 'HEAD')) -cne $last.head -or $last.sequence -ne ($lastContext.Step+1)){throw 'TRAIN022_COMMITTED_HEAD_CHANGED'}
+    $preflightPath=Join-Path $lastContext.Root 'preflight020.json'
+    $preflight=Read-TrainJson $preflightPath;$candidate=$preflight.candidates[0]
+    if(!(Test-Train022Property $candidate 'nextCursor022') -or $candidate.cursor022 -ne $lastContext.Cursor -or
+       [long]$candidate.nextCursor022 -le $lastContext.Cursor){throw 'TRAIN022_COMMITTED_CURSOR_INVALID'}
+    if($Layout.Root -ieq $v2.Root){
+        Assert-TrainHash $preflightPath '3763F0633444C945022BEC8F4F9DC6B9AD5A226D907D801733467059645D761A'
+        if($last.modelSha -cne '90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6' -or
+           $last.head -cne '1ff7547d9d4571673e1e5bfa58a1f3ac3799e4d95f587a32db9ae39622df2f69' -or
+           $last.globalUpdates -ne 216 -or $last.globalKeys -ne 302 -or $last.sequence -ne 2 -or $candidate.nextCursor022 -ne 4){throw 'TRAIN022_V2_PARENT216_REQUIRED'}
+    }
+    Assert-TrainHash (Join-Path $Layout.Ledger ('candidate-'+$last.modelSha+'.bin')) $last.modelSha
+    return @{campaignId=$config.campaignId;configSha=(Get-FileHash -LiteralPath (Join-Path $Layout.Root 'campaign022.json')).Hash;head=$last;cursor=[long]$candidate.nextCursor022;preflightSha=(Get-FileHash -LiteralPath $preflightPath).Hash;context=$lastContext;historicalBoots=3;claimSha=(Get-FileHash -LiteralPath $claimPath).Hash;authoritySha=$claim.authoritySha}
 }
 function Assert-Train022Round([string]$History,$Context) {
     $layout=Get-Train022Layout $History;Assert-TrainInstallation $layout
@@ -391,7 +478,8 @@ function Assert-Train022Closed($Context) {
         }
     }
 }
-function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','Status','Pause','Resume','Stop','Report')][string]$Command,[int]$Minutes=480,[int]$BootLimit=0,[switch]$PrepareOnly) {
+function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','Status','Pause','Resume','Stop','Report')][string]$Command,[int]$Minutes=480,[int]$BootLimit=0,[switch]$PrepareOnly,[switch]$NewCampaign) {
+    if(($PrepareOnly -or $NewCampaign) -and $Command -cne 'Start'){throw 'TRAIN022_NEW_OPTIONS_START_ONLY'}
     $layout=Get-Train022Layout $HistoryRoot
     if($Command -cin @('Status','Report')){Get-Train022Status $layout|ConvertTo-Json -Depth 16;return}
     Initialize-TrainWin32
@@ -401,17 +489,34 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
     try{
         $held=$mutex.WaitOne(15000);if(!$held){throw 'TRAIN022_START_LOCK_TIMEOUT'}
         $layout=Get-Train022Layout $HistoryRoot
+        if($NewCampaign -and !(Test-Path -LiteralPath (Join-Path $layout.Root 'status022.json'))){throw 'TRAIN022_NEW_SOURCE_REQUIRED'}
+        if($Command -ceq 'Start'){
+            if($Minutes -lt 1 -or $Minutes -gt 480){throw 'TRAIN022_DURATION_1_480'}
+            $maximumBoots=if($Minutes -eq 480){96}else{2}
+            if($BootLimit -lt 0 -or $BootLimit -gt $maximumBoots){throw 'TRAIN022_BOOT_LIMIT_SCOPE'}
+            if(Test-Path -LiteralPath (Join-Path $layout.Root 'status022.json')){
+                $startStatus=Get-Train022Status $layout
+                if($startStatus.trainerStatus -cne 'RUNNING'){Assert-Train022NoController $layout}
+                if($startStatus.trainerStatus -cnotin @('STOPPED','AUTO_STOPPED','NOT_STARTED','RUNNING')){throw 'TRAIN022_SOURCE_NOT_STOPPED'}
+            }
+        }
         $bootstrapIncomplete=$Command -ceq 'Start' -and (Test-Path -LiteralPath $layout.Root) -and !(Test-Path -LiteralPath (Join-Path $layout.Root 'status022.json'))
         if($bootstrapIncomplete){
-            Assert-TrainInstallation $layout
-            if(!(Test-Path -LiteralPath (Join-Path $layout.Ledger 'HEAD')) -or @(Get-ChildItem -LiteralPath (Join-Path $layout.Root 'rounds') -Directory).Count){throw 'TRAIN022_INCOMPLETE_BOOTSTRAP_UNCONFIRMED'}
-            Assert-TrainPortsFree @(33364,18024,19324)
+            throw 'TRAIN022_INCOMPLETE_BOOTSTRAP_UNCONFIRMED'
         }
         if($Command -ceq 'Start' -and (Test-Path -LiteralPath $layout.Root) -and ($bootstrapIncomplete -or (Get-Train022Status $layout).trainerStatus -cin @('STOPPED','AUTO_STOPPED'))){
             foreach($path in @(Get-ChildItem -LiteralPath (Join-Path $layout.Root 'reservations') -File)){$old=Get-Train022Context $layout (Read-TrainJson $path.FullName);if(Test-Path -LiteralPath $old.Root){Assert-Train022Closed $old}}
-            $layout.PreviousLedger=$layout.Ledger;$layout.NewCampaign=[guid]::NewGuid().ToString('N')
+            Assert-Train022NoController $layout
+            $layout.PreviousLedger=$layout.Ledger;$layout.PreviousRoot=$layout.Root;$layout.NewCampaign=[guid]::NewGuid().ToString('N')
             $authorityPath=Join-Path $layout.BaseRoot 'continuation022-v2.json'
-            if(Test-Path -LiteralPath $authorityPath){
+            $claimPath=Join-Path $layout.BaseRoot 'continuation022-v2.claim.json'
+            if($NewCampaign){
+                $layout.Independent=Get-Train022IndependentSource $layout
+                $admission=Join-Path $layout.BaseRoot ('admission-'+$layout.Independent.campaignId+'-'+$layout.Independent.head.head+'.json')
+                if(Test-Path -LiteralPath $admission){throw 'TRAIN022_ADMISSION_INCOMPLETE'}
+                Write-Train022Immutable $admission @{campaignId=$layout.NewCampaign;source=$layout.Independent.campaignId;head=$layout.Independent.head.head}
+            }elseif(Test-Path -LiteralPath $claimPath){throw 'TRAIN022_NEW_CAMPAIGN_REQUIRED'}
+            elseif(Test-Path -LiteralPath $authorityPath){
                 $authority=Read-TrainJson $authorityPath;Assert-Train022ContinuationContract $authority
                 if($Minutes -ne 15 -or $BootLimit -ne 1 -or (Split-Path $layout.Root -Leaf) -cne $authority.previousCampaign){throw 'TRAIN022_CONTINUATION_PREVIOUS_CAMPAIGN'}
                 Assert-TrainHash (Join-Path $layout.Root 'campaign022.json') $authority.previousConfigSha
@@ -430,10 +535,12 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
             if($Minutes -lt 1 -or $Minutes -gt 480){throw 'TRAIN022_DURATION_1_480'}
             $maximumBoots=if($Minutes -eq 480){96}else{2}
             if($BootLimit -lt 0 -or $BootLimit -gt $maximumBoots){throw 'TRAIN022_BOOT_LIMIT_SCOPE'}
-            $accepted=Join-Path (Split-Path $layout.History -Parent) 'train021-c1'
-            if(!(Test-TrainActionValue020Complete $accepted -Experiment021)){throw 'TRAIN022_ACCEPTED188_PROOF_REQUIRED'}
-            $parent=Join-Path $accepted 'candidate021-90cdb499d44edde5f53819b357f1383dc65f9b9de1bd4d43120f6a154d1a55a6.bin'
-            Assert-TrainHash $parent '90cdb499d44edde5f53819b357f1383dc65f9b9de1bd4d43120f6a154d1a55a6'
+            if(!$layout.ContainsKey('Independent')){
+                $accepted=Join-Path (Split-Path $layout.History -Parent) 'train021-c1'
+                if(!(Test-TrainActionValue020Complete $accepted -Experiment021)){throw 'TRAIN022_ACCEPTED188_PROOF_REQUIRED'}
+                $parent=Join-Path $accepted 'candidate021-90cdb499d44edde5f53819b357f1383dc65f9b9de1bd4d43120f6a154d1a55a6.bin'
+                Assert-TrainHash $parent '90cdb499d44edde5f53819b357f1383dc65f9b9de1bd4d43120f6a154d1a55a6'
+            }
             Assert-TrainPortsFree @(33364,18024,19324)
             New-TrainPrivateRoot $layout
             foreach($name in @('logs','ledger','rounds','reservations')){$null=[IO.Directory]::CreateDirectory((Join-Path $layout.Root $name))}
@@ -445,13 +552,40 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
             $catalog=Join-Path $layout.History 'autonomous\v1\campaigns\autonomous009-learning016-g2-v1\cohorts\autonomous009-learning016-g2-v1-c000001\cohort016.json'
             $config=@{schemaVersion=22;campaignId=$(if($layout.ContainsKey('NewCampaign')){$layout.NewCampaign}else{[guid]::NewGuid().ToString('N')});startedUtc=$now.ToString('o');deadlineUtc=$now.AddMinutes($Minutes).ToString('o');durationMinutes=$Minutes;maxBoots=$(if($BootLimit -gt 0){$BootLimit}else{$maximumBoots});maxNoData=3;maxStagnation=3;minDiskBytes=8GB;maxMemoryBytes=6GB;maxCpuCores=2.1;cpuPolicy='POST_GS_READY_10_SECOND_DELTA';sources=$sources;sourceCatalogSha=(Get-FileHash -LiteralPath $catalog).Hash;productionV4='OFF'}
             if($layout.ContainsKey('Continuation')){$config.continuationSha=$layout.ContinuationSha;$config.maxBoots=3;$config.cursorStart=$layout.Continuation.cursor;$config.previousCampaign=$layout.Continuation.previousCampaign}
+            if($layout.ContainsKey('Independent')){
+                $source=$layout.Independent
+                $config.transition='INDEPENDENT_TEST022_V1';$config.previousCampaign=$source.campaignId;$config.previousHead=$source.head.head;$config.previousModelSha=$source.head.modelSha
+                $config.cursorStart=$source.cursor;$config.cursorPreflightSha=$source.preflightSha;$config.previousConfigSha=$source.configSha
+                $config.historicalV2Boots=3;$config.consumedAuthoritySha=$source.authoritySha;$config.consumedClaimSha=$source.claimSha
+                $config.prepareOnly=[bool]$PrepareOnly
+            }
             Write-Train022Immutable (Join-Path $layout.Root 'campaign022.json') $config
             if($layout.ContainsKey('PreviousLedger')){
-                foreach($file in @(Get-ChildItem -LiteralPath $layout.PreviousLedger -File|Where-Object {$_.Name -ceq 'HEAD' -or $_.Name -cmatch '^(candidate|ledger|cold)-[a-f0-9]{64}\.bin$'})){
+                $ledgerPins=@{}
+                foreach($file in @(Get-ChildItem -LiteralPath $layout.PreviousLedger -File|Where-Object {$_.Name -ceq 'HEAD' -or $_.Name -cmatch '^(candidate|ledger|cold)-[a-f0-9]{64}\.bin$|^prepared-[a-f0-9]{64}\.seal$'})){
                     Assert-G0PhysicalFile $file.FullName;$sha=(Get-FileHash -LiteralPath $file.FullName).Hash;$target=Join-Path $layout.Ledger $file.Name
+                    if(Test-Path -LiteralPath $target){throw 'TRAIN022_LEDGER_COPY_NOT_FRESH'}
                     Copy-Item -LiteralPath $file.FullName -Destination $target;Assert-TrainHash $target $sha
+                    $ledgerPins[$file.Name]=$sha
                 }
                 $head=Invoke-Train022Java $layout 'head' @($layout.Ledger)
+                if($layout.ContainsKey('Independent')){
+                    $source=$layout.Independent;$context=$source.context
+                    foreach($name in @('head','modelSha','globalUpdates','localUpdates','segment','sequence','globalKeys')){if($head.$name -cne $source.head.$name){throw 'TRAIN022_COPIED_HEAD_CHANGED'}}
+                    # Canonical load validates every historical segment, model and key.
+                    # commit-to-self checks an existing cold seal without generating one.
+                    $null=Invoke-Train022Java $layout 'commit' @($layout.Ledger,$head.head,$head.head)
+                    $null=Invoke-Train022Java $layout 'verify-prepared' @($layout.Ledger,$context.Head,$context.Root,$head.head) $context
+                    $cohort=Join-Path $layout.History 'autonomous\v1\campaigns\autonomous009-learning016-g2-v1\cohorts\autonomous009-learning016-g2-v1-c000001'
+                    $proposal=Invoke-Train022Java $layout 'proposal' @($layout.Ledger,$cohort,[string]$context.Cursor,[string]$context.Step,([guid]::NewGuid().ToString('N')+[guid]::NewGuid().ToString('N')))
+                    $recorded=(Read-TrainJson (Join-Path $context.Root 'preflight020.json')).candidates[0]
+                    if($proposal.nextCursor -ne $source.cursor -or $proposal.cell -cne $recorded.cell -or $proposal.sourceSha -cne $recorded.sourceSha){throw 'TRAIN022_CURSOR_SOURCE_CHANGED'}
+                    foreach($name in $ledgerPins.Keys){Assert-TrainHash (Join-Path $layout.PreviousLedger $name) $ledgerPins[$name];Assert-TrainHash (Join-Path $layout.Ledger $name) $ledgerPins[$name]}
+                    Assert-TrainHash (Join-Path $layout.PreviousRoot 'campaign022.json') $source.configSha
+                    Assert-TrainHash (Join-Path $context.Root 'preflight020.json') $source.preflightSha
+                    foreach($pin in $config.sources.Keys){Assert-TrainHash $pin $config.sources[$pin]}
+                    Write-Train022Immutable (Join-Path $layout.Root 'lineage022.json') @{schema='INDEPENDENT_TEST022_V1';previousCampaign=$source.campaignId;previousHead=$head.head;previousModelSha=$head.modelSha;cursorStart=$source.cursor;step=$head.sequence;ledgerPins=$ledgerPins;historicalV2Boots=3;GS=0;SQL=0}
+                }
             }else{$head=Invoke-Train022Java $layout 'initialize' @($layout.Ledger,$parent)}
             $state=@{schemaVersion=22;trainerStatus='NOT_STARTED';reason='';observedUtc=$now.ToString('o');deadlineUtc=$config.deadlineUtc;ledgerHead=$head.head;modelSha=$head.modelSha;globalUpdates=$head.globalUpdates;localUpdates=$head.localUpdates;segment=$head.segment;gsBoots=0;completedEpisodes=0;unknownEpisodes=0;refusedAttempts=0;stagnation=0;activeRound=-1;lastError='';productionV4='OFF';nightReadiness='NOT_READY';SUPERIORITY='NOT_EVALUATED';metrics=@();manualGate='REQUIRED';historicalBaseline=@{updates=188;experimentPaid=1;stockPaid=8;hpDamage=6786;mpCost=625;deathsLowerBound=1;comparison='HISTORICAL_NOT_CAUSAL'}}
             if($layout.ContainsKey('Continuation')){$state.gsBoots=2}
@@ -462,6 +596,11 @@ function Invoke-TrainActionValue022([string]$HistoryRoot,[ValidateSet('Start','S
         if(Test-Path -LiteralPath $identityPath){$identity=Read-TrainJson $identityPath;$actual=Get-CimInstance Win32_Process -Filter "ProcessId=$($identity.pid)";if($actual -and (Get-G0Microseconds $actual.CreationDate.ToUniversalTime().ToFileTimeUtc()) -eq (Get-G0Microseconds ([long]$identity.created))){Assert-TrainProcess $identity Director;$live=$true}}
         if($Command -cin @('Pause','Stop','Resume')){
             $config=Read-TrainJson (Join-Path $layout.Root 'campaign022.json')
+            if($Command -ceq 'Resume'){
+                $drive=[IO.DriveInfo]::new([IO.Path]::GetPathRoot($layout.Root))
+                $reason=Get-Train022StopReason $config ([datetime]::UtcNow) $drive.AvailableFreeSpace (Get-Train022HistoricalBoots $layout $config) 0
+                if($reason){throw ('TRAIN022_RESUME_'+$reason)}
+            }
             Write-TrainJson (Join-Path $layout.Root 'command022.json') @{campaignId=$config.campaignId;kind=$Command;requestedUtc=[datetime]::UtcNow.ToString('o')}
             $state=Get-Train022Status $layout
             if($Command -cin @('Pause','Stop')){
