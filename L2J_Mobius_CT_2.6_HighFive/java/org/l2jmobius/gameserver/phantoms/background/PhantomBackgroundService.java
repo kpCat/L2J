@@ -131,6 +131,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private volatile Limits _acquisitionLimits;
 	private volatile LongPredicate _ordinaryPresence = profileId -> true;
 	private volatile LongPredicate _nativeContextDemand = profileId -> true;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _recoveryReadmission = (profileId, goal) -> true;
 	private volatile BiConsumer<Long, PhantomBackgroundState.Position> _committedPosition = (profileId, position) -> {};
 	private volatile PhantomOffscreenOutdoorTravel.ObserverAdmission _offscreenAdmission = (id, from, to) ->
 		org.l2jmobius.gameserver.phantoms.PhantomSystem.offscreenObserverAdmission(id,
@@ -146,6 +147,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private boolean _positionPublisherInstalled;
 	private boolean _presenceInstalled;
 	private boolean _nativeContextDemandInstalled;
+	private boolean _recoveryReadmissionInstalled;
 	private volatile LongFunction<OperationResult> _periodicFarm;
 	private volatile PhantomHistoricalBackgroundService _nativeRecoveryHistory;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
@@ -320,6 +322,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		_nativeContextDemand = Objects.requireNonNull(demand, "Native context demand must not be null.");
 		_nativeContextDemandInstalled = true;
+	}
+
+	public synchronized void installRecoveryReadmission(java.util.function.BiPredicate<Long, PhantomGoal> admission)
+	{
+		if (_recoveryReadmissionInstalled || (_state == ServiceState.STOPPING) || (_state == ServiceState.STOPPED))
+		{
+			throw new IllegalStateException("Recovery readmission can only be installed once before work starts.");
+		}
+		_recoveryReadmission = Objects.requireNonNull(admission);
+		_recoveryReadmissionInstalled = true;
 	}
 
 	public synchronized void installCommittedPositionPublisher(BiConsumer<Long, PhantomBackgroundState.Position> publisher)
@@ -2152,7 +2164,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return OperationResult.inconsistent("recovery.store_failed");
 		}
-		return finishRecoveryStore(profileId, loaded.state().identity().characterObjectId(), restoreExistingMaterialization, resumedFromResurrection, stopping, handoff, originalEpoch);
+		return finishRecoveryStore(profileId, goal, loaded.state().identity().characterObjectId(), restoreExistingMaterialization, resumedFromResurrection, stopping, handoff, originalEpoch);
 	}
 
 	private OperationResult finishControlledRecoveryStore(RecoveryControl control, PhantomMaterializationService materialization)
@@ -2160,7 +2172,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final boolean stopping = _state != ServiceState.RUNNING;
 		if (!control.acceptedTownReturn)
 		{
-			return finishRecoveryStore(control.profileId, control.objectId, control.restoreExisting, control.resumedFromResurrection, stopping, control.handoff, control.epoch);
+			return finishRecoveryStore(control.profileId, control.goal, control.objectId, control.restoreExisting, control.resumedFromResurrection, stopping, control.handoff, control.epoch);
 		}
 		final var entry = materialization.find(control.profileId).orElse(null);
 		final var returned = _nativeTownReturns.get(control.profileId);
@@ -2171,7 +2183,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var complete = OperationResult.success("death.recovered_at_town");
 		if (entry != null || stopping || !control.restoreExisting || !recoveryGoalStillCurrent(control)) { return complete; }
 		// The original STORE is already canonical. A fresh admission runs its own Goal, claim and native checks.
-		final var restored = restoreRecoveryAfterStore(control.profileId, control.objectId, false, control.handoff, control.epoch, complete);
+		final var restored = restoreRecoveryAfterStore(control.profileId, control.goal, control.objectId, false, control.handoff, control.epoch, complete);
 		if (restored.status() != OperationStatus.INCONSISTENT) { return restored; }
 		final var successor = materialization.find(control.profileId).orElse(null);
 		if ((successor != null && storedTownReturn(returned, successor, control.objectId, control.epoch, control.deadline))
@@ -2184,7 +2196,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return _goals.load(control.profileId).map(value -> value.goal().equals(control.goal)).orElse(false);
 	}
 
-	private OperationResult finishRecoveryStore(long profileId, int characterObjectId, boolean restoreExistingMaterialization, boolean resumedFromResurrection, boolean stopping, PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff, long originalEpoch)
+	private OperationResult finishRecoveryStore(long profileId, PhantomGoal goal, int characterObjectId, boolean restoreExistingMaterialization, boolean resumedFromResurrection, boolean stopping, PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff, long originalEpoch)
 	{
 		final PhantomBackgroundTransaction.Result verified = transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId));
 		if (!verified.successful() || (verified.state() == null) || (verified.state().state() != State.READY))
@@ -2193,12 +2205,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		final boolean nativeTownReturn = nativeTownReturned(profileId, characterObjectId, originalEpoch);
 		final var complete = OperationResult.success(resumedFromResurrection && !nativeTownReturn ? "death.resurrected" : "death.recovered_at_town");
-		return restoreExistingMaterialization ? restoreRecoveryAfterStore(profileId, characterObjectId, stopping, handoff, originalEpoch, complete) : complete;
+		return restoreExistingMaterialization ? restoreRecoveryAfterStore(profileId, goal, characterObjectId, stopping, handoff, originalEpoch, complete) : complete;
 	}
 
-	private OperationResult restoreRecoveryAfterStore(long profileId, int characterObjectId, boolean stopping, PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff, long originalEpoch, OperationResult complete)
+	private OperationResult restoreRecoveryAfterStore(long profileId, PhantomGoal goal, int characterObjectId, boolean stopping, PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff, long originalEpoch, OperationResult complete)
 	{
-		if (!stopping && (_state == ServiceState.RUNNING))
+		if (!stopping && (_state == ServiceState.RUNNING) && _recoveryReadmission.test(profileId, goal))
 		{
 			final PhantomMaterializationService.MaterializeResult restored = handoff == null ? _materialization.get().materialize(profileId)
 				: _nativeRecoveryHistory.resumeNativeRecoveryHandoff(handoff, characterObjectId, originalEpoch);

@@ -329,7 +329,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		{
 			// A new solo prerequisite cannot block the group route that first makes it executable.
 			return lease != null && !lease.player().isAlikeDead() && requiresPartyPreparation(root, PhantomSupplyIntentStore.bound(child, root) && matches(child, lease.player()) ? child : null, null,
-				_fieldReady.test(root, lease.player()) && supplyNeed(lease.player()) != null, System.currentTimeMillis(), lease.player().getAdena() > 0);
+				_fieldReady.test(root, lease.player()) && supplyNeed(lease.player(), _deferOptional.test(profileId, root)) != null, System.currentTimeMillis(), lease.player().getAdena() > 0);
 		}
 	}
 
@@ -425,9 +425,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final var readySa = optionalPreparation(deferOptional, () -> readySaProposal(profileId, root, player, cached, now));
 			if (readySa.isPresent()) { return readySa; }
 			if (missingWeapon) { return equipmentProposal(profileId, root, player, cached, now); }
-			final var need = supplyNeed(player); if (need == null) { return optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)); }
+			final var need = supplyNeed(player, deferOptional); if (need == null) { return optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)); }
 			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
-			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
+			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena() + ':' + deferOptional;
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return cached.offer == null ? optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)) : Optional.of(cached.offer); }
 			cached.facts = facts; cached.nextCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()); cached.offer = null;
 			final long targetStock = need.targetStock();
@@ -495,7 +495,12 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	}
 
 	private record SupplyNeed(List<ItemTemplate> preferred, List<ItemTemplate> fallback, long stock, long fallbackStock, int perHit, long targetStock) { }
-	private SupplyNeed supplyNeed(Player player)
+	static boolean optionalPotionStockAllowed(boolean deferOptional, boolean ammoNeeded, boolean shotNeeded)
+	{
+		return !deferOptional && !ammoNeeded && !shotNeeded;
+	}
+	private SupplyNeed supplyNeed(Player player) { return supplyNeed(player, false); }
+	private SupplyNeed supplyNeed(Player player, boolean deferOptional)
 	{
 		final var weapon = player.getActiveWeaponItem();
 		if (weapon == null || player.getActiveWeaponInstance() == null || weapon == player.getFistsWeaponItem()) { return null; }
@@ -506,9 +511,10 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		final var shots = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == action && compatible(player, item)).toList();
 		final boolean shotNeeded = shotCount > 0 && shots.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < (long) shotCount * _policy.lowWaterHits();
 		// Mandatory ammunition and productive amplification must not starve behind an optional potion stock target.
-		final boolean healing = !ammoNeeded && !shotNeeded && _policy.optionalPotionsAllowed(player.getLevel()) && _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
+		final boolean optionalPotions = optionalPotionStockAllowed(deferOptional, ammoNeeded, shotNeeded) && _policy.optionalPotionsAllowed(player.getLevel());
+		final boolean healing = optionalPotions && _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
 		final var cpItems = _cpItems.stream().filter(item -> compatible(player, item)).toList();
-		final boolean cp = !ammoNeeded && !shotNeeded && !healing && _policy.optionalPotionsAllowed(player.getLevel()) && !cpItems.isEmpty() && cpItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
+		final boolean cp = optionalPotions && !healing && !cpItems.isEmpty() && cpItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
 		final int perHit = healing || ammoNeeded || cp ? 1 : shotCount;
 		if (perHit <= 0 || perHit > 100) { return null; }
 		final var all = healing ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammoNeeded ? ammunition : cp ? cpItems : shots;

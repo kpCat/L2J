@@ -141,7 +141,22 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	public boolean assemblyPending(long profileId, long goalId, long goalRevision, long now)
 	{
 		return !activityReplanRequired() && now < expiresAtMillis && (phase == Phase.AGREED || phase == Phase.WAKE_REQUESTED || phase == Phase.ASSEMBLING || phase == Phase.BACKGROUND && nextDueMillis <= now)
-			&& members.stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == goalId && goalRevision >= member.goalRevision());
+			&& matchesMemberRoot(profileId, goalId, goalRevision);
+	}
+	/** Defer new optional trips while the same live agreement is assembling or finding its next shared source. */
+	public boolean defersOptionalSupply(long profileId, long goalId, long goalRevision, long now)
+	{
+		return awaitingActivityReplan(profileId, goalId, goalRevision, now) || assemblyPending(profileId, goalId, goalRevision, now);
+	}
+
+	public boolean awaitingActivityReplan(long profileId, long goalId, long goalRevision, long now)
+	{
+		return activityReplanRequired() && now < expiresAtMillis && (phase == Phase.DRAINING || phase == Phase.BACKGROUND)
+			&& matchesMemberRoot(profileId, goalId, goalRevision);
+	}
+	private boolean matchesMemberRoot(long profileId, long goalId, long goalRevision)
+	{
+		return members.stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == goalId && goalRevision >= member.goalRevision());
 	}
 	public PhantomLogicalParty transition(Phase next, long cursor, long nextDue, String reason)
 	{

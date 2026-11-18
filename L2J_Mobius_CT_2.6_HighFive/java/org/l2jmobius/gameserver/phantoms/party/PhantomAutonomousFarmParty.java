@@ -252,6 +252,18 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			return;
 		}
 		if (group.activityReplanRequired()) { return; }
+		// The first restored member can die before a stock Party exists. Drain that admission
+		// before waking or inviting more members and ignore observations from a closed epoch.
+		if (materialized.stream().anyMatch(actor ->
+		{
+			final long epoch = _backend.materializationEpoch(actor);
+			return epoch > 0 && _backend.memberSnapshot(actor).map(MemberSnapshot::dead).orElse(false)
+				&& _backend.materializationEpoch(actor) == epoch;
+		}))
+		{
+			_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "REPLAN_NATIVE_MEMBER_DEAD");
+			return;
+		}
 		final var journey = group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE
 			? _coordinator.farmJourneyProof(group) : PhantomPartyCoordinator.FarmJourneyProof.UNTRACKED;
 		if (journey == PhantomPartyCoordinator.FarmJourneyProof.REVOKED || journey == PhantomPartyCoordinator.FarmJourneyProof.EXPIRED)
@@ -568,7 +580,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private boolean advanceNativePartyRoute(long leaderId, PhantomGoal root, List<MemberSnapshot> roster)
 	{
 		if (_rendezvousPreparation == null) { return false; }
-		final var group = _logical == null ? null : _logical.knownGroupFor(leaderId).map(PhantomPartyPersistencePort.StoredLogicalGroup::group).orElse(null);
+		final var logicalRow = _logical == null ? null : _logical.knownGroupFor(leaderId).orElse(null);
+		final var group = logicalRow == null ? null : logicalRow.group();
 		final var anchor = group == null ? root.selectedAnchor() : new PhantomDomainRef("topology.anchor", group.anchorId());
 		final var destination = (group == null ? _rendezvousPreparation.nativePartyDestination(root) : _rendezvousPreparation.nativePartyDestination(anchor)).orElse(null);
 		if (destination == null) { return group != null; }
@@ -579,7 +592,14 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		if (result.outcome() == PhantomPartyCoordinator.RouteOutcome.FAILED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.REJECTED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.UNAVAILABLE)
 		{
 			java.util.logging.Logger.getLogger(PhantomAutonomousFarmParty.class.getName()).warning("Party native route declined;profile=" + leaderId + ";outcome=" + result.outcome() + ";code=" + result.reasonKey());
-			_coordinator.releaseAutonomousFarm(leaderId, result.reasonKey());
+			if (group != null && group.active() && result.outcome() == PhantomPartyCoordinator.RouteOutcome.UNAVAILABLE
+				&& result.reasonKey().startsWith("party.route.farm.no_itinerary_"))
+			{
+				// Save the current source refusal before closing the stock roster through the normal drain.
+				if (group.phase() != PhantomLogicalParty.Phase.DRAINING && !group.activityReplanRequired())
+				{ _logical.transition(logicalRow, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), _epochMillis.getAsLong(), "REPLAN_PARTY_ROUTE_NO_ITINERARY"); }
+			}
+			else { _coordinator.releaseAutonomousFarm(leaderId, result.reasonKey()); }
 		}
 		return true;
 	}
@@ -841,12 +861,15 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 
 	private boolean advanceOffer(PhantomPartyRendezvousState offer)
 	{
+		final long now = _epochMillis.getAsLong();
+		final boolean agreed = _logical != null && _logical.knownGroupFor(offer.leaderProfileId())
+			.map(row -> !row.group().requiresSoloExecution(now) && belongsTo(offer, row.group())).orElse(false);
 		for (var participant : offer.roster())
 		{
 			final var current = _coordinator.rendezvous(participant.actor().profileId()).orElseThrow();
 			if (current.state().phase() != PhantomPartyRendezvousState.Phase.PROPOSED) { continue; }
 			final var goal = _goals.load(participant.actor().profileId()).orElseThrow().goal();
-			if (!_seeking.seeks(participant.actor().profileId(), _backend.currentLevel(participant.actor()).orElse(0)) || !_backend.autonomousFarmReservationAvailable(participant.actor())
+			if ((!agreed && !_seeking.seeks(participant.actor().profileId(), _backend.currentLevel(participant.actor()).orElse(0))) || !_backend.autonomousFarmReservationAvailable(participant.actor())
 				|| _backend.observe(participant.actor()).isPresent()) { cancelOffer(offer); return true; }
 			_coordinator.saveRendezvous(current.rowVersion(), current.state().withPhase(PhantomPartyRendezvousState.Phase.ACCEPTED, goal.revision()));
 			return true;

@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
@@ -123,6 +124,11 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 					final var fact=manager.admissionProfile(id).orElseThrow(); if(!fact.admitted()){continue;} admitted.add(id);
 					final var demand=org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(id,slots.size(),128,false,1000);
 					PhantomAssertions.assertTrue(demand!=null && demand.ordinaryAdmission(fact.calendarOnline(),fact.admitted(),1000),"Admitted profile could not contribute to the physical target without a human.");
+					final var signal = demand.ambientSignal(fact.calendarOnline(), fact.admitted(), id, 1000);
+					PhantomAssertions.assertTrue(signal != null && signal.sourceKey().equals("population.ambient") && signal.requiredState() == PhantomActivityState.ACTIVE,
+						"An admitted absence had no ordinary ACTIVE request for the scheduler.");
+					PhantomAssertions.assertEquals(null, demand.ambientSignal(true, false, id, 1000), "A nonadmitted profile received ambient ACTIVE.");
+					PhantomAssertions.assertEquals(null, demand.ambientSignal(true, true, id, demand.expiresMillis()), "An expired ambient demand published ACTIVE.");
 					slots.add(Math.toIntExact(100000+id)); // The existing physical-admission boundary is modeled; no native Player is created.
 				}
 				PhantomAssertions.assertEquals(128,slots.size(),"Ambient demand remained a ceiling rather than filling the admitted synthetic target.");

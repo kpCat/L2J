@@ -462,14 +462,16 @@ public final class PhantomFarm074Checks
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress)
 	{ return planner(linked, alternative, soloViable, ingress, false); }
 	/** Same immutable planner fixture, aligned with the existing SQL130 receipt fixture; never native world facts. */
-	public static PhantomHistoricalBackgroundPlanner receiptPlanner130(boolean linked) { return planner(linked, false, true, false, true); }
-	public static PhantomHistoricalBackgroundPlanner receiptPlanner130(boolean linked, PhantomBackgroundAuthority authority) { return planner(linked, false, true, false, true, authority); }
+	public static PhantomHistoricalBackgroundPlanner receiptPlanner130(boolean linked) { return planner(linked, true, true, false, true); }
+	public static PhantomHistoricalBackgroundPlanner receiptPlanner130(boolean linked, PhantomBackgroundAuthority authority) { return planner(linked, true, true, false, true, authority); }
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress, boolean receipts)
 	{ return planner(linked, alternative, soloViable, ingress, receipts, null); }
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress, boolean receipts, PhantomBackgroundAuthority override)
 	{
 		final int localNpc = receipts ? 20101 : 101, farNpc = receipts ? 20102 : 102, level = receipts ? 1 : 20;
 		final String localAnchor = receipts ? "farm.receipt130" : "farm.local", farAnchor = receipts ? "farm.receipt130.b" : "farm.far";
+		final int alternateNpc = receipts ? 20103 : 103;
+		final String alternateAnchor = receipts ? "farm.receipt130.c" : "farm.alternative";
 		final var backend = new PhantomTopologyValidationBackend()
 		{
 			@Override public int mapRegionLocId(int x, int y) { return 1; }
@@ -484,16 +486,16 @@ public final class PhantomFarm074Checks
 		final var edges = new java.util.ArrayList<>(linked ? List.of(new PhantomTopologyEdge("farm.link", "area.local", "area.far", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 100000, true, Set.of(), null, localAnchor, farAnchor, List.of())) : List.<PhantomTopologyEdge>of());
 		if (alternative)
 		{
-			nodes.add(node("area.alternative", FAR_ALTERNATIVE)); anchors.add(anchor("farm.alternative", "area.alternative", FAR_ALTERNATIVE, 103));
-			edges.add(new PhantomTopologyEdge("farm.alternative.link", ingress ? "area.far" : "area.local", "area.alternative", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 110000, true, Set.of(), null, ingress ? "farm.far" : "farm.local", "farm.alternative", List.of()));
+			nodes.add(node("area.alternative", FAR_ALTERNATIVE)); anchors.add(anchor(alternateAnchor, "area.alternative", FAR_ALTERNATIVE, alternateNpc));
+			edges.add(new PhantomTopologyEdge("farm.alternative.link", ingress ? "area.far" : "area.local", "area.alternative", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 110000, true, Set.of(), null, ingress ? farAnchor : localAnchor, alternateAnchor, List.of()));
 		}
 		final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.create(1, "farm074", 1, 1, nodes, anchors, edges, backend, PhantomTopologyPolicy.productionDefaults()), backend, new PhantomTopologyMetrics());
 		final var npcs = new java.util.ArrayList<>(List.of(new NpcFact(localNpc, level, NpcKind.MONSTER, true, true, false, 100, 10, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT), new NpcFact(farNpc, level + 2, NpcKind.MONSTER, true, true, false, 200, 20, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
 		final var areas = new java.util.ArrayList<>(List.of(new SpawnAreaFact(localNpc, 0, "area.local", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT), new SpawnAreaFact(farNpc, 0, "area.far", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT)));
 		if (alternative)
 		{
-			npcs.add(new NpcFact(103, 21, NpcKind.MONSTER, true, true, false, 150, 15, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
-			areas.add(new SpawnAreaFact(103, 0, "area.alternative", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT));
+			npcs.add(new NpcFact(alternateNpc, level + 1, NpcKind.MONSTER, true, true, false, 150, 15, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
+			areas.add(new SpawnAreaFact(alternateNpc, 0, "area.alternative", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT));
 		}
 		final var snapshot = new PhantomGameKnowledgeSnapshot("farm074", 1, topology.snapshot().canonicalHash(), PhantomGameKnowledgePolicy.productionDefaults(), List.of(), npcs, List.of(), List.of(), areas, List.of(), List.of(), List.of(), List.of(), List.of());
 		final var knowledge = new PhantomGameKnowledgeQuery(snapshot, new PhantomGameKnowledgeMetrics());
@@ -501,6 +503,8 @@ public final class PhantomFarm074Checks
 		{
 			@Override public PhantomBackgroundState.Hashes hashes() { return receipts ? new PhantomBackgroundState.Hashes("knowledge130", "topology130", "progression130", "commerce130") : HASHES; }
 			@Override public boolean viableTarget(PlanningCombat combat, int npcId) { return soloViable; }
+			@Override public String potentialPartyRole(PhantomBackgroundState state, java.util.Map<Integer, Integer> learnedSkills)
+			{ return receipts ? PhantomHistoricalBackgroundPlanner.logicalRole(state) : PhantomBackgroundAuthority.super.potentialPartyRole(state, learnedSkills); }
 			@Override public boolean offscreenOutdoorCandidate(PhantomTopologyQuery proposed, String from, TargetFact target, String to) { return true; }
 			@Override public boolean nativeIngressPositionKnown(PhantomTopologyAnchor anchor, int heading) { return ingress && anchor.id().equals("farm.far"); }
 			@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { throw new UnsupportedOperationException(); }

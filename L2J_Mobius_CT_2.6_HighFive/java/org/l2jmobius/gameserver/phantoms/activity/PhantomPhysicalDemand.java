@@ -4,6 +4,7 @@ package org.l2jmobius.gameserver.phantoms.activity;
 /** A finite reason to ask the existing lifecycle gate, never travel, reclaim, calendar or capacity authority. */
 public record PhantomPhysicalDemand(Kind kind, long sourceProfileId, long sourceEpoch, String owner, long createdMillis, long expiresMillis)
 {
+	private static final String AMBIENT_OWNER = "population.ambient";
 	public enum Kind { HUMAN_OBSERVATION, AMBIENT_TARGET, LOGICAL_PARTY_WAKE, ACCEPTED_TRAVEL, NATIVE_CONTEXT }
 	public PhantomPhysicalDemand
 	{
@@ -16,10 +17,16 @@ public record PhantomPhysicalDemand(Kind kind, long sourceProfileId, long source
 	{
 		if (occupiedSlots < 0 || target < 0) { throw new IllegalArgumentException("Invalid physical target accounting."); }
 		if (target == 0 || occupiedSlots >= target && !alreadyWorldPresent) { return null; }
-		return new PhantomPhysicalDemand(Kind.AMBIENT_TARGET,profileId,0,"population.ambient",now,Math.addExact(now,10_000));
+		return new PhantomPhysicalDemand(Kind.AMBIENT_TARGET,profileId,0,AMBIENT_OWNER,now,Math.addExact(now,10_000));
 	}
 	public boolean ordinaryAdmission(boolean online, boolean admitted, long now)
 	{
 		return current(now) && online && admitted && (kind == Kind.AMBIENT_TARGET || kind == Kind.LOGICAL_PARTY_WAKE);
+	}
+
+	public PhantomRelevanceSignal ambientSignal(boolean online, boolean admitted, long sequence, long now)
+	{
+		return kind == Kind.AMBIENT_TARGET && AMBIENT_OWNER.equals(owner) && ordinaryAdmission(online, admitted, now)
+			? new PhantomRelevanceSignal(AMBIENT_OWNER, sequence, PhantomActivityState.ACTIVE, expiresMillis - now) : null;
 	}
 }

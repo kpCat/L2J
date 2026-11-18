@@ -1,12 +1,13 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('package','fixture','recover','artifact-check','native','restart','postflight')][string]$Action,
+    [ValidateSet('package','fixture','recover','artifact-check','native','restart','census','postflight')][string]$Action,
     [Parameter(Mandatory=$true)][string]$RuntimeRoot,
     [ValidateSet('original','morning')][string]$Fixture='original',
-    [ValidateSet('regression','first-party','rendezvous')][string]$Lane='regression',
+    [ValidateSet('regression','first-party','rendezvous','census')][string]$Lane='regression',
     [string]$GeoSource,
     [ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedJarHash,
-    [ValidateRange(1,23)][int]$AttemptNumber=1
+    [ValidateRange(1,23)][int]$AttemptNumber=1,
+    [switch]$RequireRecovery
 )
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
@@ -15,12 +16,18 @@ $runtime=[IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')
 $parent=[IO.Directory]::GetParent($source).FullName
 $firstParty=$Lane -ne 'regression'
 $rendezvous=$Lane -eq 'rendezvous'
+$census=$Lane -eq 'census'
+if($RequireRecovery -and (!$rendezvous -or $Action -ne 'native')){throw 'TEST130_RECOVERY_PROOF_REQUIRES_RENDEZVOUS_NATIVE'}
+if(($census -and $Action -notin @('package','fixture','artifact-check','census','postflight')) -or (!$census -and $Action -eq 'census')){
+    throw 'TEST130_CENSUS_ISOLATED_ACTION'
+}
+$rendezvousSql=$rendezvous -or $census
 $runtimeName=if($firstParty){'runtime-'+$Lane}else{'runtime'}
 $localName=if($firstParty){'task130-'+$Lane}else{'task130'}
 $runnerName=if($firstParty){'phantom-test-'+$Lane}else{'phantom-test'}
-$gamePort=if($rendezvous){7962}elseif($firstParty){7961}else{7960}
-$loginPort=if($rendezvous){9262}elseif($firstParty){9261}else{9260}
-$pilotPort=if($rendezvous){2262}elseif($firstParty){2261}else{2260}
+$gamePort=if($census){7963}elseif($rendezvous){7962}elseif($firstParty){7961}else{7960}
+$loginPort=if($census){9263}elseif($rendezvous){9262}elseif($firstParty){9261}else{9260}
+$pilotPort=if($census){2263}elseif($rendezvous){2262}elseif($firstParty){2261}else{2260}
 if($firstParty -and $Fixture -ne 'original'){throw 'TEST130_FIRST_PARTY_FIXTURE'}
 if($runtime -ine (Join-Path $parent $runtimeName)){throw 'TEST130_EXACT_SIBLING_RUNTIME_REQUIRED'}
 foreach($path in @($source,$parent,$runtime)){
@@ -71,6 +78,11 @@ if($Action -eq 'package'){
         $overrides['Custom\PhantomPlayers.ini']['PhantomPopulationActiveTarget']='2'
         $overrides['Custom\PhantomPlayers.ini']['PhantomEcologyWorldAgeDays']='0'
     }
+    if($census){
+        $overrides['Custom\PhantomPlayers.ini']['PhantomPopulationTarget']='176'
+        $overrides['Custom\PhantomPlayers.ini']['PhantomPopulationActiveTarget']='128'
+        $overrides['Custom\PhantomPlayers.ini']['EnablePhantomAutonomousPartySeeking']='False'
+    }
     if($rendezvous){
         $overrides['General.ini']=@{LogItems='True'}
     }
@@ -107,7 +119,7 @@ $built=Join-Path $module 'dist\libs\GameServer.jar'
 $builtHash=(Get-FileHash -LiteralPath $built).Hash
 $nativeClaim=Join-Path $runtime $(if($rendezvous){'native130.launch.'+$AttemptNumber}else{'native130.launch'})
 if($firstParty){
-    $pinned=if($rendezvous){$ExpectedJarHash}else{'46E0437859939756DF1F5F1A60159DD6D4D1F41D29CAC220BC2E05642627CBC9'}
+    $pinned=if($rendezvousSql){$ExpectedJarHash}else{'46E0437859939756DF1F5F1A60159DD6D4D1F41D29CAC220BC2E05642627CBC9'}
     if(!$pinned -or $builtHash -ine $pinned){throw 'TEST130_FIRST_PARTY_PINNED_JAR'}
     if((Get-FileHash -LiteralPath $sqlConfig).Hash -cne (Get-FileHash -LiteralPath (Join-Path $runtime 'config\Database.ini')).Hash){throw 'TEST130_FIRST_PARTY_SQL_CONFIG_MISMATCH'}
     if($Action -eq 'native' -and ((Test-Path -LiteralPath $nativeClaim) -or !(Test-Path -LiteralPath (Join-Path $runtime 'fixture130.properties')) -or
@@ -117,6 +129,11 @@ if($firstParty){
     if($rendezvous -and $Action -eq 'native' -and
         (@(Get-ChildItem -LiteralPath $runtime -Filter 'native130.launch.*' -File).Count -ne $AttemptNumber - 1 -or
         (Test-Path -LiteralPath (Join-Path $runtime 'native130.complete')))){throw 'TEST130_RENDEZVOUS_SEQUENCE'}
+}
+$censusClaim=Join-Path $runtime 'census130.launch'
+if($Action -eq 'census' -and ((Test-Path -LiteralPath $censusClaim) -or !(Test-Path -LiteralPath (Join-Path $runtime 'fixture130.properties')) -or
+    !(Test-Path -LiteralPath (Join-Path $runtime 'fixture-authority.ready')))){
+    throw 'TEST130_CENSUS_FIXTURE_OR_EXISTING_CUT'
 }
 $outcomeCheck=Join-Path $PSScriptRoot 'Assert-Coordination130Outcome.ps1'
 if($Action -in @('native','restart') -and !(Test-Path -LiteralPath $outcomeCheck -PathType Leaf)){
@@ -137,7 +154,7 @@ $dependencies=@(Get-ChildItem -LiteralPath (Join-Path $runtime 'libs') -Filter '
 $testRoot=Join-Path (Join-Path $source 'build') $runnerName
 $testBin=Join-Path $testRoot 'bin'
 $classTail=($dependencies -join ';')+';'+$testBin+';'+(Join-Path $testRoot 'resources')
-if($Action -in @('artifact-check','native','restart')){
+if($Action -in @('artifact-check','native','restart','census')){
     $javap=Join-Path (Split-Path $java -Parent) 'javap.exe'
     if(!(Test-Path -LiteralPath $javap -PathType Leaf)){throw 'TEST130_JAVAP_REQUIRED'}
     $inspection='org.l2jmobius.gameserver.phantoms.PhantomSystem$PlanningInspection'
@@ -179,7 +196,8 @@ if($Action -in @('artifact-check','native','restart')){
 }
 $request=Join-Path $parent ('g0-native130-'+[guid]::NewGuid().ToString('N'))
 if($firstParty){
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-Coordination130FirstPartySql.ps1') -Action attest -Lane $Lane
+    $sqlLane=if($rendezvousSql){'rendezvous'}else{$Lane}
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-Coordination130FirstPartySql.ps1') -Action attest -Lane $sqlLane
 }else{
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-G0IdentityAttestation.ps1') -RequestDirectory $request
 }
@@ -190,6 +208,7 @@ if((Get-FileHash -LiteralPath $jar).Hash -cne $builtHash){throw 'TEST130_FINAL_J
 $classpath=$jar+';'+$classTail
 $attempt=$Action+'-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')
 $javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),('-Dphantom.task130.lane='+$Lane),('-Dphantom.task130.attempt='+$attempt),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
+if($RequireRecovery){$javaArgs=@('-Dphantom.task130.requireRecovery=true')+$javaArgs}
 $out=Join-Path $runtime ($attempt+'.stdout.log');$err=Join-Path $runtime ($attempt+'.stderr.log')
 if($Action -eq 'restart'){
     $reservation=[IO.File]::Open($restartClaim,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
@@ -197,6 +216,10 @@ if($Action -eq 'restart'){
 }
 if($firstParty -and $Action -eq 'native'){
     $reservation=[IO.File]::Open($nativeClaim,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    $reservation.Dispose()
+}
+if($Action -eq 'census'){
+    $reservation=[IO.File]::Open($censusClaim,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
     $reservation.Dispose()
 }
 $process=Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $runtime -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
@@ -211,13 +234,31 @@ $process.WaitForExit()
 $process.Refresh()
 @{pid=$process.Id;exitCode=$process.ExitCode;phase=$Action;finished=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime ($attempt+'.exit.json')) -Encoding UTF8
 Write-Output ('TEST130_OWN_EXIT='+$process.ExitCode+';PHASE='+$Action)
-if($Action -in @('native','restart')){
+if($Action -in @('native','restart','census')){
     Assert-OwnJvmAbsent
     Assert-PortsFree
     Assert-Protected
     Write-Output 'TEST130_POSTFLIGHT_OS_PASS;OWN_JVM=0;OWN_LISTENERS=0;PROTECTED=EXACT'
-    if($process.ExitCode -eq 0){
-        & $outcomeCheck -RuntimeRoot $runtime -Attempt $attempt -Fixture $Fixture -JarHash $builtHash
+    if($Action -eq 'census' -and $process.ExitCode -eq 0){
+        $completion=Get-Content -LiteralPath (Join-Path $runtime 'census130.complete')
+        if($completion -cnotcontains ('attempt='+$attempt) -or $completion -inotcontains ('jar='+$builtHash) -or
+            $completion -cnotcontains ('pid='+$process.Id) -or
+            !(Select-String -LiteralPath $err -SimpleMatch -Pattern 'The server has been successfully shut down in ' -Quiet)){
+            throw 'TEST130_CENSUS_COMPLETION_MISMATCH'
+        }
+        $samplePath=Join-Path $runtime ('census130.'+$attempt+'.tsv')
+        $samples=@(Import-Csv -LiteralPath $samplePath -Delimiter "`t" | Group-Object millis | Sort-Object {[long]$_.Name})
+        if($samples.Count -ne 3 -or ([long]$samples[-1].Name - [long]$samples[0].Name) -lt 60000){throw 'TEST130_CENSUS_WINDOW_MISMATCH'}
+        foreach($sample in $samples){
+            if($sample.Count -ne 128 -or @($sample.Group.profileId | Sort-Object -Unique).Count -ne 128 -or
+                @($sample.Group.objectId | Sort-Object -Unique).Count -ne 128 -or
+                @($sample.Group | Where-Object {$_.profileId -notmatch '^[1-9][0-9]*$' -or $_.objectId -notmatch '^[1-9][0-9]*$' -or $_.epoch -notmatch '^[1-9][0-9]*$'}).Count){
+                throw 'TEST130_CENSUS_EXACT_EPOCH_ROWS_REQUIRED'
+            }
+        }
+        Write-Output ('TEST130_CENSUS_EPOCHS_PASS attempt='+$attempt+' pid='+$process.Id)
+    }elseif($process.ExitCode -eq 0){
+        & $outcomeCheck -RuntimeRoot $runtime -Attempt $attempt -Fixture $Fixture -JarHash $builtHash -RequireRecovery:$RequireRecovery
     }
 }
 exit $process.ExitCode

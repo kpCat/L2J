@@ -45,34 +45,47 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 /** One bounded TEST130 SQL entrypoint. No drop/reseed, no connection to a gameplay catalog. Run only after OS G0. */
 public final class PhantomCoordination130Integration
 {
-	static final String SCHEMA = rendezvousLane() ? "l2jmobiush5_phantom_test_130_rendezvous" : firstPartyLane() ? "l2jmobiush5_phantom_test_130_first_party" : "l2jmobiush5_phantom_test_130";
-	private static final int PORT = rendezvousLane() ? 33307 : firstPartyLane() ? 33306 : 3308;
+	static final String SCHEMA = switch (lane())
+	{
+		case "rendezvous" -> "l2jmobiush5_phantom_test_130_rendezvous";
+		case "first-party" -> "l2jmobiush5_phantom_test_130_first_party";
+		case "owned-contract" -> "l2jmobiush5_phantom_test_130_contract";
+		case "census" -> "l2jmobiush5_phantom_test_130_census";
+		default -> "l2jmobiush5_phantom_test_130";
+	};
+	private static final int PORT = rendezvousLane() || ownedContractLane() || censusLane() ? 33307 : firstPartyLane() ? 33306 : 3308;
 	static final String URL = "jdbc:mysql://127.0.0.1:" + PORT + "/" + SCHEMA + "?useSSL=false&serverTimezone=UTC";
 	private static final String ADMIN_URL = "jdbc:mysql://127.0.0.1:" + PORT + "/?useSSL=false&serverTimezone=UTC";
 	static boolean firstPartyLane()
 	{
-		return switch (System.getProperty("phantom.task130.lane", "regression"))
+		return switch (lane())
 		{
 			case "regression" -> false;
-			case "first-party", "rendezvous" -> true;
+			case "first-party", "rendezvous", "owned-contract", "census" -> true;
 			default -> throw new IllegalArgumentException("Unknown TEST130 lane.");
 		};
 	}
-	static boolean rendezvousLane() { return System.getProperty("phantom.task130.lane", "regression").equals("rendezvous"); }
+	private static String lane() { return System.getProperty("phantom.task130.lane", "regression"); }
+	private static boolean ownedContractLane() { return lane().equals("owned-contract"); }
+	static boolean rendezvousLane() { return lane().equals("rendezvous"); }
+	static boolean censusLane() { return lane().equals("census"); }
 
 	static Path localRoot(Path module)
 	{
-		return module.resolve(rendezvousLane() ? ".phantom-local/task130-rendezvous" : firstPartyLane() ? ".phantom-local/task130-first-party" : ".phantom-local/task130");
+		return module.resolve(ownedContractLane() ? ".phantom-local/task130-contract"
+			: censusLane() ? ".phantom-local/task130-census"
+			: rendezvousLane() ? ".phantom-local/task130-rendezvous" : firstPartyLane() ? ".phantom-local/task130-first-party" : ".phantom-local/task130");
 	}
 
 	static Path runtimeRoot(Path module)
 	{
-		return module.getParent().getParent().resolve(rendezvousLane() ? "runtime-rendezvous" : firstPartyLane() ? "runtime-first-party" : "runtime");
+		return module.getParent().getParent().resolve(censusLane() ? "runtime-census" : rendezvousLane() ? "runtime-rendezvous" : firstPartyLane() ? "runtime-first-party" : "runtime");
 	}
 
 	static Path runnerRoot(Path module)
 	{
-		return module.getParent().resolve(rendezvousLane() ? "build/phantom-test-rendezvous" : firstPartyLane() ? "build/phantom-test-first-party" : "build/phantom-test");
+		return module.getParent().resolve(censusLane() ? "build/phantom-test-census"
+			: rendezvousLane() ? "build/phantom-test-rendezvous" : firstPartyLane() ? "build/phantom-test-first-party" : "build/phantom-test");
 	}
 	private static Properties read(Path file) throws Exception
 	{
@@ -83,12 +96,17 @@ public final class PhantomCoordination130Integration
 	public static void main(String[] args) throws Exception
 	{
         if (args.length < 2 || args.length > 3 || !List.of("group-pve", "group-pve-resume", "group-pve-close", "group-pve-route", "group-pve-route-resume", "group-pve-route-close",
-            "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "publication-retry", "publication-retry-resume", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
+            "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "publication-retry", "publication-retry-resume", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart", "census").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
-		final boolean isolatedF7 = firstPartyLane() && !rendezvousLane() && args[0].equals("authority-f7");
-		final boolean isolatedGroupProof = firstPartyLane() && !rendezvousLane() && List.of("group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close").contains(args[0]);
-		if (firstPartyLane() && !isolatedF7 && !isolatedGroupProof && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
+		final boolean ownedContract = ownedContractLane();
+		if (ownedContract && !List.of("check", "prepare", "inspect", "test", "resume", "ownership", "ownership-resume", "cold").contains(args[0]))
+		{ throw new IllegalArgumentException("Owned contract lane cannot run native or prepare a gameplay fixture."); }
+		if (censusLane() ? !List.of("check", "prepare", "inspect", "fixture", "census").contains(args[0]) : args[0].equals("census"))
+		{ throw new IllegalArgumentException("Census actions require the isolated census lane."); }
+		final boolean isolatedF7 = lane().equals("first-party") && args[0].equals("authority-f7");
+		final boolean isolatedGroupProof = lane().equals("first-party") && List.of("group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close").contains(args[0]);
+		if (!ownedContract && !censusLane() && firstPartyLane() && !isolatedF7 && !isolatedGroupProof && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
 		{ throw new IllegalArgumentException("First Party lane is reserved for the native fixture."); }
 		if (isolatedGroupProof && !PhantomCoordination130Native.validateInfrastructure(module))
 		{ throw new IllegalArgumentException("The SQL-only group proof requires the exact owned pre-CUT runtime."); }
@@ -124,7 +142,7 @@ public final class PhantomCoordination130Integration
 				Files.writeString(local.resolve("owner.properties"), "owner=PHANTOM-WORLD-COORDINATION-130\nschema=" + SCHEMA + "\ninstallationId=" + token + "\n", StandardOpenOption.CREATE_NEW);
 				try (var statement = connection.createStatement())
 				{
-					if (firstPartyLane())
+					if (firstPartyLane() && !ownedContract && !censusLane())
 					{
 						statement.executeUpdate("REVOKE ALL PRIVILEGES ON `test`.* FROM PUBLIC");
 						statement.executeUpdate("REVOKE ALL PRIVILEGES ON `test\\_%`.* FROM PUBLIC");
@@ -185,7 +203,7 @@ public final class PhantomCoordination130Integration
 		}
 		if (args[0].equals("inspect")) { System.out.println("SQL130_INSPECT_ONLY;SQL_WRITES=0"); return; }
         if (args[0].equals("fixture")) { PhantomCoordination130Native.prepareOnly(module); return; }
-		if (args[0].equals("native") || args[0].equals("restart")) { PhantomCoordination130Native.run(module, args[0].equals("restart")); return; }
+		if (args[0].equals("native") || args[0].equals("restart") || args[0].equals("census")) { PhantomCoordination130Native.run(module, args[0].equals("restart")); return; }
 		final long start = System.nanoTime();
 		if (args[0].equals("authority"))
 		{
@@ -560,7 +578,7 @@ public final class PhantomCoordination130Integration
 	}
 	private static void authorityRefresh130(PhantomProfileRepository profiles, Path module, boolean resume) throws Exception
 	{
-		final Path checkpoint = module.resolve(".phantom-local/task130/authority-restart.properties");
+		final Path checkpoint = localRoot(module).resolve("authority-restart.properties");
 		final var saved = new Properties();
 		if (resume) { saved.putAll(read(checkpoint)); }
 		for (String scenario : List.of("COMPLETE", "RUNNING", "PENDING"))
@@ -1064,7 +1082,7 @@ public final class PhantomCoordination130Integration
 		for (int i = 0; i < size; i++)
 		{
 			final var profile = profiles.create(null); final int objectId = Math.toIntExact(700_000_000L + profile.profileId());
-			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("INSERT INTO characters (charId,char_name,account_name,level,exp,sp,expBeforeDeath,curHp,maxHp,curMp,maxMp,curCp,maxCp,x,y,z,heading,classid,base_class,race,vitality_points,online) VALUES (?,?,?,1,0,0,0,100,100,100,100,100,100,0,0,0,0,0,0,0,1,0)"))
+			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("INSERT INTO characters (charId,char_name,account_name,level,exp,sp,expBeforeDeath,curHp,maxHp,curMp,maxMp,curCp,maxCp,x,y,z,heading,classid,base_class,race,vitality_points,online) VALUES (?,?,?,1,0,0,0,100,100,100,100,100,100,100,100,0,0,0,0,0,1,0)"))
 			{ statement.setInt(1, objectId); statement.setString(2, "SQL130_" + profile.profileId()); statement.setString(3, "task130_sql"); statement.executeUpdate(); }
 			profiles.updateCharacterLink(profile.profileId(), profile.rowVersion(), objectId);
 			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("INSERT INTO character_skills (charId,skill_id,skill_level,class_index) VALUES (?,?,?,0)"))
@@ -1076,7 +1094,7 @@ public final class PhantomCoordination130Integration
 			final var state = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.MATERIALIZED,
 				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity(profile.profileId(), objectId, 0, 0, 0),
 				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress(1, 0, 0, 0), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vitals(100,100,100,100,100,100),
-				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position(0,0,0,0,0,"farm.receipt130"),
+				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position(0,100,100,0,0,"farm.receipt130"),
 				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.CombatFacts(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ModelKind.MELEE,100,100,100,100,500,500,1,1,1,1,0,1,1,1,1),
 				org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Loadout.none(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.InventoryFacts(List.of(),List.of(),"",0,1000,0,100), skills,
 				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock(130,0,0), org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Receipt.empty(),
@@ -1187,22 +1205,23 @@ public final class PhantomCoordination130Integration
 		final var materialization = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics,
 			new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false,64,16,metrics),1);
 		final var nativeBackend = new org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend(profiles,materialization,null);
+		final var source = fixture.goal().validSources().getFirst();
 		for (int size : List.of(2,6,9))
 		{
 			final var roster = java.util.stream.LongStream.rangeClosed(1,size).mapToObj(profile -> org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(profile,700_000_000 + (int) profile)).toList();
 			final var party = new org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot(roster.getFirst(),roster,org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS);
 			final var witness = new java.util.ArrayList<String>();
-			PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(party,java.util.Set.of(roster.getLast()),witness::add).isEmpty(),"Absent native actors received a target.");
+			PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(party,java.util.Set.of(roster.getLast()),source,witness::add).isEmpty(),"Absent native actors received a target.");
 			PhantomAssertions.assertEquals(List.of("actor.unavailable=1"),witness,"A legal six/nine-member roster never reached the production native actor gate.");
 			witness.clear();
-			PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(party,java.util.Set.of(),witness::add).isEmpty(),"Absent DD-only native actors received a target.");
+			PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(party,java.util.Set.of(),source,witness::add).isEmpty(),"Absent DD-only native actors received a target.");
 			PhantomAssertions.assertEquals(List.of("actor.unavailable=1"),witness,"A flexible DD-only objective acquired a universal backend healer requirement.");
 		}
 		final var phantom = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(id,fixture.objectId());
 		final var human = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.real(799_999_999);
 		final var mixed = new org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot(phantom,List.of(phantom,human),org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS);
 		final var mixedWitness = new java.util.ArrayList<String>();
-		PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(mixed,java.util.Set.of(phantom),mixedWitness::add).isEmpty() && mixedWitness.isEmpty(),"Autonomous target selection touched a mixed human Party.");
+		PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(mixed,java.util.Set.of(phantom),source,mixedWitness::add).isEmpty() && mixedWitness.isEmpty(),"Autonomous target selection touched a mixed human Party.");
 		System.out.println("SQL130_NATIVE_ROSTER_ADMISSION_PASS;LEGAL_2_6_9=ACTOR_GATE;MIXED=REJECTED;NATIVE_PLAYERS=0;ACTIONS=0");
 		final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
 		{
@@ -1212,18 +1231,19 @@ public final class PhantomCoordination130Integration
 		final var background = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService(profiles,goals,PhantomIdentityLeaseRegistry.getInstance(),new PhantomBackgroundTransaction(),
 			new SqlTravelAuthority(state.hashes(),state.position()),new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry(),signals,() -> materialization);
 		final var history = new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService(profiles,goals,
-			org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.planner(true),background,materialization);
+			org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.receiptPlanner130(true),background,materialization);
 		final var reads = new java.util.concurrent.atomic.AtomicInteger();
 		history.bindLogicalGroups(profile -> cold.knownGroupFor(profile).map(row -> row.group()), profile -> { reads.incrementAndGet(); cold.groupFor(profile); });
-		PhantomAssertions.assertTrue(history.advance(id,1,1).successful(), "Completed history did not retain its ordinary idempotent result.");
+		final var advanced = history.advance(id,1,1);
+		PhantomAssertions.assertTrue(advanced.successful(), "Completed history did not retain its ordinary idempotent result: " + advanced.reason());
 		PhantomAssertions.assertTrue(cold.knownGroupFor(id).isPresent(), "Background ran before durable logical claims were resolved into its cold cache.");
-		PhantomAssertions.assertEquals(1,reads.get(),"A bounded Background call rescanned logical membership per interval.");
+		PhantomAssertions.assertEquals(2,reads.get(),"Background exceeded one logical read at entry and one at current authority.");
 		final var coldNative = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
 		history.bindLogicalGroups(profile -> coldNative.knownGroupFor(profile).map(row -> row.group()), profile -> { reads.incrementAndGet(); coldNative.groupFor(profile); });
 		PhantomAssertions.assertTrue(coldNative.knownGroupFor(id).isEmpty(), "Native hydration fixture was already warm.");
 		history.beforeMaterialize(id,fixture.objectId());
 		PhantomAssertions.assertTrue(coldNative.knownGroupFor(id).isPresent(), "NORMAL materialization reached native planning before its durable logical group was hydrated.");
-		PhantomAssertions.assertEquals(2,reads.get(),"Native materialization did not use one bounded durable membership read.");
+		PhantomAssertions.assertEquals(3,reads.get(),"Native materialization did not use one bounded durable membership read.");
 		history.materializeAborted(id,fixture.objectId());
 		history.bindLogicalGroups(profile -> cold.knownGroupFor(profile).map(row -> row.group()), _ -> { throw new IllegalStateException("TEST130_LOGICAL_READ_UNAVAILABLE"); });
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.RETRY,history.advance(id,1,1).status(),"Unavailable logical authority fell through to Solo history.");
@@ -1467,7 +1487,7 @@ public final class PhantomCoordination130Integration
 		final var currentGoal = goals.load(id).orElseThrow();
 		goals.replace(id, currentGoal.rowVersion(), org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.resume(paused, wall + 300));
 		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> store.transfer(returnCheckpoint, List.of(), 1404), "Changed owner progress passed a stale checkpoint.");
-		Files.writeString(module.resolve(".phantom-local/task130/ownership-restart.properties"), "profileId=" + id + "\nrowVersion=" + returnCheckpoint.component().rowVersion() + "\npayload=" + java.util.Base64.getEncoder().encodeToString(returnCheckpoint.component().payload()) + "\n");
+		Files.writeString(localRoot(module).resolve("ownership-restart.properties"), "profileId=" + id + "\nrowVersion=" + returnCheckpoint.component().rowVersion() + "\npayload=" + java.util.Base64.getEncoder().encodeToString(returnCheckpoint.component().payload()) + "\n");
 		System.out.println("SQL130_EXECUTION_HANDOFF_PASS;REQUEST_AND_TRANSFER_ONE_WINNER=true;CHECKPOINT_STORE_RECREATION=true;OPTIONAL_CHILD_SUSPEND_AND_RESUME=true;STALE_SOURCE_ROOT_AND_NEW_RECEIPT_REJECTED=true;OPERATION_REVISIONS=7,11;NATIVE=false");
 		executionDriver(profiles, root, child);
 		executionChildOwners(profiles, root);
@@ -1485,7 +1505,7 @@ public final class PhantomCoordination130Integration
 		final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.COMPONENT_TYPE,
 			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.NATIVE_ROOT_COMPONENT);
 		row = store.checkpoint(row, List.of(), types, types.stream().map(type -> profiles.findComponent(id, type).orElseThrow()).toList(), 1002);
-		Files.writeString(module.resolve(".phantom-local/task130/root-publication-restart.properties"), "profileId=" + id + "\npayload=" + java.util.Base64.getEncoder().encodeToString(row.component().payload()) + "\n");
+		Files.writeString(localRoot(module).resolve("root-publication-restart.properties"), "profileId=" + id + "\npayload=" + java.util.Base64.getEncoder().encodeToString(row.component().payload()) + "\n");
 	}
 	private static void executionChildOwners(PhantomProfileRepository profiles, PhantomGoal template)
 	{
@@ -1815,9 +1835,9 @@ public final class PhantomCoordination130Integration
 	}
 	private static void activityRevision130(PhantomProfileRepository profiles, Path module, boolean resume) throws Exception
 	{
-		final Path file = module.resolve(".phantom-local/task130/activity-restart.properties");
+		final Path file = localRoot(module).resolve("activity-restart.properties");
 		final var saved = resume ? read(file) : new Properties(); final var leaders = new java.util.ArrayList<Long>();
-		for (int size : List.of(2, 9))
+		for (int size : List.of(2, 3, 9))
 		{
 			final var parties = new PhantomPartyStore(profiles); final var logical = new PhantomLogicalPartyCoordinator(parties);
 			ReceiptFixture replay = null;
@@ -1844,8 +1864,9 @@ public final class PhantomCoordination130Integration
 			final var driver = activityDriver(profiles, logical, row.group());
 			if (!resume)
 			{
-				final var prematurePlans = driver.history().planLogicalActivity(row.group(), driver.clock().get());
-				PhantomAssertions.assertEquals(size, prematurePlans.size(), "All-member ordinary planner did not select a common B.");
+				final var premature = driver.history().planLogicalActivity(row.group(), driver.clock().get(), (source, roster) -> true);
+				final var prematurePlans = premature.roots();
+				PhantomAssertions.assertEquals(size, prematurePlans.size(), "All-member ordinary planner did not select a common B: " + premature.waitReason());
 				final var beforeRelease = row;
 				PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> parties.beginActivityRevision(beforeRelease, prematurePlans, driver.clock().get()), "Activity changed before execution.party released its members.");
 				PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> logical.disband(beforeRelease, driver.clock().get(), "EXPIRED"), "Terminal claims released before old Group custody recovered as Solo.");
@@ -1930,10 +1951,10 @@ public final class PhantomCoordination130Integration
 	}
 	private static void coldExpiry130(PhantomProfileRepository profiles, Path module) throws Exception
 	{
-		final var checkpoint = module.resolve(".phantom-local/task130/activity-restart.properties"); final var saved = read(checkpoint);
+		final var checkpoint = localRoot(module).resolve("activity-restart.properties"); final var saved = read(checkpoint);
 		final boolean cut = Boolean.getBoolean("phantom.task130.cold.restartCut"), resume = Boolean.getBoolean("phantom.task130.cold.restartResume");
 		if (cut && resume) { throw new IllegalArgumentException("Cold restart cut and resume are exclusive."); }
-		for (int size : List.of(2, 9))
+		for (int size : List.of(2, 3, 9))
 		{
 			final long leader = Long.parseLong(saved.getProperty("leader." + size));
 			final var parties = new PhantomPartyStore(profiles); final var logical = new PhantomLogicalPartyCoordinator(parties);

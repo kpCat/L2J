@@ -52,6 +52,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty;
+import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingRequest;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingResult;
@@ -158,6 +159,45 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	static void registerCoordination130(PhantomTestRegistry registry)
 	{
+		registry.add("native-party-death-preserves-replan-through-drain", context ->
+		{
+			for (var deathPhase : List.of(Phase.BACKGROUND, Phase.WAKE_REQUESTED, Phase.ASSEMBLING, Phase.NATIVE_ACTIVE))
+			{
+				final var states = new MemoryPartyStore();
+				final var goals = new MemoryGoalStore();
+				final var backend = new MemoryPartyBackend();
+				backend._farmEnabled = true;
+				final var leader = backend.add(1, 101);
+				final var guardian = backend.add(2, 102);
+				final var support = backend.add(3, 103);
+				if (deathPhase == Phase.NATIVE_ACTIVE)
+				{ backend.party(new PhantomPartyBackend.PartySnapshot(leader, List.of(leader, guardian, support), PartyDistributionType.FINDERS_KEEPERS)); }
+				backend.snapshot(support, member(3, 103, 0, 100, true, 0, List.of()));
+				final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+				var row = logical.agree(PhantomWorldCoordination130Suite.group(1, 3)).orElseThrow();
+				for (var phase : List.of(Phase.BACKGROUND, Phase.WAKE_REQUESTED, Phase.ASSEMBLING, Phase.NATIVE_ACTIVE))
+				{
+					row = logical.transition(row, phase, 0, 1000, "");
+					if (phase == deathPhase) { break; }
+				}
+				final var clock = new AtomicLong(1_000_000_000L);
+				final var coordinator = coordinator(context, states, goals, backend, 64, clock::get);
+				backend.connect(coordinator);
+				PhantomAssertions.assertTrue(coordinator.start(), "Native death fixture did not start.");
+				try
+				{
+					final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false, null,
+						org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults(), (_, _, _, _, _) -> false, () -> 1000L);
+					adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> false);
+					adapter.onPulse();
+					final var draining = logical.groupFor(1).orElseThrow().group();
+					PhantomAssertions.assertEquals(Phase.DRAINING, draining.phase(), "A dead member allowed the group to keep taking native work from " + deathPhase);
+					PhantomAssertions.assertEquals("REPLAN_NATIVE_MEMBER_DEAD", draining.waitReason(), "Native death lost the replacement-source obligation.");
+					PhantomAssertions.assertEquals(row.group().members(), draining.members(), "Death released claims before terminal STORE.");
+				}
+				finally { coordinator.beginStop(); coordinator.finishStop(); }
+			}
+		});
 		registry.add("15-live-page-priority-preserves-cold-recovery-fairness", context ->
 		{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
@@ -210,9 +250,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
 				try
 				{
+					final var seeking = new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 0, 20, 35, 0, 100, true);
+					PhantomAssertions.assertTrue(seeking.seeks(1, 76) && !seeking.seeks(1, 75), "Fixture must cross a seeking threshold.");
+					backend._farmLevel = 75;
 					final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false,
 						(_, _) -> { throw new AssertionError("Distant actors were sent individually to FARM."); },
-						new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true),
+						seeking,
 						(_, _, _, _, _) -> { throw new AssertionError("Distant actors adopted a FARM root before meeting."); }, millis::get);
 					adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
 					for (int pulse = 0; pulse < 30; pulse++)
@@ -221,7 +264,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 						for (int step = 0; step < 4; step++) { coordinator.onPulse(); }
 						clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
 					}
-					final var physical = backend.observe(backend._members.get(1L)).orElseThrow();
+					final var physical = backend.observe(backend._members.get(1L)).orElseThrow(
+						() -> new AssertionError("An existing agreement reapplied the search preference after a level loss."));
 					PhantomAssertions.assertEquals(size, physical.members().size(), "Stock-permitted invitation was restricted by distance.");
 					PhantomAssertions.assertEquals(size - 1, backend.invitationCount(), "Distant stock formation duplicated invitations.");
 					final var retained = logical.groupFor(1).orElseThrow().group();
@@ -251,7 +295,9 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				adapter.installExecutionOwnership((_, _) -> false);
 				adapter.onPulse();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND, logical.groupFor(1).orElseThrow().group().phase(), "A released Source actor permanently blocked old group draining.");
-				PhantomAssertions.assertEquals(301000L, logical.groupFor(1).orElseThrow().group().nextDueMillis(), "Ordinary idle drain lost its existing cooldown.");
+				final var cooled = logical.groupFor(1).orElseThrow().group();
+				PhantomAssertions.assertEquals(301000L, cooled.nextDueMillis(), "Ordinary idle drain lost its existing cooldown.");
+				PhantomAssertions.assertFalse(cooled.defersOptionalSupply(1, 1001, 0, millis.get()), "Ordinary cooldown blocked optional Solo preparation.");
 				PhantomAssertions.assertTrue(backend.materializationEpoch(actor) > 0, "Releasing group custody retired the Source actor.");
 				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Old group borrowed Source execution after release.");
 
@@ -284,6 +330,10 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				final var replanning = logical.groupFor(1).orElseThrow().group();
 				PhantomAssertions.assertEquals("REPLAN_TANK_AGGRO", replanning.waitReason(), "Retirement lost the exact source refusal.");
 				PhantomAssertions.assertTrue(replanning.nextDueMillis() <= millis.get(), "A confirmed unsafe source deferred its first alternative search for another idle cooldown.");
+				PhantomAssertions.assertFalse(replanning.assemblyPending(1, 1001, 0, millis.get()), "An unsafe source regained assembly rights.");
+				PhantomAssertions.assertTrue(replanning.defersOptionalSupply(1, 1001, 0, millis.get()), "An optional equipment trip could leave the accepted replan without a common route.");
+				PhantomAssertions.assertFalse(replanning.defersOptionalSupply(1, 9999, 0, millis.get()), "A stale group deferred an unrelated Solo root.");
+				PhantomAssertions.assertFalse(replanning.defersOptionalSupply(1, 1001, 0, replanning.expiresAtMillis()), "An expired group still deferred optional Solo preparation.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Released custody fixture did not stop."); }
 		});
@@ -531,6 +581,118 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				combat.beginStop();
 				PhantomAssertions.assertTrue(combat.finishStop(), "Party support owner did not drain.");
 			}
+		});
+		registry.add("native-restart-retains-exact-member-consent-after-level-loss", _ ->
+		{
+			final var group = PhantomWorldCoordination130Suite.group(1, 3);
+			final var member = group.members().getLast();
+			final var claim = new PhantomPartyPersistencePort.StoredLogicalClaim(member.profileId(), group.leaderProfileId(), group.groupId(), group.generation(), 0);
+			final var stale = new PhantomPartyPersistencePort.StoredLogicalClaim(member.profileId(), group.leaderProfileId(), group.groupId(), group.generation() + 1, 0);
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.preflightMemberConsent(false, group, claim, member.profileId(), member.goalId(), member.goalRevision()),
+				"Existing consent must survive a level-dependent seek refusal on the same proved agreement.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.preflightMemberConsent(false, group, stale, member.profileId(), member.goalId(), member.goalRevision()),
+				"A different generation cannot replace the current member claim.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.preflightMemberConsent(false, group, claim, member.profileId(), member.goalId() + 1, member.goalRevision()),
+				"An unrelated goal must not inherit an agreement's consent.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.preflightMemberConsent(false, null, claim, member.profileId(), member.goalId(), member.goalRevision()),
+				"Fresh discovery still needs ordinary consent.");
+		});
+		registry.add("post-store-death-recovery-rechecks-current-party-replan", context ->
+		{
+			final String background = source(context, "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java");
+			final String system = source(context, "java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java");
+			final int restore = background.indexOf("private OperationResult restoreRecoveryAfterStore(");
+			final int materialize = background.indexOf("materialize(profileId)", restore);
+			final int readmission = background.indexOf("_recoveryReadmission.test(profileId, goal)", restore);
+			PhantomAssertions.assertTrue(restore >= 0 && readmission > restore && materialize > readmission,
+				"Verified death STORE can open a new Solo native lifetime while the agreement awaits an offscreen replan.");
+			PhantomAssertions.assertTrue(system.contains("installRecoveryReadmission(this::allowsRecoveryReadmission)"),
+				"Production recovery must use the current logical owner and physical demand.");
+			final var agreed = PhantomWorldCoordination130Suite.group(1, 3);
+			final var member = agreed.members().getLast();
+			final long now = 1500;
+			final var active = agreed.transition(Phase.WAKE_REQUESTED, 0, now, "")
+				.transition(Phase.ASSEMBLING, 0, now, "").transition(Phase.NATIVE_ACTIVE, 0, now, "");
+			final var draining = active.transition(Phase.DRAINING, 0, now, "REPLAN_NATIVE_MEMBER_DEAD");
+			final var stored = draining.transition(Phase.BACKGROUND, 0, now, "WAIT_STORE");
+			PhantomAssertions.assertFalse(active.awaitingActivityReplan(member.profileId(), member.goalId(), member.goalRevision(), now),
+				"An active Party must keep ordinary death recovery.");
+			PhantomAssertions.assertTrue(draining.awaitingActivityReplan(member.profileId(), member.goalId(), member.goalRevision(), now),
+				"An exact member must remain absent once its failed activity stores.");
+			PhantomAssertions.assertTrue(stored.awaitingActivityReplan(member.profileId(), member.goalId(), member.goalRevision(), now),
+				"Partial STORE completion must keep the same agreement's readmission deferral.");
+			PhantomAssertions.assertFalse(stored.awaitingActivityReplan(member.profileId(), member.goalId() + 1, member.goalRevision(), now),
+				"An unrelated root must keep ordinary recovery.");
+			PhantomAssertions.assertFalse(stored.awaitingActivityReplan(member.profileId(), member.goalId(), member.goalRevision(), stored.expiresAtMillis()),
+				"An expired agreement cannot defer readmission.");
+		});
+		registry.add("native-no-itinerary-drains-before-stock-release", context ->
+		{
+			final var states = new MemoryPartyStore();
+			final var goals = new MemoryGoalStore();
+			final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true;
+			backend._farmLevel = 76;
+			final var travel = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.sourceRoutes129();
+			final String anchor = "generated.farm.5241a753fc2261cfc117ac7b.anchor";
+			final var destinationRef = new PhantomDomainRef("topology.anchor", anchor);
+			final java.util.function.Function<String, Optional<PhantomNavigationPoint>> anchors = key -> travel.topology().findAnchor(key)
+				.map(value -> new PhantomNavigationPoint(value.point().x(), value.point().y(), value.point().z(), value.point().instanceId()));
+			final var destination = anchors.apply(anchor).orElseThrow();
+			final var ids = List.of(1L, 3L, 8L);
+			for (long id : ids)
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 300, 0))));
+				placeFarmMember(backend, actor, destination);
+				goals.put(id, historicalIdle(id, 129000 + id, 0));
+			}
+			final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+			final var initial = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty("C".repeat(64), 1, 1,
+				ids.stream().map(id -> new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, "damage.melee", 129000 + id, 0)).toList(),
+				new PhantomDomainRef("background.farm", "21320@" + anchor), anchor,
+				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.AGREED, 0, 1000, "");
+			logical.agree(initial).orElseThrow();
+			final var clock = new AtomicLong(1_000_000_000L);
+			final var millis = new AtomicLong(1000);
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get);
+			backend.connect(coordinator);
+			coordinator.start();
+			try
+			{
+				final var routeReady = new AtomicBoolean();
+				final var preparation = new PhantomAutonomousFarmParty.RendezvousPreparation()
+				{
+					@Override public boolean prepare(long id, PhantomGoal root, PhantomDomainRef source, long expires, java.util.function.BooleanSupplier current) { throw new AssertionError("Party route adopted a personal goal."); }
+					@Override public Optional<PhantomNavigationPoint> nativePartyDestination(PhantomDomainRef ref) { return routeReady.get() && ref.equals(destinationRef) ? Optional.of(destination) : Optional.empty(); }
+				};
+				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false, null,
+					new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true), preparation, millis::get);
+				adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+				for (int pulse = 0; pulse < 14; pulse++)
+				{
+					adapter.onPulse();
+					for (int step = 0; step < 4; step++) { coordinator.onPulse(); }
+					clock.addAndGet(6_000_000_000L);
+					millis.addAndGet(6000);
+				}
+				PhantomAssertions.assertEquals(3, backend.observe(backend._members.get(1L)).orElseThrow().members().size(), "No-itinerary fixture did not form the exact Party3.");
+				placeFarmMember(backend, backend._members.get(3L), new PhantomNavigationPoint(
+					org.l2jmobius.gameserver.model.World.WORLD_X_MAX, org.l2jmobius.gameserver.model.World.WORLD_Y_MAX, destination.z(), destination.instanceId()));
+				coordinator.installAutonomousFarmTravel(travel, anchors);
+				coordinator.onPulse();
+				final var failure = coordinator.requestAutonomousFarmRoute(1, destinationRef, destination);
+				PhantomAssertions.assertEquals("party.route.farm.no_itinerary_3", failure.reasonKey(), "No-itinerary fixture did not reproduce R29.");
+				routeReady.set(true);
+				adapter.onPulse();
+				final var group = logical.groupFor(1).orElseThrow().group();
+				PhantomAssertions.assertEquals("REPLAN_PARTY_ROUTE_NO_ITINERARY", group.waitReason(), "Stock route refusal was discarded before the durable drain.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING, group.phase(), "No itinerary did not drain the current durable generation.");
+				PhantomAssertions.assertEquals(initial.expiresAtMillis(), group.expiresAtMillis(), "A failed itinerary refreshed the idle deadline.");
+				PhantomAssertions.assertEquals(ids, backend.observe(backend._members.get(1L)).orElseThrow().members().stream().map(MemberRef::profileId).toList(),
+					"Stock membership was released before the normal durable drain.");
+			}
+			finally { coordinator.beginStop(); coordinator.finishStop(); }
 		});
 		registry.add("sequential-gatekeeper-keeps-the-exact-party-through-an-observation-gap", context ->
 		{
@@ -2518,6 +2680,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				blocked.clear();
 				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
 				PhantomAssertions.assertEquals(2, backend.observe(backend.currentMember(1).orElseThrow()).orElseThrow().members().size(), "A later page expanded the sealed lawful pair.");
+				final var retainedClaim = coordinator.claim(2).orElseThrow().state().status();
+				backend._leaveAdmission = id -> id != 2;
+				PhantomAssertions.assertFalse(coordinator.drainAutonomousFarm(1), "Denied native LEAVE completed the drain.");
+				PhantomAssertions.assertEquals(retainedClaim, coordinator.claim(2).orElseThrow().state().status(),
+					"Denied native LEAVE lost the observed stock claim and made DRAIN unretryable.");
+				backend._leaveAdmission = _ -> true;
 				PhantomAssertions.assertTrue(coordinator.releaseAutonomousFarm(1), "The quiet lawful pair could not finish before new recruitment.");
 				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
 				PhantomAssertions.assertEquals(3, backend.observe(backend.currentMember(1).orElseThrow()).map(party -> party.members().size()).orElse(0), "A settled supply obligation permanently disabled ordinary Party3.");
@@ -3982,6 +4150,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static final class MemoryPartyBackend implements PhantomPartyBackend
 	{
+		private java.util.function.LongPredicate _leaveAdmission = _ -> true;
 		private long _nativeEpoch = 1;
 		private final Map<Long, Long> _nativeEpochs = new LinkedHashMap<>();
 		private final Set<Long> _restartAbsent = new HashSet<>();
@@ -4138,6 +4307,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public PartyInvitationService.MembershipOutcome leave(MemberRef member)
 		{
+			if (!_leaveAdmission.test(member.profileId())) { return PartyInvitationService.MembershipOutcome.INVALID_TARGET; }
 			final PartySnapshot current = _parties.remove(member);
 			if (current == null)
 			{

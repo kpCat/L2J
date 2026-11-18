@@ -3847,6 +3847,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	private void abort(StoredPartyState stored, String failure)
 	{
+		abort(stored, StateStatus.FORMING, failure);
+	}
+
+	private void abort(StoredPartyState stored, StateStatus restoredStatus, String failure)
+	{
 		final StoredPartyState current = _claims.get(stored.profileId());
 		if ((current == null) || (current.rowVersion() != stored.rowVersion()))
 		{
@@ -3855,7 +3860,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		try
 		{
 			final PartyOperation operation = stored.state().operation();
-			final PartyState aborted = stored.state().withOperation(StateStatus.FORMING, operation == null ? null : operation.withPhase(OperationPhase.ABORTED, operation.invitationSequence(), failure), failure);
+			final PartyState aborted = stored.state().withOperation(restoredStatus, operation == null ? null : operation.withPhase(OperationPhase.ABORTED, operation.invitationSequence(), failure), failure);
 			putClaim(save(stored.profileId(), stored.rowVersion(), aborted));
 		}
 		catch (RuntimeException e)
@@ -3934,7 +3939,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final PartySnapshot observed = observeAfterMembership(current, actor, target).orElse(null);
 			if ((canonical != MembershipOutcome.COMPLETED) && !membershipPostcondition(kind, actor, target, observed, canonical))
 			{
-				abort(prepared, "party.membership.canonical_rejected");
+				// A rejected drain action may be retried while the exact stock membership still exists.
+				final boolean unchangedFarm = quietFarm && observed != null && current.leader().equals(observed.leader())
+					&& sameRoster(roster(current), observed.members());
+				abort(prepared, unchangedFarm ? current.status() : StateStatus.FORMING, "party.membership.canonical_rejected");
 				return CommandOutcome.CANONICAL_REJECTED;
 			}
 			if (!membershipPostcondition(kind, actor, target, observed, canonical))

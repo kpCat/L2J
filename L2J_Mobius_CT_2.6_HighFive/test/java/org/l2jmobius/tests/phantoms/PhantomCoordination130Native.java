@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -61,6 +62,8 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 /** Native modes of the existing SQL130 entrypoint: real GameServer and its configured owners. */
 final class PhantomCoordination130Native
 {
+    private static final int CENSUS_TARGET = 128;
+    private static final int CENSUS_FIXTURE_SIZE = 176;
     private static final ThreadLocal<Boolean> AUTHORITY_SQL_INITIALIZATION = ThreadLocal.withInitial(() -> false);
     static void initializeAuthoritySql(Path module) throws Exception
     {
@@ -221,7 +224,9 @@ final class PhantomCoordination130Native
             final boolean blocked = profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent() || receipt.filter(row -> !row.receipt().state().terminal()).isPresent()
                 || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(false)
                 || inspection.authorityRecovery().nativeIntentPending(id);
-            final boolean consent = inspection.settings().partySeeking().seeks(id, state.progress().level());
+            final boolean seeking = inspection.settings().partySeeking().seeks(id, state.progress().level());
+            final boolean consent = preflightMemberConsent(seeking, restart || confirmedExistingSource ? existing : null,
+                claim.orElse(null), id, root.goalId(), root.revision());
             final var history = histories.load(id).map(row -> row.state().status()).orElse(null);
             final boolean eligible = population.state() == PhantomPopulationState.State.READY && calendar.state().requiresMaterialization()
                 && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && sceneIds.contains(id)
@@ -229,7 +234,8 @@ final class PhantomCoordination130Native
                 && (claim.isEmpty() || existing != null && claim.get().groupId().equals(existing.groupId()) && claim.get().generation() == existing.generation())
                 && PhantomAutonomousFarmParty.ordinaryIntent(id, root);
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
-                + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " history=" + history + " position=" + state.position());
+                + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent
+                + " seeking=" + seeking + " obligations=" + blocked + " claimed=" + claim.isPresent() + " history=" + history + " position=" + state.position());
             if (!eligible) { continue; }
             final var savedAuthority = state.hashes();
             final var currentAuthority = inspection.planner().generation().authorityHashes();
@@ -271,6 +277,14 @@ final class PhantomCoordination130Native
                 .orElseThrow(() -> new IllegalStateException("NATIVE130_PREFLIGHT_PARTY_WALLET_" + id)));
         }
         final long sceneDeadline = sceneStarted + TimeUnit.SECONDS.toNanos(30);
+        final Path alternateOpening = runtime.resolve("fixture130.alternate-opening");
+        final boolean alternate = Files.exists(alternateOpening, LinkOption.NOFOLLOW_LINKS);
+        check(!alternate || PhantomCoordination130Integration.rendezvousLane() && Files.isRegularFile(alternateOpening, LinkOption.NOFOLLOW_LINKS), "RENDEZVOUS_ALTERNATE_OPENING_SCOPE");
+        final String opening = alternate ? Files.readString(alternateOpening).strip() : "";
+        check(!alternate || Set.of("TEST_FIXTURE EXCLUDE_YETI", "TEST_FIXTURE EXCLUDE_REPEATED_ANCHOR", "TEST_FIXTURE PROVED_HOT_SPRINGS_APPROACH", "TEST_FIXTURE QUIET_COLD_ENTRY").contains(opening),
+            "RENDEZVOUS_ALTERNATE_OPENING_VALUE");
+        final boolean freshAlternateOpening = alternate && !restart && !Files.exists(scene(runtime).resolve("native130.cut"), LinkOption.NOFOLLOW_LINKS);
+        final boolean quietColdEntry = freshAlternateOpening && opening.equals("TEST_FIXTURE QUIET_COLD_ENTRY");
         final java.util.function.BiPredicate<PhantomLogicalParty, List<Integer>> physical = (group, levels) -> physicalProofWithin(
             sceneDeadline, TimeUnit.SECONDS.toNanos(3), attemptDeadline ->
         {
@@ -306,7 +320,9 @@ final class PhantomCoordination130Native
             final var safe = mobs.stream().map(Monster.class::cast).filter(mob -> org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend.safeFarmOpening(mob, roster)).toList();
             if (safe.isEmpty()) { return physicalRefusal(group, "WAIT_SAFE_OPENING_RESERVE"); }
             if (approach == null) { return physicalRefusal(group, "WAIT_LIVE_SPAWN_INGRESS"); }
-            for (var mob : safe)
+            final var candidates = quietColdEntry ? safe.stream().filter(mob -> quietStockOpening(mob, approach)).toList() : safe;
+            if (candidates.isEmpty()) { return physicalRefusal(group, "WAIT_COLD_ENTRY_AMBIENT_THREAT"); }
+            for (var mob : candidates)
             {
                 final var destination = new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId());
                 if (loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), group.leaderProfileId(), approach, destination, attemptDeadline)
@@ -339,6 +355,14 @@ final class PhantomCoordination130Native
                 final var discovery = inspection.partyOffer().apply(offer ->
                 {
                     final var group = offer.proposal().orElseThrow();
+                    final boolean openingMatches = switch (opening)
+                    {
+                        case "TEST_FIXTURE EXCLUDE_YETI" -> !group.objective().key().startsWith("21320@");
+                        case "TEST_FIXTURE EXCLUDE_REPEATED_ANCHOR" -> !group.anchorId().equals("generated.farm.5241a753fc2261cfc117ac7b.anchor");
+                        case "TEST_FIXTURE PROVED_HOT_SPRINGS_APPROACH" -> group.anchorId().equals("generated.farm.4475282a85a97a4b396b967b.anchor");
+                        default -> true;
+                    };
+                    if (freshAlternateOpening && !openingMatches) { return physicalRefusal(group, "TEST_FIXTURE_OPENING_SCOPE"); }
                     for (var member : group.members())
                     {
                         final var observed = states.get(member.profileId());
@@ -362,6 +386,17 @@ final class PhantomCoordination130Native
     {
         System.out.println("NATIVE130_PROPOSAL_REFUSED group=" + group.groupId() + " source=" + group.objective().key() + " roster=" + group.members() + " reason=" + reason);
         return false;
+    }
+
+    private static boolean quietStockOpening(Monster target, PhantomNavigationPoint approach)
+    {
+        if (target.isAggressive()) { return false; }
+        return World.getInstance().getVisibleObjectsInRange(target, Monster.class, 2500).stream().noneMatch(mob ->
+            mob.isSpawned() && !mob.isAlikeDead() && mob.isAggressive() && mob.getInstanceId() == target.getInstanceId()
+                && (Math.abs((long) mob.getZ() - target.getZ()) <= 256
+                    && Math.hypot((long) mob.getX() - target.getX(), (long) mob.getY() - target.getY()) <= mob.getAggroRange() + 300
+                    || Math.abs((long) mob.getZ() - approach.z()) <= 256
+                    && Math.hypot((long) mob.getX() - approach.x(), (long) mob.getY() - approach.y()) <= mob.getAggroRange() + 300));
     }
 
     /** A slow read-only Geo call cannot hold the commissioning thread or spend the next offer's time. */
@@ -568,6 +603,14 @@ final class PhantomCoordination130Native
         if (!arrived) { System.out.println("NATIVE130_PREFLIGHT_GEO profile=" + id + " connector=" + label + " status=WAIT_ROUTE_BUDGET"); }
         return arrived;
     }
+    static boolean preflightMemberConsent(boolean seeking, PhantomLogicalParty accepted, PhantomPartyPersistencePort.StoredLogicalClaim claim,
+        long profileId, long goalId, long goalRevision)
+    {
+        return seeking || accepted != null && claim != null && claim.active() && claim.profileId() == profileId
+            && claim.leaderProfileId() == accepted.leaderProfileId() && claim.groupId().equals(accepted.groupId()) && claim.generation() == accepted.generation()
+            && accepted.members().stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == goalId && goalRevision >= member.goalRevision());
+    }
+
     static Optional<PhantomPartyPersistencePort.StoredLogicalGroup> currentAgreement(PhantomLogicalPartyCoordinator logical, List<Long> eligible, long now)
     {
         return eligible.stream().map(logical::groupFor).flatMap(Optional::stream)
@@ -600,7 +643,8 @@ final class PhantomCoordination130Native
         check(runtime.equals(PhantomCoordination130Integration.runtimeRoot(module)) && runtime.equals(Path.of(".").toRealPath()), "INFRASTRUCTURE_CWD");
         check(Files.readString(runtime.resolve("owner130.txt")).matches("TASK130:[0-9a-f]{32}"), "INFRASTRUCTURE_OWNER");
         if (!AUTHORITY_SQL_INITIALIZATION.get())
-        { check(!Files.exists(scene(runtime).resolve("native130.cut")) && !Files.exists(scene(runtime).resolve("restart130.cut")), "FIXTURE_BEFORE_CUT"); }
+        { check(!Files.exists(scene(runtime).resolve("native130.cut")) && !Files.exists(scene(runtime).resolve("restart130.cut"))
+            && !Files.exists(runtime.resolve("census130.cut")), "FIXTURE_BEFORE_CUT"); }
         check(Path.of(System.getProperty("phantom.test.config")).toRealPath().equals(runtime.resolve("config/Database.ini"))
             && Files.mismatch(runtime.resolve("config/Database.ini"), PhantomCoordination130Integration.localRoot(module).resolve("Database.ini")) == -1, "INFRASTRUCTURE_EXACT_SQL");
         final var sql = read(runtime.resolve("config/Database.ini"));
@@ -751,7 +795,14 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_DIAGNOSTIC_CLASS source=" + origin + " class=" + PhantomCoordination130Native.class.getName());
         }
         final String jarHash = hash(jar);
+        if (PhantomCoordination130Integration.censusLane())
+        {
+            runCensus(runtime, jarHash);
+            return;
+        }
         final Path evidence = scene(runtime), fixture = evidence.resolve("fixture130.properties");
+        final boolean recoveryOnly = Boolean.getBoolean("phantom.task130.requireRecovery");
+        check(!recoveryOnly || !restart && PhantomCoordination130Integration.rendezvousLane(), "RECOVERY_PROOF_SCOPE");
         final Path config = runtime.resolve("config/Custom/PhantomPlayers.ini");
         final String disabled = Files.readString(config);
         check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DISABLED_BEFORE_BOOT");
@@ -843,10 +894,16 @@ final class PhantomCoordination130Native
             ids = before.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
             // A recovered CUT can already have lawful stock travel in its saved positions.
             final boolean travelRequired = PhantomCoordination130Integration.rendezvousLane() && !restart && !recover;
+            long observationMillis = 300_000;
+            if (PhantomCoordination130Integration.rendezvousLane())
+            {
+                observationMillis = restart ? 480_000 : 600_000;
+                // A linked replan can incur one more full eight-minute stock Party journey.
+                if (!restart && Boolean.getBoolean("phantom.task130.requireRecovery")) { observationMillis += TimeUnit.MINUTES.toMillis(8); }
+            }
             try (var stockDrops = PhantomCoordination130Integration.rendezvousLane() ? new StockDropAudit() : null)
             {
-                observe(runtime, profiles, ids, before, planner.get(), restart, travelRequired, stockDrops,
-                    System.currentTimeMillis() + (PhantomCoordination130Integration.rendezvousLane() ? (restart ? 480_000 : 600_000) : 300_000));
+                observe(runtime, profiles, ids, before, planner.get(), restart, travelRequired, stockDrops, System.currentTimeMillis() + observationMillis);
             }
             verifyExistingHumanHeal(runtime, jarHash);
             check(PhantomSystem.shutdownIfStarted(), "PHANTOM_SUBSYSTEM_STOP");
@@ -856,14 +913,21 @@ final class PhantomCoordination130Native
             check(!PhantomSystem.hasConfiguredInstance(), "PHANTOM_DRAIN_BEFORE_STORE_ACCEPTANCE");
             check(ids.stream().allMatch(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId()) == null), "ZERO_WORLD_AFTER_STORE");
             final var after = logical.groupFor(ids.getFirst()).orElseThrow();
-            check(after.group().groupId().equals(before.groupId()) && (restart
-                ? after.group().generation() == before.generation() && after.group().leaderProfileId() == before.leaderProfileId()
-                    && after.group().members().stream().map(PhantomLogicalParty.Member::profileId).toList().equals(ids)
-                    && after.group().phase() != PhantomLogicalParty.Phase.DISBANDED
-                : after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND), "SAME_LOGICAL_AFTER_STORE");
+            check(after.group().groupId().equals(before.groupId()) && (recoveryOnly || after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND)
+                && (!restart && !recoveryOnly || after.group().generation() >= before.generation() && after.group().leaderProfileId() == before.leaderProfileId()
+                    && after.group().members().stream().map(PhantomLogicalParty.Member::profileId).toList().equals(ids)), "SAME_LOGICAL_AFTER_STORE");
+            if (restart || PhantomCoordination130Integration.rendezvousLane()) { verifyPartyStore(profiles, after.group()); }
+            if (recoveryOnly)
+            {
+                write(evidence.resolve("recovery130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId()
+                    + "\ngeneration=" + after.group().generation() + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList())
+                    + "\npid=" + ProcessHandle.current().pid() + "\nattempt=" + attempt + "\n");
+                System.out.println("NATIVE130_RECOVERY_STORE_PASS group=" + after.group().groupId() + " generation=" + after.group().generation() + " claims=" + ids.size());
+                System.out.println("NATIVE130_PASS recovery=true sameGroup=true actualUsefulAction=true STORE=true");
+                return;
+            }
             if (restart)
             {
-                verifyRestartStore(profiles, after.group());
                 System.out.println("NATIVE130_RESTART_STORE_PASS group=" + after.group().groupId() + " generation=" + after.group().generation() + " claims=" + ids.size());
             }
             if (!restart) { write(evidence.resolve("native130.persisted"), persisted(profiles, ids)); }
@@ -871,7 +935,7 @@ final class PhantomCoordination130Native
                 + (restart ? "\ngeneration=" + after.group().generation() : "") + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList())
                 + "\npid=" + ProcessHandle.current().pid() + "\nattempt=" + attempt + "\n");
             Files.writeString(config, disabled);
-            System.out.println(restart ? "NATIVE130_PASS restart=true sameGroup=true usefulPartyAction=true STORE=true"
+            System.out.println(restart ? "NATIVE130_PASS restart=true sameGroup=true actualPartyKill=true STORE=true"
                 : "NATIVE130_PASS restart=false sameGroup=true actualPartyKill=true STORE=true");
         }
         catch (Throwable failure)
@@ -896,7 +960,133 @@ final class PhantomCoordination130Native
         }
     }
 
-    private static void verifyRestartStore(PhantomProfileRepository profiles, PhantomLogicalParty group)
+    private static void runCensus(Path runtime, String jarHash) throws Exception
+    {
+        final String attempt = System.getProperty("phantom.task130.attempt", "");
+        check(attempt.matches("census-[0-9]{8}-[0-9]{6}"), "CENSUS_ATTEMPT");
+        final var ids = authorizedProfiles(runtime);
+        check(ids.size() == CENSUS_FIXTURE_SIZE && Files.isRegularFile(runtime.resolve("fixture-authority.ready")), "CENSUS_EXACT_FIXTURE");
+        final Path config = runtime.resolve("config/Custom/PhantomPlayers.ini");
+        final String disabled = Files.readString(config);
+        check(disabled.contains("EnablePhantomSystem = False"), "CENSUS_MASTER_DISABLED");
+        boolean booted = false;
+        try
+        {
+            GameServer.main(new String[0]);
+            booted = true;
+            check(!PhantomPlayersConfig.isEnabled() && !PhantomSystem.hasConfiguredInstance(), "CENSUS_DISABLED_DURING_BOOT");
+            Files.writeString(config, disabled.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True"));
+            final var settings = PhantomPlayersConfig.read(config);
+            check(settings.enabled() && settings.populationTarget() == CENSUS_FIXTURE_SIZE && settings.populationActiveTarget() == CENSUS_TARGET
+                && settings.maxMaterializedPhantoms() == CENSUS_TARGET && settings.materializationBurstSlots() == 0, "CENSUS_EXACT_LIMITS");
+            final var profiles = PhantomProfileRepository.open();
+            final var objects = ids.stream().collect(java.util.stream.Collectors.toUnmodifiableMap(id -> id,
+                id -> profiles.find(id).orElseThrow().characterObjectId()));
+            check(new HashSet<>(objects.values()).size() == CENSUS_FIXTURE_SIZE
+                && objects.values().stream().noneMatch(id -> World.getInstance().getPlayer(id) != null), "CENSUS_DISTINCT_ABSENT_IDENTITIES");
+            final var zone = settings.populationTimeZone();
+            final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
+            final var now = Instant.now();
+            int calendarEligible = 0;
+            for (long id : ids)
+            {
+                final var row = new PhantomPopulationStateCodec().decode(profiles.findComponent(id, PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
+                final var calendar = catalog.evaluate(row.scheduleTemplate(), now, zone, row.schedulePhaseMinutes());
+                check(row.state() == PhantomPopulationState.State.READY, "CENSUS_DURABLE_READY_" + id);
+                if (calendar.state().requiresMaterialization() && calendar.nextBoundary().isAfter(now.plusSeconds(420))) { calendarEligible++; }
+            }
+            check(calendarEligible >= CENSUS_TARGET, "CENSUS_LEGAL_CAPACITY_" + calendarEligible);
+            System.out.println("NATIVE130_CENSUS_PREFLIGHT durable=" + ids.size() + " calendarEligible=" + calendarEligible
+                + " stableThrough=" + now.plusSeconds(420) + " worldAbsent=true");
+            write(runtime.resolve("census130.cut"), "attempt=" + attempt + "\njar=" + jarHash + "\n");
+            PhantomPlayersConfig.load();
+            check(PhantomSystem.operatorEnable().runtimeState() == PhantomSystem.State.RUNNING, "CENSUS_SYSTEM_START");
+            observeCensus(runtime, objects, attempt);
+            check(PhantomSystem.shutdownIfStarted() && PhantomSystem.operatorDisable().code() == PhantomSystem.OperatorControlCode.DISABLED
+                && objects.values().stream().noneMatch(id -> World.getInstance().getPlayer(id) != null), "CENSUS_STORE");
+            write(runtime.resolve("census130.complete"), "attempt=" + attempt + "\njar=" + jarHash + "\npid=" + ProcessHandle.current().pid() + "\n");
+            System.out.println("NATIVE130_CENSUS_PASS count=128 snapshots=3 windowSeconds>=60 STORE=true");
+        }
+        catch (Throwable failure)
+        {
+            System.out.println("NATIVE130_CENSUS_FAILURE " + failure.getMessage());
+            if (!booted) { System.exit(1); }
+        }
+        finally
+        {
+            if (booted)
+            {
+                try { Files.writeString(config, disabled); }
+                finally { Shutdown.getInstance().startShutdown(null, 0, false); }
+            }
+        }
+    }
+
+    private static void observeCensus(Path runtime, Map<Long, Integer> objects, String attempt) throws Exception
+    {
+        final long started = System.nanoTime();
+        long nextStableSample = started;
+        int stableSamples = 0;
+        final var stableRows = new ArrayList<String>(3 * CENSUS_TARGET);
+        final var file = runtime.resolve("census130." + attempt + ".tsv");
+        write(file, "millis\tprofileId\tobjectId\tepoch\n");
+        while (System.nanoTime() - started < TimeUnit.MINUTES.toNanos(7))
+        {
+            final var rows = new ArrayList<String>();
+            var census = PhantomSystem.operatorCoordinationCensus();
+            if (census.get("materializedManaged").equals(CENSUS_TARGET) && ((Number) census.get("scheduledEligible")).longValue() < CENSUS_TARGET)
+            {
+                // The ecology minute changes independently of the World snapshot. Re-read once after its normal publication pulse.
+                System.out.println("NATIVE130_CENSUS_ADMISSION_RESAMPLE initial=" + census);
+                Thread.sleep(1000);
+                if (System.nanoTime() - started >= TimeUnit.MINUTES.toNanos(7)) { break; }
+                census = PhantomSystem.operatorCoordinationCensus();
+            }
+            final long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+            for (var entry : objects.entrySet())
+            {
+                final var player = World.getInstance().getPlayer(entry.getValue());
+                if (player == null) { continue; }
+                final var admission = PhantomSystem.operatorAdmissionProfile(entry.getKey()).orElse(null);
+                final var materialized = admission == null ? null : admission.materialization();
+                final var owner = player.getNativeWorkOwner();
+                if (materialized != null && materialized.worldPresent() && materialized.identityLeaseRetained()
+                    && materialized.characterObjectId() == player.getObjectId() && player.hasHeadlessOutboundSession()
+                    && owner != null && owner.isCurrent() && owner.epoch() == materialized.materializedAtNanos()
+                    && World.getInstance().getPlayer(entry.getValue()) == player)
+                { rows.add(elapsed + "\t" + entry.getKey() + "\t" + entry.getValue() + "\t" + owner.epoch()); }
+            }
+            final var runtimeBean = java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+            final long cpuNanos = runtimeBean instanceof com.sun.management.OperatingSystemMXBean bean ? bean.getProcessCpuTime() : -1;
+            final long heapBytes = java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();
+            System.out.println("NATIVE130_CENSUS_SAMPLE elapsedMs=" + elapsed + " exactPlayers=" + rows.size() + " cpuNanos=" + cpuNanos
+                + " heapBytes=" + heapBytes + " census=" + census);
+            if (rows.size() == CENSUS_TARGET && census.get("materializedManaged").equals(CENSUS_TARGET)
+                && ((Number) census.get("scheduledEligible")).longValue() >= CENSUS_TARGET)
+            {
+                if (System.nanoTime() >= nextStableSample)
+                {
+                    stableRows.addAll(rows);
+                    if (++stableSamples == 3)
+                    {
+                        Files.write(file, stableRows, StandardOpenOption.APPEND);
+                        return;
+                    }
+                    nextStableSample = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+                }
+            }
+            else
+            {
+                stableSamples = 0;
+                stableRows.clear();
+                nextStableSample = System.nanoTime();
+            }
+            Thread.sleep(5000);
+        }
+        throw new IllegalStateException("NATIVE130_CENSUS_128_WINDOW_NOT_REACHED");
+    }
+
+    private static void verifyPartyStore(PhantomProfileRepository profiles, PhantomLogicalParty group)
     {
         final var parties = new PhantomPartyStore(profiles);
         for (var member : group.members())
@@ -904,12 +1094,12 @@ final class PhantomCoordination130Native
             final long id = member.profileId();
             final var claim = parties.loadLogicalClaim(id).orElseThrow();
             check(claim.active() && claim.groupId().equals(group.groupId()) && claim.generation() == group.generation()
-                && claim.leaderProfileId() == group.leaderProfileId(), "RESTART_DURABLE_CLAIM_" + id);
+                && claim.leaderProfileId() == group.leaderProfileId(), "PARTY_DURABLE_CLAIM_" + id);
             final var state = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
             final var context = PhantomNativeContext.decode(profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).orElseThrow().payload());
             final var identity = new PhantomBackgroundStateCodec().decode(state.payload()).identity();
             check(context.phase() == PhantomNativeContext.Phase.COMPLETED && context.binds(identity, state.rowVersion(), state.payload())
-                && profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty(), "RESTART_CANONICAL_STORE_" + id);
+                && profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty(), "PARTY_CANONICAL_STORE_" + id);
         }
     }
 
@@ -979,12 +1169,22 @@ final class PhantomCoordination130Native
         final var population = new PhantomPopulationStore(profiles, catalog, zone);
         final Path evidence = scene(runtime), preparing = evidence.resolve("profiles130.preparing");
         final boolean firstParty = PhantomCoordination130Integration.firstPartyLane();
-        final boolean rendezvous = PhantomCoordination130Integration.rendezvousLane();
+        final boolean census = PhantomCoordination130Integration.censusLane();
+        final boolean rendezvous = PhantomCoordination130Integration.rendezvousLane() || census;
         final boolean morning = !evidence.equals(runtime);
         check(!Files.exists(evidence.resolve("native130.cut")), "BOUNDED_FIXTURE_BEFORE_CUT");
         final boolean guardianFixture = rendezvous && Files.isRegularFile(evidence.resolve("fixture130.guardian"));
         if (guardianFixture) { check(Files.readString(evidence.resolve("fixture130.guardian")).strip().equals("TEST_FIXTURE"), "DECLARED_GUARDIAN_FIXTURE"); }
-        final int rosterSize = !firstParty || guardianFixture ? 3 : 2;
+        final Path shortHistoryFixture = runtime.resolve("fixture130.short-history");
+        final boolean shortHistory = Files.exists(shortHistoryFixture, LinkOption.NOFOLLOW_LINKS);
+        check(!shortHistory || guardianFixture && PhantomCoordination130Integration.rendezvousLane()
+            && Files.isRegularFile(shortHistoryFixture, LinkOption.NOFOLLOW_LINKS)
+            && Files.readString(shortHistoryFixture).strip().equals("TEST_FIXTURE"), "RENDEZVOUS_SHORT_HISTORY_SCOPE");
+        final Path phoenixFixture = runtime.resolve("fixture130.phoenix");
+        final boolean phoenix = Files.exists(phoenixFixture, LinkOption.NOFOLLOW_LINKS);
+        check(!phoenix || guardianFixture && Files.isRegularFile(phoenixFixture, LinkOption.NOFOLLOW_LINKS)
+            && Files.readString(phoenixFixture).strip().equals("TEST_FIXTURE"), "RENDEZVOUS_PHOENIX_FIXTURE_SCOPE");
+        final int rosterSize = census ? CENSUS_FIXTURE_SIZE : !firstParty || guardianFixture ? 3 : 2;
         final List<PhantomPopulationStore.ManagedSnapshot> existing;
         if (morning)
         {
@@ -994,9 +1194,36 @@ final class PhantomCoordination130Native
             final var allowed = new HashSet<Long>(List.of(69L,70L,72L)); existing.forEach(value -> allowed.add(value.profile().profileId()));
             check(population.loadManagedAfter(0, 16).stream().allMatch(value -> allowed.contains(value.profile().profileId())) && existing.size() <= 3, "ONLY_THREE_NEW_MANAGED_PROFILES");
         }
+        else if (census)
+        {
+            existing = population.loadManagedAfter(0, CENSUS_FIXTURE_SIZE + 1);
+            check((existing.isEmpty() || existing.size() == CENSUS_FIXTURE_SIZE) && Files.isRegularFile(runtime.resolve("fixture130.census"))
+                && Files.readString(runtime.resolve("fixture130.census")).strip().equals("TEST_FIXTURE"), "CENSUS_FRESH_FIXTURE");
+            if (!existing.isEmpty())
+            {
+                finishCensusFixture(runtime, profiles, existing.stream().map(row -> row.profile().profileId()).toList());
+                return;
+            }
+        }
         else { existing = population.loadManagedAfter(0, 4); check(existing.size() <= rosterSize, "ORIGINAL_FIXTURE_BOUND"); }
         final int ordinalBase = morning ? 3 : 0;
-        final var levelBand = PhantomPartyFarmEligibility.forRoster(Collections.nCopies(rosterSize, 76)).orElseThrow();
+        final Path levelFixture = runtime.resolve("fixture130.level");
+        final boolean higherLevel = Files.exists(levelFixture, LinkOption.NOFOLLOW_LINKS);
+        check(!higherLevel || rendezvous && Files.isRegularFile(levelFixture, LinkOption.NOFOLLOW_LINKS), "RENDEZVOUS_LEVEL_FIXTURE_SCOPE");
+        final String declaredLevel = higherLevel ? Files.readString(levelFixture).strip() : "76";
+        check(!higherLevel || declaredLevel.equals("TEST_FIXTURE 78") || declaredLevel.equals("TEST_FIXTURE 80"), "RENDEZVOUS_LEVEL_FIXTURE_VALUE");
+        final int fixtureLevel = higherLevel ? Integer.parseInt(declaredLevel.substring("TEST_FIXTURE ".length())) : 76;
+        final Path travelKit = runtime.resolve("fixture130.travel-kit");
+        final boolean travelReady = Files.exists(travelKit);
+        check(!travelReady || rendezvous && Files.isRegularFile(travelKit, LinkOption.NOFOLLOW_LINKS)
+            && Files.readString(travelKit).strip().equals("TEST_FIXTURE"), "RENDEZVOUS_TRAVEL_KIT_SCOPE");
+        final Path armorFixture = runtime.resolve("fixture130.party-armor");
+        final boolean partyArmor = Files.exists(armorFixture, LinkOption.NOFOLLOW_LINKS);
+        check(!partyArmor || rendezvous && Files.isRegularFile(armorFixture, LinkOption.NOFOLLOW_LINKS)
+            && Files.readString(armorFixture).strip().equals("TEST_FIXTURE"), "RENDEZVOUS_PARTY_ARMOR_SCOPE");
+        // The level-76 stock map supplies a canonical town for placement. The live planner
+        // separately proves the actual roster's levels, source, route and funds before CUT.
+        final var levelBand = PhantomPartyFarmEligibility.forRoster(Collections.nCopies(census ? 2 : rosterSize, 76)).orElseThrow();
         final var mobs = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
             .filter(mob -> mob.isSpawned() && !mob.isRaid() && !mob.isDead() && !mob.isAggressive() && mob.getInstanceId() == 0
                 && (firstParty ? levelBand.contains(mob.getLevel()) : mob.getLevel() >= 70 && mob.getLevel() <= 78)
@@ -1023,7 +1250,11 @@ final class PhantomCoordination130Native
         final var fixtureTravel = firstParty ? PhantomNormalGatekeeperTravel.load(runtime.resolve("data/phantoms/travel/high-five-normal-gk.xml"), source.topology()) : null;
         if (rendezvous)
         {
-            field = rendezvousFixtureStart(source, fixtureTravel, fields.stream().map(entry -> entry.getKey().id()).toList());
+            final Path alternateStart = runtime.resolve("fixture130.alternate-town");
+            final boolean alternate = Files.exists(alternateStart);
+            check(!alternate || Files.isRegularFile(alternateStart, LinkOption.NOFOLLOW_LINKS)
+                && Files.readString(alternateStart).strip().equals("TEST_FIXTURE"), "RENDEZVOUS_ALTERNATE_TOWN_SCOPE");
+            field = rendezvousFixtureStart(source, fixtureTravel, fields.stream().map(entry -> entry.getKey().id()).toList(), alternate);
             System.out.println("TEST_FIXTURE_SAFE_START anchor=" + field.getKey().id() + " position=" + field.getValue().orElseThrow());
         }
         final var authority = firstParty ? new L2jPhantomBackgroundAuthority(source::knowledge, source::topology, source::progression, source::commerce,
@@ -1033,7 +1264,7 @@ final class PhantomCoordination130Native
         final var ecologyCatalog = firstParty ? PhantomPopulationEcologyCatalog.load(runtime.resolve("data/phantoms/population/high-five-ecology-v1.xml"), catalog,
             org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog.load(runtime.resolve("data/phantoms/social/high-five-social-v1.xml"))) : null;
         final var firstHistory = firstParty ? new FirstPartyHistory(profiles, population, catalog, ecologyCatalog, planner, authority, goals, zone,
-            guardianFixture ? field.getValue().orElseThrow() : null) : null;
+            guardianFixture || census ? field.getValue().orElseThrow() : null, shortHistory ? 1 : 4) : null;
         final var ids = new ArrayList<Long>(); final var members = new ArrayList<PhantomLogicalParty.Member>();
         final var seeds = new HashMap<Long, Long>();
         if (firstParty && !existing.isEmpty())
@@ -1067,8 +1298,6 @@ final class PhantomCoordination130Native
         {
             final int birth = ordinal == rosterSize - 1 ? 10 : 0;
             final boolean guardian = guardianFixture && ordinal == 1;
-            final var archetype = guardian ? PhantomPopulationCatalog.CareerArchetype.TANK
-                : birth == 10 ? PhantomPopulationCatalog.CareerArchetype.HEALER : PhantomPopulationCatalog.CareerArchetype.DAMAGE;
             long next; final long selected; PhantomPopulationStore.ManagedSnapshot managed;
             if (ordinal < existing.size())
             {
@@ -1079,15 +1308,25 @@ final class PhantomCoordination130Native
             {
                 next = nextProfile();
                 int skipped = 0;
-                while (!PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(next, 76)
-                    || morning && ordinal == 1 && org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.choose(next, 0, false, PhantomPopulationCatalog.CareerArchetype.DAMAGE).terminalClass() != 88)
+                final int requiredCareer = guardian && phoenix ? PlayerClass.PHOENIX_KNIGHT.getId()
+                    : morning && ordinal == 1 ? PlayerClass.DUELIST.getId() : -1;
+                final var seekingCareer = guardian ? PhantomPopulationCatalog.CareerArchetype.TANK : PhantomPopulationCatalog.CareerArchetype.DAMAGE;
+                while (!census && (!PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(next, fixtureLevel)
+                    || requiredCareer >= 0 && org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.choose(next, birth, false, seekingCareer).terminalClass() != requiredCareer))
                 { check(skipped++ < 64, "BOUNDED_NATIVE_CANDIDATE_SELECTION"); profiles.create(null); next = nextProfile(); }
                 final long profile = next, creationOrdinal = ordinalBase + ordinal + 1;
                 final Instant now = Instant.now();
+                // Stock ranged ammunition defers historical farming to native work. Use a lawful melee career
+                // for those births in this capacity fixture so eligibility can reach the measured target.
+                final boolean nativeAmmunition = census && birth == 0 && PlayerClass.getPlayerClass(
+                    org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.choose(profile, birth, false,
+                        PhantomPopulationCatalog.CareerArchetype.DAMAGE).terminalClass()).childOf(PlayerClass.HAWKEYE);
+                final var archetype = guardian || nativeAmmunition ? PhantomPopulationCatalog.CareerArchetype.TANK
+                    : birth == 10 ? PhantomPopulationCatalog.CareerArchetype.HEALER : PhantomPopulationCatalog.CareerArchetype.DAMAGE;
                 selected = birthSeed(catalog, profile, creationOrdinal, birth, archetype, zone, now,
                     seed -> firstHistory == null || firstHistory.fixtureAge(profile, creationOrdinal, seed, now));
                 managed = population.createShell(1, ordinalBase + ordinal + 1, selected); check(managed.profile().profileId() == next, "EXCLUSIVE_CREATION_SEQUENCE");
-                if (guardianFixture)
+                if (guardianFixture || census)
                 {
                     check(firstHistory.fixtureAge(profile, creationOrdinal, selected, managed.profile().createdAt()), "GUARDIAN_FIXTURE_SINGLE_WINDOW_AT_BIRTH");
                 }
@@ -1106,7 +1345,7 @@ final class PhantomCoordination130Native
                 // Declared pre-CUT adult fixture follows the already persisted native career branch.
                 // No career preference, quest rule, skill template or post-CUT actor is changed.
                 final var choice = org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.decode(profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.COMPONENT).orElseThrow().payload());
-                actor.getStat().setExp(actor.getStat().getExpForLevel(76)); actor.getStat().setLevel((byte) 76);
+                actor.getStat().setExp(actor.getStat().getExpForLevel(fixtureLevel)); actor.getStat().setLevel((byte) fixtureLevel);
                 for (int edge = 0; actor.getActiveClass() != choice.terminalClass() && edge < 3; edge++)
                 {
                     final int target = choice.nextClass(actor.getActiveClass());
@@ -1115,12 +1354,10 @@ final class PhantomCoordination130Native
                     actor.setPlayerClass(target); actor.setBaseClass(target); actor.setLearningClass(actor.getPlayerClass());
                 }
                 check(actor.getActiveClass() == choice.terminalClass(), "PREP_PERSISTED_CAREER_BRANCH");
-                equipBeforeCut(actor);
+                check(!census || !actor.getPlayerClass().childOf(PlayerClass.HAWKEYE), "CENSUS_ELIGIBLE_PRE_CUT_LOADOUT");
+                equipBeforeCut(actor, fixtureLevel, guardian, travelReady, partyArmor);
                 if (guardian)
                 {
-                    for (int item : new int[] {6373, 6374, 6375, 6376, 6377, 6378})
-                    { actor.getInventory().equipItem(actor.addItem(ItemProcessType.REWARD, item, 1, actor, false)); }
-                    actor.setCurrentHp(actor.getMaxHp());
                     System.out.println("TEST_FIXTURE_GUARDIAN profile=" + id + " class=" + actor.getActiveClass() + " equipment=imperial-crusader-stock-set");
                 }
                 System.out.println("NATIVE130_ACTUAL_COMBAT profile=" + id + " facts=" + source.authority().planningCombat(actor) + " expertise=" + actor.getKnownSkill(239));
@@ -1161,6 +1398,11 @@ final class PhantomCoordination130Native
         }
         if (firstParty)
         {
+            if (census)
+            {
+                finishCensusFixture(runtime, profiles, ids);
+                return;
+            }
             finishFirstPartyFixture(runtime, evidence, firstHistory, profiles, ids);
             write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
             return;
@@ -1215,11 +1457,11 @@ final class PhantomCoordination130Native
     }
 
     private static Map.Entry<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor, Optional<PhantomBackgroundState.Position>>
-        rendezvousFixtureStart(PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomNormalGatekeeperTravel travel, List<String> fields)
+        rendezvousFixtureStart(PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomNormalGatekeeperTravel travel, List<String> fields, boolean alternate)
     {
         final var zones = org.l2jmobius.gameserver.managers.ZoneManager.getInstance();
-        Map.Entry<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor, Optional<PhantomBackgroundState.Position>> best = null;
-        long bestCost = Long.MAX_VALUE;
+        record Start(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor, PhantomBackgroundState.Position point, long cost) { }
+        final var starts = new ArrayList<Start>();
         for (var anchor : source.topology().snapshot().anchors())
         {
             if (anchor.role() != PhantomTopologyAnchorRole.CITY_CENTER && anchor.role() != PhantomTopologyAnchorRole.RESPAWN
@@ -1232,16 +1474,23 @@ final class PhantomCoordination130Native
                 || World.getInstance().getVisibleObjects().stream().anyMatch(value -> value instanceof Monster mob && mob.isAggressive() && !mob.isAlikeDead()
                     && Math.abs((long) mob.getZ() - point.z()) <= 256
                     && Math.hypot((long) mob.getX() - point.x(), (long) mob.getY() - point.y()) <= mob.getAggroRange() + 300)) { continue; }
+            long bestCost = Long.MAX_VALUE;
             for (String field : fields)
             {
                 final var route = travel.route(anchor.id(), field).orElse(null);
                 if (route == null || route.isEmpty() || route.size() > 32) { continue; }
                 final long cost = route.stream().mapToLong(PhantomNormalGatekeeperTravel.Step::travelMillis).sum();
-                if (cost < bestCost) { best = Map.entry(anchor, position); bestCost = cost; }
+                bestCost = Math.min(bestCost, cost);
             }
+            if (bestCost != Long.MAX_VALUE) { starts.add(new Start(anchor, point, bestCost)); }
         }
-        check(best != null, "SAFE_CANONICAL_TOWN_WITH_FARM_ITINERARY");
-        return best;
+        check(!starts.isEmpty(), "SAFE_CANONICAL_TOWN_WITH_FARM_ITINERARY");
+        starts.sort(Comparator.comparingLong(Start::cost));
+        final var nearest = starts.getFirst();
+        final var selected = alternate ? starts.stream().filter(start -> Math.hypot((long) start.point().x() - nearest.point().x(),
+            (long) start.point().y() - nearest.point().y()) >= 4096).findFirst().orElse(null) : nearest;
+        check(selected != null, "SAFE_ALTERNATE_TOWN_WITH_FARM_ITINERARY");
+        return Map.entry(selected.anchor(), Optional.of(selected.point()));
     }
 
     private static void finishFirstPartyFixture(Path runtime, Path evidence, FirstPartyHistory history, PhantomProfileRepository profiles, List<Long> ids) throws Exception
@@ -1250,6 +1499,24 @@ final class PhantomCoordination130Native
         ordinaryHeal(runtime);
         write(evidence.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\nfixture=TEST_FIXTURE\n");
         System.out.println("TEST_FIXTURE_READY profiles=" + ids + ";DURABLE_AGREEMENT=PRODUCTION_OWNER_AT_BOOT;POST_CUT_REWARDS=0");
+    }
+
+    private static void finishCensusFixture(Path runtime, PhantomProfileRepository profiles, List<Long> ids) throws Exception
+    {
+        check(ids.size() == CENSUS_FIXTURE_SIZE && !Files.exists(runtime.resolve("fixture130.properties")), "CENSUS_FIXTURE_INVENTORY");
+        final var objects = new HashSet<Integer>();
+        final var codec = new PhantomBackgroundStateCodec();
+        for (long id : ids)
+        {
+            final var state = codec.decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+            final var object = profiles.find(id).orElseThrow().characterObjectId();
+            check(object != null && state.identity().characterObjectId() == object && state.state() == PhantomBackgroundState.State.READY
+                && objects.add(object) && World.getInstance().getPlayer(object) == null, "CENSUS_CANONICAL_PRE_CUT_" + id);
+        }
+        // Only the running production scheduler may service typed native history requests.
+        write(runtime.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\nfixture=TEST_FIXTURE\n");
+        write(runtime.resolve("fixture-authority.ready"), "ownedCanonicalBaselines=" + ids.size() + "\nhistoryOwner=PRODUCTION\n");
+        System.out.println("CENSUS130_FIXTURE_READY profiles=" + ids.size() + ";WORLD_PLAYERS=0;HISTORY=PRODUCTION_OWNER");
     }
 
     /** Correct the unconsumed calendar assignments from the earlier local-time provisioning attempt. */
@@ -1296,16 +1563,18 @@ final class PhantomCoordination130Native
         private final PhantomMaterializationService _materialization;
         private final PhantomPopulationEcologyService _ecology;
         private final PhantomBackgroundState.Position _sharedStart;
+        private final int _maximumInitialMinutes;
         private static final PhantomPopulationEcologyState.Preset PRESET = PhantomPopulationEcologyState.Preset.LIVING;
 
         FirstPartyHistory(PhantomProfileRepository profiles, PhantomPopulationStore population, PhantomPopulationCatalog catalog,
             PhantomPopulationEcologyCatalog ecologyCatalog, PhantomHistoricalBackgroundPlanner planner, L2jPhantomBackgroundAuthority authority,
-            PhantomGoalStateStore goals, ZoneId zone, PhantomBackgroundState.Position sharedStart)
+            PhantomGoalStateStore goals, ZoneId zone, PhantomBackgroundState.Position sharedStart, int maximumInitialMinutes)
         {
             _population = population;
             _catalog = catalog;
             _ecologyCatalog = ecologyCatalog;
             _sharedStart = sharedStart;
+            _maximumInitialMinutes = maximumInitialMinutes;
             final var metrics = new PhantomMetrics();
             final var lifecycle = new PhantomMaterializationLifecycleBridge();
             final var leases = PhantomIdentityLeaseRegistry.getInstance();
@@ -1340,7 +1609,7 @@ final class PhantomCoordination130Native
             if (minute - assignment.virtualJoinEpochMinute() > 45) { return false; }
             final var first = _ecology.nextProductiveWindow(assignment, schedule.phaseMinutes(), minute);
             // Keep pre-CUT rendezvous history bounded so this fixture exercises the Party path.
-            return first.productive() && (_sharedStart == null || (first.endEpochMinute() - first.startEpochMinute() <= 4
+            return first.productive() && (_sharedStart == null || (first.endEpochMinute() - first.startEpochMinute() <= _maximumInitialMinutes
                 && !_ecology.nextProductiveWindow(assignment.advanceCalendar(first.endEpochMinute()), schedule.phaseMinutes(), minute).productive()));
         }
 
@@ -1470,10 +1739,10 @@ final class PhantomCoordination130Native
         }
     }
 
-    private static void equipBeforeCut(Player actor)
+    private static void equipBeforeCut(Player actor, int level, boolean guardian, boolean travelReady, boolean partyArmor)
     {
         actor.stopAllTasks();
-        actor.getStat().setExp(actor.getStat().getExpForLevel(76)); actor.getStat().setLevel((byte) 76);
+        actor.getStat().setExp(actor.getStat().getExpForLevel(level)); actor.getStat().setLevel((byte) level);
         // Same bounded fixed point as L2jProgressionBackend for an overlevel prepared actor.
         int passes = 0;
         while (!org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getAvailableAutoGetSkills(actor).isEmpty() && passes++ < 64) { actor.giveAvailableAutoGetSkills(); }
@@ -1487,11 +1756,31 @@ final class PhantomCoordination130Native
         }
         final var profession = actor.getPlayerClass();
         final int weapon = profession.isMage() ? 6366 : profession.childOf(PlayerClass.GLADIATOR) ? 6580 : profession.childOf(PlayerClass.WARLORD) ? 6370 : profession.childOf(PlayerClass.HAWKEYE) ? 7575 : profession.childOf(PlayerClass.TREASURE_HUNTER) ? 6367 : 6364;
-        for (int item : new int[] {weapon, 2381, 2412})
+        // The stock bow equip listener places owned arrows in LHAND, including on a fresh DB load.
+        if (weapon == 7575 && actor.getInventory().getInventoryItemCount(1345, -1) < 2000) { actor.addItem(ItemProcessType.REWARD, 1345, 2000 - actor.getInventory().getInventoryItemCount(1345, -1), actor, false); }
+        // A single canonical outfit avoids making this test's unused armour an accepted Supply journey.
+        final int[] equipment;
+        if (guardian) { equipment = new int[] {weapon, 6373, 6374, 6375, 6376, 6377, 6378}; }
+        else if (!partyArmor) { equipment = new int[] {weapon, 2381, 2412}; }
+        else if (profession.isMage()) { equipment = new int[] {weapon, 6383, 6384, 6385, 6386}; }
+        else { equipment = new int[] {weapon, 6373, 6374, 6375, 6376, 6378}; }
+        for (int item : equipment)
         { final var existing = actor.getInventory().getItemByItemId(item); actor.getInventory().equipItem(existing == null ? actor.addItem(ItemProcessType.REWARD, item, 1, actor, false) : existing); }
+        if (weapon == 7575)
+        {
+            final var equippedAmmo = actor.getInventory().getPaperdollItem(Inventory.PAPERDOLL_LHAND);
+            check(equippedAmmo != null && equippedAmmo.getId() == 1345, "FIXTURE_STOCK_BOW_AMMO_EQUIPPED");
+        }
+        if (travelReady)
+        {
+            final var inventory = actor.getInventory();
+            final int tateossianNecklace = 920;
+            final var owned = inventory.getItemByItemId(tateossianNecklace);
+            inventory.equipItem(owned == null ? actor.addItem(ItemProcessType.REWARD, tateossianNecklace, 1, actor, false) : owned);
+            check(inventory.getPaperdollItemId(Inventory.PAPERDOLL_NECK) == tateossianNecklace, "STOCK_TRAVEL_NECKLACE_EQUIPPED");
+        }
         final long shots = actor.getInventory().getInventoryItemCount(1467, -1);
         if (shots < 2000) { actor.addItem(ItemProcessType.REWARD, 1467, 2000 - shots, actor, false); }
-        if (weapon == 7575 && actor.getInventory().getInventoryItemCount(1345, -1) < 2000) { actor.addItem(ItemProcessType.REWARD, 1345, 2000 - actor.getInventory().getInventoryItemCount(1345, -1), actor, false); }
         if (actor.getAdena() < 50000) { actor.addAdena(ItemProcessType.REWARD, 50000 - actor.getAdena(), actor, false); }
         actor.refreshExpertisePenalty(); actor.refreshOverloaded(); actor.setRunning(); actor.standUp();
         actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp()); actor.setCurrentCp(actor.getMaxCp());
@@ -1507,7 +1796,7 @@ final class PhantomCoordination130Native
         try
         {
             org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.initialize(actor, org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.Mode.CLIENT, org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.resolveCreationLocation(PlayerTemplateData.getInstance().getTemplate(PlayerClass.getPlayerClass(10))));
-            equipBeforeCut(actor);
+            equipBeforeCut(actor, 76, false, false, false);
             actor.setCurrentHp(actor.getMaxHp() * 0.5);
             actor.getInventory().updateDatabase(); actor.storeMe();
         }
@@ -1729,15 +2018,21 @@ final class PhantomCoordination130Native
     {
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + attemptKey() + ".tsv");
         write(trace, "millis\tgroup\tcensus\tactors\n");
-        final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
+        final var store = new PhantomPartyStore(profiles);
+        final var agreedRoster = agreement.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
         final var objects = ids.stream().collect(java.util.stream.Collectors.toUnmodifiableMap(id -> id, id -> profiles.find(id).orElseThrow().characterObjectId()));
         final Map<PlayerNativeEvidence.Target, TargetSeen> targets = new LinkedHashMap<>();
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
         final Map<Integer, Long> priorHealReceipt = new HashMap<>();
         final Map<Integer, HealSample> healing = new HashMap<>();
         final Map<Integer, PhantomNavigationPoint> partyOrigins = new HashMap<>();
-        final boolean exactRosterRequired = !restart && (travelRequired || Files.isRegularFile(runtime.resolve("fixture130.guardian")));
+        final boolean exactRosterRequired = restart || travelRequired || Files.isRegularFile(runtime.resolve("fixture130.guardian"));
         boolean groupTravel = false;
+        final boolean requireRecovery = Boolean.getBoolean("phantom.task130.requireRecovery");
+        final boolean extendedRecoveryObservation = PhantomCoordination130Integration.rendezvousLane();
+        final long revisedNativeWindow = TimeUnit.MINUTES.toMillis(8) + TimeUnit.SECONDS.toMillis(60);
+        final long hardRecoveryDeadline = deadline + (restart ? PhantomLogicalParty.IDLE_LIFETIME_MILLIS : 0) + revisedNativeWindow;
+        boolean replanWindowOpened = false, revisedNativeWindowOpened = false;
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
         long partyGeneration = -1;
         long observedGeneration = agreement.generation();
@@ -1752,21 +2047,45 @@ final class PhantomCoordination130Native
         long nextTrace = 0; final long start = System.currentTimeMillis();
         while (System.currentTimeMillis() < deadline)
         {
-            final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow(() -> new IllegalStateException("NATIVE130_LOGICAL_AGREEMENT_RETIRED"));
+            // A single leader-row read cannot straddle the atomic generation and claim update.
+            final var logicalRow = store.loadLogicalGroup(agreement.leaderProfileId()).filter(row -> row.group().active())
+                .orElseThrow(() -> new IllegalStateException("NATIVE130_LOGICAL_AGREEMENT_RETIRED"));
             final var group = logicalRow.group();
             healerRequired |= group.members().stream().anyMatch(member -> member.role().equals("support.healer"));
-            check(group.groupId().equals(agreement.groupId()) && (!restart || group.generation() == agreement.generation()), "GROUP_ID_PRESERVED");
+            check(group.groupId().equals(agreement.groupId()) && group.generation() >= observedGeneration, "GROUP_ID_PRESERVED");
+            check(group.leaderProfileId() == agreement.leaderProfileId()
+                && group.members().stream().map(PhantomLogicalParty.Member::profileId).toList().equals(agreedRoster), "LOGICAL_ROSTER_PRESERVED");
             if (observedGeneration != group.generation())
             {
                 System.out.println("NATIVE130_ACTIVITY_REVISED group=" + group.groupId() + " previousGeneration=" + observedGeneration + " generation=" + group.generation()
                     + " previousSource=" + observedSource.key() + " source=" + group.objective().key() + " rejectedSources=" + group.rejectedActivitySources() + " roots=" + group.members());
                 observedGeneration = group.generation();
                 observedSource = group.objective();
+                if (restart)
+                {
+                    kill = false;
+                    earnedTarget = null;
+                    earnedDrops = null;
+                    loot = false;
+                }
             }
             final var logicalObjects = group.members().stream().map(member -> objects.get(member.profileId())).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
             final var actors = ids.stream().map(id -> World.getInstance().getPlayer(objects.get(id))).filter(Objects::nonNull).toList();
-            if (!restart && recoveringGeneration < 0 && group.phase() == PhantomLogicalParty.Phase.DRAINING && group.activityReplanRequired())
-            { recoveringGeneration = group.generation(); }
+            if (recoveringGeneration != group.generation() && group.phase() == PhantomLogicalParty.Phase.DRAINING && group.activityReplanRequired())
+            {
+                recoveringGeneration = group.generation();
+                recoveryStored = false;
+                recoveryDamage = false;
+                System.out.println("NATIVE130_RECOVERY_DRAIN group=" + group.groupId() + " generation=" + group.generation()
+                    + " source=" + group.objective().key() + " reason=" + group.waitReason());
+                if (extendedRecoveryObservation && !replanWindowOpened)
+                {
+                    replanWindowOpened = true;
+                    final long replanDeadline = Math.min(group.expiresAtMillis(), System.currentTimeMillis() + PhantomLogicalParty.IDLE_LIFETIME_MILLIS);
+                    deadline = Math.max(deadline, Math.min(hardRecoveryDeadline, replanDeadline));
+                    System.out.println("NATIVE130_REPLAN_OBSERVATION_WINDOW group=" + group.groupId() + " expiresAt=" + group.expiresAtMillis() + " observerDeadline=" + deadline);
+                }
+            }
             if (recoveringGeneration == group.generation() && !recoveryStored && group.phase() == PhantomLogicalParty.Phase.BACKGROUND && actors.isEmpty())
             {
                 recoveryStored = true;
@@ -1774,7 +2093,7 @@ final class PhantomCoordination130Native
                     + " source=" + group.objective().key() + " reason=" + group.waitReason() + " zeroWorld=true");
             }
             final boolean observeRecoveryFight = recoveryStored && !recoveryDamage && group.generation() > recoveringGeneration;
-            final boolean allowDamageEvidence = restart || observeRecoveryFight;
+            final boolean allowDamageEvidence = observeRecoveryFight;
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull)
                 .filter(value -> value.getMembers().stream().allMatch(actor -> logicalObjects.contains(actor.getObjectId()))).findFirst().orElse(null);
             final var stock = party == null ? List.<Player>of() : List.copyOf(party.getMembers());
@@ -1789,6 +2108,13 @@ final class PhantomCoordination130Native
                         + " source=" + group.objective().key() + " leader=" + leader.getObjectId() + " members=" + stock.stream().map(Player::getObjectId).toList());
                 }
                 partyGeneration = group.generation();
+                if (replanWindowOpened && !revisedNativeWindowOpened && observeRecoveryFight && group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
+                {
+                    // The revised stock Party has one ordinary route and encounter budget.
+                    revisedNativeWindowOpened = true;
+                    deadline = Math.max(deadline, Math.min(hardRecoveryDeadline, System.currentTimeMillis() + revisedNativeWindow));
+                    System.out.println("NATIVE130_REPLAN_NATIVE_OBSERVATION_WINDOW group=" + group.groupId() + " generation=" + group.generation() + " observerDeadline=" + deadline);
+                }
                 targets.entrySet().removeIf(entry -> !entry.getKey().equals(entry.getValue().mob().getNativeEvidenceTarget())
                     || entry.getValue().party() != party || !entry.getValue().roster().equals(stock) || entry.getValue().leader() != leader.getObjectId()
                     || entry.getValue().agreement().generation() != group.generation() || !entry.getValue().agreement().objective().equals(group.objective()));
@@ -1914,21 +2240,20 @@ final class PhantomCoordination130Native
                         if (attacker > 0)
                         {
                             final var credited = samples.stream().filter(sample -> sample.after().objectId() == attacker).findFirst().orElseThrow();
-                            System.out.println((restart ? "NATIVE130_RESTART_USEFUL_ACTION" : "NATIVE130_RECOVERY_USEFUL_ACTION") + " kind=DAMAGE group=" + group.groupId() + " generation=" + group.generation()
+                            System.out.println("NATIVE130_RECOVERY_USEFUL_ACTION kind=DAMAGE group=" + group.groupId() + " generation=" + group.generation()
                                 + " leader=" + leader.getObjectId() + " roster=" + stock.stream().map(Player::getObjectId).toList()
                                 + " actor=" + attacker + " epoch=" + target.before().get(attacker).epoch() + " target=" + entry.getKey()
                                 + " source=" + group.objective().key() + " npc=" + target.mob().getId() + " hpBefore=" + target.initialHp() + " hpAfter=" + currentHp
                                 + " damageSequenceBefore=" + credited.before().damageSequence() + " damageSequenceAfter=" + credited.after().damageSequence()
                                 + " stockDamageBefore=" + target.initialDamage().getOrDefault(attacker, 0L) + " stockDamageAfter=" + currentStockDamage.get(attacker)
                                 + " nativeRewardDelta=0");
-                            if (restart) { return; }
                             recoveryDamage = true;
                             break;
                         }
                     }
                     if (!target.mob().isDead()) { continue; }
                     final var earned = exactGroupRewards(entry.getKey(), samples);
-                    if (!earned.isEmpty() && stock.equals(List.copyOf(party.getMembers()))
+                    if (!earned.isEmpty() && (!exactRosterRequired || earned.size() == stock.size()) && stock.equals(List.copyOf(party.getMembers()))
                         && (!restart || samples.stream().allMatch(sample -> sameNativeEpoch(sample)
                             && (noNativeRewardDelta(sample) || earned.stream().anyMatch(reward -> reward.objectId() == sample.after().objectId())))))
                     {
@@ -1985,7 +2310,9 @@ final class PhantomCoordination130Native
             }
             if (System.currentTimeMillis() >= nextTrace)
             {
-                boolean blocked = actors.size() < ids.size();
+                // Stored members can legitimately wait for the last native owner during drain.
+                boolean blocked = actors.size() < ids.size() && (group.phase() == PhantomLogicalParty.Phase.AGREED
+                    || group.phase() == PhantomLogicalParty.Phase.WAKE_REQUESTED || group.phase() == PhantomLogicalParty.Phase.ASSEMBLING);
                 boolean stableCoordination = group.phase() == PhantomLogicalParty.Phase.WAKE_REQUESTED && group.waitReason().startsWith("WAIT_") && actors.size() == ids.size()
                     && actors.stream().allMatch(actor -> !actor.isMoving() && !actor.isInCombat() && !actor.isAttackingNow() && !actor.isCastingNow() && !actor.isDead());
                 boolean idleAssembly = group.phase() == PhantomLogicalParty.Phase.ASSEMBLING && !partySeen && actors.size() == ids.size()
@@ -2029,16 +2356,21 @@ final class PhantomCoordination130Native
                 check(stableCoordinationSamples < 3, "STABLE_COORDINATION_BLOCK_" + group.waitReason());
                 nextTrace = System.currentTimeMillis() + 10_000;
             }
-            final boolean lootSettled = stockDrops == null ? restart || loot : stockLootSettled(earnedDrops == null ? -1 : earnedDrops.size(), loot);
-            if (restart && kill && lootSettled)
+            if (requireRecovery && recoveryDamage && recoveryStored && group.generation() > recoveringGeneration)
             {
-                System.out.println("NATIVE130_RESTART_USEFUL_ACTION kind=KILL group=" + group.groupId() + " generation=" + group.generation()
-                    + " leader=" + earnedTarget.leader() + " roster=" + earnedTarget.roster().stream().map(Player::getObjectId).toList() + " target=" + earnedTarget.identity());
+                System.out.println("NATIVE130_RECOVERY_PROOF_PASS group=" + group.groupId() + " failedGeneration=" + recoveringGeneration
+                    + " generation=" + group.generation() + " source=" + group.objective().key() + " priorZeroWorld=true");
                 return;
             }
+            final boolean lootSettled = stockDrops == null ? restart || loot : stockLootSettled(earnedDrops == null ? -1 : earnedDrops.size(), loot);
             if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && lootSettled && (!travelRequired || groupTravel)
-                && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND && (recoveringGeneration < 0 || recoveryDamage))
+                && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND && (recoveryDamage || recoveringGeneration < 0 && !requireRecovery))
             {
+                if (restart)
+                {
+                    System.out.println("NATIVE130_RESTART_USEFUL_ACTION kind=KILL group=" + group.groupId() + " generation=" + group.generation()
+                        + " leader=" + earnedTarget.leader() + " roster=" + earnedTarget.roster().stream().map(Player::getObjectId).toList() + " target=" + earnedTarget.identity());
+                }
                 System.out.println("NATIVE130_USEFUL_GROUP_PASS restart=" + restart + " officialParty=" + partySeen + " realGroupKill=" + kill + " healerRequired=" + healerRequired + " nativeHeal=" + heal + " supportMpDebit=" + healMpDebit + " zeroWorld=true");
                 return;
             }
@@ -2046,7 +2378,7 @@ final class PhantomCoordination130Native
                 || group.activityReplanRequired(), "PARTY_DRAINED_WITHOUT_USEFUL_ACTION");
             Thread.sleep(50);
         }
-        throw new IllegalStateException("NATIVE130_FINITE_EVIDENCE_DEADLINE");
+        throw new IllegalStateException(requireRecovery && recoveringGeneration < 0 ? "NATIVE130_RECOVERY_NOT_OBSERVED" : "NATIVE130_FINITE_EVIDENCE_DEADLINE");
     }
     static boolean stockLootSettled(int observedDrops, boolean exactPickup)
     {
