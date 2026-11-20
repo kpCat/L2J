@@ -1,0 +1,49 @@
+ID	Phase	Status	Evidence	Notes
+G0	P0	UNKNOWN	S024	Scope latch и оригиналы сверены, отдельный native runtime и fixture pins отсутствуют
+G1	P1	UNKNOWN	D1,D4,N02,N03,N14	Готовность до ограничения, неполное покрытие классов и семейств
+G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
+G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	DB-free ownership проверен, native роли и tactical frame без доказательств
+G4	P2–P3	UNKNOWN	D2,D3,N06–N10	Текущая execution authority передана PvP, native составы и PK не проверены
+G5	P3	UNKNOWN	D9,N11–N13	Есть офлайн drain при отходе, Return и Mass Return и экономика не проверены
+G6	P4–P5	NOT_RUN	D5,D6,D7,N15	Нет завершённой A→B→A и доказанных native divergences
+G7	P5	NOT_RUN	D8,Q,N16	Нет 32 целостных matched blocks, Q не вычислен по native данным
+G8	P4–P5	UNKNOWN	D7,D9,N13,N15	Офлайн cold и replay проверены, реального управления кампанией нет
+G9	P2–P6	UNKNOWN	D10,N16	DB-free regressions, профиль native 18 и structural 128/5000 отсутствуют
+G10	P6	UNKNOWN	DELIVERY	Итоговая поставка FULL отсутствует, GitHub readback partial фиксируется отдельно
+O1	P6	NOT_RUN	OWNER_REQUIRED	Клиентский сценарий ждёт технической готовности
+R1	P1–P2	UNKNOWN	D1,D5,N01,N02,N04,N06	Общий owner переиспользован, общий полный контекст и выбор по всем семействам отсутствуют
+R2	P1–P3	UNKNOWN	D2,D3,D4,N02–N05,N08,N09	Выбор готового навыка и окна поддержки, отсутствуют обязательные native AoE/CC и прочие доказательства
+R3	P2–P3	NOT_RUN	N06–N09,N11	Размеры составов и законный массовый отход не проверены
+R4	P2–P3	UNKNOWN	N04,N08,N10	Эскалация переиспользована, native PvP/PK safety negatives не выполнены
+R5	P3	NOT_RUN	N01,N03,N12,N13	Награды, расходы, снабжение и restart не проверены на новой версии
+R6	P4–P5	NOT_RUN	D5,D6,D7,N15	Frozen inference и FIT batch офлайн, A→B→A не выполнен
+R7	P5	NOT_RUN	D8,Q	Математика офлайн, sealed native evaluation не выполнена
+R8	P4–P5	UNKNOWN	D7,D9,N15	Подготовка/commit/replay checkpoint офлайн, отсутствует управление GS и кампания
+R9	P2–P6	UNKNOWN	D10,N14,N16	Проверены отдельные пути композиции, native wiring профилирование не проверено
+D1	P1	UNKNOWN	aggregate-pass.log	RED/GREEN для пятого навыка, отрицательный контроль unlearned/unready, полный ON/OFF native отсутствует
+D2	P2	UNKNOWN	aggregate-pass.log	RED/GREEN для bounded yield без второго владельца, партийный PvP в TEST не проверен
+D3	P2	UNKNOWN	aggregate-pass.log	Чужое поколение и operation key не могут запросить yield, остальная матрица не закрыта
+D4	P1–P2	UNKNOWN	aggregate-pass.log	Ready/cost до обрезки и известный DAMAGE прогноз, нет native RED/GREEN WAIT_GROUP_DAMAGE
+D5	P4	UNKNOWN	aggregate-pass.log	Frozen SHA и выбор MODEL проверены офлайн, изоляция реальных фаз отсутствует
+D6	P4	NOT_RUN	NONE	Полный новый поток native receipt и атрибуция отсутствуют
+D7	P4	PASS	aggregate-pass.log	Офлайн 257, rollover, killed writer, cold load и replay
+D8	P4	UNKNOWN	aggregate-pass.log	Numeric controls офлайн, нет sealed native originals/role validation
+D9	P3–P5	UNKNOWN	aggregate-pass.log	Retreat drain офлайн, Pause/Resume/Stop и долговечность сцены не проверены
+D10	P6	NOT_RUN	NONE	Native workload и structural fixture не выполнены
+N01	P3	NOT_RUN	NONE	Solo PvE три награждённых цикла
+N02	P3	NOT_RUN	NONE	Механические варианты native
+N03	P3	NOT_RUN	NONE	Spoil и Sweep
+N04	P3	NOT_RUN	NONE	Party PvE, роли, AoE и CC
+N05	P3	NOT_RUN	NONE	Healer под атакой, потеря роли и recovery
+N06	P3	NOT_RUN	NONE	PvP 1×1
+N07	P3	NOT_RUN	NONE	PvP 1×2 и 2×2
+N08	P3	NOT_RUN	NONE	PvP 3×5
+N09	P3	NOT_RUN	NONE	PvP 9×9
+N10	P3	NOT_RUN	NONE	Native PK и отрицательные контроли
+N11	P3	NOT_RUN	NONE	Отход, Return и Mass Return
+N12	P3	NOT_RUN	NONE	Оплаченное снабжение и insufficient funds
+N13	P3–P5	NOT_RUN	NONE	Смерть, STORE и sameDB/sameJAR cold restart
+N14	P3	NOT_RUN	NONE	SkillEquipmentFreedom ON/OFF и действующие условия
+N15	P5	NOT_RUN	NONE	Native Pause/Resume/Stop, drain и replay
+N16	P5–P6	NOT_RUN	NONE	18 участников, CPU/heap/GC/fairness и p95
+Q	P5	NOT_RUN	NONE	Не проводился ни один frozen AUDIT

@@ -875,6 +875,28 @@ public final class PhantomCombatService
 		return cancel(profileId, 0, 0, null);
 	}
 
+	/** Let the current native action settle before another party action can own this actor. */
+	public boolean requestPartySupportYield(long profileId, long generation, int targetObjectId, String operationOwner,
+		long deadlineNanos, PhantomCancellationToken authority)
+	{
+		if (operationOwner == null || !operationOwner.startsWith("party.tactic.") || authority == null || deadlineNanos <= now())
+		{
+			return false;
+		}
+		synchronized (_monitor)
+		{
+			final PhantomCombatSession session = _sessions.get(profileId);
+			if (_state != ServiceState.RUNNING || session == null || session._result.terminal()
+				|| session._generation != generation || session._request.targetObjectId() != targetObjectId
+				|| !operationOwner.equals(_sessionOperationOwners.get(profileId)))
+			{
+				return false;
+			}
+			session._partySupportYield = new PhantomCombatSession.SupportYield(deadlineNanos, authority);
+			return true;
+		}
+	}
+
 	public CancelStatus cancelContentSession(long profileId, long generation, int targetObjectId, String operationOwner)
 	{
 		if (generation <= 0 || targetObjectId <= 0 || operationOwner == null || operationOwner.isBlank()) { return CancelStatus.NOT_FOUND; }
@@ -1412,7 +1434,10 @@ public final class PhantomCombatService
 				}
 				// Six native 500-unit legs fit within this local escape budget. The
 				// original session deadline remains an independent upper bound.
-				if (elapsed(now, session._retreatStartedNanos) >= TimeUnit.SECONDS.toNanos(30) || elapsed(now, session._startedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(session._request.timeoutMillis()) || session._actorLease.retreatFrom(session._request.targetObjectId()) != ActionOutcome.ISSUED)
+				final boolean expired = elapsed(now, session._retreatStartedNanos) >= TimeUnit.SECONDS.toNanos(30)
+					|| elapsed(now, session._startedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(session._request.timeoutMillis());
+				final boolean waitingForCast = actor.casting() || session._actorLease.nativeCastPending();
+				if (expired || !waitingForCast && session._actorLease.retreatFrom(session._request.targetObjectId()) != ActionOutcome.ISSUED)
 				{
 					finish(session, PhantomCombatResult.LOW_HP_STOPPED);
 				}
@@ -1471,6 +1496,10 @@ public final class PhantomCombatService
 			if ((target == null) || !target.validFor(actor, _policy.maximumAcquisitionDistance()))
 			{
 				finish(session, PhantomCombatResult.TARGET_LOST);
+				return;
+			}
+			if (yieldToPartySupport(session, actor))
+			{
 				return;
 			}
 			if (session._contentBasicMelee)
@@ -1788,16 +1817,29 @@ public final class PhantomCombatService
 		}
 	}
 
+	private boolean yieldToPartySupport(PhantomCombatSession session, ActorSnapshot actor)
+	{
+		final var supportYield = session._partySupportYield;
+		if (supportYield == null || actor.casting() || actor.attacking() || now() >= supportYield.deadlineNanos()
+			|| session._actorLease.nativeCastPending() || supportYield.authority().isCancelled())
+		{
+			return false;
+		}
+		finish(session, PhantomCombatResult.CANCELLED);
+		return true;
+	}
+
 	private void issueAction(PhantomCombatSession session, ActorSnapshot actor, TargetSnapshot target)
 	{
-		if (actor.casting() || actor.attacking())
+		if (actor.casting() || actor.attacking() || session._actorLease.nativeCastPending())
 		{
 			return;
 		}
-		final Optional<PhantomCombatLoadout> current = _capabilityResolver.resolve(actor, session._request.mode(), session._actorLease, _policy.maximumSelectedSkills());
-		if (current.isPresent())
+		final var selection = _capabilityResolver.resolvePveAction(actor, session._request.mode(), session._actorLease,
+			session._request.targetObjectId(), percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent(), _policy.maximumSelectedSkills());
+		if (selection.isPresent())
 		{
-			session._loadout = current.orElseThrow();
+			session._loadout = selection.orElseThrow().loadout();
 		}
 		else if (session._contentBasicMelee && (session._request.mode() == PhantomCombatMode.MELEE_PHYSICAL))
 		{
@@ -1809,6 +1851,10 @@ public final class PhantomCombatService
 			return;
 		}
 		final Optional<SelectedSkill> aggression = session._actorLease.npcAggroSkill(session._request.targetObjectId());
+		if (yieldToPartySupport(session, actor))
+		{
+			return;
+		}
 		if (aggression.isPresent())
 		{
 			final ActionOutcome outcome = session._actorLease.castNpcAggro(session._request.targetObjectId(), aggression.orElseThrow());
@@ -1824,9 +1870,7 @@ public final class PhantomCombatService
 			}
 		}
 		SelectedSkill selected = null;
-		final List<SelectedSkill> ready = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()
-			? session._loadout.selectedSkills().stream().filter(skill -> session._actorLease.skillReady(session._request.targetObjectId(), skill, session._request.mode())).toList()
-			: List.of();
+		final List<SelectedSkill> ready = selection.map(PhantomCombatCapabilityResolver.PveSelection::readySkills).orElseGet(List::of);
 		if (!ready.isEmpty())
 		{
 			selected = ready.get(Math.floorMod(session._nextSkill++, ready.size()));
@@ -1876,6 +1920,10 @@ public final class PhantomCombatService
 			{
 				_learning.observationRejected();
 			}
+		}
+		if (yieldToPartySupport(session, actor))
+		{
+			return;
 		}
 		if (session._request.useShotsIfAvailable())
 		{

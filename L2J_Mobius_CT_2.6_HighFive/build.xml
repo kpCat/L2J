@@ -1257,6 +1257,17 @@
 		</java>
 	</target>
 
+	<target name="phantom-combat131-contract-test" depends="compile-tests" description="Run DB-free TASK131 combat contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomCombat131Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning131FrozenChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning131BatchChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<sysproperty key="java.io.tmpdir" value="${build.test.reports}" />
+		</java>
+		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning131EvaluationChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" />
+	</target>
+
+	<target name="phantom-combat131-test" depends="phantom-combat131-contract-test,phantom-combat-core-test,phantom-combat-ownership-test,phantom-combat-action-ownership-test,phantom-party-tactics-test,phantom-pvp-goal025a-core-test,phantom-pvp-goal025a-combat-regression-test" description="Run TASK131 contracts and affected DB-free combat regressions." />
+
 	<target name="phantom-combat-ownership-test" depends="compile-tests" description="Run exact plan-scoped asynchronous combat ownership tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

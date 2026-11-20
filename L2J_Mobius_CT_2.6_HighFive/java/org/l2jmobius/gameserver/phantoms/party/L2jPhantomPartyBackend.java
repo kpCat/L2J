@@ -38,6 +38,7 @@ import org.l2jmobius.gameserver.model.stats.Formulas;
 import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
+import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
@@ -638,11 +639,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			if (mode == null) { continue; }
 			final boolean weapon = capabilities.stream().anyMatch(capability -> mode.capabilityKey().equals(capability.capabilityKey())
 				&& "native.weapon".equals(capability.variantKey()) && capability.learned() && capability.readyNow());
-			final var loadout = farmLoadout(player, mode, weapon);
+			final var loadout = farmLoadout(player, target, mode, weapon, continuing);
 			if (loadout == null) { continue; }
 			final var skills = loadout.selectedSkills().stream().map(selected -> player.getKnownSkill(selected.skillId()))
-				.filter(learned -> learned != null && (continuing || !player.isSkillDisabled(learned) && player.checkDoCastConditions(learned))
-					&& learned.checkCondition(player, target, false)).toList();
+				.filter(java.util.Objects::nonNull).toList();
 			if (skills.isEmpty() && !weapon) { continue; }
 			if (!skills.isEmpty())
 			{
@@ -836,13 +836,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK.accepts(profileId, incomingDamage, currentHp, covered));
 	}
 
-	private org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout farmLoadout(Player player, PhantomCombatMode mode, boolean weapon)
+	private org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout farmLoadout(Player player, Creature target, PhantomCombatMode mode, boolean weapon, boolean continuing)
 	{
 		return _combatLoadouts.resolve(player.getActiveClass(), mode, player::getSkillLevel, selected ->
 		{
 			final var learned = player.getKnownSkill(selected.skillId());
-			return (mode != PhantomCombatMode.RANGED_PHYSICAL || weapon) && learned != null && learned.getLevel() == selected.skillLevel()
-				&& PhantomCombatSkillSafety.supports(learned, mode, player.isTransformed());
+			// A ready utility can change tactics, but it cannot contribute forecast damage.
+			return learned != null && learned.getLevel() == selected.skillLevel()
+				&& L2jCombatBackend.supportsPveSkill(player, learned, mode) && PhantomNativeCombatCapability.mechanics(learned) != null
+				&& (continuing ? learned.checkCondition(player, target, false) : L2jCombatBackend.nativePveSkillReady(player, target, learned));
 		}, weapon, 4).orElse(null);
 	}
 

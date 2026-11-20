@@ -1047,7 +1047,7 @@ public final class PhantomSystem
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_executionControl,
 					executionControl(_populationManager, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo), executionControl(_partyCoordinator, this::partyExecutionScope),
 					executionControl(_conversationService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo), executionControl(_conversationExecutionService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo),
-					executionControl(_pvpService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)));
+					executionControl(_pvpService, this::partyExecutionScope)));
 				final var autonomousFarm = new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _supplyJourney::blocksAutonomousParty, _visibleFarmTravel::observeArrival,
 						_settings.partySeeking(), new PhantomAutonomousFarmParty.RendezvousPreparation()
 						{

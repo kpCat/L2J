@@ -3331,8 +3331,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				// Nonurgent maintenance cannot replace an owned fight or native pickup.
 				if (directive.kind() == DirectiveKind.PARTY_SUPPORT) { continue; }
+				if (!offense)
+				{
+					_tactics.combatOwner().requestPartySupportYield(active.profileId(), active.generation(), active.targetObjectId(),
+						active.operationKey(), deadline(), supportToken(directive, claim.state()));
+					continue;
+				}
 				// Retarget only after the current native cast/attack; movement never breaks it.
-				if ((!offense || (active.targetObjectId() != directive.targetObjectId())) && (actor != null) && !actor.casting() && !actor.attacking())
+				if ((active.targetObjectId() != directive.targetObjectId()) && (actor != null) && !actor.casting() && !actor.attacking())
 				{
 					cancelTacticalCombat(active);
 				}
@@ -3411,8 +3417,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			final StoredPartyState current = _claims.get(profileId);
 			final var observed = _backend.observe(directive.actor()).orElse(null);
-			if ((_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || commandStopsCombat(profileId)
-				|| observed == null || !observed.leader().equals(authority.leader()) || !observed.members().contains(directive.actor())) { return true; }
+			if ((_state != State.RUNNING) || !committedClaim(current) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || commandStopsCombat(profileId)
+				|| observed == null || !observed.leader().equals(authority.leader()) || !sameRoster(roster(authority), observed.members())) { return true; }
 			if (!farm) { return false; }
 			if (!currentFarmReady(authority, observed)) { return true; }
 			final var view = currentFarmIntentView(authority);
@@ -3471,9 +3477,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private boolean releaseTacticalCombat(TacticalCombatClaim claim)
 	{
 		final PhantomCombatService combat = _tactics.combatOwner();
-		final boolean current = combat != null && combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token());
-		final var terminal = current ? combat.consumeTerminal(claim.profileId()).orElse(null) : null;
-		if (!current || terminal != null)
+		final var terminal = combat == null ? null : combat.consumeContentTerminal(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.operationKey()).orElse(null);
+		if (terminal != null || combat == null || !combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token()))
 		{
 			if (_tacticalCombat.remove(claim.profileId(), claim) && claim.lootRuntime() != null)
 			{
@@ -3490,9 +3495,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private void cancelTacticalCombat(TacticalCombatClaim claim)
 	{
 		final PhantomCombatService combat = _tactics.combatOwner();
-		if ((combat != null) && combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token()))
+		if (combat != null)
 		{
-			combat.cancel(claim.profileId());
+			combat.cancelContentSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.operationKey());
 		}
 		if (!releaseTacticalCombat(claim) && (_state == State.RUNNING))
 		{

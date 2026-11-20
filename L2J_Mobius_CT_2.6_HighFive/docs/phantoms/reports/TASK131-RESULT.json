@@ -1,0 +1,370 @@
+{
+  "schema": "TASK131_RESULT_V1",
+  "status": "PARTIAL131",
+  "baseline": {
+    "remote": "https://github.com/kpCat/L2J.git",
+    "branch": "feature/phantom-world",
+    "sha": "3792c0b76f53901bbf25bd2666d3baf150d254ac",
+    "parent": "b376928bc9a530b43998fd82407600b3969d4308",
+    "freshHeadVerified": true,
+    "studioWipPreserved": "PhantomSemanticStudio/src/PhantomSemanticStudio.WinForms/V4ImportForm.resx"
+  },
+  "ownerGate": "REQUIRED",
+  "acceptedByOwner": false,
+  "native": {
+    "gsBoots": 0,
+    "lsBoots": 0,
+    "sqlBoots": 0,
+    "off": true,
+    "episodeCompleted": 0,
+    "episodeFailed": 0,
+    "episodeUnknown": 0,
+    "nativeFits": 0,
+    "trainCycles": 0,
+    "tuningEpisodes": 0,
+    "auditAttempts": 0,
+    "auditBlocks": 0,
+    "quality": "NOT_RUN",
+    "traffic3308": "NOT_USED",
+    "productionPromotion": "NOT_RUN",
+    "eightHourTraining": "NOT_RUN",
+    "jarSha256": null,
+    "frozenModelSha256": null,
+    "fixtureManifestSha256": null,
+    "splitManifestSha256": null
+  },
+  "goal024": {
+    "campaign": "5f271b8009ea4cb9a3f50ee8cd7dc230",
+    "scope": "TRAIN022/023/024 lineage, including historical NewCampaign",
+    "latch": "PAUSED_SAFETY_REVIEW",
+    "latchSha256": "3ab3ac9453d631a07261938e11526cfb45cf45dcfcccc1b940642ddd130c7da9",
+    "latchDecisionSha256": "51f9a060f687e47267a13e3ea961fdeb2aafe6cd9a13dfb192f290b54f495ec",
+    "checkpoint216Sha256": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+    "proofSha256": "4e0be150b671f0ad68ddb1b0719695b5dc6cc55bbeaff8adb10c6506dddec414",
+    "episode": "ba8d677d99dc6b4b4adea158d5cd6b265e769fbe630c8fb53c3869f40cb1aa4e",
+    "originalDecisionIntentEffectHashesVerified": 33,
+    "paidReceipts": 11,
+    "deathReason": "NATIVE_ACTOR_DIED",
+    "proximateDeathCause": "UNKNOWN",
+    "settledAndReleased": true,
+    "admissionForTask131": "Native TEST still requires new manifest, proven isolated lane and bound participants."
+  },
+  "offline": {
+    "seed": 13120261120,
+    "logs": ".phantom-local/logs/TASK131/",
+    "aggregateLog": "aggregate-pass.log",
+    "goldenOwnerProfileRules": 38,
+    "fitBatchCheckSamples": 257,
+    "fixtureSource": "Contracts only",
+    "comparison": "NUMERIC_ONLY",
+    "aggregateStatus": "PASS",
+    "aggregateExitCode": 0,
+    "regressionTestsPassed": 161,
+    "contractGroupsPassed": 6,
+    "jarExitCode": 0,
+    "jarSha256": "9cae9d2382371d096e0baea26bb7097c45a449cec255e31ed8d73d7fe9e2c5f3",
+    "jarLog": "jar.log"
+  },
+  "delivery": {
+    "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback.json"
+  },
+  "coverage": {
+    "G0": {
+      "phase": "P0",
+      "status": "UNKNOWN",
+      "evidence": "S024",
+      "reason": "Scope latch и оригиналы сверены, отдельный native runtime и fixture pins отсутствуют"
+    },
+    "G1": {
+      "phase": "P1",
+      "status": "UNKNOWN",
+      "evidence": "D1,D4,N02,N03,N14",
+      "reason": "Готовность до ограничения, неполное покрытие классов и семейств"
+    },
+    "G2": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "N01",
+      "reason": "Три native цикла с вознаграждениями не выполнены"
+    },
+    "G3": {
+      "phase": "P2–P3",
+      "status": "UNKNOWN",
+      "evidence": "D2,D3,D4,N04,N05",
+      "reason": "DB-free ownership проверен, native роли и tactical frame без доказательств"
+    },
+    "G4": {
+      "phase": "P2–P3",
+      "status": "UNKNOWN",
+      "evidence": "D2,D3,N06–N10",
+      "reason": "Текущая execution authority передана PvP, native составы и PK не проверены"
+    },
+    "G5": {
+      "phase": "P3",
+      "status": "UNKNOWN",
+      "evidence": "D9,N11–N13",
+      "reason": "Есть офлайн drain при отходе, Return и Mass Return и экономика не проверены"
+    },
+    "G6": {
+      "phase": "P4–P5",
+      "status": "NOT_RUN",
+      "evidence": "D5,D6,D7,N15",
+      "reason": "Нет завершённой A→B→A и доказанных native divergences"
+    },
+    "G7": {
+      "phase": "P5",
+      "status": "NOT_RUN",
+      "evidence": "D8,Q,N16",
+      "reason": "Нет 32 целостных matched blocks, Q не вычислен по native данным"
+    },
+    "G8": {
+      "phase": "P4–P5",
+      "status": "UNKNOWN",
+      "evidence": "D7,D9,N13,N15",
+      "reason": "Офлайн cold и replay проверены, реального управления кампанией нет"
+    },
+    "G9": {
+      "phase": "P2–P6",
+      "status": "UNKNOWN",
+      "evidence": "D10,N16",
+      "reason": "DB-free regressions, профиль native 18 и structural 128/5000 отсутствуют"
+    },
+    "G10": {
+      "phase": "P6",
+      "status": "UNKNOWN",
+      "evidence": "DELIVERY",
+      "reason": "Итоговая поставка FULL отсутствует, GitHub readback partial фиксируется отдельно"
+    },
+    "O1": {
+      "phase": "P6",
+      "status": "NOT_RUN",
+      "evidence": "OWNER_REQUIRED",
+      "reason": "Клиентский сценарий ждёт технической готовности"
+    },
+    "R1": {
+      "phase": "P1–P2",
+      "status": "UNKNOWN",
+      "evidence": "D1,D5,N01,N02,N04,N06",
+      "reason": "Общий owner переиспользован, общий полный контекст и выбор по всем семействам отсутствуют"
+    },
+    "R2": {
+      "phase": "P1–P3",
+      "status": "UNKNOWN",
+      "evidence": "D2,D3,D4,N02–N05,N08,N09",
+      "reason": "Выбор готового навыка и окна поддержки, отсутствуют обязательные native AoE/CC и прочие доказательства"
+    },
+    "R3": {
+      "phase": "P2–P3",
+      "status": "NOT_RUN",
+      "evidence": "N06–N09,N11",
+      "reason": "Размеры составов и законный массовый отход не проверены"
+    },
+    "R4": {
+      "phase": "P2–P3",
+      "status": "UNKNOWN",
+      "evidence": "N04,N08,N10",
+      "reason": "Эскалация переиспользована, native PvP/PK safety negatives не выполнены"
+    },
+    "R5": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "N01,N03,N12,N13",
+      "reason": "Награды, расходы, снабжение и restart не проверены на новой версии"
+    },
+    "R6": {
+      "phase": "P4–P5",
+      "status": "NOT_RUN",
+      "evidence": "D5,D6,D7,N15",
+      "reason": "Frozen inference и FIT batch офлайн, A→B→A не выполнен"
+    },
+    "R7": {
+      "phase": "P5",
+      "status": "NOT_RUN",
+      "evidence": "D8,Q",
+      "reason": "Математика офлайн, sealed native evaluation не выполнена"
+    },
+    "R8": {
+      "phase": "P4–P5",
+      "status": "UNKNOWN",
+      "evidence": "D7,D9,N15",
+      "reason": "Подготовка/commit/replay checkpoint офлайн, отсутствует управление GS и кампания"
+    },
+    "R9": {
+      "phase": "P2–P6",
+      "status": "UNKNOWN",
+      "evidence": "D10,N14,N16",
+      "reason": "Проверены отдельные пути композиции, native wiring профилирование не проверено"
+    },
+    "D1": {
+      "phase": "P1",
+      "status": "UNKNOWN",
+      "evidence": "aggregate-pass.log",
+      "reason": "RED/GREEN для пятого навыка, отрицательный контроль unlearned/unready, полный ON/OFF native отсутствует"
+    },
+    "D2": {
+      "phase": "P2",
+      "status": "UNKNOWN",
+      "evidence": "aggregate-pass.log",
+      "reason": "RED/GREEN для bounded yield без второго владельца, партийный PvP в TEST не проверен"
+    },
+    "D3": {
+      "phase": "P2",
+      "status": "UNKNOWN",
+      "evidence": "aggregate-pass.log",
+      "reason": "Чужое поколение и operation key не могут запросить yield, остальная матрица не закрыта"
+    },
+    "D4": {
+      "phase": "P1–P2",
+      "status": "UNKNOWN",
+      "evidence": "aggregate-pass.log",
+      "reason": "Ready/cost до обрезки и известный DAMAGE прогноз, нет native RED/GREEN WAIT_GROUP_DAMAGE"
+    },
+    "D5": {
+      "phase": "P4",
+      "status": "UNKNOWN",
+      "evidence": "aggregate-pass.log",
+      "reason": "Frozen SHA и выбор MODEL проверены офлайн, изоляция реальных фаз отсутствует"
+    },
+    "D6": {
+      "phase": "P4",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Полный новый поток native receipt и атрибуция отсутствуют"
+    },
+    "D7": {
+      "phase": "P4",
+      "status": "PASS",
+      "evidence": "aggregate-pass.log",
+      "reason": "Офлайн 257, rollover, killed writer, cold load и replay"
+    },
+    "D8": {
+      "phase": "P4",
+      "status": "UNKNOWN",
+      "evidence": "aggregate-pass.log",
+      "reason": "Numeric controls офлайн, нет sealed native originals/role validation"
+    },
+    "D9": {
+      "phase": "P3–P5",
+      "status": "UNKNOWN",
+      "evidence": "aggregate-pass.log",
+      "reason": "Retreat drain офлайн, Pause/Resume/Stop и долговечность сцены не проверены"
+    },
+    "D10": {
+      "phase": "P6",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Native workload и structural fixture не выполнены"
+    },
+    "N01": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Solo PvE три награждённых цикла"
+    },
+    "N02": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Механические варианты native"
+    },
+    "N03": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Spoil и Sweep"
+    },
+    "N04": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Party PvE, роли, AoE и CC"
+    },
+    "N05": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Healer под атакой, потеря роли и recovery"
+    },
+    "N06": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "PvP 1×1"
+    },
+    "N07": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "PvP 1×2 и 2×2"
+    },
+    "N08": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "PvP 3×5"
+    },
+    "N09": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "PvP 9×9"
+    },
+    "N10": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Native PK и отрицательные контроли"
+    },
+    "N11": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Отход, Return и Mass Return"
+    },
+    "N12": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Оплаченное снабжение и insufficient funds"
+    },
+    "N13": {
+      "phase": "P3–P5",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Смерть, STORE и sameDB/sameJAR cold restart"
+    },
+    "N14": {
+      "phase": "P3",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "SkillEquipmentFreedom ON/OFF и действующие условия"
+    },
+    "N15": {
+      "phase": "P5",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Native Pause/Resume/Stop, drain и replay"
+    },
+    "N16": {
+      "phase": "P5–P6",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "18 участников, CPU/heap/GC/fairness и p95"
+    },
+    "Q": {
+      "phase": "P5",
+      "status": "NOT_RUN",
+      "evidence": "NONE",
+      "reason": "Не проводился ни один frozen AUDIT"
+    }
+  },
+  "remaining": [
+    "Full common action set/context including group frame, legal AoE/CC and class coverage",
+    "Scene manifest and independent TEST131 native runner with isolated GS/LS/SQL/JAR and ownership pins",
+    "N01–N16, paid resources and rewards, return, cold restart and campaign control",
+    "Authenticated typed native feedback and read-only sealed originals verifier",
+    "A→B→A and frozen matched native C/H/S/R quality criterion",
+    "Single O1 client scenario after technical acceptance"
+  ]
+}

@@ -2,6 +2,7 @@
 package org.l2jmobius.gameserver.phantoms.learning;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.*;
 
 /** TEST-only single decision owner. Proposals never grant native execution authority. */
@@ -13,12 +14,21 @@ public final class ActionExplorationV4
 		public Plan
 		{
 			skills = List.copyOf(skills);
-			if (schemaVersion != 1 || !Set.of("COVERAGE_TEST_V1", "EPSILON_V1", "BASELINE_V1", "MODEL_V1").contains(policyId)
-				|| cap < 1 || cap > 16 || policyId.equals("COVERAGE_TEST_V1") && cap != 1 || !Double.isFinite(epsilon) || epsilon < .05 || epsilon > .20
-				|| !("TRAIN".equals(split) || Set.of("TUNING", "AUDIT").contains(split) && policyId.equals("BASELINE_V1")) || episode == null || !episode.matches("[a-f0-9]{64}") || !sourceSha.matches("[a-f0-9]{64}") || !modelSha.matches("[a-f0-9]{64}")
+			final boolean evaluation = "TUNING".equals(split) || "AUDIT".equals(split);
+			final boolean validPolicy = switch (schemaVersion)
+			{
+				case 1 -> policyId != null && Set.of("COVERAGE_TEST_V1", "EPSILON_V1", "BASELINE_V1", "MODEL_V1").contains(policyId)
+					&& cap >= 1 && cap <= 16 && (!policyId.equals("COVERAGE_TEST_V1") || cap == 1)
+					&& Double.isFinite(epsilon) && epsilon >= .05 && epsilon <= .20
+					&& ("TRAIN".equals(split) || evaluation && policyId.equals("BASELINE_V1"));
+				case 2 -> "MODEL_V2".equals(policyId) && evaluation && seed == 0 && cap == 0 && Double.compare(epsilon, 0) == 0;
+				default -> false;
+			};
+			if (!validPolicy || episode == null || !episode.matches("[a-f0-9]{64}") || !sourceSha.matches("[a-f0-9]{64}") || !modelSha.matches("[a-f0-9]{64}")
 				|| skills.size() < 2 || skills.size() > 16 || new HashSet<>(skills).size() != skills.size() || skills.stream().anyMatch(s -> !s.matches("[1-9][0-9]*:[1-9][0-9]*")))
 			{ throw new IllegalArgumentException("Invalid frozen V4 experiment plan"); }
 		}
+		boolean frozenInference() { return schemaVersion == 2; }
 		void write(DataOutput out) throws IOException
 		{
 			out.writeInt(schemaVersion); out.writeUTF(policyId); out.writeLong(seed); out.writeInt(cap); out.writeDouble(epsilon); out.writeUTF(split);
@@ -70,7 +80,7 @@ public final class ActionExplorationV4
 				{ throw new IllegalArgumentException("Epsilon decision mismatch"); }
 			}
 			else if (!Set.of("BASELINE", "MODEL").contains(mode) || propensity != 1 || draw != 0 || mode.equals("BASELINE") && !selected.equals(stock)
-				|| mode.equals("MODEL") && !plan.policyId().equals("MODEL_V1"))
+				|| mode.equals("MODEL") && (plan.frozenInference() ? capturedNanos >= deadline : !plan.policyId().equals("MODEL_V1")))
 			{ throw new IllegalArgumentException("Stock/model decision mismatch"); }
 		}
 		public byte[] bytes()
@@ -102,30 +112,109 @@ public final class ActionExplorationV4
 		catch (IOException impossible) { throw new IllegalStateException(impossible); }
 	}
 	private final Plan _plan;
+	private final ActionValueV4 _frozenModel;
 	private final List<Decision> _decisions = new ArrayList<>();
 	private int _experiments;
 	private boolean _complete = true;
-	public ActionExplorationV4(Plan plan) { _plan = Objects.requireNonNull(plan); }
+	public ActionExplorationV4(Plan plan) { this(plan, null); }
+	private ActionExplorationV4(Plan plan, ActionValueV4 frozenModel)
+	{
+		_plan = Objects.requireNonNull(plan);
+		if (_plan.frozenInference() != (frozenModel != null))
+		{ throw new IllegalArgumentException("Frozen evaluation requires committed lineage admission"); }
+		_frozenModel = frozenModel;
+	}
+	/** Admit against an externally pinned plan and published continuation HEAD before any scoring. */
+	public static ActionExplorationV4 frozen(Plan plan, Path lineageRoot, String expectedHead) throws IOException
+	{
+		if (plan == null || !plan.frozenInference() || expectedHead == null || !expectedHead.matches("[a-f0-9]{64}"))
+		{ throw new IllegalArgumentException("Frozen evaluation requires a versioned plan and exact lineage HEAD"); }
+		final var lineage = ActionContinuationV4.load(lineageRoot);
+		final var model = lineage.model();
+		if (!lineage.head().equals(expectedHead) || model.updates() == 0 || !plan.modelSha().equals(model.sha256())
+			|| lineage.episodes().containsKey(plan.episode()))
+		{ throw new IllegalArgumentException("Frozen evaluation requires the pinned trained checkpoint and a fresh episode"); }
+		return new ActionExplorationV4(plan, model);
+	}
 	public Plan plan() { return _plan; }
-	/** Whole-buffer validation precedes all training credit; cursors cannot be omitted or duplicated. */
+	/** Historical whole-buffer validation precedes all training credit. */
 	public static void validateLog(List<Decision> decisions)
+	{
+		if (validateLogStructure(decisions).frozenInference())
+		{ throw new IllegalArgumentException("Frozen evaluation log requires exact model replay"); }
+	}
+
+	/** The caller supplies the already authenticated decision log for the pinned evaluation plan. */
+	public void verifyFrozenLog(List<Decision> decisions)
+	{
+		final var log = List.copyOf(decisions);
+		if (_frozenModel == null || !_plan.equals(validateLogStructure(log)))
+		{ throw new IllegalArgumentException("Frozen evaluation log does not match the admitted plan"); }
+		for (var decision : log)
+		{
+			if (decision.mode().equals("MODEL"))
+			{
+				final var replay = TacticalPolicyV3.actionValueChoice(TacticalPolicyV3.Mode.ON, _frozenModel,
+					decision.observation(), decision.offered(), decision.stock(), false, Long.MAX_VALUE);
+				if (!ranked(replay.reason()) || !replay.reason().equals(decision.reason()) || !replay.selected().equals(decision.selected()))
+				{ throw new IllegalArgumentException("Frozen evaluation decision differs from the pinned model"); }
+			}
+			else if (!decision.reason().equals("CRITICAL_STOCK") || decision.capturedNanos() >= decision.deadline())
+			{ throw new IllegalArgumentException("Incomplete frozen evaluation inference"); }
+		}
+	}
+
+	private static Plan validateLogStructure(List<Decision> decisions)
 	{
 		if (decisions.isEmpty() || decisions.size() > 64) { throw new IllegalArgumentException("Incomplete decision log"); }
 		var plan = decisions.getFirst().plan(); var generations = new HashSet<Long>(); int alternatives = 0;
 		for (int i = 0; i < decisions.size(); i++)
 		{
 			var d = decisions.get(i);
-			if (d.cursor() != i || !d.plan().equals(plan) || !generations.add(d.observation().decisionId()) || alternatives >= plan.cap() && d.mode().startsWith("EXPLORE"))
+			if (d.cursor() != i || !d.plan().equals(plan) || !generations.add(d.observation().decisionId()) || alternatives >= plan.cap() && d.mode().startsWith("EXPLORE")
+				|| plan.frozenInference() && i > 0 && d.observation().decisionId() <= decisions.get(i - 1).observation().decisionId())
 			{ throw new IllegalArgumentException("Incomplete, duplicate or over-cap experiment log"); }
 			if (d.mode().startsWith("EXPLORE") && !d.selected().equals(d.stock())) { alternatives++; }
 		}
+		return plan;
 	}
 	public synchronized List<Decision> decisions() { if (!_complete) { throw new IllegalArgumentException("Incomplete decision buffer"); } return List.copyOf(_decisions); }
 	public synchronized Decision choose(TacticalObservationV3 obs, List<LegalActionV3> offered, LegalActionV3 stock, boolean safe, long deadline)
-	{ return choose(obs, offered, stock, stock, safe, deadline); }
-	public synchronized Decision choose(TacticalObservationV3 obs, List<LegalActionV3> offered, LegalActionV3 stock, LegalActionV3 model, boolean safe, long deadline)
+	{
+		return _plan.frozenInference() ? chooseFrozen(obs, offered, stock, safe, deadline).decision() : choose(obs, offered, stock, stock, safe, deadline);
+	}
+	record FrozenChoice(Decision decision, TacticalPolicyV3.ActionValueDecision inference) { }
+	synchronized FrozenChoice chooseFrozen(TacticalObservationV3 obs, List<LegalActionV3> offered, LegalActionV3 stock, boolean safe, long deadline)
+	{
+		if (_frozenModel == null || !_decisions.isEmpty() && obs.decisionId() <= _decisions.getLast().observation().decisionId())
+		{ throw new IllegalArgumentException("Missing frozen scope or stale evaluation observation"); }
+		requireSpace();
+
+		final var inference = TacticalPolicyV3.actionValueChoice(TacticalPolicyV3.Mode.ON, _frozenModel, obs, offered, stock, !safe, deadline);
+		final long stamp = System.nanoTime();
+		final String reason = inference.reason();
+		final boolean ranked = stamp < deadline && ranked(reason);
+		var decision = new Decision(_plan, _decisions.size(), obs, offered, stock, ranked ? inference.selected() : stock,
+			ranked ? "MODEL" : "BASELINE", 1, 0, stamp, deadline, stamp >= deadline ? "BUDGET_5MS" : reason);
+		if (ranked && System.nanoTime() >= deadline)
+		{
+			decision = new Decision(_plan, _decisions.size(), obs, offered, stock, stock, "BASELINE", 1, 0, System.nanoTime(), deadline, "BUDGET_5MS");
+		}
+		_decisions.add(decision);
+		return new FrozenChoice(decision, inference);
+	}
+	private static boolean ranked(String reason)
+	{
+		return reason.equals("V4_REORDERED") || reason.equals("V4_STOCK") || reason.equals("MARGIN");
+	}
+	private void requireSpace()
 	{
 		if (_decisions.size() >= 64) { _complete = false; throw new IllegalArgumentException("Decision buffer exhausted"); }
+	}
+	public synchronized Decision choose(TacticalObservationV3 obs, List<LegalActionV3> offered, LegalActionV3 stock, LegalActionV3 model, boolean safe, long deadline)
+	{
+		if (_plan.frozenInference()) { throw new IllegalArgumentException("Frozen evaluation computes its model selection"); }
+		requireSpace();
 		long cursor = _decisions.size(); String mode = "BASELINE", reason = "CONTROL_STOCK"; double probability = 1, random = 0; var selected = stock;
 		if (!safe) { reason = "SAFETY_STOCK"; }
 		else if (System.nanoTime() >= deadline) { reason = "BUDGET_5MS"; }

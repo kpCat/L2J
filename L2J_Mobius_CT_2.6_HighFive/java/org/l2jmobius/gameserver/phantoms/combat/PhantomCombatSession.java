@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CleanupState;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
 
 public final class PhantomCombatSession
 {
@@ -24,6 +25,7 @@ public final class PhantomCombatSession
 	boolean _contentBasicMelee;
 	boolean _raidAttackIssued;
 	boolean _retreatOnly;
+	volatile SupportYield _partySupportYield;
 	long _retreatStartedNanos;
 	PhantomCombatPhase _phase = PhantomCombatPhase.RESERVED;
 	PhantomCombatResult _result = PhantomCombatResult.ACTIVE;
@@ -45,6 +47,10 @@ public final class PhantomCombatSession
 	int _cleanupAttempts;
 	int _cleanupFailures;
 	boolean _metricsCounted;
+
+	record SupportYield(long deadlineNanos, PhantomCancellationToken authority)
+	{
+	}
 
 	PhantomCombatSession(PhantomCombatRequest request, long generation, long startedLogicalNanos, int maximumThreatEntries)
 	{

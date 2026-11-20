@@ -150,9 +150,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		if (player == null || limit < 1 || limit > 16) { return List.of(); }
 		final var weapon = player.getActiveWeaponItem();
 		final boolean ranged = weapon != null && (weapon.getItemType() == WeaponType.BOW || weapon.getItemType() == WeaponType.CROSSBOW);
-		if (!mode.magic() && (ranged != (mode == PhantomCombatMode.RANGED_PHYSICAL))) { return List.of(); }
 		final Creature target = player.getTarget() instanceof Creature creature ? creature : null;
-		final List<Skill> learned = player.getAllSkills().stream().filter(skill -> PhantomPvpSkillSafety.supports(skill, mode, player.isTransformed())).limit(256).toList();
+		final boolean compatibleWeapon = mode.magic() || ranged == (mode == PhantomCombatMode.RANGED_PHYSICAL);
+		final List<Skill> learned = player.getAllSkills().stream()
+			.filter(skill -> (compatibleWeapon || skill.ignoresEquipmentPreconditions(player)) && PhantomPvpSkillSafety.supports(skill, mode, player.isTransformed()))
+			.limit(256).toList();
 		final Set<Integer> ready = learned.stream().filter(skill -> nativePvpSkillReady(player, target, skill)).map(Skill::getId).collect(java.util.stream.Collectors.toSet());
 		return learned.stream()
 			.sorted(Comparator.comparingInt((Skill skill) -> ready.contains(skill.getId()) ? 1 : 0).reversed().thenComparing(Comparator.comparingInt((Skill skill) -> PhantomPvpSkillSafety.priority(skill) - (target != null && skill.getElement() >= 0 ? Math.min(100, target.getDefenseElementValue(skill.getElement()) / 10) : 0)).reversed()).thenComparingInt(Skill::getId))
@@ -161,6 +163,19 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	private static boolean nativePvpSkillReady(Player player, Creature target, Skill skill)
 	{
 		return nativeOffensiveResourcesReady(player, target, skill) && (target == null || skill.checkCondition(player,target,false));
+	}
+
+	public static boolean supportsPveSkill(Player player, Skill skill, PhantomCombatMode mode)
+	{
+		final var weapon = player.getActiveWeaponItem();
+		return skill != null && player.getKnownSkill(skill.getId()) == skill
+			&& (mode != PhantomCombatMode.RANGED_PHYSICAL || weapon != null && weapon.isRange() || skill.ignoresEquipmentPreconditions(player))
+			&& PhantomCombatSkillSafety.supports(skill, mode, player.isTransformed());
+	}
+
+	public static boolean nativePveSkillReady(Player player, Creature target, Skill skill)
+	{
+		return nativeOffensiveResourcesReady(player, target, skill) && player.checkDoCastConditions(skill) && skill.checkCondition(player, target, false);
 	}
 
 	private static boolean nativeOffensiveResourcesReady(Player player, Creature target, Skill skill)
@@ -259,6 +274,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final SkillUseHolder currentSkill = _player.getCurrentSkill();
 			final WorldObject target = _player.getTarget();
 			return new ActorSnapshot(_player.getObjectId(), _player.getActiveClass(), _player.getInstanceId(), _player.getCurrentHp(), _player.getMaxHp(), _player.getCurrentMp(), _player.getMaxMp(), _player.getCurrentCp(), _player.getMaxCp(), _player.isDead(), _player.isAlikeDead(), _player.isAttackingNow(), _player.isCastingNow(), _player.isMoving(), target == null ? 0 : target.getObjectId(), _player.hasAI() ? _player.getAI().getIntention().name() : Intention.IDLE.name(), currentSkill == null ? 0 : currentSkill.getSkillId(), currentSkill == null ? 0 : currentSkill.getSkillLevel());
+		}
+
+		@Override
+		public boolean nativeCastPending()
+		{
+			return _player.isCastingNow() || _player.isCastingSimultaneouslyNow() || _player.getQueuedSkill() != null;
 		}
 
 		@Override
@@ -802,16 +823,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public boolean supportsSkill(SelectedSkill selected, PhantomCombatMode mode)
 		{
-			if ((mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode))
-			{
-				return false;
-			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
-			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
-			{
-				return false;
-			}
-			return PhantomCombatSkillSafety.supports(skill, mode, _player.isTransformed());
+			return skill != null && skill.getLevel() == selected.skillLevel() && supportsPveSkill(_player, skill, mode);
 		}
 
 		@Override
@@ -826,23 +839,19 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			// isSkillDisabled covers both timestamps and short/shared disable-map entries.
 			// Cast range/LOS remain with the existing spacing and native dispatch owners.
-			return skill != null && skill.getLevel() == selected.skillLevel() && nativeOffensiveResourcesReady(_player, target, skill) && _player.checkDoCastConditions(skill)
-				&& skill.checkCondition(_player, target, false);
+			return skill != null && skill.getLevel() == selected.skillLevel() && nativePveSkillReady(_player, target, skill);
 		}
 
 		@Override
 		public boolean supportsPvpSkill(SelectedSkill selected, PhantomCombatMode mode)
 		{
-			if ((mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode))
-			{
-				return false;
-			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
 			{
 				return false;
 			}
-			return PhantomPvpSkillSafety.supports(skill, mode, _player.isTransformed());
+			return (mode != PhantomCombatMode.RANGED_PHYSICAL || supportsNormalAttack(mode) || skill.ignoresEquipmentPreconditions(_player))
+				&& PhantomPvpSkillSafety.supports(skill, mode, _player.isTransformed());
 		}
 
 		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return nativePvpSkills(_player, mode, limit); }
@@ -909,7 +918,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.UNAVAILABLE;
 			}
 			final int range = skill == null ? _player.getPhysicalAttackRange() : _player.getMagicalAttackRange(skill);
-			if ((range < 350) || ((mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode)))
+			if ((range < 350) || (skill == null && (mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode)))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
@@ -1481,7 +1490,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.UNAVAILABLE;
 			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
-			if (_player.isSkillDisabled(skill) || !_player.checkDoCastConditions(skill))
+			if (!executionValid() || World.getInstance().findObject(targetObjectId) != target || skill == null
+				|| skill.getLevel() != selected.skillLevel() || !nativePveSkillReady(_player, target, skill))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}

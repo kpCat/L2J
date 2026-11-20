@@ -4,6 +4,7 @@ package org.l2jmobius.gameserver.phantoms.learning;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
@@ -11,13 +12,16 @@ import java.util.*;
 public final class ActionContinuationV4
 {
 	public static final String VERSION = "V4_SEGMENT_CONTINUATION_V1";
+	private static final String TRAIN_BATCH_VERSION = "V4_TRAIN_BATCH_CONTINUATION_V1";
+	private static final int FIT_LIMIT = 256;
 	public record State(String head, ActionValueV4 model, long globalUpdates, int segment, long sequence,
 		Map<String, String> events, Map<String, String> episodes)
 	{
 		public State { events = Map.copyOf(events); episodes = Map.copyOf(episodes); }
 	}
 	private record Seal(String previous, String model, long updates, int segment, long sequence, long writer,
-		String nativeSha, String batchSha, long train, Map<String, String> events, Map<String, String> episodes) { }
+		String nativeSha, String batchSha, String trainBatchSha, long train, Map<String, String> events, Map<String, String> episodes) { }
+	private record TrainBatch(List<ActionFeedbackV4> fresh, String inputSha) { }
 	@FunctionalInterface private interface Writer { void write(DataOutputStream out) throws IOException; }
 	@FunctionalInterface private interface Operation<T> { T run() throws IOException; }
 	private ActionContinuationV4() { }
@@ -93,9 +97,12 @@ public final class ActionContinuationV4
 	private static byte[] bytes(Seal seal) throws IOException
 	{
 		return encode(out -> {
-			out.writeUTF(VERSION); out.writeUTF(seal.previous); out.writeUTF(seal.model); out.writeLong(seal.updates);
+			out.writeUTF(seal.trainBatchSha.isEmpty() ? VERSION : TRAIN_BATCH_VERSION);
+			out.writeUTF(seal.previous); out.writeUTF(seal.model); out.writeLong(seal.updates);
 			out.writeInt(seal.segment); out.writeLong(seal.sequence); out.writeLong(seal.writer); out.writeUTF(seal.nativeSha);
-			out.writeUTF(seal.batchSha); out.writeLong(seal.train); map(out, seal.events); map(out, seal.episodes);
+			out.writeUTF(seal.batchSha);
+			if (!seal.trainBatchSha.isEmpty()) { out.writeUTF(seal.trainBatchSha); }
+			out.writeLong(seal.train); map(out, seal.events); map(out, seal.episodes);
 		});
 	}
 	private static Seal seal(Path root, String sha) throws IOException
@@ -105,9 +112,17 @@ public final class ActionContinuationV4
 		byte[] bytes = Files.readAllBytes(path); require(hash(bytes).equals(sha), "ledger hash");
 		try (var in = new DataInputStream(new ByteArrayInputStream(bytes)))
 		{
-			require(in.readUTF().equals(VERSION), "ledger version");
-			var value = new Seal(in.readUTF(), in.readUTF(), in.readLong(), in.readInt(), in.readLong(), in.readLong(),
-				in.readUTF(), in.readUTF(), in.readLong(), map(in, false), map(in, true));
+			String version = in.readUTF();
+			require(version.equals(VERSION) || version.equals(TRAIN_BATCH_VERSION), "ledger version");
+			String previous = in.readUTF(), model = in.readUTF();
+			long updates = in.readLong();
+			int segment = in.readInt();
+			long sequence = in.readLong(), writer = in.readLong();
+			String nativeSha = in.readUTF(), batchSha = in.readUTF();
+			String trainBatchSha = version.equals(TRAIN_BATCH_VERSION) ? in.readUTF() : "";
+			if (version.equals(TRAIN_BATCH_VERSION)) { digest(trainBatchSha); }
+			var value = new Seal(previous, model, updates, segment, sequence, writer, nativeSha, batchSha, trainBatchSha,
+				in.readLong(), map(in, false), map(in, true));
 			digest(value.model); digest(value.nativeSha); digest(value.batchSha);
 			require(in.available() == 0 && Arrays.equals(bytes, bytes(value)) && value.updates >= 0 && value.segment >= 0 && value.sequence >= 0, "canonical ledger");
 			return value;
@@ -128,7 +143,8 @@ public final class ActionContinuationV4
 			var s = entry.getValue(); var model = ActionLearningV4.load(root.resolve("candidate-" + s.model + ".bin"), s.model);
 			if (previous == null)
 			{
-				require(s.sequence == 0 && s.segment == 0 && s.updates == model.updates() && s.events.equals(model.events()) && s.episodes.equals(model.episodes()), "root import");
+				require(s.trainBatchSha.isEmpty() && s.sequence == 0 && s.segment == 0 && s.updates == model.updates()
+					&& s.events.equals(model.events()) && s.episodes.equals(model.episodes()), "root import");
 			}
 			else
 			{
@@ -155,45 +171,157 @@ public final class ActionContinuationV4
 		return locked(root, () -> {
 			require(!Files.exists(root.resolve("HEAD")), "fresh campaign required");
 			publish(root.resolve("candidate-" + parent.sha256() + ".bin"), parent.bytes());
-			var seal = new Seal("", parent.sha256(), parent.updates(), 0, 0, ProcessHandle.current().pid(), "0".repeat(64), "0".repeat(64), 0, parent.events(), parent.episodes());
+			var seal = new Seal("", parent.sha256(), parent.updates(), 0, 0, ProcessHandle.current().pid(), "0".repeat(64), "0".repeat(64), "", 0, parent.events(), parent.episodes());
 			byte[] bytes = bytes(seal); String sha = hash(bytes); publish(root.resolve("ledger-" + sha + ".bin"), bytes); head(root, "", sha); return load(root);
 		});
 	}
 	public static ActionValueV4 segment(ActionValueV4 previous)
 	{ return new ActionValueV4(previous.weights(), Map.of(), Map.of(), previous.sha256(), "0".repeat(64), 0); }
+
 	public static State prepare(Path root, String expectedHead, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
 	{
 		return locked(root, () -> {
 			digest(nativeSha); State before = load(root); require(before.head.equals(expectedHead), "stale parent");
-			require(samples != null && !samples.isEmpty() && samples.size() <= 256, "batch<=256");
-			var events = new TreeMap<String, String>(); var episodes = new TreeMap<String, String>(); var fresh = new ArrayList<ActionFeedbackV4>(); long train = 0;
-			for (var sample : samples)
-			{
-				String key = sample.row().eventKey(), fingerprint = sample.fingerprint(), split = sample.row().split();
-				String priorSplit = before.episodes.get(sample.episodeId());
-				require(priorSplit == null || priorSplit.equals(split), "historical episode split changed");
-				String prior = before.events.get(key);
-				if (prior != null) { require(prior.equals(fingerprint), "historical source changed"); continue; }
-				require(events.putIfAbsent(key, fingerprint) == null, "duplicate batch event");
-				String old = episodes.putIfAbsent(sample.episodeId(), split); require(old == null || old.equals(split), "batch episode split");
-				fresh.add(sample); if (split.equals("TRAIN")) { train++; }
-			}
-			if (fresh.isEmpty()) { return before; }
-			String batchSha = hash(encode(out -> { map(out, events); map(out, episodes); }));
-			String inputSha = hash((expectedHead + nativeSha + batchSha).getBytes(java.nio.charset.StandardCharsets.US_ASCII));
-			Path pending = root.resolve("prepared-" + inputSha + ".seal");
-			if (Files.exists(pending)) { State old = state(root, Files.readString(pending)); var s = seal(root, old.head); require(s.previous.equals(expectedHead) && s.nativeSha.equals(nativeSha) && s.batchSha.equals(batchSha), "prepared input changed"); return old; }
-			boolean rollover = before.model.events().size() + fresh.size() > ActionValueV4.MAX_EVENTS || before.model.episodes().size() + episodes.size() > ActionValueV4.MAX_EVENTS;
-			ActionValueV4 base = rollover ? segment(before.model) : before.model;
-			if (rollover) { publish(root.resolve("candidate-" + base.sha256() + ".bin"), base.bytes()); }
-			ActionValueV4 learned = ActionLearningV4.fit(base, fresh);
-			publish(root.resolve("candidate-" + learned.sha256() + ".bin"), learned.bytes());
-			var seal = new Seal(expectedHead, learned.sha256(), Math.addExact(before.globalUpdates, train), before.segment + (rollover ? 1 : 0), before.sequence + 1,
-				ProcessHandle.current().pid(), nativeSha, batchSha, train, events, episodes);
-			byte[] bytes = bytes(seal); String sha = hash(bytes); publish(root.resolve("ledger-" + sha + ".bin"), bytes);
-			publish(pending, sha.getBytes(java.nio.charset.StandardCharsets.US_ASCII)); return state(root, sha);
+			return prepare(root, before, samples, nativeSha, "");
 		});
 	}
+
+	private static State prepare(Path root, State before, List<ActionFeedbackV4> samples, String nativeSha, String trainBatchSha) throws IOException
+	{
+		require(samples != null && !samples.isEmpty() && samples.size() <= FIT_LIMIT, "batch<=256");
+		var events = new TreeMap<String, String>(); var episodes = new TreeMap<String, String>(); var fresh = new ArrayList<ActionFeedbackV4>(); long train = 0;
+		for (var sample : samples)
+		{
+			String key = sample.row().eventKey(), fingerprint = sample.fingerprint(), split = sample.row().split();
+			String priorSplit = before.episodes.get(sample.episodeId());
+			require(priorSplit == null || priorSplit.equals(split), "historical episode split changed");
+			String prior = before.events.get(key);
+			if (prior != null) { require(prior.equals(fingerprint), "historical source changed"); continue; }
+			require(events.putIfAbsent(key, fingerprint) == null, "duplicate batch event");
+			String old = episodes.putIfAbsent(sample.episodeId(), split); require(old == null || old.equals(split), "batch episode split");
+			fresh.add(sample); if (split.equals("TRAIN")) { train++; }
+		}
+		if (fresh.isEmpty()) { return before; }
+		String batchSha = hash(encode(out -> { map(out, events); map(out, episodes); }));
+		String inputSha = hash((before.head + nativeSha + batchSha).getBytes(StandardCharsets.US_ASCII));
+		Path pending = root.resolve("prepared-" + inputSha + ".seal");
+		if (Files.exists(pending))
+		{
+			State old = state(root, Files.readString(pending)); var s = seal(root, old.head);
+			require(s.previous.equals(before.head) && s.nativeSha.equals(nativeSha) && s.batchSha.equals(batchSha)
+				&& (trainBatchSha.isEmpty() || s.trainBatchSha.equals(trainBatchSha)), "prepared input changed");
+			return old;
+		}
+		boolean rollover = before.model.events().size() + fresh.size() > ActionValueV4.MAX_EVENTS || before.model.episodes().size() + episodes.size() > ActionValueV4.MAX_EVENTS;
+		ActionValueV4 base = rollover ? segment(before.model) : before.model;
+		if (rollover) { publish(root.resolve("candidate-" + base.sha256() + ".bin"), base.bytes()); }
+		ActionValueV4 learned = ActionLearningV4.fit(base, fresh);
+		publish(root.resolve("candidate-" + learned.sha256() + ".bin"), learned.bytes());
+		var seal = new Seal(before.head, learned.sha256(), Math.addExact(before.globalUpdates, train), before.segment + (rollover ? 1 : 0), before.sequence + 1,
+			ProcessHandle.current().pid(), nativeSha, batchSha, trainBatchSha, train, events, episodes);
+		byte[] bytes = bytes(seal); String sha = hash(bytes); publish(root.resolve("ledger-" + sha + ".bin"), bytes);
+		publish(pending, sha.getBytes(StandardCharsets.US_ASCII)); return state(root, sha);
+	}
+
+	/** Caller authenticates the whole drained TRAIN seal before preparing its ordered FIT chunks. */
+	public static State prepareBatch(Path root, String expectedHead, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
+	{
+		return locked(root, () -> {
+			State next = load(root);
+			require(next.head.equals(expectedHead), "stale parent");
+			var batch = trainBatch(next, samples, nativeSha);
+			if (batch.fresh.isEmpty()) { return next; }
+			publish(trainBatchPin(root, expectedHead, nativeSha), batch.inputSha.getBytes(StandardCharsets.US_ASCII));
+			for (int start = 0; start < batch.fresh.size(); )
+			{
+				int end = start + Math.min(FIT_LIMIT, batch.fresh.size() - start);
+				next = prepare(root, next, batch.fresh.subList(start, end), nativeSha, batch.inputSha);
+				start = end;
+			}
+			return next;
+		});
+	}
+
+	private static Path trainBatchPin(Path root, String expectedHead, String nativeSha)
+	{
+		return root.resolve("train-batch-" + hash((expectedHead + nativeSha).getBytes(StandardCharsets.US_ASCII)) + ".seal");
+	}
+
+	private static TrainBatch trainBatch(State before, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
+	{
+		digest(nativeSha);
+		require(samples != null && !samples.isEmpty(), "sealed TRAIN batch required");
+		var events = new TreeMap<String, String>();
+		var fresh = new TreeMap<String, ActionFeedbackV4>();
+		for (var sample : samples)
+		{
+			require(sample != null && sample.row().split().equals("TRAIN"), "TRAIN split required");
+			String priorSplit = before.episodes.get(sample.episodeId());
+			require(priorSplit == null || priorSplit.equals("TRAIN"), "historical episode split changed");
+			String key = sample.row().eventKey(), fingerprint = sample.fingerprint();
+			String duplicate = events.putIfAbsent(key, fingerprint), prior = before.events.get(key);
+			require(duplicate == null || duplicate.equals(fingerprint), "duplicate batch source changed");
+			require(prior == null || prior.equals(fingerprint), "historical source changed");
+			if (prior == null && duplicate == null) { fresh.put(key, sample); }
+		}
+		String inputSha = hash(encode(out -> { out.writeUTF(before.head); out.writeUTF(nativeSha); map(out, events); }));
+		return new TrainBatch(List.copyOf(fresh.values()), inputSha);
+	}
+
+	/** Reauthenticate every prepared chunk, including on a retry after publication. */
+	public static void verifyPreparedBatch(Path root, String expected, String target, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
+	{
+		verifyBatch(root, load(root), expected, target, samples, nativeSha);
+	}
+
+	private static State verifyBatch(Path root, State current, String expected, String target, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
+	{
+		require(current.head.equals(expected) || current.head.equals(target), "prepared HEAD changed");
+		State before = current.head.equals(expected) ? current : state(root, expected);
+		var batch = trainBatch(before, samples, nativeSha);
+		if (batch.fresh.isEmpty())
+		{
+			require(expected.equals(target), "unexpected target for replay");
+			return before;
+		}
+		Path pin = trainBatchPin(root, expected, nativeSha);
+		require(Files.isRegularFile(pin, LinkOption.NOFOLLOW_LINKS)
+			&& Arrays.equals(Files.readAllBytes(pin), batch.inputSha.getBytes(StandardCharsets.US_ASCII)), "prepared TRAIN input changed");
+		String cursor = target;
+		for (int end = batch.fresh.size(); end > 0; )
+		{
+			require(!cursor.equals(expected), "missing TRAIN chunk");
+			Seal chunk = seal(root, cursor);
+			int start = ((end - 1) / FIT_LIMIT) * FIT_LIMIT;
+			var events = new TreeMap<String, String>();
+			var episodes = new TreeMap<String, String>();
+			for (var sample : batch.fresh.subList(start, end))
+			{
+				events.put(sample.row().eventKey(), sample.fingerprint());
+				episodes.put(sample.episodeId(), "TRAIN");
+			}
+			require(chunk.nativeSha.equals(nativeSha) && chunk.trainBatchSha.equals(batch.inputSha) && chunk.train == end - start
+				&& chunk.events.equals(events) && chunk.episodes.equals(episodes)
+				&& chunk.batchSha.equals(hash(encode(out -> { map(out, events); map(out, episodes); }))), "prepared TRAIN chunk changed");
+			cursor = chunk.previous;
+			end = start;
+		}
+		require(cursor.equals(expected), "prepared TRAIN parent changed");
+		State after = current.head.equals(target) ? current : state(root, target);
+		require(after.globalUpdates == Math.addExact(before.globalUpdates, batch.fresh.size()), "prepared TRAIN count changed");
+		return after;
+	}
+
+	/** Only the complete cold-verified chain can advance HEAD. */
+	public static State commitBatch(Path root, String expected, String target, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
+	{
+		return locked(root, () -> {
+			State current = load(root), next = verifyBatch(root, current, expected, target, samples, nativeSha);
+			if (expected.equals(target)) { return current; }
+			return publishHead(root, current, expected, next);
+		});
+	}
+
 	public static void cold(Path root, String target) throws IOException
 	{
 		var state = state(root, target); var s = seal(root, target);
@@ -205,7 +333,7 @@ public final class ActionContinuationV4
 	{
 		State before = state(root, expected), after = state(root, target), current = load(root); Seal prepared = seal(root, target);
 		require(current.head.equals(expected) || current.head.equals(target), "prepared HEAD changed");
-		require(prepared.previous.equals(expected) && prepared.nativeSha.equals(nativeSha) && samples != null && !samples.isEmpty() && samples.size() <= 256, "prepared native source changed");
+		require(prepared.previous.equals(expected) && prepared.nativeSha.equals(nativeSha) && samples != null && !samples.isEmpty() && samples.size() <= FIT_LIMIT, "prepared native source changed");
 		var events = new TreeMap<String, String>(); var episodes = new TreeMap<String, String>(); long train = 0;
 		for (var sample : samples)
 		{
@@ -224,10 +352,24 @@ public final class ActionContinuationV4
 	{
 		return locked(root, () -> {
 			State current = load(root), next = state(root, target); var s = seal(root, target);
-			byte[] cold = encode(out -> { out.writeUTF(target); out.writeUTF(next.model.sha256()); out.writeLong(next.globalUpdates); });
-			Path path = root.resolve("cold-" + target + ".bin"); require(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && Arrays.equals(Files.readAllBytes(path), cold), "verified cold seal required");
-			if (current.head.equals(target)) { return current; }
-			require(current.head.equals(expected) && s.previous.equals(expected), "commit parent changed"); head(root, expected, target); return load(root);
+			require(s.trainBatchSha.isEmpty(), "whole TRAIN batch commit required");
+			if (!current.head.equals(target))
+			{
+				require(s.previous.equals(expected), "commit parent changed");
+				require(Files.notExists(trainBatchPin(root, expected, s.nativeSha), LinkOption.NOFOLLOW_LINKS), "whole TRAIN batch commit required");
+			}
+			return publishHead(root, current, expected, next);
 		});
+	}
+
+	private static State publishHead(Path root, State current, String expected, State next) throws IOException
+	{
+		byte[] cold = encode(out -> { out.writeUTF(next.head); out.writeUTF(next.model.sha256()); out.writeLong(next.globalUpdates); });
+		Path path = root.resolve("cold-" + next.head + ".bin");
+		require(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && Arrays.equals(Files.readAllBytes(path), cold), "verified cold seal required");
+		if (current.head.equals(next.head)) { return current; }
+		require(current.head.equals(expected), "commit parent changed");
+		head(root, expected, next.head);
+		return load(root);
 	}
 }

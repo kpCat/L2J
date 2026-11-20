@@ -46,6 +46,10 @@ public final class PhantomCombatCapabilityResolver
 	private static final Comparator<SelectedSkill> SKILL_ORDER = Comparator.comparingInt(SelectedSkill::skillId).thenComparingInt(SelectedSkill::skillLevel);
 	private final CapabilitySource _source;
 
+	record PveSelection(PhantomCombatLoadout loadout, List<SelectedSkill> readySkills)
+	{
+	}
+
 	public PhantomCombatCapabilityResolver(CapabilitySource source)
 	{
 		_source = Objects.requireNonNull(source, "source");
@@ -97,6 +101,19 @@ public final class PhantomCombatCapabilityResolver
 	public Optional<PhantomCombatLoadout> resolve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
 		java.util.function.Predicate<SelectedSkill> nativeSkill, boolean normalFallback, int maximumSkills)
 	{
+		return resolvePve(classId, mode, learnedLevel, nativeSkill, null, normalFallback, maximumSkills).map(PveSelection::loadout);
+	}
+
+	Optional<PveSelection> resolvePveAction(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int targetObjectId, boolean canSpendMp, int maximumSkills)
+	{
+		return resolvePve(actor.classId(), mode, lease::knownSkillLevel, skill -> lease.supportsSkill(skill, mode),
+			canSpendMp ? skill -> lease.skillReady(targetObjectId, skill, mode) : null, lease.supportsNormalAttack(mode), maximumSkills);
+	}
+
+	private Optional<PveSelection> resolvePve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
+		java.util.function.Predicate<SelectedSkill> nativeSkill, java.util.function.Predicate<SelectedSkill> readyForTarget,
+		boolean normalFallback, int maximumSkills)
+	{
 		Objects.requireNonNull(mode, "mode");
 		if ((maximumSkills < 1) || (maximumSkills > 4))
 		{
@@ -105,15 +122,35 @@ public final class PhantomCombatCapabilityResolver
 
 		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(classId));
 		capabilities.sort(CAPABILITY_ORDER);
-		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, learnedLevel)).sorted(SKILL_ORDER).distinct().filter(nativeSkill).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
+		final var candidates = matching.stream().flatMap(capability -> capability.skills().stream())
+			.map(skill -> currentLearnedSkill(skill, learnedLevel)).sorted(SKILL_ORDER).distinct().filter(nativeSkill).iterator();
+		final var supported = new ArrayList<SelectedSkill>(maximumSkills);
+		final var ready = new ArrayList<SelectedSkill>(maximumSkills);
+		while (candidates.hasNext())
+		{
+			final SelectedSkill candidate = candidates.next();
+			if (supported.size() < maximumSkills)
+			{
+				supported.add(candidate);
+			}
+			if (readyForTarget != null && readyForTarget.test(candidate))
+			{
+				ready.add(candidate);
+			}
+			if (ready.size() == maximumSkills || readyForTarget == null && supported.size() == maximumSkills)
+			{
+				break;
+			}
+		}
+		final List<SelectedSkill> selected = ready.isEmpty() ? supported : ready;
 		if (!normalFallback && selected.isEmpty())
 		{
 			return Optional.empty();
 		}
 		// Authored skill metadata ranks learned actions; it does not grant the native ordinary attack.
 		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElse(1);
-		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback));
+		return Optional.of(new PveSelection(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback), List.copyOf(ready)));
 	}
 
 	private static SelectedSkill currentLearnedSkill(SelectedSkill evidence, java.util.function.IntUnaryOperator learnedLevel)

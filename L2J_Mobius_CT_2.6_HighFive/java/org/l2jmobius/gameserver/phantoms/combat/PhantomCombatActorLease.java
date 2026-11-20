@@ -204,6 +204,12 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode);
 
+	/** Detect casts queued after the actor snapshot and simultaneous native casts. */
+	default boolean nativeCastPending()
+	{
+		return false;
+	}
+
 	/** Current PvE resources/reuse only; native spacing still owns the approach to cast range. */
 	default boolean skillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 	{

@@ -496,6 +496,104 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		fixture.stop();
 	}
 
+	static void testReadySkillBeyondLoadoutBound()
+	{
+		final Fixture fixture = fixture(1);
+		final PhantomCombatMode mode = PhantomCombatMode.RANGED_MAGIC;
+		final var ready = new SelectedSkill(9, 2);
+		fixture.capabilities = capabilities(mode, List.of(new SelectedSkill(1, 1), new SelectedSkill(3, 1),
+			new SelectedSkill(5, 1), new SelectedSkill(7, 1), new SelectedSkill(9, 1), new SelectedSkill(11, 1)));
+		fixture.lease.supportedSkills.addAll(List.of(1, 3, 5, 7, 9));
+		fixture.lease.learnedRanks.put(9, 2);
+		fixture.lease.unreadySkills.addAll(List.of(1, 3, 5, 7, 9));
+		try
+		{
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(1, mode).status(), "Known loadout was rejected.");
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(0, fixture.lease.castCount, "A blocked or unlearned skill was issued.");
+			fixture.lease.unreadySkills.remove(9);
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(ready, fixture.lease.lastCast, "A ready learned action beyond the first four skills was ignored.");
+		}
+		finally
+		{
+			fixture.stop();
+		}
+	}
+
+	static void testPartySupportYield()
+	{
+		final Fixture fixture = fixture(1);
+		final String owner = "party.tactic.fixture.assist_target.1";
+		final var request = fixture.request(1, PhantomCombatMode.MELEE_PHYSICAL);
+		final var support = new PhantomCombatService.ExternalActionRequest(1, PhantomCombatService.ExternalActionKind.PARTY_SUPPORT,
+			"party.tactic.fixture.heal_member.1", 10_000_000_000L, fixture.token);
+		final var supportStale = new AtomicBoolean();
+		try
+		{
+			final var started = fixture.service.startContentSession(request, owner);
+			PhantomAssertions.assertTrue(started.accepted(), "Party combat was not admitted.");
+			final long generation = started.session().generation();
+			fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100,
+				false, false, true, false, false, 100, "ATTACK", 0, 0);
+			PhantomAssertions.assertFalse(fixture.service.requestPartySupportYield(1, generation + 1, 100, owner, support.deadlineLogicalNanos(), supportStale::get), "A stale generation could stop a newer owner.");
+			PhantomAssertions.assertFalse(fixture.service.requestPartySupportYield(1, generation, 100, owner + ".foreign", support.deadlineLogicalNanos(), supportStale::get), "A foreign operation could stop the native owner.");
+			PhantomAssertions.assertTrue(fixture.service.requestPartySupportYield(1, generation, 100, owner, support.deadlineLogicalNanos(), supportStale::get), "Party could not request a safe support boundary.");
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(0, fixture.lease.cancelCount, "Yield interrupted the current native attack.");
+			PhantomAssertions.assertTrue(fixture.service.acquireExternalAction(support).lease() == null, "Urgent support acquired a concurrent actor owner.");
+			fixture.lease.actor = actor(100, false);
+			supportStale.set(true);
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(1, fixture.lease.attackCount, "A stale roster stopped the current decision.");
+			fixture.capabilities = capabilities(PhantomCombatMode.MELEE_PHYSICAL, List.of(new SelectedSkill(20, 1)));
+			fixture.lease.supportedSkills.add(20);
+			fixture.lease.readinessObserver = () ->
+			{
+				supportStale.set(false);
+				PhantomAssertions.assertTrue(fixture.service.requestPartySupportYield(1, generation, 100, owner,
+					support.deadlineLogicalNanos(), supportStale::get), "Fresh authority could not renew urgent support.");
+			};
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(1, fixture.lease.attackCount, "A new attack started before pending support could take ownership.");
+			PhantomAssertions.assertEquals(0, fixture.lease.castCount, "A yield admitted during skill readiness failed to prevent the newly selected cast.");
+			PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation, 100, owner).isPresent(), "The old session did not drain.");
+			final var lease = fixture.service.acquireExternalAction(support).lease();
+			PhantomAssertions.assertTrue(lease != null, "Party support was blocked after the old session drained.");
+			lease.close();
+		}
+		finally
+		{
+			fixture.stop();
+		}
+	}
+
+	static void testRetreatDrainsNativeCast()
+	{
+		final var fixture = fixture(1);
+		try
+		{
+			PhantomAssertions.assertTrue(fixture.start(1, PhantomCombatMode.MELEE_PHYSICAL).accepted(), "Retreat fixture was not admitted.");
+			fixture.lease.actor = new ActorSnapshot(10, 88, 0, 10, 100, 100, 100, 50, 100,
+				false, false, false, true, false, 100, "CAST", 20, 1);
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(PhantomCombatPhase.RETREATING, fixture.service.find(1).orElseThrow().phase(), "Retreat abandoned a native cast instead of draining it.");
+			PhantomAssertions.assertEquals(0, fixture.lease.cancelCount, "Retreat cancelled a cast before it settled.");
+			fixture.lease.actor = actor(10, false);
+			fixture.lease.pendingCast = true;
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(PhantomCombatPhase.RETREATING, fixture.service.find(1).orElseThrow().phase(), "A queued native cast did not hold the retreat boundary.");
+			fixture.lease.pendingCast = false;
+			fixture.lease.retreatOutcome = ActionOutcome.ISSUED;
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(PhantomCombatPhase.RETREATING, fixture.service.find(1).orElseThrow().phase(), "Native cast completion did not resume retreat.");
+		}
+		finally
+		{
+			fixture.stop();
+		}
+	}
+
 	private static void testResolverVariants()
 	{
 		final Fixture fixture = fixture(1);
@@ -1232,6 +1330,9 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private ActorSnapshot actor = actor(100, false);
 		private TargetSnapshot target = target(false, true);
 		private final Set<Integer> supportedSkills = new HashSet<>();
+		private final Set<Integer> unreadySkills = new HashSet<>();
+		private Runnable readinessObserver = () -> { };
+		private boolean pendingCast;
 		private final Map<Integer, Integer> learnedRanks = new HashMap<>();
 		private SelectedSkill lastCast;
 		private ActionOutcome spacingOutcome = ActionOutcome.UNAVAILABLE;
@@ -1323,6 +1424,19 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		public int knownSkillLevel(int skillId)
 		{
 			return learnedRanks.getOrDefault(skillId, 0);
+		}
+
+		@Override
+		public boolean skillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+		{
+			readinessObserver.run();
+			return supportsSkill(skill, mode) && !unreadySkills.contains(skill.skillId());
+		}
+
+		@Override
+		public boolean nativeCastPending()
+		{
+			return pendingCast;
 		}
 
 		@Override

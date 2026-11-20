@@ -30,9 +30,10 @@ public final class TacticalPolicyV3
 	private volatile TrainExplorationV1 _exploration;
 	private volatile ActionExplorationV4 _experiment;
 	/** Mutually exclusive, pre-CUT TEST-only owner; ordinary configuration has no entry point. */
-	public void actionExplorationTest(ActionExplorationV4 session)
+	public synchronized void actionExplorationTest(ActionExplorationV4 session)
 	{
 		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || session == null || _exploration != null || !_last.isEmpty()
+			|| _experiment != null && (_experiment.plan().frozenInference() || session.plan().frozenInference())
 			|| _actionValueMode != Mode.ON || _actionValue == null || !session.plan().modelSha().equals(_actionValue.sha256()))
 		{ throw new IllegalArgumentException("V4 experiment requires exclusive frozen TEST owner/model"); }
 		_experiment = session;
@@ -43,9 +44,10 @@ public final class TacticalPolicyV3
 	public record ActionValueDecision(LegalActionV3 selected, List<Double> scores, boolean consulted, String reason, String modelSha, long nanos)
 	{ public ActionValueDecision { scores = List.copyOf(scores); } }
 	/** Explicit TEST-only pre-CUT binding. Ordinary configuration never installs V4. */
-	public void actionValueTest(Mode mode, ActionValueV4 model, Consumer<ActionValueDecision> sink)
+	public synchronized void actionValueTest(Mode mode, ActionValueV4 model, Consumer<ActionValueDecision> sink)
 	{
-		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || mode == null || sink == null || !_last.isEmpty())
+		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || mode == null || sink == null || !_last.isEmpty()
+			|| _experiment != null && _experiment.plan().frozenInference())
 		{ throw new IllegalArgumentException("V4 requires separate explicit pre-combat TEST policy"); }
 		_actionValue = model; _actionValueSink = sink; _actionValueMode = mode;
 	}
@@ -116,7 +118,7 @@ public final class TacticalPolicyV3
 	public HealEvidenceV3.Attempt latest() { return _latest; }
 	public Mode mode() { return _mode; }
 	/** Explicit pre-CUT owned TRAIN binding. Ordinary ON inference cannot receive an exploration window. */
-	public void trainExploration(TrainExplorationV1 session)
+	public synchronized void trainExploration(TrainExplorationV1 session)
 	{
 		if (session != null && _experiment != null) { throw new IllegalArgumentException("Only one experiment owner per decision"); }
 		if(session!=null&&(_mode!=Mode.SHADOW||_model==null||session.modelVersion()!=_version||!session.modelSha().equals(_model.sha256())))
@@ -193,12 +195,26 @@ public final class TacticalPolicyV3
 					session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),profile,target.getObjectId());
 				}
 			}
-			if (_experiment != null)
+			final var experiment = _experiment;
+			if (experiment != null)
 			{
 				final boolean safe = actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
 					&& actor.getCurrentHp() > actor.getMaxHp() * .30 && candidates.stream().allMatch(c -> c.exact().getAsBoolean());
-				final var model = actionValueChoice(_actionValueMode, _actionValue, observation, offered, offered.get(stock), !safe, now + 5_000_000L);
-				final var decision = _experiment.choose(observation, offered, offered.get(stock), model.selected(), safe, now + 5_000_000L);
+				final long deadline = now + 5_000_000L;
+				final var stockAction = offered.get(stock);
+				final ActionValueDecision model;
+				final ActionExplorationV4.Decision decision;
+				if (experiment.plan().frozenInference())
+				{
+					final var choice = experiment.chooseFrozen(observation, offered, stockAction, safe, deadline);
+					model = choice.inference();
+					decision = choice.decision();
+				}
+				else
+				{
+					model = actionValueChoice(_actionValueMode, _actionValue, observation, offered, stockAction, !safe, deadline);
+					decision = experiment.choose(observation, offered, stockAction, model.selected(), safe, deadline);
+				}
 				selected = offered.indexOf(decision.selected());
 				_actionValueSink.accept(new ActionValueDecision(decision.selected(), model.scores(), model.consulted(), decision.mode(), model.modelSha(), model.nanos()));
 				reason(decision.mode(), profile, target.getObjectId());
