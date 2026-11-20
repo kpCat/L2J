@@ -33,6 +33,8 @@ internal static partial class Program
             Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL");
             return failed == 0 ? 0 : 1;
         }
+        if (args.Length == 4 && args[0] == "--openai-voice-reform")
+            return await OpenAiVoiceReformEvidence(args[1], args[2], args[3]);
         if (args.Length == 6 && args[0] == "--prompt-lab-quality-operation") return await PromptLabQualityOperation(args);
         if (args.Length == 2 && args[0] == "--prompt-lab-quality-recovery")
         { await PromptLabQualityRecoveryTests(args[1]); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }

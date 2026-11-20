@@ -11,6 +11,10 @@ public sealed partial class CorpusCampaign
         var plan = LoadOpenAi(id);
         var work = OpenAiJournal(id).OpenAiRequest(task, row);
         var lane = plan.Lanes.Single(lane => lane.Id == work.LaneId);
+        if (plan.Historical)
+            return $"HISTORICAL · v2\nКатегория {lane.Label} ({lane.Category})\nРежим {lane.Mode}"
+                + $"\nГолос из плана: {lane.Voice}\nСцена из плана: {lane.Scene}"
+                + $"\nSHA256 промпта из журнала: {work.PromptHash}\nSHA256 сцены: {work.SceneHash}";
         if (!plan.Pilot) lane = lane with { Format = plan.Settings.Format };
         var batch = OpenAiCampaignPrompts.Prepare(lane, work.Requested, work.Batch, plan.Settings.Model, plan.Settings.MatureOptIn);
         V4Rules.Require(batch.SceneHash == work.SceneHash && batch.Post.Hash == work.PromptHash, "OPENAI_RECEIPT_SCOPE_DRIFT");
@@ -26,6 +30,8 @@ public sealed partial class CorpusCampaign
     public string ExportOpenAi(string id, int page, bool confirmed)
     {
         V4Rules.Require(confirmed, "OPENAI_EXPLICIT_EXPORT_REQUIRED");
+        var saved = LoadOpenAi(id);
+        if (saved.Historical) return SaveOpenAiHistoricalReview(saved, page);
         var plan = CheckOpenAi(id, OpenAiHash(id));
         V4Rules.Require(!plan.Pilot, "OPENAI_PILOT_REVIEW_ONLY");
         var selected = OpenAiJournal(id).OpenAiSamples(plan, page, approvedOnly: true);
@@ -58,6 +64,7 @@ public sealed partial class CorpusCampaign
         V4Rules.Require(confirmed, "OPENAI_PILOT_REVEAL_CONFIRMATION_REQUIRED");
         var plan = LoadOpenAi(id);
         V4Rules.Require(plan.Pilot, "OPENAI_PILOT_REQUIRED");
+        if (plan.Historical) return SaveOpenAiHistoricalReview(plan, 0);
         var journal = OpenAiJournal(id);
         var all = journal.OpenAiSamples(plan, 0);
         var graded = all.Where(row => row.Grade != null).ToArray();
@@ -97,6 +104,20 @@ public sealed partial class CorpusCampaign
             }
         }
     }
+
+    private string SaveOpenAiHistoricalReview(OpenAiCampaignPlan plan, int page)
+    {
+        var journal = OpenAiJournal(plan.Id);
+        var rows = journal.OpenAiSamples(plan, page);
+        V4Rules.Require(rows.Count > 0, "OPENAI_NO_REVIEW_ROWS");
+        var evidence = new
+        {
+            Status = "HISTORICAL_REVIEW_ONLY", PlanHash = OpenAiHash(plan.Id), plan.PromptHash,
+            plan.PromptStyleVersion, Campaign = plan.Id, Totals = journal.OpenAiView(plan).Totals,
+            Requests = journal.OpenAiLog(120), Rows = rows
+        };
+        return store.SaveOpenAiPilotReport(plan.Id, JsonSerializer.Serialize(evidence, PromptProfiles.ConfigJson), historical: true);
+    }
 }
 
 public sealed partial class PromptLabStore
@@ -111,11 +132,13 @@ public sealed partial class PromptLabStore
             "OPENAI_EXPORT_EVIDENCE_DRIFT");
     }
 
-    internal string SaveOpenAiPilotReport(string id, string report)
+    internal string SaveOpenAiPilotReport(string id, string report, bool historical = false)
     {
         RequireId(id);
         var bytes = V4Rules.Utf8.GetBytes(report);
-        var path = Local("campaigns/" + id + "/calibration/review-" + V4Rules.Hash(bytes)[..16] + ".md");
+        var path = historical
+            ? Local("campaign-exports/" + id + "/historical-" + V4Rules.Hash(bytes)[..16] + ".json")
+            : Local("campaigns/" + id + "/calibration/review-" + V4Rules.Hash(bytes)[..16] + ".md");
         SaveCampaignFile(path, bytes);
         return path;
     }

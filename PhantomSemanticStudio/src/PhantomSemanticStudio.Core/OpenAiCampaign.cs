@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace PhantomSemanticStudio.Core;
 
@@ -33,6 +34,18 @@ public sealed record OpenAiCampaignPlan(string Id, DateTimeOffset CreatedAtUtc, 
 {
     public const int BatchSize = 200;
     public const int PilotMaxPosts = 20;
+    public int PromptStyleVersion { get; init; } = 2;
+
+    [JsonIgnore]
+    public bool Historical => PromptStyleVersion == 2 && PromptHash == OpenAiCampaignPrompts.LegacyVersionHash;
+
+    [JsonIgnore]
+    public OpenAiEditorialQuota EditorialQuota => new(
+        Lanes.Where(lane => lane.Register == OpenAiCampaignPrompts.General && lane.Mode != "TRIGGER").Sum(lane => lane.Target),
+        Lanes.Where(lane => lane.Register == OpenAiCampaignPrompts.Strong).Sum(lane => lane.Target),
+        Lanes.Where(lane => lane.Register == OpenAiCampaignPrompts.Mature).Sum(lane => lane.Target),
+        Lanes.Where(lane => lane.Mode == "TRIGGER").Sum(lane => lane.Target));
+
     public int Target => Lanes.Sum(lane => lane.Target);
     public int MinimumPosts => Lanes.Sum(lane =>
     {
@@ -43,6 +56,8 @@ public sealed record OpenAiCampaignPlan(string Id, DateTimeOffset CreatedAtUtc, 
 
     private static int Ceiling(int rows, int divisor) => (rows + divisor - 1) / divisor;
 }
+
+public sealed record OpenAiEditorialQuota(int General, int Strong, int Mature, int Triggers);
 
 public sealed record OpenAiGrade(int Score, bool Facts, bool Roles, bool Voice, bool Natural, bool Category,
     bool AdultConsent, bool Distinct, string Note)
@@ -88,35 +103,50 @@ public sealed partial class CorpusCampaign
         IReadOnlyDictionary<string, int>? categoryTargets = null, bool pilot = false)
     {
         settings.Validate();
-        var lanes = pilot ? OpenAiCampaignPrompts.PilotLanes(settings.MatureOptIn)
-            : OpenAiCampaignPrompts.PlanLanes(total, categoryTargets, settings.MatureOptIn);
+        var lanes = pilot ? OpenAiCampaignPrompts.EditorialPilotLanes(settings.MatureOptIn)
+            : OpenAiCampaignPrompts.EditorialLanes(total, categoryTargets, settings.MatureOptIn);
         var plan = new OpenAiCampaignPlan(Guid.NewGuid().ToString("N"), DateTimeOffset.UtcNow, V4Registry.Default.Hash,
-            OpenAiCampaignPrompts.VersionHash, pilot, settings, lanes);
+            OpenAiCampaignPrompts.VersionHash, pilot, settings, lanes) { PromptStyleVersion = OpenAiCampaignPrompts.EditorialVersion };
         store.SaveOpenAiPlan(plan);
         return plan;
     }
 
     public IReadOnlyList<OpenAiCampaignPlan> OpenAiHistory() => store.ListOpenAiPlans();
 
-    public OpenAiCampaignPlan LoadOpenAi(string id) => store.ReadOpenAiPlan(id);
+    public OpenAiCampaignPlan LoadOpenAi(string id)
+    {
+        var plan = store.ReadOpenAiPlan(id);
+        V4Rules.Require(plan.RegistryHash == V4Registry.Default.Hash &&
+            (plan.Historical && plan.Lanes.All(lane => lane.Register == null)
+                || plan.PromptStyleVersion == OpenAiCampaignPrompts.EditorialVersion && plan.PromptHash == OpenAiCampaignPrompts.VersionHash
+                && plan.Lanes.All(lane => lane.Register is OpenAiCampaignPrompts.General or OpenAiCampaignPrompts.Strong or OpenAiCampaignPrompts.Mature)),
+            "OPENAI_PLAN_DRIFT");
+        return plan;
+    }
 
     internal OpenAiCampaignPlan CheckOpenAi(string id, string expectedHash)
     {
         var plan = LoadOpenAi(id);
-        V4Rules.Require(OpenAiHash(id) == expectedHash && plan.RegistryHash == V4Registry.Default.Hash
-            && plan.PromptHash == OpenAiCampaignPrompts.VersionHash, "OPENAI_PLAN_DRIFT");
+        V4Rules.Require(OpenAiHash(id) == expectedHash, "OPENAI_PLAN_DRIFT");
+        RequireCurrent(plan);
         plan.Settings.Validate();
         return plan;
     }
 
     public string OpenAiHash(string id) => store.OpenAiPlanHash(id);
 
-    private CorpusCampaignJournal OpenAiJournal(string id) => new(store.OwnerWorkspace, id, OpenAiHash(id));
+    private CorpusCampaignJournal OpenAiJournal(string id) => new(store.OwnerWorkspace, id, OpenAiHash(id), LoadOpenAi(id).Historical);
+
+    private static void RequireCurrent(OpenAiCampaignPlan plan) => V4Rules.Require(!plan.Historical, "OPENAI_HISTORICAL_READ_ONLY");
 
     public OpenAiCampaignView OpenAiStatus(string id)
     {
         var plan = LoadOpenAi(id);
+        if (plan.Historical && !File.Exists(CorpusCampaignControl.PathFor(store.OwnerWorkspace.Root, store.ProtectedSource, id, OpenAiHash(id))))
+            return new("HISTORICAL", "Архив промптов v2. Журнал запросов отсутствует.", new(), []);
         var status = OpenAiJournal(id).OpenAiView(plan);
+        if (plan.Historical)
+            return status with { State = "HISTORICAL", Detail = "Архив промптов v2 доступен для просмотра и редакционного экспорта." };
         var used = new OpenAiSpendLedger(store.OwnerWorkspace).Spent(id, DateTimeOffset.UtcNow);
         var remaining = plan.Settings.Budget.Remaining(plan.Pilot, used.Campaign, used.Campaign, used.Daily, used.Account, used.Monthly);
         return status with { LocalAvailableUsd = remaining };
@@ -124,6 +154,7 @@ public sealed partial class CorpusCampaign
 
     public void RequestOpenAiControl(string id, string command)
     {
+        RequireCurrent(LoadOpenAi(id));
         _ = OpenAiJournal(id);
         _ = CorpusCampaignControl.Request(store.OwnerWorkspace.Root, store.ProtectedSource, id, OpenAiHash(id), command);
     }
@@ -142,13 +173,16 @@ public sealed partial class CorpusCampaign
 
     public void GradeOpenAi(string id, string task, int row, OpenAiGrade grade)
     {
+        RequireCurrent(LoadOpenAi(id));
         grade.Validate();
         OpenAiJournal(id).OpenAiGrade(task, row, grade);
     }
 
     public void ApproveOpenAiRow(string id, string task, int row, bool confirmed)
     {
-        V4Rules.Require(confirmed && !LoadOpenAi(id).Pilot, "OPENAI_MANUAL_ROW_APPROVAL_REQUIRED");
+        var plan = LoadOpenAi(id);
+        RequireCurrent(plan);
+        V4Rules.Require(confirmed && !plan.Pilot, "OPENAI_MANUAL_ROW_APPROVAL_REQUIRED");
         OpenAiJournal(id).ApproveOpenAiRow(task, row);
     }
 
@@ -171,7 +205,7 @@ public sealed partial class CorpusCampaign
     public bool IsOpenAiQualityAccepted(string id)
     {
         var plan = LoadOpenAi(id);
-        if (plan.Pilot) return false;
+        if (plan.Pilot || plan.Historical) return false;
         try { RequireOpenAiApproval(plan); return true; }
         catch (Exception error) when (error is IOException or InvalidDataException) { return false; }
     }
@@ -201,7 +235,8 @@ public sealed partial class CorpusCampaign
         var acceptedHoldout = selected.Where(row => row.Holdout && row.Grade!.Pass && row.State != "REJECTED");
         V4Rules.Require(selected.Length >= 15 && selected.Where(row => row.Holdout).Select(row => row.SceneHash).Distinct().Count() >= 2
             && acceptedHoldout.Select(row => row.SceneHash).Distinct().Count() >= 2
-            && (!pilot.Settings.MatureOptIn || acceptedHoldout.Any(row => row.Category == OpenAiCampaignPrompts.MatureCategory))
+            && (!pilot.Settings.MatureOptIn || acceptedHoldout.Any(row => pilot.Lanes.Any(lane =>
+                lane.Holdout && lane.Register == OpenAiCampaignPrompts.Mature && lane.Category == row.Category && lane.Scene == row.Scene)))
             && accepted * 100 >= threshold * selected.Length && selected.All(row => row.Grade!.Facts && row.Grade.Roles),
             "OPENAI_QUALITY_BELOW_THRESHOLD");
         var evidence = V4Rules.Hash(JsonSerializer.SerializeToUtf8Bytes(grades, PromptProfiles.CompactJson));

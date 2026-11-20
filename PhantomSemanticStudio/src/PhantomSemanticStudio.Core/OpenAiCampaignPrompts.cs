@@ -1,15 +1,18 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace PhantomSemanticStudio.Core;
 
 public sealed record OpenAiCampaignLane(string Id, string Category, string Mode, string Event, string Label, string Family,
-    int Target, string Voice = "", string Scene = "", bool Holdout = false, string Format = "JSON");
+    int Target, string Voice = "", string Scene = "", bool Holdout = false, string Format = "JSON",
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Register = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? AdultStyle = null);
 
 internal sealed record OpenAiPromptBatch(V4GenerationRequest Scope, OpenAiPost Post, string SceneHash);
 
-internal static class OpenAiCampaignPrompts
+internal static partial class OpenAiCampaignPrompts
 {
     private const string Version = "pw-openai-campaign-prompts/2";
     private const int MaxMatureDrafts = 20;
@@ -109,7 +112,7 @@ internal static class OpenAiCampaignPrompts
     internal static string MatureCategory => AdultScene.Category;
     private static string MatureLaneId => MatureCategory + ".reply.mature";
 
-    internal static string VersionHash { get; } = Hash(new
+    internal static string LegacyVersionHash { get; } = Hash(new
     {
         Version, MaxMatureDrafts, HierarchyTransport, SharedInstructions, StructuredInstructions, TextInstructions,
         Scenes, AdultScene, SceneAngles, EventFacts, EventContradictions, Adapter = "OPENAI_RESPONSES", Wrapper = Wrapper.ToString(),
@@ -176,6 +179,11 @@ internal static class OpenAiCampaignPrompts
     }
 
     internal static OpenAiPromptBatch Prepare(OpenAiCampaignLane lane, int count, int logicalBatch, string model, bool mature = false)
+        => lane.Register == null ? PrepareLegacy(lane, count, logicalBatch, model, mature)
+            : PrepareEditorial(lane, count, logicalBatch, model, mature);
+
+    private static OpenAiPromptBatch PrepareLegacy(OpenAiCampaignLane lane, int count, int logicalBatch, string model,
+        bool mature, SceneSpec? fixedScene = null)
     {
         V4Rules.Require(count is >= 1 and <= 20 && count <= lane.Target && logicalBatch >= 0
             && lane.Format is "JSON" or "TEXT", "OPENAI_BATCH_SCOPE");
@@ -184,7 +192,7 @@ internal static class OpenAiCampaignPrompts
         var family = Hierarchy.FamilyFor(category.Key);
         V4Rules.Require(lane.Family == family.Id && lane.Label == category.Label, "OPENAI_CATEGORY_SCOPE");
 
-        var scene = FindScene(lane, mature);
+        var scene = fixedScene ?? FindScene(lane, mature);
         var trigger = lane.Mode == "TRIGGER";
         var voice = trigger ? "ANY" : lane.Voice.Length > 0 ? lane.Voice : VoiceFor(lane, logicalBatch);
         var situation = scene?.Facts ?? CampaignSituation(lane, logicalBatch);
@@ -285,7 +293,7 @@ internal static class OpenAiCampaignPrompts
 
     internal static IReadOnlyList<CorpusQualityIssue> SceneIssues(OpenAiCampaignLane lane, V4GenerationRequest scope, IReadOnlyList<V4Entry> entries)
     {
-        var scene = FindScene(lane, scope.Style.MatureRequested);
+        var scene = lane.Register == null ? FindScene(lane, scope.Style.MatureRequested) : EditorialScene(lane, scope.Style.MatureRequested);
         var contradiction = scene?.Contradiction ?? EventContradictions.GetValueOrDefault(lane.Event);
         if (contradiction == null) return [];
         return entries.Select((entry, index) => (entry, index))
@@ -323,6 +331,7 @@ internal static class OpenAiCampaignPrompts
         V4Rules.SafeText(line);
         V4Rules.Require(line == line.Trim() && !Wrapper.IsMatch(line) && !line.Contains('{')
             && line.Any(letter => letter is >= 'а' and <= 'я' or >= 'А' and <= 'Я' or 'ё' or 'Ё'), "OPENAI_REPLICA_FORMAT");
+        V4Rules.Require(!PromptLeak.IsMatch(line), "OPENAI_REPLICA_PROMPT_LEAK");
         V4Rules.Require(scope.Mode == "TRIGGER" || V4Rules.OutboundLength(line), "OUTBOUND_MAX_100");
         var speech = CorpusQuality.MeasureSpeech([line]);
         V4Rules.Require(scope.Style.StrongProfanityRequested || speech.StrongIndicators + speech.MildIndicators == 0, "OPENAI_REPLICA_PROFANITY");

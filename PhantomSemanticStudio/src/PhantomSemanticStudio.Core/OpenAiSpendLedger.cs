@@ -4,7 +4,7 @@ using static PhantomSemanticStudio.Core.CorpusCampaignControl;
 
 namespace PhantomSemanticStudio.Core;
 
-internal sealed record OpenAiSpent(decimal Campaign = 0, decimal Daily = 0, decimal Monthly = 0, decimal Account = 0);
+internal sealed record OpenAiSpent(decimal Campaign = 0, decimal Daily = 0, decimal Monthly = 0, decimal Account = 0, long CampaignReservations = 0);
 
 /// <summary>A Windows user's shared OpenAI reservations, including unresolved requests from other Studio workspaces.</summary>
 internal sealed class OpenAiSpendLedger
@@ -70,12 +70,13 @@ internal sealed class OpenAiSpendLedger
         using var query = Sql(db, transaction, """
             SELECT coalesce(sum(CASE WHEN campaign=$campaign THEN debit ELSE 0 END),0),
                 coalesce(sum(CASE WHEN day=$day THEN debit ELSE 0 END),0),
-                coalesce(sum(CASE WHEN month=$month THEN debit ELSE 0 END),0),coalesce(sum(debit),0)
+                coalesce(sum(CASE WHEN month=$month THEN debit ELSE 0 END),0),coalesce(sum(debit),0),
+                count(CASE WHEN campaign=$campaign THEN 1 END)
             FROM (SELECT campaign,day,month,coalesce(cost,held) debit FROM reservations)
             """, ("$campaign", campaign), ("$day", Day(now)), ("$month", Month(now)));
         using var reader = query.ExecuteReader();
         reader.Read();
-        return new(Usd(reader.GetInt64(0)), Usd(reader.GetInt64(1)), Usd(reader.GetInt64(2)), Usd(reader.GetInt64(3)));
+        return new(Usd(reader.GetInt64(0)), Usd(reader.GetInt64(1)), Usd(reader.GetInt64(2)), Usd(reader.GetInt64(3)), reader.GetInt64(4));
     }
 
     internal bool Reserve(string campaign, OpenAiWork work, bool pilot, OpenAiBudget budget)

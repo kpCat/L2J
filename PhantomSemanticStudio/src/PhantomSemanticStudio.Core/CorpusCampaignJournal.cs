@@ -11,7 +11,7 @@ internal sealed record CorpusCampaignAcceptedRow(string TaskId, string RunId, st
 /// <summary>Short journal transactions and controls remain available while the worker owns workspace.lock.</summary>
 public static class CorpusCampaignControl
 {
-    internal static string PathFor(string root, string source, string id, string hash)
+    internal static string PathFor(string root, string source, string id, string hash, bool requestControl = false)
     {
         root = PathSafety.Canonical(root); source = PathSafety.RepositoryBoundary(PathSafety.Canonical(source));
         PathSafety.AssertDisjoint(source, root);
@@ -20,11 +20,17 @@ public static class CorpusCampaignControl
         var folder = "labs/prompt-lab/campaigns/" + id + "/";
         using var document = JsonDocument.Parse(V4Rules.ReadBytes(PathSafety.ResolveRelative(root, folder + "plan.json"), 32 * 1024 * 1024));
         var envelope = document.RootElement; V4Rules.JsonKeys(envelope, ["version", "kind", "sha256", "data"], []);
-        var data = JsonSerializer.SerializeToUtf8Bytes(envelope.GetProperty("data"), PromptProfiles.CompactJson);
+        var plan = envelope.GetProperty("data");
+        var kind = V4Rules.String(envelope, "kind");
+        var data = JsonSerializer.SerializeToUtf8Bytes(plan, PromptProfiles.CompactJson);
         V4Rules.Require(envelope.GetProperty("version").GetInt32() == 1
-            && V4Rules.String(envelope, "kind") is "CORPUS_CAMPAIGN_PLAN" or "CORPUS_CAMPAIGN_OPENAI_PLAN"
+            && kind is "CORPUS_CAMPAIGN_PLAN" or "CORPUS_CAMPAIGN_OPENAI_PLAN"
             && V4Rules.String(envelope, "sha256") == hash && V4Rules.Hash(data) == hash
-            && envelope.GetProperty("data").GetProperty("Id").GetString() == id, "CAMPAIGN_CONTROL_PLAN_DRIFT");
+            && plan.GetProperty("Id").GetString() == id, "CAMPAIGN_CONTROL_PLAN_DRIFT");
+        if (requestControl && kind == "CORPUS_CAMPAIGN_OPENAI_PLAN")
+            V4Rules.Require(plan.TryGetProperty("PromptStyleVersion", out var version) && version.TryGetInt32(out var value)
+                && value == OpenAiCampaignPrompts.EditorialVersion && V4Rules.String(plan, "PromptHash") == OpenAiCampaignPrompts.VersionHash,
+                "OPENAI_PLAN_CONTROL_READ_ONLY");
         return PathSafety.ResolveRelative(root, folder + "journal.sqlite");
     }
 
@@ -74,7 +80,7 @@ public static class CorpusCampaignControl
     public static CorpusCampaignStatus Request(string root, string source, string id, string expectedPlanHash, string command)
     {
         V4Rules.Require(command is "PAUSE" or "STOP", "CAMPAIGN_CONTROL_COMMAND");
-        var path = PathFor(root, source, id, expectedPlanHash); using (var db = Open(path, id, expectedPlanHash, true))
+        var path = PathFor(root, source, id, expectedPlanHash, requestControl: true); using (var db = Open(path, id, expectedPlanHash, true))
         { using var update = Sql(db, null, "UPDATE campaign SET desired=$command WHERE singleton=1", ("$command", command)); update.ExecuteNonQuery(); }
         return Status(root, source, id, expectedPlanHash);
     }
@@ -84,12 +90,15 @@ internal sealed partial class CorpusCampaignJournal
 {
     private readonly WorkspaceStore workspace;
     private readonly string id, hash, path;
-    public CorpusCampaignJournal(WorkspaceStore workspace, string id, string hash)
+    private readonly bool readOnly;
+    public CorpusCampaignJournal(WorkspaceStore workspace, string id, string hash, bool readOnly = false)
     {
         this.workspace = workspace; this.id = id; this.hash = hash;
+        this.readOnly = readOnly;
         path = CorpusCampaignControl.PathFor(workspace.Root, workspace.ProtectedRoot, id, hash);
         if (!File.Exists(path))
         {
+            V4Rules.Require(!readOnly, "OPENAI_HISTORICAL_JOURNAL_MISSING");
             var temporary = path + ".new-" + Guid.NewGuid().ToString("N");
             try
             {
@@ -114,7 +123,12 @@ internal sealed partial class CorpusCampaignJournal
         using var verified = Open(false);
     }
 
-    private SqliteConnection Open(bool write) { workspace.Check(); return CorpusCampaignControl.Open(path, id, hash, write); }
+    private SqliteConnection Open(bool write)
+    {
+        V4Rules.Require(!write || !readOnly, "OPENAI_HISTORICAL_READ_ONLY");
+        workspace.Check();
+        return CorpusCampaignControl.Open(path, id, hash, write);
+    }
     public CorpusCampaignStatus Status() => CorpusCampaignControl.Status(workspace.Root, workspace.ProtectedRoot, id, hash);
     public void Start(bool resume)
     {

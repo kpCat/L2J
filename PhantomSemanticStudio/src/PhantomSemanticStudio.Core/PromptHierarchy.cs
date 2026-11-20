@@ -142,12 +142,14 @@ public sealed class PromptHierarchy
         V4Rules.Require(V4Rules.OutboundLength(example.Reply), "HIERARCHY_EXAMPLE_OUTBOUND");
     }
 
-    public static string Compose(PromptFamilySnapshot snapshot)
+    public static string Compose(PromptFamilySnapshot snapshot) => ComposeComponents(snapshot, includeExamples: true);
+
+    internal static string ComposeComponents(PromptFamilySnapshot snapshot, bool includeExamples)
     {
         ValidateSnapshot(snapshot);
         var result = snapshot.CommonContract + "\n\n" + snapshot.ModeInstruction + "\n\nСЕМЕЙСТВО " + snapshot.FamilyId + "/" + snapshot.FamilyRevision + ":\n"
             + snapshot.FamilyInstruction + "\n\nКАТЕГОРИЯ " + snapshot.Category + ":\n" + snapshot.CategoryInstruction + "\n\n" + snapshot.StyleInstruction;
-        foreach (var example in snapshot.Examples) result += snapshot.Mode == "TRIGGER"
+        foreach (var example in includeExamples ? snapshot.Examples : []) result += snapshot.Mode == "TRIGGER"
             ? "\n\nПример входа игрока, не текст для копирования: " + example.User
             : "\n\nПример хода, не текст для копирования. Игрок: " + example.User + " Ответ: " + example.Reply;
         V4Rules.Require(V4Rules.Utf8.GetByteCount(result) <= 12 * 1024, "HIERARCHY_COMPOSED_BYTES"); return result;

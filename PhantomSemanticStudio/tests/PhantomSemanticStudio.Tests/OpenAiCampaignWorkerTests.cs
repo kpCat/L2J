@@ -70,9 +70,91 @@ internal static partial class Program
                 && style.Channel is "BOT_PRIVATE" or "TELL"), "Adult opt-in must remain private and scoped to a single scene pair");
             var optedIn = campaign.PrepareOpenAi(settings with { MatureOptIn = true }, 100_000);
             Equal(plan.Target, optedIn.Target);
-            var matureLane = optedIn.Lanes.Single(lane => lane.Id.EndsWith(".mature", StringComparison.Ordinal));
+            var matureLane = optedIn.Lanes.First(lane => lane.Id.EndsWith(".mature", StringComparison.Ordinal));
             var matureScope = OpenAiCampaignPrompts.Prepare(matureLane, 1, 1, TestModel, mature: true).Scope;
             True(matureScope.Style.MatureRequested && matureScope.Style.AdultsConsenting && matureScope.Style.Channel == "BOT_PRIVATE");
+            return Task.CompletedTask;
+        });
+
+        await TestAsync("OpenAI routes strong nonsexual speech and scales private mature quotas", () =>
+        {
+            using var fixture = new Fixture();
+            using var workspace = new WorkspaceStore(Path.Combine(fixture.Root, "editorial"), fixture.Module);
+            var campaign = new CorpusCampaign(new PromptLabStore(workspace));
+            var settings = WorkerOpenAiSettings() with { MatureOptIn = true };
+            var plan = campaign.PrepareOpenAi(settings, 100_000);
+            var adult = plan.Lanes.Where(lane => lane.Id.EndsWith(".mature", StringComparison.Ordinal)).ToArray();
+            var tradeStrong = plan.Lanes.Where(lane => lane.Category == "lineage.commerce.bargaining" && lane.Mode == "REPLY")
+                .Any(lane => OpenAiCampaignPrompts.Prepare(lane, 1, 1, TestModel, true).Scope.ProfanityLimit == "STRONG");
+            Assert(adult.Length >= 3 && adult.Sum(lane => lane.Target) > 20 && tradeStrong,
+                $"Expected multiple private adult categories and independent strong trade. Adult rows={adult.Sum(lane => lane.Target)}, trade STRONG={tradeStrong}.");
+            True(adult.Select(lane => lane.Category).Distinct().Count() >= 3);
+            True(adult.Select(lane => lane.AdultStyle).ToHashSet().IsSupersetOf(["vulgar_humor", "double_meanings", "adult_flirt", "intimate_conversation"]));
+            var tradeAdult = adult.Where(lane => lane.Category == "lineage.commerce.bargaining").ToArray();
+            Assert(tradeAdult.Length == 2, "Consenting fictional adults need distinct private trade innuendo and vulgar-humor lanes.");
+            foreach (var lane in tradeAdult)
+            {
+                var privateTrade = OpenAiCampaignPrompts.Prepare(lane, 1, 1, TestModel, true).Scope.Style;
+                True(privateTrade.Channel == "BOT_PRIVATE" && privateTrade.Relation == "TRUSTED" && privateTrade.AdultsConsenting
+                    && privateTrade.Situation.Contains("продавец") && privateTrade.Situation.Contains("покупатель"));
+                Throws(() => OpenAiCampaignPrompts.Prepare(lane, 1, 1, TestModel));
+            }
+            var publicTrade = plan.Lanes.Single(lane => lane.Category == "lineage.commerce.bargaining"
+                && lane.Mode == "REPLY" && lane.Register == "GENERAL");
+            var publicTradeScope = OpenAiCampaignPrompts.Prepare(publicTrade, 1, 1, TestModel, true).Scope.Style;
+            True(publicTradeScope.Channel == "TRADE" && !publicTradeScope.MatureRequested && !publicTradeScope.StrongProfanityRequested);
+            var mix = plan.EditorialQuota;
+            Equal(plan.Target, mix.General + mix.Strong + mix.Mature + mix.Triggers);
+            True(mix.Mature < plan.Target / 50);
+            Equal(0, campaign.PrepareOpenAi(settings with { MatureOptIn = false }, 100_000).EditorialQuota.Mature);
+            True(plan.Lanes.SequenceEqual(campaign.LoadOpenAi(plan.Id).Lanes));
+            Equal(3, plan.PromptStyleVersion);
+            Equal("89f2a28eca7c4beefec6f708a541bbda80244ca7ca521ce1a1ffb5865bdf93e0", OpenAiCampaignPrompts.LegacyVersionHash);
+            Equal("a93611b3498529bf7afa79f6d44b2486c8a4c34e95e2a164bf92fe7faf6140a0", plan.PromptHash);
+            True(plan.PromptHash != OpenAiCampaignPrompts.LegacyVersionHash);
+            var v2 = plan with { Id = Guid.NewGuid().ToString("N"), PromptStyleVersion = 2, PromptHash = OpenAiCampaignPrompts.LegacyVersionHash,
+                Lanes = OpenAiCampaignPrompts.PilotLanes(true), Pilot = true };
+            new PromptLabStore(workspace).SaveOpenAiPlan(v2);
+            True(campaign.LoadOpenAi(v2.Id).Historical);
+            Equal("HISTORICAL", campaign.OpenAiStatus(v2.Id).State);
+            Throws(() => campaign.CheckOpenAi(v2.Id, campaign.OpenAiHash(v2.Id)));
+            Throws(() => campaign.RequestOpenAiControl(v2.Id, "RUN"));
+
+            var pairs = OpenAiCampaignPrompts.EditorialComparison(TestModel).ToArray();
+            Equal(6, pairs.Length);
+            foreach (var (lane, baseline, candidate) in pairs)
+            {
+                Equal(baseline.Post.MaxOutput, candidate.Post.MaxOutput);
+                Equal(baseline.Scope.Style.Situation, candidate.Scope.Style.Situation);
+                True(baseline.Scope.Style.Dialogue.SequenceEqual(candidate.Scope.Style.Dialogue));
+                Equal(baseline.Scope.Style.Channel, candidate.Scope.Style.Channel);
+                Equal(baseline.Scope.Style.Voice, candidate.Scope.Style.Voice);
+                using var body = JsonDocument.Parse(candidate.Post.Body);
+                using var input = JsonDocument.Parse(body.RootElement.GetProperty("input").GetString()!);
+                Equal("PHANTOM", input.RootElement.GetProperty("NextSpeaker").GetString());
+                var system = body.RootElement.GetProperty("instructions").GetString()!;
+                True(system.Contains("кто владеет вещью") && system.Contains("кто дал команду") && system.Contains("кто упал"));
+                True(system.Contains(candidate.Scope.Style.StyleId) && system.Contains(lane.Voice) && !system.Contains("только JSON"));
+                if (lane.Register == "STRONG") True(!system.Contains("Мат: NONE") && system.Contains("Крепкий мат доступен"));
+                if (lane.Register == "MATURE")
+                {
+                    Equal("intimate_conversation", candidate.Scope.Style.StyleId);
+                    True(system.Contains("UNKNOWN/ANY") && !system.Contains("maturity=GENERAL"));
+                    Throws(() => OpenAiCampaignPrompts.Prepare(lane, 3, 1, TestModel));
+                    foreach (var bad in new[] { candidate.Scope.Style with { Channel = "ALL" },
+                        candidate.Scope.Style with { AdultsConsenting = false }, candidate.Scope.Style with { StyleId = "fabricated" } })
+                        Throws(() => PromptProfiles.Default.Validate(bad));
+                }
+            }
+            var ordinary = pairs.Single(pair => pair.Lane.Id.StartsWith("pilot-ordinary"));
+            Throws(() => OpenAiCampaignPrompts.CanonicalJsonl("NextSpeaker — игрок.\nТри слова.\nВот ещё слова.", ordinary.Lane, ordinary.Candidate.Scope));
+            Throws(() => OpenAiCampaignPrompts.Prepare(ordinary.Lane with { Voice = "fake" }, 3, 1, TestModel, true));
+            Throws(() => OpenAiCampaignPrompts.Prepare(ordinary.Lane with { Voice = "shy_observer" }, 3, 1, TestModel, true));
+            var trigger = plan.Lanes.First(lane => lane.Mode == "TRIGGER");
+            var preparedTrigger = OpenAiCampaignPrompts.Prepare(trigger, 1, 1, TestModel);
+            True(preparedTrigger.Scope.Style.Voice == "ANY" && !preparedTrigger.Scope.Style.MatureRequested
+                && !preparedTrigger.Scope.Style.StrongProfanityRequested);
+            Throws(() => OpenAiCampaignPrompts.Prepare(trigger with { Register = "MATURE" }, 1, 1, TestModel, true));
             return Task.CompletedTask;
         });
 

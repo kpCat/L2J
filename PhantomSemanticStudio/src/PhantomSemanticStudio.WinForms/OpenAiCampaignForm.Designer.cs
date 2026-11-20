@@ -547,7 +547,7 @@ partial class OpenAiCampaignForm
         chkDryRun.TabIndex = 0;
         chkMature.Name = "chkMature";
         chkMature.AutoSize = true;
-        chkMature.Text = "Включить категории для взрослых";
+        chkMature.Text = "OpenAI v3 · разрешить MATURE в приватных сценах";
         chkMature.TabIndex = 1;
         campaignModes.Controls.Add(chkDryRun);
         campaignModes.Controls.Add(chkMature);

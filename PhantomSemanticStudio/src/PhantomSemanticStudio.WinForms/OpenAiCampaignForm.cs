@@ -543,7 +543,8 @@ public partial class OpenAiCampaignForm : Form
         qualityAccepted = review.Accepted;
         RenderProgress(review.View, rebind: false);
         BindSamples(review.Rows, keep);
-        lblReviewStatus.Text = plan.Pilot
+        lblReviewStatus.Text = plan.Historical ? $"HISTORICAL · v2 · страница {page + 1}, строк: {sampleCount}."
+            : plan.Pilot
             ? $"Слепая оценка A/B. Сохранено оценок: {review.View.Totals.Reviewed} из {review.Rows.Count}."
             : $"Страница {page + 1}. Строк на странице: {sampleCount}. Одобрено в кампании: {review.View.Totals.Approved}.";
         await ShowSampleAsync(token);
@@ -658,6 +659,16 @@ public partial class OpenAiCampaignForm : Form
     private async void Export_Click(object? sender, EventArgs e)
     {
         if (!btnExport.Enabled || selectedPlan is not { } plan) return;
+        if (plan.Historical)
+        {
+            if (!Confirm("Сохранить исторические реплики и их метаданные для ручного просмотра?")) return;
+            await RunAsync(lblReviewStatus, async token =>
+            {
+                txtDetails.Text = await Task.Run(() => campaign!.ExportOpenAi(plan.Id, page, confirmed: true), token);
+                lblReviewStatus.Text = "Исторический JSON сохранён в частном workspace.";
+            });
+            return;
+        }
         if (plan.Pilot)
         {
             if (!Confirm("Открыть отчёт A/B и раскрыть в нём форматы после завершённого слепого ревью?")) return;
@@ -721,7 +732,7 @@ public partial class OpenAiCampaignForm : Form
         var hasKey = keySaved || txtKey.TextLength > 0;
         var sample = SelectedSample;
         var operating = runningId != null && runnerReady && !controlPending && !controlRequested && !closeRequested;
-        var mayRunPlan = idle && plan != null && view != null && MatchesPlan(plan) && SafeModelInput
+        var mayRunPlan = idle && plan is { Historical: false } && view != null && MatchesPlan(plan) && SafeModelInput
             && CanSpend(plan.Pilot) && (plan.Pilot || qualityAccepted);
         var editablePlan = idle && plan is { Pilot: false } && view?.State == "READY";
         settingsLayout.Enabled = idle;
@@ -730,7 +741,7 @@ public partial class OpenAiCampaignForm : Form
         cboHistory.Enabled = idle;
         gridPlan.ReadOnly = !editablePlan;
         gridSamples.Enabled = idle;
-        gradeLayout.Enabled = idle && sample != null;
+        gradeLayout.Enabled = idle && plan is { Historical: false } && sample != null;
         gradeChecks.Enabled = gradeLayout.Enabled;
         btnCheck.Enabled = idle && hasKey && SafeModelInput;
         btnSaveKey.Enabled = idle && vault != null && txtKey.TextLength > 0;
@@ -745,13 +756,13 @@ public partial class OpenAiCampaignForm : Form
         btnResults.Enabled = idle;
         btnPrevious.Enabled = idle && plan is { Pilot: false } && page > 0;
         btnNext.Enabled = idle && plan is { Pilot: false } && page < MaxPage && sampleCount == BulkPageSize;
-        btnSaveGrade.Enabled = idle && sample != null;
-        btnApproveProfile.Enabled = idle && plan is { Pilot: true } && reviewedPilotId == plan.Id
+        btnSaveGrade.Enabled = gradeLayout.Enabled;
+        btnApproveProfile.Enabled = idle && plan is { Pilot: true, Historical: false } && reviewedPilotId == plan.Id
             && view?.State == "CALIBRATION_COMPLETE";
-        btnApproveRow.Enabled = idle && plan is { Pilot: false } && sample is { State: "PENDING", Grade.Pass: true }
+        btnApproveRow.Enabled = idle && plan is { Pilot: false, Historical: false } && sample is { State: "PENDING", Grade.Pass: true }
             && sample.Grade == ReadGrade();
-        btnExport.Text = plan is { Pilot: true } ? "Отчёт A/B" : "Экспорт для ревью";
-        btnExport.Enabled = idle && plan != null && view != null && (plan.Pilot
+        btnExport.Text = plan is { Pilot: true, Historical: false } ? "Отчёт A/B" : "Экспорт для ревью";
+        btnExport.Enabled = idle && plan != null && view != null && (plan.Historical ? sampleCount > 0 : plan.Pilot
             ? view.State == "CALIBRATION_COMPLETE" && view.Totals.Reviewed >= 30
             : view.Totals.Approved > (long)page * BulkPageSize);
     }
@@ -798,14 +809,23 @@ public partial class OpenAiCampaignForm : Form
             : $"Логическая партия {OpenAiCampaignPlan.BatchSize} · запросы {division} × {plan?.Settings.Microbatch ?? 20}"
                 + (tail > 0 ? $" + {tail}" : "") + " · 24 голоса V4.";
         var percent = plan?.Target > 0 ? 100m * totals.Unique / plan.Target : 0m;
+        var profile = plan is { Historical: true } ? "Архив промптов v2 · просмотр и экспорт."
+            : plan == null ? "" : $"Речевая политика OpenAI v{plan.PromptStyleVersion} · "
+                + (plan.Settings.MatureOptIn ? "MATURE включён." : "MATURE выключен.");
         lblCampaignStatus.Text = $"{kind} · {PresentState(view.State)}{batch}\r\n"
-            + structure + "\r\n"
+            + profile + "\r\n" + structure + "\r\n"
             + $"Цель {plan?.Target:N0} ({percent:F1}%) · Запросы {totals.Requests:N0} · Получено {totals.Generated:N0} · "
             + $"Валидно {totals.Valid:N0} · Уникально {totals.Unique:N0} · Проверено {totals.Reviewed:N0} · "
             + $"Одобрено {totals.Approved:N0} · Завершено партий {totals.CompletedBatches:N0}\r\n"
             + $"По токенам {totals.CostUsd:N6} USD · Зарезервировано {totals.HeldUsd:N6} USD · "
             + $"Доступно в Studio {view.LocalAvailableUsd:N4} USD · Прогноз {forecast}.";
-        if (plan is { Pilot: false } && !qualityAccepted)
+        if (plan is { Historical: false })
+        {
+            var mix = plan.EditorialQuota;
+            lblCampaignStatus.Text += $"\r\nКвоты фантома · GENERAL {mix.General:N0}, STRONG {mix.Strong:N0}, MATURE {mix.Mature:N0}. "
+                + $"Входы игрока (TRIGGER) {mix.Triggers:N0}.";
+        }
+        if (plan is { Pilot: false, Historical: false } && !qualityAccepted)
             lblCampaignStatus.Text += "\r\nПлатный запуск требует принятого профиля для этой стратегии.";
     }
 
