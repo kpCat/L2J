@@ -5248,6 +5248,15 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 	 */
 	public static void addExpAndSp(Player player, long exp, int sp)
 	{
+		addExpAndSp(player, exp, sp, 0);
+	}
+
+	/**
+	 * Awards a quest-specific SP bonus after native quest rates and rounding.
+	 * @param spBonusPercent extra percent of the integer native SP award
+	 */
+	protected static void addExpAndSp(Player player, long exp, int sp, int spBonusPercent)
+	{
 		long addExp = exp;
 		int addSp = sp;
 		
@@ -5258,8 +5267,19 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 			addSp *= PremiumSystemConfig.PREMIUM_RATE_QUEST_SP;
 		}
 		
-		player.addExpAndSp((long) player.calcStat(Stat.EXPSP_RATE, addExp * RatesConfig.RATE_QUEST_REWARD_XP, null, null), (int) player.calcStat(Stat.EXPSP_RATE, addSp * RatesConfig.RATE_QUEST_REWARD_SP, null, null));
+		final long ratedExp = (long) player.calcStat(Stat.EXPSP_RATE, addExp * RatesConfig.RATE_QUEST_REWARD_XP, null, null);
+		final int ratedSp = (int) player.calcStat(Stat.EXPSP_RATE, addSp * RatesConfig.RATE_QUEST_REWARD_SP, null, null);
+		player.addExpAndSp(ratedExp, applyQuestSpBonus(ratedSp, spBonusPercent));
 		PcCafePointsManager.getInstance().givePcCafePoint(player, (long) (addExp * RatesConfig.RATE_QUEST_REWARD_XP));
+	}
+
+	static int applyQuestSpBonus(int ratedSp, int spBonusPercent)
+	{
+		if ((ratedSp <= 0) || (spBonusPercent <= 0))
+		{
+			return ratedSp;
+		}
+		return (int) Math.min(Integer.MAX_VALUE, ratedSp + ((long) ratedSp * spBonusPercent / 100));
 	}
 	
 	/**

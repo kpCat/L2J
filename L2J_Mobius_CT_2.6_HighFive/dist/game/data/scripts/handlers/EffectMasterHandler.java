@@ -168,6 +168,7 @@ public class EffectMasterHandler
 		SoulBlow.class,
 		SoulEating.class,
 		Sow.class,
+		SpiritSharing.class,
 		Spoil.class,
 		StaticDamage.class,
 		StealAbnormal.class,

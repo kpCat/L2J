@@ -52,12 +52,12 @@ public class OpenChest extends AbstractEffect
 		
 		final Player player = effector.asPlayer();
 		final Chest chest = (Chest) effected;
-		if (chest.isDead() || (player.getInstanceId() != chest.getInstanceId()))
+		if ((player == null) || chest.isDead() || (player.getInstanceId() != chest.getInstanceId()))
 		{
 			return;
 		}
 		
-		if (((player.getLevel() <= 77) && (Math.abs(chest.getLevel() - player.getLevel()) <= 6)) || ((player.getLevel() >= 78) && (Math.abs(chest.getLevel() - player.getLevel()) <= 5)))
+		if (Chest.canOpenAtLevels(player.getLevel(), chest.getLevel()))
 		{
 			player.broadcastSocialAction(3);
 			chest.setSpecialDrop();

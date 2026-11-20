@@ -47,6 +47,7 @@ public class NpcConfig
 	public static boolean ALT_GAME_VIEWNPC;
 	public static boolean SHOW_NPC_LEVEL;
 	public static boolean SHOW_NPC_AGGRESSION;
+	public static boolean ALLOW_OPENING_LOWER_LEVEL_CHESTS;
 	public static boolean ATTACKABLES_CAMP_PLAYER_CORPSES;
 	public static boolean SHOW_CREST_WITHOUT_QUEST;
 	public static boolean ENABLE_RANDOM_ENCHANT_EFFECT;
@@ -100,6 +101,7 @@ public class NpcConfig
 		ALT_GAME_VIEWNPC = config.getBoolean("AltGameViewNpc", false);
 		SHOW_NPC_LEVEL = config.getBoolean("ShowNpcLevel", false);
 		SHOW_NPC_AGGRESSION = config.getBoolean("ShowNpcAggression", false);
+		ALLOW_OPENING_LOWER_LEVEL_CHESTS = config.getBoolean("AllowOpeningLowerLevelChests", false);
 		ATTACKABLES_CAMP_PLAYER_CORPSES = config.getBoolean("AttackablesCampPlayerCorpses", false);
 		SHOW_CREST_WITHOUT_QUEST = config.getBoolean("ShowCrestWithoutQuest", false);
 		ENABLE_RANDOM_ENCHANT_EFFECT = config.getBoolean("EnableRandomEnchantEffect", false);

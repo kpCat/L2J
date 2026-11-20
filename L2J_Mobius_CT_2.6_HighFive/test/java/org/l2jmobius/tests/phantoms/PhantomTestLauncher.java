@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceMembershipProofGoal027ESuite;
 import org.l2jmobius.gameserver.model.clan.ClanSocialDomainGoal027CSuite;
 import org.l2jmobius.gameserver.model.clan.ClanSocialRetirementGoal027DSuite;
+import org.l2jmobius.gameserver.model.script.PhantomQolQuick001Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomDeterministicDecisionReplayGoal028Checkpoint5Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite;
 import org.l2jmobius.gameserver.phantoms.PhantomEconomicAuditGoal028Checkpoint4Suite.Mode;
@@ -507,6 +508,7 @@ public final class PhantomTestLauncher
 			case "economy-checkpoint2-performance" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PERFORMANCE);
 			case "post001-enchant-cost" -> new PhantomPost001EnchantCostSuite();
 			case "owner-world075" -> new PhantomOwnerWorld075Suite();
+			case "qol-quick-001" -> new PhantomQolQuick001Suite();
 			case "post001-market-quote" -> new PhantomPost001MarketQuoteSuite();
 			case "champion068-policy" -> new ChampionMonsters068PolicySuite();
 			case "economy068-pricing" -> new PhantomEconomy068PricingSuite();

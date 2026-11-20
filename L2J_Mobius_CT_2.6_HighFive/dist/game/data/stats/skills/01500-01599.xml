@@ -2222,7 +2222,7 @@
 		<mpInitialConsume>#mpInitialConsume</mpInitialConsume>
 		<reuseDelay>2000</reuseDelay>
 		<effects>
-			<effect name="Buff">
+			<effect name="SpiritSharing">
 				<mul stat="pAtk">#amount</mul>
 				<mul stat="pAtkSpd">#pAtkSpd</mul>
 				<mul stat="mAtk">#amount</mul>

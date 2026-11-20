@@ -103,7 +103,7 @@ public class SkillList implements IBypassHandler
 									continue;
 								}
 								
-								if (SkillTreeData.getInstance().getAvailableSkills(player, cid, false, false).isEmpty())
+								if (SkillTreeData.getInstance().getAvailableClassSkills(player, target.asNpc(), cid).isEmpty())
 								{
 									continue;
 								}

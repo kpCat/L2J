@@ -97,15 +97,19 @@ public class Q00298_LizardmensConspiracy extends Quest
 			}
 			case "30344-06.html":
 			{
-				if (qs.isCond(3))
+				synchronized (qs)
 				{
-					addExpAndSp(player, 0, 42000);
-					qs.exitQuest(true, true);
-					htmltext = event;
-				}
-				else
-				{
-					htmltext = "30344-07.html";
+					if ((npc != null) && (npc.getId() == MAGISTER_ROHMER) && (getQuestState(player, false) == qs) && qs.isCond(3) //
+						&& (getQuestItemsCount(player, SHINING_GEM) >= 50) && (getQuestItemsCount(player, SHINING_RED_GEM) >= 50))
+					{
+						addExpAndSp(player, 0, 42000, player.getLevel());
+						qs.exitQuest(true, true);
+						htmltext = event;
+					}
+					else
+					{
+						htmltext = "30344-07.html";
+					}
 				}
 				break;
 			}

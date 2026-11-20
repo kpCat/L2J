@@ -16,6 +16,7 @@
  */
 package org.l2jmobius.gameserver.model.actor.instance;
 
+import org.l2jmobius.gameserver.config.NpcConfig;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.enums.creature.InstanceType;
@@ -28,6 +29,12 @@ import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 public class Chest extends Monster
 {
 	private volatile boolean _specialDrop;
+
+	public static boolean canOpenAtLevels(int playerLevel, int chestLevel)
+	{
+		final int gap = chestLevel - playerLevel;
+		return (NpcConfig.ALLOW_OPENING_LOWER_LEVEL_CHESTS && (gap < 0)) || (Math.abs(gap) <= (playerLevel <= 77 ? 6 : 5));
+	}
 	
 	/**
 	 * Creates a chest.

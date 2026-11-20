@@ -40,11 +40,13 @@ import org.w3c.dom.Node;
 import org.l2jmobius.commons.util.IXmlReader;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.model.StatSet;
+import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Race;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.enums.player.SocialClass;
 import org.l2jmobius.gameserver.model.actor.holders.player.SubClassHolder;
+import org.l2jmobius.gameserver.model.actor.instance.Folk;
 import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.model.item.holders.ItemHolder;
 import org.l2jmobius.gameserver.model.skill.CommonSkill;
@@ -53,6 +55,8 @@ import org.l2jmobius.gameserver.model.skill.enums.AcquireSkillType;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn.SubClassData;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 import org.l2jmobius.gameserver.qol.PersonalEffectMusicClassifier;
 
@@ -79,6 +83,8 @@ import org.l2jmobius.gameserver.qol.PersonalEffectMusicClassifier;
  */
 public class SkillTreeData implements IXmlReader
 {
+	private static final int DWARVEN_CRAFT_SKILL_ID = 1321;
+
 	// ClassId, Map of Skill Hash Code, SkillLearn
 	private final Map<PlayerClass, Map<Integer, SkillLearn>> _classSkillTrees = new ConcurrentHashMap<>();
 	private final Map<PlayerClass, Map<Integer, SkillLearn>> _completeClassSkillTree = new HashMap<>();
@@ -537,6 +543,44 @@ public class SkillTreeData implements IXmlReader
 	{
 		return getAvailableSkills(player, playerClass, includeByFs, includeAutoGet, true, player.getSkills());
 	}
+
+	public List<SkillLearn> getAvailableClassSkills(Player player, Npc trainer, PlayerClass learningClass)
+	{
+		final List<SkillLearn> skills = getAvailableSkills(player, learningClass, false, false);
+		final SkillLearn dwarvenCraft = getPersonalDwarvenCraft(player, trainer, learningClass);
+		if (dwarvenCraft != null)
+		{
+			skills.add(dwarvenCraft);
+		}
+		return skills;
+	}
+
+	public boolean canLearnAlternativeClassSkill(Player player, Npc trainer, PlayerClass learningClass, SkillLearn skill)
+	{
+		if (skill.getSkillId() == DWARVEN_CRAFT_SKILL_ID)
+		{
+			return skill == getPersonalDwarvenCraft(player, trainer, learningClass);
+		}
+		return skill.isLearnedByNpc() && !skill.isAutoGet() && !skill.isLearnedByFS() && getAvailableSkills(player, learningClass, false, false).contains(skill);
+	}
+
+	private SkillLearn getPersonalDwarvenCraft(Player player, Npc trainer, PlayerClass learningClass)
+	{
+		if (player.getPlayerClass().equalsOrChildOf(PlayerClass.DWARVEN_FIGHTER) || (learningClass == null) || !learningClass.equalsOrChildOf(PlayerClass.DWARVEN_FIGHTER) //
+			|| (learningClass.level() > player.getPlayerClass().level()) || !(trainer instanceof Folk) || !trainer.getTemplate().canTeach(learningClass) //
+			|| !isPersonalDwarvenCraftEnabled(player) || (player.getSkillLevel(DWARVEN_CRAFT_SKILL_ID) > 0))
+		{
+			return null;
+		}
+		final SkillLearn skill = getClassSkill(DWARVEN_CRAFT_SKILL_ID, 1, learningClass);
+		return ((skill != null) && (player.getLevel() >= skill.getGetLevel())) ? skill : null;
+	}
+
+	private boolean isPersonalDwarvenCraftEnabled(Player player)
+	{
+		final OwnerKind owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId());
+		return (owner != OwnerKind.PHANTOM) && (owner != OwnerKind.BACKGROUND) && PersonalCharacterQoLService.getInstance().isCrossClassSkillsEnabled(player);
+	}
 	
 	/**
 	 * Gets the available skills.
@@ -977,7 +1021,15 @@ public class SkillTreeData implements IXmlReader
 		{
 			case CLASS:
 			{
-				sl = getClassSkill(id, lvl, player.getLearningClass());
+				final PlayerClass learningClass = player.getLearningClass();
+				if ((id == DWARVEN_CRAFT_SKILL_ID) && !player.getPlayerClass().equalsOrChildOf(PlayerClass.DWARVEN_FIGHTER))
+				{
+					sl = lvl == 1 ? getPersonalDwarvenCraft(player, player.getLastFolkNPC(), learningClass) : null;
+				}
+				else
+				{
+					sl = getClassSkill(id, lvl, learningClass);
+				}
 				break;
 			}
 			case TRANSFORM:
@@ -1379,6 +1431,14 @@ public class SkillTreeData implements IXmlReader
 		}
 
 		final Integer minimumClassLevel = _personalNpcClassSkillMinLevels.get(hashCode);
+		if ((skill.getId() == DWARVEN_CRAFT_SKILL_ID) && (skill.getLevel() == 1) && isPersonalDwarvenCraftEnabled(player))
+		{
+			final SkillLearn dwarvenCraft = getClassSkill(DWARVEN_CRAFT_SKILL_ID, 1, PlayerClass.DWARVEN_FIGHTER);
+			if ((dwarvenCraft != null) && (player.getLevel() >= dwarvenCraft.getGetLevel()))
+			{
+				return true;
+			}
+		}
 		if ((minimumClassLevel != null) && (minimumClassLevel <= player.getPlayerClass().level()) && PersonalCharacterQoLService.getInstance().isCrossClassSkillsEnabled(player))
 		{
 			return true;

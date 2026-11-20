@@ -439,7 +439,7 @@ public class RequestAcquireSkill extends ClientPacket
 					return false;
 				}
 				alternativeClassLearning = personalService.usesAlternativeSkillPrice(player, trainer, learningClass);
-				if (!PlayerConfig.ALT_GAME_SKILL_LEARN && alternativeClassLearning && (!skillLearn.isLearnedByNpc() || skillLearn.isAutoGet() || skillLearn.isLearnedByFS() || !SkillTreeData.getInstance().getAvailableSkills(player, learningClass, false, false).contains(skillLearn)))
+				if (!PlayerConfig.ALT_GAME_SKILL_LEARN && alternativeClassLearning && !SkillTreeData.getInstance().canLearnAlternativeClassSkill(player, trainer, learningClass, skillLearn))
 				{
 					return false;
 				}

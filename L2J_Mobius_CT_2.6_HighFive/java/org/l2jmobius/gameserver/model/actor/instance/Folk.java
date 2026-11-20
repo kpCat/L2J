@@ -142,8 +142,7 @@ public class Folk extends Npc
 			return;
 		}
 		
-		// Normal skills, No LearnedByFS, no AutoGet skills.
-		final List<SkillLearn> skills = SkillTreeData.getInstance().getAvailableSkills(player, playerClass, false, false);
+		final List<SkillLearn> skills = SkillTreeData.getInstance().getAvailableClassSkills(player, npc, playerClass);
 		final AcquireSkillList asl = new AcquireSkillList(AcquireSkillType.CLASS);
 		int count = 0;
 		player.setLearningClass(playerClass);
