@@ -24,7 +24,9 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.holders.player.Duel;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.stats.Stat;
+import org.l2jmobius.gameserver.qol.PersonalSummonerBuffService;
 import org.l2jmobius.gameserver.util.LocationUtil;
 
 public class SummonStatus extends PlayableStatus
@@ -56,6 +58,16 @@ public class SummonStatus extends PlayableStatus
 		}
 		
 		double value = amount;
+		if (!isHPConsumption && (attacker != summon) && (!summon.isInvul() || isDOT)
+			&& ((attackerPlayer == null) || !attackerPlayer.isGM() || attackerPlayer.getAccessLevel().canGiveDamage()))
+		{
+			value = applyMirroredManaShield(summon, amount);
+			if ((amount > 0) && (value == 0))
+			{
+				super.reduceHp(0, attacker, awake, isDOT, isHPConsumption);
+				return;
+			}
+		}
 		final Player caster = summon.getTransferingDamageTo();
 		if (summon.getOwner().getParty() != null)
 		{
@@ -118,6 +130,36 @@ public class SummonStatus extends PlayableStatus
 		}
 		
 		super.reduceHp(value, attacker, awake, isDOT, isHPConsumption);
+	}
+
+	private double applyMirroredManaShield(Summon summon, double amount)
+	{
+		synchronized (summon)
+		{
+			final BuffInfo shield = summon.getEffectList().getBuffInfoBySkillId(1556);
+			if ((shield == null) || !shield.isInUse() || (shield.getMirrorSource() == null) || !PersonalSummonerBuffService.sourceIsCurrent(shield.getMirrorSource(), summon))
+			{
+				return amount;
+			}
+			final int prevented = getManaShieldDamageReduction(amount);
+			if (prevented <= 0)
+			{
+				return amount;
+			}
+			final int mpDamage = (int) (amount - prevented);
+			final double currentMp = getCurrentMp();
+			if (mpDamage <= currentMp)
+			{
+				summon.reduceCurrentMp(mpDamage);
+				return 0;
+			}
+			if (PersonalSummonerBuffService.consumeMirror(summon, shield))
+			{
+				summon.setCurrentMp(0);
+				return mpDamage - currentMp;
+			}
+			return amount;
+		}
 	}
 	
 	@Override

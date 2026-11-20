@@ -16,6 +16,7 @@
  */
 package handlers.skill.effects;
 
+import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.World;
@@ -23,7 +24,9 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.conditions.Condition;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.qol.PersonalSummonerBuffService;
 
 /**
  * Hide effect implementation.
@@ -41,29 +44,55 @@ public class Hide extends AbstractEffect
 	{
 		if (effected.isPlayer())
 		{
-			final Player player = effected.asPlayer();
-			player.setInvisible(true);
-			
-			if ((player.getAI().getNextIntention() != null) && (player.getAI().getNextIntention().getIntention() == Intention.ATTACK))
-			{
-				player.getAI().setIntention(Intention.IDLE);
-			}
-			
-			World.getInstance().forEachVisibleObject(player, Creature.class, target ->
-			{
-				if ((target != null) && (target.getTarget() == player))
-				{
-					if (target.isAttackable())
-					{
-						target.asAttackable().clearAggroList();
-					}
-					target.setTarget(null);
-					target.abortAttack();
-					target.abortCast();
-					target.getAI().setIntention(Intention.IDLE);
-				}
-			});
+			startHide(effected);
 		}
+	}
+
+	@Override
+	public void onSummonMirrorStart(BuffInfo mirror)
+	{
+		mirror.getEffected().setInvisible(true);
+		ThreadPool.execute(() ->
+		{
+			if (PersonalSummonerBuffService.isCurrentMirror(mirror))
+			{
+				clearTargets(mirror.getEffected());
+			}
+		});
+	}
+
+	private void startHide(Creature effected)
+	{
+		effected.setInvisible(true);
+		clearTargets(effected);
+	}
+
+	private void clearTargets(Creature effected)
+	{
+		if ((effected.getAI().getNextIntention() != null) && (effected.getAI().getNextIntention().getIntention() == Intention.ATTACK))
+		{
+			effected.getAI().setIntention(Intention.IDLE);
+		}
+		World.getInstance().forEachVisibleObject(effected, Creature.class, target ->
+		{
+			if ((target != null) && (target.getTarget() == effected))
+			{
+				if (target.isAttackable())
+				{
+					target.asAttackable().clearAggroList();
+				}
+				target.setTarget(null);
+				target.abortAttack();
+				target.abortCast();
+				target.getAI().setIntention(Intention.IDLE);
+			}
+		});
+	}
+
+	@Override
+	public void onSummonMirrorExit(BuffInfo mirror)
+	{
+		mirror.getEffected().setInvisible(false);
 	}
 	
 	@Override

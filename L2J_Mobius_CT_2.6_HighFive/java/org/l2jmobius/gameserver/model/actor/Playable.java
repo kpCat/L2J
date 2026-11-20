@@ -130,6 +130,12 @@ public abstract class Playable extends Creature
 		getStatus().stopHpMpRegeneration();
 		
 		boolean deleteBuffs = true;
+		if (this instanceof Summon summon)
+		{
+			final boolean resurrect = summon.prepareMirroredResurrection();
+			final boolean preserve = summon.consumeMirroredNoblesse();
+			deleteBuffs = !resurrect && !preserve;
+		}
 		if (isNoblesseBlessedAffected())
 		{
 			stopEffects(EffectType.NOBLESSE_BLESSING);

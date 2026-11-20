@@ -20,8 +20,8 @@
  */
 package org.l2jmobius.gameserver.model.actor.holders.creature;
 
+import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,9 +37,11 @@ import java.util.logging.Logger;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.PlayerConfig;
+import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
+import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.effects.EffectFlag;
 import org.l2jmobius.gameserver.model.effects.EffectType;
@@ -54,6 +56,7 @@ import org.l2jmobius.gameserver.network.serverpackets.AbnormalStatusUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.ExOlympiadSpelledInfo;
 import org.l2jmobius.gameserver.network.serverpackets.PartySpelled;
 import org.l2jmobius.gameserver.network.serverpackets.ShortBuffStatusUpdate;
+import org.l2jmobius.gameserver.qol.PersonalSummonerBuffService;
 
 /**
  * Effect lists.<br>
@@ -81,7 +84,7 @@ public class EffectList
 	/** Map containing the all stacked effect in progress for each abnormal type. */
 	private final Map<AbnormalType, BuffInfo> _stackedEffects = new ConcurrentHashMap<>();
 	/** Set containing all {@code AbnormalType}s that shouldn't be added to this creature effect list. */
-	private final Set<AbnormalType> _blockedAbnormalTypes = EnumSet.noneOf(AbnormalType.class);
+	private final Map<AbnormalType, Integer> _blockedAbnormalTypes = new ConcurrentHashMap<>();
 	/** Short buff skill ID. */
 	private BuffInfo _shortBuff = null;
 	/** If {@code true} this effect list has buffs removed on any action. */
@@ -457,7 +460,10 @@ public class EffectList
 	 */
 	public void addBlockedAbnormalTypes(Set<AbnormalType> blockedAbnormalTypes)
 	{
-		_blockedAbnormalTypes.addAll(blockedAbnormalTypes);
+		for (AbnormalType type : blockedAbnormalTypes)
+		{
+			_blockedAbnormalTypes.merge(type, 1, Integer::sum);
+		}
 	}
 	
 	/**
@@ -467,7 +473,20 @@ public class EffectList
 	 */
 	public boolean removeBlockedAbnormalTypes(Set<AbnormalType> blockedBuffSlots)
 	{
-		return _blockedAbnormalTypes.removeAll(blockedBuffSlots);
+		final boolean[] removed = { false };
+		for (AbnormalType type : blockedBuffSlots)
+		{
+			_blockedAbnormalTypes.computeIfPresent(type, (slot, count) ->
+			{
+				if (count == 1)
+				{
+					removed[0] = true;
+					return null;
+				}
+				return count - 1;
+			});
+		}
+		return removed[0];
 	}
 	
 	/**
@@ -476,7 +495,7 @@ public class EffectList
 	 */
 	public Set<AbnormalType> getBlockedAbnormalTypes()
 	{
-		return Collections.unmodifiableSet(_blockedAbnormalTypes);
+		return Collections.unmodifiableSet(_blockedAbnormalTypes.keySet());
 	}
 	
 	/**
@@ -610,9 +629,72 @@ public class EffectList
 
 	private void stopAndRemoveNative(boolean broadcast, SkillFinishType type, BuffInfo info, Queue<BuffInfo> buffs)
 	{
+		if (info.expiresByIdentity())
+		{
+			stopTrackedSource(broadcast, type, info, buffs);
+			return;
+		}
+		if (info.getMirrorSource() == null)
+		{
+			stopCommittedEffect(broadcast, type, info, buffs);
+			PersonalSummonerBuffService.ownerBuffRemoved(info);
+		}
+		else
+		{
+			synchronized (stackingLock())
+			{
+				if (buffs.contains(info))
+				{
+					stopCommittedEffect(broadcast, type, info, buffs);
+				}
+			}
+		}
+	}
+
+	private Object stackingLock()
+	{
+		// Summons can already hold their actor monitor while dismissing or updating stats.
+		return _owner instanceof Summon ? _owner : this;
+	}
+
+	private boolean stopTrackedSource(boolean broadcast, SkillFinishType type, BuffInfo info, Queue<BuffInfo> buffs)
+	{
+		final boolean insideStackingChange = Thread.holdsLock(this);
+		synchronized (this)
+		{
+			if (!stopCommittedEffect(broadcast, type, info, buffs))
+			{
+				return false;
+			}
+			PersonalSummonerBuffService.ownerBuffRemoved(info);
+		}
+		if (!insideStackingChange)
+		{
+			synchronizeResumedOwnerBuff(info);
+		}
+		return true;
+	}
+
+	private void synchronizeResumedOwnerBuff(BuffInfo removed)
+	{
+		if ((_owner instanceof Player) && removed.getSkill().isAbnormalInstant() && !Thread.holdsLock(this))
+		{
+			final BuffInfo resumed = _stackedEffects.get(removed.getSkill().getAbnormalType());
+			if (resumed != null)
+			{
+				PersonalSummonerBuffService.ownerBuffAdded(resumed, null);
+			}
+		}
+	}
+
+	private boolean stopCommittedEffect(boolean broadcast, SkillFinishType type, BuffInfo info, Queue<BuffInfo> buffs)
+	{
 		
 		// Removes the buff from the given effect list.
-		buffs.remove(info);
+		if (!buffs.remove(info) && info.expiresByIdentity())
+		{
+			return false;
+		}
 		
 		// Stop the buff effects.
 		info.stopAllEffects(type, broadcast);
@@ -621,6 +703,10 @@ public class EffectList
 		if (!info.isInUse())
 		{
 			_hiddenBuffs.decrementAndGet();
+		}
+		else if ((info.getMirrorSource() != null) || info.expiresByIdentity())
+		{
+			_stackedEffects.remove(info.getSkill().getAbnormalType(), info);
 		}
 		else // Removes the buff from the stack.
 		{
@@ -645,15 +731,21 @@ public class EffectList
 					
 					// If it's a hidden buff that gets activated, then decrease hidden buff count.
 					_hiddenBuffs.decrementAndGet();
+					// Under the stacking lock an incoming effect will hide or replace it again.
+					if ((_owner instanceof Player) && !Thread.holdsLock(this))
+					{
+						PersonalSummonerBuffService.ownerBuffAdded(buff, null);
+					}
 					break;
 				}
 			}
 		}
 		
-		if (type != SkillFinishType.REMOVED)
+		if ((type != SkillFinishType.REMOVED) && (info.getMirrorSource() == null))
 		{
 			info.getSkill().applyEffectScope(EffectScope.END, info, true, false);
 		}
+		return true;
 	}
 	
 	/**
@@ -1107,7 +1199,31 @@ public class EffectList
 			final boolean[] removed = { false };
 			old.runNative("EFFECT_REMOVE_ABNORMAL", () ->
 			{
-				if (_stackedEffects.remove(abnormalType, old))
+				if ((old.getMirrorSource() != null) || old.expiresByIdentity())
+				{
+					synchronized (stackingLock())
+					{
+						if (_stackedEffects.get(abnormalType) == old)
+						{
+							final Queue<BuffInfo> effects = getEffectList(old.getSkill());
+							if (old.expiresByIdentity())
+							{
+								removed[0] = stopTrackedSource(true, removeType, old, effects);
+							}
+							else
+							{
+								stopAndRemove(true, removeType, old, effects);
+								removed[0] = true;
+							}
+						}
+					}
+					if (removed[0])
+					{
+						updateEffectList(true);
+						synchronizeResumedOwnerBuff(old);
+					}
+				}
+				else if (_stackedEffects.remove(abnormalType, old))
 				{
 					stopSkillEffects(removeType, old.getSkill());
 					removed[0] = true;
@@ -1434,9 +1550,18 @@ public class EffectList
 
 	private void removeNative(SkillFinishType type, BuffInfo info)
 	{
-		
-		// Remove the effect from creature effects.
-		stopAndRemove(true, type, info, getEffectList(info.getSkill()));
+		final Queue<BuffInfo> effects = getEffectList(info.getSkill());
+		if (info.expiresByIdentity())
+		{
+			if (!stopTrackedSource(true, type, info, effects))
+			{
+				return;
+			}
+		}
+		else
+		{
+			stopAndRemove(true, type, info, effects);
+		}
 		
 		// Update effect flags and icons.
 		updateEffectList(true);
@@ -1448,20 +1573,50 @@ public class EffectList
 	 */
 	public void add(BuffInfo info)
 	{
+		add(info, null);
+	}
+
+	public boolean contains(BuffInfo info)
+	{
+		return getEffectList(info.getSkill()).contains(info);
+	}
+
+	public void add(BuffInfo info, Collection<WorldObject> nativeTargets)
+	{
 		if (info == null)
 		{
 			return;
 		}
-		info.runNative("EFFECT_LIST_ADD", () -> addNative(info));
+		info.runNative("EFFECT_LIST_ADD", () ->
+		{
+			if ((_owner instanceof Summon summon) && info.getSkill().getAbnormalType().isNone())
+			{
+				// A slotless native effect and its mirror must agree on the exact skill ID.
+				synchronized (summon)
+				{
+					addNative(info, nativeTargets);
+				}
+			}
+			else
+			{
+				addNative(info, nativeTargets);
+			}
+		});
 	}
 
-	private void addNative(BuffInfo info)
+	private void addNative(BuffInfo info, Collection<WorldObject> nativeTargets)
 	{
 		
 		// Support for blocked buff slots.
 		final Skill skill = info.getSkill();
-		if (_blockedAbnormalTypes.contains(skill.getAbnormalType()))
+		if (_blockedAbnormalTypes.containsKey(skill.getAbnormalType()))
 		{
+			return;
+		}
+
+		if (info.getMirrorSource() != null)
+		{
+			addSummonMirror(info);
 			return;
 		}
 		
@@ -1504,6 +1659,10 @@ public class EffectList
 		{
 			return;
 		}
+		if ((_owner == info.getEffected()) && PersonalSummonerBuffService.isPersonalSummonerSource(info))
+		{
+			info.markPersonalSummonerSource();
+		}
 		
 		// The old effect is removed using Map#remove(key) instead of Map#put(key, value) (that would be the wisest choice),
 		// Because order matters and put method would insert in the same place it was before, instead of, at the end of the effect list
@@ -1514,14 +1673,19 @@ public class EffectList
 		}
 		else // Verify stacked skills.
 		{
-			synchronized (this)
+			synchronized (stackingLock())
 			{
 				if (_stackedEffects.containsKey(skill.getAbnormalType()))
 				{
 					BuffInfo stackedInfo = _stackedEffects.get(skill.getAbnormalType());
 					
-					// Skills are only replaced if the incoming buff has greater or equal abnormal level.
-					if ((stackedInfo != null) && (skill.getAbnormalLevel() >= stackedInfo.getSkill().getAbnormalLevel()))
+					// A native effect has priority over a copy, regardless of their ranks.
+					if ((stackedInfo != null) && (stackedInfo.getMirrorSource() != null) && !skill.isAbnormalInstant())
+					{
+						stopAndRemove(false, stackedInfo, getEffectList(stackedInfo.getSkill()));
+					}
+					// Native effects are only replaced at greater or equal abnormal level.
+					else if ((stackedInfo != null) && ((stackedInfo.getMirrorSource() != null) || (skill.getAbnormalLevel() >= stackedInfo.getSkill().getAbnormalLevel())))
 					{
 						// If it is an herb, set as not in use the lesser buff.
 						// Effect will be present in the effect list.
@@ -1542,6 +1706,7 @@ public class EffectList
 								// Remove stats
 								stackedInfo.removeStats();
 								_hiddenBuffs.incrementAndGet();
+								PersonalSummonerBuffService.ownerBuffRemoved(stackedInfo);
 							}
 						}
 						else // Remove buff that will stack with the abnormal type.
@@ -1584,6 +1749,21 @@ public class EffectList
 				buffsToRemove = getBuffCount() - _owner.getStat().getMaxBuffCount();
 			}
 			
+			if ((_owner instanceof Summon) && (buffsToRemove >= 0))
+			{
+				for (BuffInfo mirror : effects)
+				{
+					if ((mirror.getMirrorSource() != null) && mirror.isInUse())
+					{
+						stopAndRemove(true, mirror, effects);
+						if (--buffsToRemove < 0)
+						{
+							break;
+						}
+					}
+				}
+			}
+
 			for (BuffInfo bi : effects)
 			{
 				if (buffsToRemove < 0)
@@ -1609,6 +1789,70 @@ public class EffectList
 		info.initializeEffects();
 		
 		// Update effect flags and icons.
+		updateEffectList(true);
+		PersonalSummonerBuffService.ownerBuffAdded(info, nativeTargets);
+	}
+
+	private void addSummonMirror(BuffInfo info)
+	{
+		final Skill skill = info.getSkill();
+		final AbnormalType abnormalType = skill.getAbnormalType();
+		final BuffInfo source = info.getMirrorSource();
+		if (!(_owner instanceof Summon summon) || (info.getEffected() != summon))
+		{
+			return;
+		}
+
+		final Queue<BuffInfo> effects = getEffectList(skill);
+		synchronized (summon)
+		{
+			if (summon.deferPersonalBuffIfTeleporting(source) || !PersonalSummonerBuffService.sourceIsCurrent(source, summon) || summon.isInvulAgainst(skill.getId(), skill.getLevel()))
+			{
+				return;
+			}
+			final boolean hasSlot = !abnormalType.isNone();
+			final BuffInfo stacked = hasSlot ? _stackedEffects.get(abnormalType) : getBuffInfoBySkillId(skill.getId());
+			if ((stacked != null) && (stacked.getMirrorSource() != null) && !PersonalSummonerBuffService.sourceIsCurrent(stacked.getMirrorSource(), summon))
+			{
+				stopAndRemove(false, stacked, getEffectList(stacked.getSkill()));
+			}
+			// Preserve a direct active or pending effect, and never evict a native buff
+			// to make room for a personal copy.
+			final boolean full;
+			if (skill.isToggle())
+			{
+				full = false;
+			}
+			else if (skill.isDance())
+			{
+				full = getDanceCount() >= PlayerConfig.DANCES_MAX_AMOUNT;
+			}
+			else if (skill.isTriggeredSkill())
+			{
+				full = getTriggeredBuffCount() >= PlayerConfig.TRIGGERED_BUFFS_MAX_AMOUNT;
+			}
+			else
+			{
+				full = !skill.is7Signs() && !skill.isHealingPotionSkill() && (getBuffCount() >= _owner.getStat().getMaxBuffCount());
+			}
+			if (full || (hasSlot && _stackedEffects.containsKey(abnormalType)) || (getBuffInfoBySkillId(skill.getId()) != null))
+			{
+				return;
+			}
+			if (hasSlot)
+			{
+				_stackedEffects.put(abnormalType, info);
+			}
+			effects.add(info);
+			source.markSummonMirror();
+			if (!PersonalSummonerBuffService.sourceIsCurrent(source, summon))
+			{
+				effects.remove(info);
+				_stackedEffects.remove(abnormalType, info);
+				return;
+			}
+			info.initializeEffects();
+		}
 		updateEffectList(true);
 	}
 	

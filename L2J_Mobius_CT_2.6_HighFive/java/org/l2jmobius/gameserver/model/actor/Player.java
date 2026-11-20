@@ -391,6 +391,7 @@ public class Player extends Playable
 	
 	// Character Skill Save SQL String Definitions:
 	private static final String ADD_SKILL_SAVE = "REPLACE INTO character_skills_save (charId,skill_id,skill_level,remaining_time,reuse_delay,systime,restore_type,class_index,buff_index) VALUES (?,?,?,?,?,?,?,?,?)";
+	private static final int ACTIVE_EFFECT_WITH_CONSUMED_SUMMON_MIRROR = 2;
 	private static final String RESTORE_SKILL_SAVE = "SELECT skill_id,skill_level,remaining_time, reuse_delay, systime, restore_type FROM character_skills_save WHERE charId=? AND class_index=? ORDER BY buff_index ASC";
 	private static final String DELETE_SKILL_SAVE = "DELETE FROM character_skills_save WHERE charId=? AND class_index=?";
 	
@@ -8314,7 +8315,7 @@ public class Player extends Playable
 						final TimeStamp t = getSkillReuseTimeStamp(skill.getReuseHashCode());
 						statement.setLong(5, (t != null) && (currentTime < t.getStamp()) ? t.getReuse() : 0);
 						statement.setLong(6, (t != null) && (currentTime < t.getStamp()) ? t.getStamp() : 0);
-						statement.setInt(7, 0); // Store type 0, active buffs/debuffs.
+						statement.setInt(7, info.isSummonMirrorConsumed() ? ACTIVE_EFFECT_WITH_CONSUMED_SUMMON_MIRROR : 0);
 						statement.setInt(8, _classIndex);
 						statement.setInt(9, ++buffIndex);
 						statement.addBatch();
@@ -8750,7 +8751,19 @@ public class Player extends Playable
 					}
 					
 					// Restore Type 1 The remaning skills lost effect upon logout but were still under a high reuse delay.
+					if (restoreType == ACTIVE_EFFECT_WITH_CONSUMED_SUMMON_MIRROR)
+					{
+						if (remainingTime > 0)
+						{
+							skill.restoreWithConsumedSummonMirror(this, remainingTime);
+						}
+						continue;
+					}
 					if (restoreType > 0)
+					{
+						continue;
+					}
+					if ((remainingTime <= 0) && ((skill.getId() == 1556) || skill.hasEffectType(EffectType.RESURRECTION_SPECIAL) || skill.hasEffectType(EffectType.NOBLESSE_BLESSING)))
 					{
 						continue;
 					}

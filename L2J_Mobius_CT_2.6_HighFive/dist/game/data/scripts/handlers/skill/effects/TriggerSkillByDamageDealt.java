@@ -28,10 +28,12 @@ import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageDealt;
 import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.item.type.WeaponType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
+import org.l2jmobius.gameserver.qol.PersonalSummonerBuffService;
 
 /**
  * Trigger skill by damage dealt effect implementation.
@@ -164,5 +166,18 @@ public class TriggerSkillByDamageDealt extends AbstractEffect
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
 		effected.addListener(new ConsumerEventListener(effected, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> onAttackEvent(event), this));
+	}
+
+	@Override
+	public void onSummonMirrorStart(BuffInfo mirror)
+	{
+		final Creature summon = mirror.getEffected();
+		summon.addListener(new ConsumerEventListener(summon, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) ->
+		{
+			if (PersonalSummonerBuffService.isCurrentMirror(mirror))
+			{
+				onAttackEvent(event);
+			}
+		}, this));
 	}
 }

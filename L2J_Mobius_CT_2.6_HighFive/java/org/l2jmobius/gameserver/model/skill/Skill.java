@@ -56,6 +56,8 @@ import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.stats.BaseStat;
 import org.l2jmobius.gameserver.model.stats.Formulas;
+import org.l2jmobius.gameserver.qol.PersonalEffectDurationService;
+import org.l2jmobius.gameserver.qol.PersonalEffectDurationService.CastDuration;
 import org.l2jmobius.gameserver.model.stats.TraitType;
 import org.l2jmobius.gameserver.model.stats.functions.AbstractFunction;
 import org.l2jmobius.gameserver.model.stats.functions.FuncTemplate;
@@ -1347,6 +1349,30 @@ public class Skill
 	 */
 	public void applyEffects(Creature effector, Creature effected, boolean self, boolean passive, boolean instant, int abnormalTime)
 	{
+		applyEffects(effector, effected, self, passive, instant, abnormalTime, null, null);
+	}
+
+	private static int effectTime(Creature recipient, boolean continuous, int explicitTime, CastDuration duration)
+	{
+		if (!continuous)
+		{
+			return 0;
+		}
+		return (explicitTime > 0) || (duration == null) ? explicitTime : duration.forRecipient(recipient);
+	}
+
+	private void applyEffects(Creature effector, Creature effected, boolean self, boolean passive, boolean instant, int abnormalTime, Collection<WorldObject> nativeTargets, CastDuration duration)
+	{
+		applyEffects(effector, effected, self, passive, instant, abnormalTime, nativeTargets, duration, false);
+	}
+
+	public void restoreWithConsumedSummonMirror(Player owner, int remainingTime)
+	{
+		applyEffects(owner, owner, false, false, false, remainingTime, null, null, true);
+	}
+
+	private void applyEffects(Creature effector, Creature effected, boolean self, boolean passive, boolean instant, int abnormalTime, Collection<WorldObject> nativeTargets, CastDuration duration, boolean summonMirrorConsumed)
+	{
 		// null targets cannot receive any effects.
 		if (effected == null)
 		{
@@ -1367,10 +1393,10 @@ public class Skill
 		boolean addContinuousEffects = !passive && (_operateType.isToggle() || (_operateType.isContinuous() && Formulas.calcEffectSuccess(effector, effected, this)));
 		if (!self && !passive)
 		{
-			final BuffInfo info = new BuffInfo(effector, effected, this);
-			if (addContinuousEffects && (abnormalTime > 0))
+			final BuffInfo info = new BuffInfo(effector, effected, this, effectTime(effected, addContinuousEffects, abnormalTime, duration), addContinuousEffects);
+			if (summonMirrorConsumed)
 			{
-				info.setAbnormalTime(abnormalTime);
+				info.consumeSummonMirror();
 			}
 			
 			applyEffectScope(EffectScope.GENERAL, info, instant, addContinuousEffects);
@@ -1380,7 +1406,7 @@ public class Skill
 			applyEffectScope(EffectScope.CHANNELING, info, instant, addContinuousEffects);
 			if (addContinuousEffects)
 			{
-				effected.getEffectList().add(info);
+				effected.getEffectList().add(info, nativeTargets);
 			}
 		}
 		
@@ -1388,11 +1414,7 @@ public class Skill
 		{
 			addContinuousEffects = !passive && (_operateType.isToggle() || ((_operateType.isContinuous() || _operateType.isSelfContinuous()) && Formulas.calcEffectSuccess(effector, effector, this)));
 			
-			final BuffInfo info = new BuffInfo(effector, effector, this);
-			if (addContinuousEffects && (abnormalTime > 0))
-			{
-				info.setAbnormalTime(abnormalTime);
-			}
+			final BuffInfo info = new BuffInfo(effector, effector, this, effectTime(effector, addContinuousEffects, abnormalTime, duration), addContinuousEffects);
 			
 			applyEffectScope(EffectScope.SELF, info, instant, addContinuousEffects);
 			
@@ -1439,6 +1461,7 @@ public class Skill
 	 */
 	private void activateSkill(Creature caster, Cubic cubic, Collection<WorldObject> targets)
 	{
+		final CastDuration duration = cubic == null ? PersonalEffectDurationService.getInstance().beginCast(caster, this) : null;
 		for (WorldObject obj : targets)
 		{
 			final Creature target = obj.asCreature();
@@ -1456,7 +1479,7 @@ public class Skill
 			}
 			else
 			{
-				applyEffects(caster, target);
+				applyEffects(caster, target, false, false, true, 0, targets, duration);
 			}
 		}
 		
@@ -1468,7 +1491,7 @@ public class Skill
 				caster.stopSkillEffects(SkillFinishType.REMOVED, _id);
 			}
 			
-			applyEffects(caster, caster, true, false, true, 0);
+			applyEffects(caster, caster, true, false, true, 0, null, duration);
 		}
 		
 		if (cubic == null)

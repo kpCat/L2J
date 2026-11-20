@@ -18,9 +18,9 @@ package handlers.skill.effects;
 
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.actor.Creature;
-import org.l2jmobius.gameserver.model.actor.stat.CreatureStat;
 import org.l2jmobius.gameserver.model.conditions.Condition;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.enums.EffectCalculationType;
 import org.l2jmobius.gameserver.model.stats.Stat;
@@ -66,18 +66,28 @@ public class MaxHp extends AbstractEffect
 	@Override
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
-		final CreatureStat charStat = effected.getStat();
+		applyMaximumHp(effector, effected, _heal);
+	}
+
+	@Override
+	public void onSummonMirrorStart(BuffInfo mirror)
+	{
+		applyMaximumHp(mirror.getEffector(), mirror.getEffected(), false);
+	}
+
+	private void applyMaximumHp(Creature effector, Creature effected, boolean heal)
+	{
 		final double currentHp = effected.getCurrentHp();
 		double amount = _power;
 		
-		synchronized (charStat)
+		synchronized (effected)
 		{
 			switch (_type)
 			{
 				case DIFF:
 				{
-					charStat.getActiveChar().addStatFunc(new FuncAdd(Stat.MAX_HP, 1, this, _power, null));
-					if (_heal)
+					effected.addStatFunc(new FuncAdd(Stat.MAX_HP, 1, this, _power, null));
+					if (heal)
 					{
 						effected.setCurrentHp((currentHp + _power));
 					}
@@ -86,8 +96,8 @@ public class MaxHp extends AbstractEffect
 				case PER:
 				{
 					final double maxHp = effected.getMaxHp();
-					charStat.getActiveChar().addStatFunc(new FuncMul(Stat.MAX_HP, 1, this, _power, null));
-					if (_heal)
+					effected.addStatFunc(new FuncMul(Stat.MAX_HP, 1, this, _power, null));
+					if (heal)
 					{
 						amount = (_power - 1) * maxHp;
 						effected.setCurrentHp(currentHp + amount);
@@ -97,7 +107,7 @@ public class MaxHp extends AbstractEffect
 			}
 		}
 		
-		if (_heal)
+		if (heal)
 		{
 			if ((effector != null) && (effector != effected))
 			{
@@ -118,11 +128,7 @@ public class MaxHp extends AbstractEffect
 	@Override
 	public void onExit(Creature effector, Creature effected, Skill skill)
 	{
-		final CreatureStat charStat = effected.getStat();
-		synchronized (charStat)
-		{
-			charStat.getActiveChar().removeStatsOwner(this);
-		}
+		effected.removeStatsOwner(this);
 		
 		// Ensure current HP does not exceed the new maximum after removing the effect.
 		if (effected.getCurrentHp() > effected.getMaxHp())

@@ -172,7 +172,7 @@ public class PlayerStatus extends PlayableStatus
 				}
 			}
 			
-			mpDam = ((int) amount * (int) stat.calcStat(Stat.MANA_SHIELD_PERCENT, 0, null, null)) / 100;
+			mpDam = getManaShieldDamageReduction(amount);
 			if (mpDam > 0)
 			{
 				mpDam = (int) (amount - mpDam);

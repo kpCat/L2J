@@ -23,6 +23,7 @@ import org.l2jmobius.gameserver.model.conditions.Condition;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.effects.EffectFlag;
 import org.l2jmobius.gameserver.model.effects.EffectType;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 
 /**
@@ -52,6 +53,18 @@ public class ResurrectionSpecial extends AbstractEffect
 		return EffectFlag.RESURRECTION_SPECIAL.getMask();
 	}
 	
+	@Override
+	public int getSummonResurrectionPower()
+	{
+		return _power;
+	}
+
+	@Override
+	public void onSummonMirrorExit(BuffInfo mirror)
+	{
+		// A summon charge is consumed by the recipient's death, not by removing this effect.
+	}
+
 	@Override
 	public void onExit(Creature effector, Creature effected, Skill skill)
 	{

@@ -28,9 +28,11 @@ import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived;
 import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
+import org.l2jmobius.gameserver.qol.PersonalSummonerBuffService;
 
 /**
  * Trigger skill by damage received effect implementation.
@@ -119,5 +121,18 @@ public class TriggerSkillByDamageReceived extends AbstractEffect
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
 		effected.addListener(new ConsumerEventListener(effected, EventType.ON_CREATURE_DAMAGE_RECEIVED, (OnCreatureDamageReceived event) -> onDamageReceivedEvent(event), this));
+	}
+
+	@Override
+	public void onSummonMirrorStart(BuffInfo mirror)
+	{
+		final Creature summon = mirror.getEffected();
+		summon.addListener(new ConsumerEventListener(summon, EventType.ON_CREATURE_DAMAGE_RECEIVED, (OnCreatureDamageReceived event) ->
+		{
+			if (PersonalSummonerBuffService.isCurrentMirror(mirror))
+			{
+				onDamageReceivedEvent(event);
+			}
+		}, this));
 	}
 }

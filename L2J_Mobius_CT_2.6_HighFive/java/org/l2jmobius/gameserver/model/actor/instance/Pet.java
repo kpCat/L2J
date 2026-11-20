@@ -674,6 +674,7 @@ public class Pet extends Summon
 		sendPacket(SystemMessageId.THE_PET_HAS_BEEN_KILLED_IF_YOU_DON_T_RESURRECT_IT_WITHIN_24_HOURS_THE_PET_S_BODY_WILL_DISAPPEAR_ALONG_WITH_ALL_THE_PET_S_ITEMS);
 		DecayTaskManager.getInstance().add(this);
 		
+		finishMirroredResurrection();
 		// do not decrease exp if is in duel, arena
 		return true;
 	}
@@ -1037,7 +1038,7 @@ public class Pet extends Summon
 			{
 				for (BuffInfo info : getEffectList().getEffects())
 				{
-					if (info == null)
+					if ((info == null) || (info.getMirrorSource() != null))
 					{
 						continue;
 					}

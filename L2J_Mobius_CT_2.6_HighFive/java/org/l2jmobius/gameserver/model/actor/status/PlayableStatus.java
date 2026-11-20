@@ -21,12 +21,18 @@
 package org.l2jmobius.gameserver.model.actor.status;
 
 import org.l2jmobius.gameserver.model.actor.Playable;
+import org.l2jmobius.gameserver.model.stats.Stat;
 
 public class PlayableStatus extends CreatureStatus
 {
 	public PlayableStatus(Playable activeChar)
 	{
 		super(activeChar);
+	}
+
+	protected int getManaShieldDamageReduction(double amount)
+	{
+		return ((int) amount * (int) getActiveChar().getStat().calcStat(Stat.MANA_SHIELD_PERCENT, 0, null, null)) / 100;
 	}
 	
 	@Override

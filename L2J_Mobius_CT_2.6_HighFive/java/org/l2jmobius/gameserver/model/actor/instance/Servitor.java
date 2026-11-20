@@ -67,9 +67,10 @@ public class Servitor extends Summon implements Runnable
 	private int _consumeItemInterval;
 	private int _consumeItemIntervalRemaining;
 	protected Future<?> _summonLifeTask;
+	private long _summonLifeGeneration;
 	
 	private int _referenceSkill;
-	
+
 	public Servitor(NpcTemplate template, Player owner)
 	{
 		super(template, owner);
@@ -83,10 +84,33 @@ public class Servitor extends Summon implements Runnable
 		super.onSpawn();
 		if (_summonLifeTask == null)
 		{
-			_summonLifeTask = ThreadPool.scheduleAtFixedRate(this, 0, 5000);
+			startSummonLifeTask(0);
 		}
 	}
-	
+
+	private synchronized void startSummonLifeTask(long initialDelay)
+	{
+		final long generation = ++_summonLifeGeneration;
+		_summonLifeTask = ThreadPool.scheduleAtFixedRate(() -> runLifePulse(generation), initialDelay, 5000);
+	}
+
+	private synchronized void stopSummonLifeTask()
+	{
+		_summonLifeGeneration++;
+		if (_summonLifeTask != null)
+		{
+			_summonLifeTask.cancel(false);
+		}
+	}
+
+	private synchronized void runLifePulse(long generation)
+	{
+		if (generation == _summonLifeGeneration)
+		{
+			run();
+		}
+	}
+
 	@Override
 	public int getLevel()
 	{
@@ -169,12 +193,13 @@ public class Servitor extends Summon implements Runnable
 			return false;
 		}
 		
-		if (_summonLifeTask != null)
-		{
-			_summonLifeTask.cancel(false);
-		}
+		stopSummonLifeTask();
 		
 		CharSummonTable.getInstance().removeServitor(getOwner());
+		if (finishMirroredResurrection())
+		{
+			startSummonLifeTask(5000);
+		}
 		return true;
 	}
 	
@@ -241,7 +266,8 @@ public class Servitor extends Summon implements Runnable
 				{
 					for (BuffInfo info : getEffectList().getEffects())
 					{
-						if (info == null)
+						// A copy is reconstructed from its current owner buff after spawn.
+						if ((info == null) || (info.getMirrorSource() != null))
 						{
 							continue;
 						}
@@ -352,10 +378,7 @@ public class Servitor extends Summon implements Runnable
 	@Override
 	public void unSummon(Player owner)
 	{
-		if (_summonLifeTask != null)
-		{
-			_summonLifeTask.cancel(false);
-		}
+		stopSummonLifeTask();
 		
 		super.unSummon(owner);
 		
@@ -411,15 +434,12 @@ public class Servitor extends Summon implements Runnable
 	public void run()
 	{
 		final int usedtime = 5000;
-		_lifeTimeRemaining -= usedtime;
 		if (isDead() || !isSpawned())
 		{
-			if (_summonLifeTask != null)
-			{
-				_summonLifeTask.cancel(false);
-			}
+			stopSummonLifeTask();
 			return;
 		}
+		_lifeTimeRemaining -= usedtime;
 		
 		// check if the summon's lifetime has ran out
 		if (_lifeTimeRemaining < 0)

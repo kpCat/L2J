@@ -25,11 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeTimer;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics;
@@ -43,6 +45,7 @@ import org.l2jmobius.gameserver.model.stats.Formulas;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 import org.l2jmobius.gameserver.qol.PersonalEffectDurationService;
+import org.l2jmobius.gameserver.qol.PersonalSummonerBuffService;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 
 /**
@@ -57,6 +60,10 @@ public class BuffInfo
 	private final Creature _effector;
 	private final Creature _effected;
 	private final Skill _skill;
+	private final BuffInfo _mirrorSource;
+	private final AtomicBoolean _summonMirrorConsumed = new AtomicBoolean();
+	private volatile boolean _hadSummonMirror;
+	private volatile boolean _personalSummonerSource;
 	/** The effects. */
 	private final List<AbstractEffect> _effects = new ArrayList<>(1);
 	
@@ -79,7 +86,7 @@ public class BuffInfo
 	/** If {@code true} then this effect has been cancelled. */
 	private volatile SkillFinishType _finishType = SkillFinishType.NORMAL;
 	/** If {@code true} then this effect is in use (or has been stop because an Herb took place). */
-	private boolean _isInUse = true;
+	private volatile boolean _isInUse = true;
 	
 	/**
 	 * Buff Info constructor.
@@ -89,17 +96,75 @@ public class BuffInfo
 	 */
 	public BuffInfo(Creature effector, Creature effected, Skill skill)
 	{
+		this(effector, effected, skill, 0, false, null);
+	}
+
+	BuffInfo(Creature effector, Creature effected, Skill skill, int explicitTime, boolean cast)
+	{
+		this(effector, effected, skill, explicitTime, cast, null);
+	}
+
+	private BuffInfo(Creature effector, Creature effected, Skill skill, int explicitTime, boolean cast, BuffInfo mirrorSource)
+	{
 		_effector = effector;
 		_effected = effected;
 		_skill = skill;
+		_mirrorSource = mirrorSource;
 		// An ordinary NPC receiver never borrows its effector's ambient lifetime.
 		_nativePlayer = effected instanceof Player player ? player : ((effected != null) && effected.isSummon() ? effected.asSummon().getOwner() : null);
 		_nativeManaged = (_nativePlayer != null) && _nativePlayer.isNativeWorkManaged();
 		_nativeOwner = _nativeManaged ? _nativePlayer.getNativeWorkOwner() : null;
 		_nativeEpoch = _nativeOwner == null ? -1 : _nativeOwner.epoch();
-		final int stockAbnormalTime = Formulas.calcEffectAbnormalTime(effector, effected, skill);
-		_abnormalTime = PersonalEffectDurationService.getInstance().adjustAbnormalTime(effected, skill, stockAbnormalTime);
+		if ((mirrorSource != null) || (explicitTime > 0))
+		{
+			_abnormalTime = explicitTime;
+		}
+		else
+		{
+			final int stockAbnormalTime = Formulas.calcEffectAbnormalTime(effector, effected, skill);
+			_abnormalTime = PersonalEffectDurationService.getInstance().adjustAbnormalTime(effector, effected, skill, stockAbnormalTime, cast);
+		}
 		_periodStartTicks = GameTimeTaskManager.getInstance().getGameTicks();
+	}
+
+	public static BuffInfo forSummonMirror(BuffInfo source, Summon summon)
+	{
+		return new BuffInfo(source.getEffector(), summon, source.getSkill(), source.getTime(), false, source);
+	}
+
+	public BuffInfo getMirrorSource()
+	{
+		return _mirrorSource;
+	}
+
+	public boolean isSummonMirrorConsumed()
+	{
+		return _summonMirrorConsumed.get();
+	}
+
+	public boolean consumeSummonMirror()
+	{
+		return _summonMirrorConsumed.compareAndSet(false, true);
+	}
+
+	public void markSummonMirror()
+	{
+		_hadSummonMirror = true;
+	}
+
+	public boolean hadSummonMirror()
+	{
+		return _hadSummonMirror;
+	}
+
+	public void markPersonalSummonerSource()
+	{
+		_personalSummonerSource = true;
+	}
+
+	public boolean expiresByIdentity()
+	{
+		return _personalSummonerSource || _hadSummonMirror;
 	}
 	
 	/**
@@ -223,7 +288,7 @@ public class BuffInfo
 	 */
 	public int getTime()
 	{
-		return _abnormalTime - ((GameTimeTaskManager.getInstance().getGameTicks() - _periodStartTicks) / GameTimeTaskManager.TICKS_PER_SECOND);
+		return _mirrorSource != null ? _mirrorSource.getTime() : _abnormalTime - ((GameTimeTaskManager.getInstance().getGameTicks() - _periodStartTicks) / GameTimeTaskManager.TICKS_PER_SECOND);
 	}
 	
 	/**
@@ -323,7 +388,9 @@ public class BuffInfo
 		}
 		
 		// Creates a task that will stop all the effects.
-		if (_abnormalTime > 0)
+		// The source already has a native finish task. Expiring a second copy by skill ID
+		// could remove an independent effect that replaced the mirror.
+		if ((_mirrorSource == null) && (_abnormalTime > 0))
 		{
 			_effected.addBuffInfoTime(this);
 		}
@@ -337,7 +404,14 @@ public class BuffInfo
 			}
 			
 			// Call on start.
-			effect.onStart(_effector, _effected, _skill);
+			if (_mirrorSource == null)
+			{
+				effect.onStart(_effector, _effected, _skill);
+			}
+			else
+			{
+				effect.onSummonMirrorStart(this);
+			}
 			
 			// Do not add continuous effect if target just died from the initial effect, otherwise they'll be ticked forever.
 			if (_effected.isDead() && !_skill.isPassive())
@@ -346,7 +420,7 @@ public class BuffInfo
 			}
 			
 			// If it's a continuous effect, if has ticks schedule a task with period, otherwise schedule a simple task to end it.
-			if (effect.getTicks() > 0)
+			if ((_mirrorSource == null) && (effect.getTicks() > 0))
 			{
 				// The task for the effect ticks.
 				final EffectTickTask effectTask = new EffectTickTask(this, effect);
@@ -397,6 +471,10 @@ public class BuffInfo
 		{
 			// Callback for on action time event.
 			continueForever = effect.onActionTime(_effector, _effected, _skill);
+			if (_hadSummonMirror)
+			{
+				PersonalSummonerBuffService.ownerBuffTick(this, effect);
+			}
 		}
 		
 		if (!continueForever && _skill.isToggle())
@@ -448,7 +526,14 @@ public class BuffInfo
 			// Instant effects shouldn't call onExit(..).
 			if ((effect != null) && !effect.isInstant())
 			{
-				effect.onExit(_effector, _effected, _skill);
+				if (_mirrorSource == null)
+				{
+					effect.onExit(_effector, _effected, _skill);
+				}
+				else
+				{
+					effect.onSummonMirrorExit(this);
+				}
 			}
 		}
 		

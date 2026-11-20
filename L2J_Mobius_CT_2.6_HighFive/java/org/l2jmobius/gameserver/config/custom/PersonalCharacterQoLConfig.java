@@ -34,6 +34,8 @@ public final class PersonalCharacterQoLConfig
 	private static final String SEVEN_SIGNS_ACCESS_ENABLED_KEY = "EnablePersonalSevenSignsAccess";
 	private static final String PARTY_SUPPORT_ENABLED_KEY = "EnablePersonalPartySupport";
 	private static final String DURATION_ENABLED_KEY = "EnablePersonalEffectDurations";
+	private static final String CASTER_DURATIONS_KEY = "EnablePersonalCasterDurationsForRecipients";
+	private static final String SUMMONER_MIRROR_KEY = "EnablePersonalSummonerBuffMirroring";
 	private static final String BUFF_MULTIPLIER_KEY = "PersonalBuffDurationMultiplier";
 	private static final String DANCE_MULTIPLIER_KEY = "PersonalDanceDurationMultiplier";
 	private static final String SONG_MULTIPLIER_KEY = "PersonalSongDurationMultiplier";
@@ -89,7 +91,7 @@ public final class PersonalCharacterQoLConfig
 			{
 				return Settings.disabled("Disabled by configuration.");
 			}
-			return new Settings(true, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, partySupportEnabled, characterIds, accounts, true, "Configuration accepted.", effectDurationSettings, readAdventureSettings(config));
+			return new Settings(true, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, partySupportEnabled, characterIds, accounts, true, "Configuration accepted.", effectDurationSettings, readAdventureSettings(config), readOptionalSwitch(config, CASTER_DURATIONS_KEY), readOptionalSwitch(config, SUMMONER_MIRROR_KEY));
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -106,14 +108,25 @@ public final class PersonalCharacterQoLConfig
 		return _settings;
 	}
 
+	private static boolean readOptionalSwitch(ConfigReader config, String key)
+	{
+		final StringBuilder diagnostic = new StringBuilder();
+		final boolean enabled = readSwitch(config, key, diagnostic);
+		if (!diagnostic.isEmpty())
+		{
+			LOGGER.warning(diagnostic.toString().trim());
+		}
+		return enabled;
+	}
+
 	private static AdventureSettings readAdventureSettings(ConfigReader config)
 	{
 		final StringBuilder diagnostic = new StringBuilder();
-		final boolean solo = adventureSwitch(config, "EnablePersonalSoloInstanceEntry", diagnostic);
-		final boolean soloRift = adventureSwitch(config, "EnablePersonalSoloRift", diagnostic);
-		boolean cubic = adventureSwitch(config, "EnablePersonalWondrousCubicCooldown", diagnostic);
-		final boolean fishing = adventureSwitch(config, "EnablePersonalFishingAssist", diagnostic);
-		boolean augmentation = adventureSwitch(config, "EnablePersonalPositiveAugmentationMultiplier", diagnostic);
+		final boolean solo = readSwitch(config, "EnablePersonalSoloInstanceEntry", diagnostic);
+		final boolean soloRift = readSwitch(config, "EnablePersonalSoloRift", diagnostic);
+		boolean cubic = readSwitch(config, "EnablePersonalWondrousCubicCooldown", diagnostic);
+		final boolean fishing = readSwitch(config, "EnablePersonalFishingAssist", diagnostic);
+		boolean augmentation = readSwitch(config, "EnablePersonalPositiveAugmentationMultiplier", diagnostic);
 		int cubicMinutes = 60;
 		double augmentationMultiplier = 1.0;
 		HennaNegativeMode henna = HennaNegativeMode.OFF;
@@ -141,7 +154,7 @@ public final class PersonalCharacterQoLConfig
 		return new AdventureSettings(solo, cubic, cubicMinutes * 60000L, fishing, henna, augmentation, augmentationMultiplier, diagnostic.toString().trim(), soloRift);
 	}
 
-	private static boolean adventureSwitch(ConfigReader config, String key, StringBuilder diagnostic)
+	private static boolean readSwitch(ConfigReader config, String key, StringBuilder diagnostic)
 	{
 		if (!config.containsKey(key)) { return false; }
 		final Boolean value = strictBoolean(config.getValue(key));
@@ -379,8 +392,13 @@ public final class PersonalCharacterQoLConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, boolean partySupportEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings, AdventureSettings adventureSettings)
+	public record Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, boolean partySupportEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings, AdventureSettings adventureSettings, boolean casterDurationsForRecipients, boolean summonerBuffMirroring)
 	{
+		public Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, boolean partySupportEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings, AdventureSettings adventureSettings)
+		{
+			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, partySupportEnabled, allowedCharacterIds, allowedAccounts, valid, diagnostic, effectDurationSettings, adventureSettings, false, false);
+		}
+
 		public Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, boolean partySupportEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings)
 		{
 			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, partySupportEnabled, allowedCharacterIds, allowedAccounts, valid, diagnostic, effectDurationSettings, AdventureSettings.disabled());
@@ -424,6 +442,8 @@ public final class PersonalCharacterQoLConfig
 				crystallizationEnabled = false;
 				sevenSignsAccessEnabled = false;
 				partySupportEnabled = false;
+				casterDurationsForRecipients = false;
+				summonerBuffMirroring = false;
 				allowedCharacterIds = Set.of();
 				allowedAccounts = Set.of();
 				adventureSettings = AdventureSettings.disabled();

@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.handler.EffectHandler;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.conditions.Condition;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.stats.functions.AbstractFunction;
 import org.l2jmobius.gameserver.model.stats.functions.FuncTemplate;
@@ -201,10 +202,25 @@ public abstract class AbstractEffect
 		return true;
 	}
 	
+	public int getSummonResurrectionPower()
+	{
+		return -1;
+	}
+
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
 	}
 	
+	public void onSummonMirrorStart(BuffInfo mirror)
+	{
+		onStart(mirror.getEffector(), mirror.getEffected(), mirror.getSkill());
+	}
+
+	public void onSummonMirrorExit(BuffInfo mirror)
+	{
+		onExit(mirror.getEffector(), mirror.getEffected(), mirror.getSkill());
+	}
+
 	/**
 	 * Called on each tick.<br>
 	 * If the abnormal time is lesser than zero it will last forever.

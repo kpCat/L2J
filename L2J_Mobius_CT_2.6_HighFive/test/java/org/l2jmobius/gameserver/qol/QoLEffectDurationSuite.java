@@ -113,17 +113,25 @@ public final class QoLEffectDurationSuite implements PhantomTestSuite
 	private void configAndIsolation(PhantomTestContext context) throws Exception
 	{
 		final Settings shipped = PersonalCharacterQoLConfig.read(Path.of("config/Custom/PersonalCharacterQoL.ini"));
-		final EffectDurationSettings shippedDuration = shipped.effectDurationSettings();
-		PhantomAssertions.assertTrue(shipped.valid() && !shipped.enabled(), "Personal Character QoL is not shipped OFF.");
-		PhantomAssertions.assertTrue(shippedDuration.valid() && !shippedDuration.enabled(), "Personal effect durations are not shipped OFF.");
-		PhantomAssertions.assertEquals(1.0, shippedDuration.buffMultiplier(), "Shipped buff multiplier is not 1.0.");
-		PhantomAssertions.assertEquals(1.0, shippedDuration.danceMultiplier(), "Shipped dance multiplier is not 1.0.");
-		PhantomAssertions.assertEquals(1.0, shippedDuration.songMultiplier(), "Shipped song multiplier is not 1.0.");
-		PhantomAssertions.assertTrue(shippedDuration.overrides().isEmpty(), "Shipped duration overrides are not empty.");
+		PhantomAssertions.assertTrue(shipped.valid() && shipped.effectDurationSettings().valid(), "The owner profile must remain valid.");
+		PhantomAssertions.assertTrue(!shipped.casterDurationsForRecipients() && !shipped.summonerBuffMirroring(), "New options must be shipped OFF.");
 
 		final Settings legacy = PersonalCharacterQoLConfig.read(write("legacy-qol002.ini", baseConfig("True", "True", "True", Integer.toString(_player.getObjectId()), "")));
 		PhantomAssertions.assertTrue(legacy.valid() && legacy.crossClassSkillsEnabled() && legacy.crystallizationEnabled(), "Legacy QOL-002 configuration was not retained.");
 		PhantomAssertions.assertTrue(legacy.effectDurationSettings().valid() && !legacy.effectDurationSettings().enabled(), "Missing QOL-003 keys did not select valid disabled defaults.");
+		PhantomAssertions.assertEquals(1.0, legacy.effectDurationSettings().buffMultiplier(), "Default buff multiplier is not 1.0.");
+		PhantomAssertions.assertEquals(1.0, legacy.effectDurationSettings().danceMultiplier(), "Default dance multiplier is not 1.0.");
+		PhantomAssertions.assertEquals(1.0, legacy.effectDurationSettings().songMultiplier(), "Default song multiplier is not 1.0.");
+		PhantomAssertions.assertTrue(legacy.effectDurationSettings().overrides().isEmpty(), "Default duration overrides are not empty.");
+		PhantomAssertions.assertTrue(!legacy.casterDurationsForRecipients() && !legacy.summonerBuffMirroring(), "Missing new switches must keep both features off.");
+
+		final String duration = durationConfig("True", "5.0", "1.0", "1.0", "");
+		final String caster = "EnablePersonalCasterDurationsForRecipients=";
+		final String mirror = "EnablePersonalSummonerBuffMirroring=";
+		final Settings invalidCaster = PersonalCharacterQoLConfig.read(write("invalid-caster-duration.ini", duration + caster + "maybe\n" + mirror + "True\n"));
+		final Settings invalidMirror = PersonalCharacterQoLConfig.read(write("invalid-summoner-mirror.ini", duration + caster + "True\n" + mirror + "maybe\n"));
+		PhantomAssertions.assertTrue(invalidCaster.valid() && invalidCaster.effectDurationSettings().enabled() && !invalidCaster.casterDurationsForRecipients() && invalidCaster.summonerBuffMirroring(), "Invalid caster duration switch affected another personal feature.");
+		PhantomAssertions.assertTrue(invalidMirror.valid() && invalidMirror.effectDurationSettings().enabled() && invalidMirror.casterDurationsForRecipients() && !invalidMirror.summonerBuffMirroring(), "Invalid mirroring switch affected another personal feature.");
 		final Settings masterOff = PersonalCharacterQoLConfig.read(write("duration-master-off.ini", baseConfig("False", "True", "True", Integer.toString(_player.getObjectId()), "") + "EnablePersonalEffectDurations=True\nPersonalBuffDurationMultiplier=2.0\nPersonalDanceDurationMultiplier=5.0\nPersonalSongDurationMultiplier=10.0\nPersonalEffectDurationOverrides=1068,3.0\n"));
 		PhantomAssertions.assertTrue(masterOff.valid() && !masterOff.enabled() && !masterOff.effectDurationSettings().enabled(), "Disabled Personal Character QoL master allowed duration settings to activate.");
 

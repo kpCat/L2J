@@ -57,7 +57,17 @@ public class BuffFinishTask
 					{
 						if (entry.getValue().incrementAndGet() > info.getAbnormalTime())
 						{
-							info.executeNative("BUFF_EXPIRY", () -> effected.getEffectList().stopSkillEffects(SkillFinishType.NORMAL, info.getSkill().getId()));
+							info.executeNative("BUFF_EXPIRY", () ->
+							{
+								if (info.expiresByIdentity())
+								{
+									effected.getEffectList().remove(SkillFinishType.NORMAL, info);
+								}
+								else
+								{
+									effected.getEffectList().stopSkillEffects(SkillFinishType.NORMAL, info.getSkill().getId());
+								}
+							});
 						}
 					});
 				}

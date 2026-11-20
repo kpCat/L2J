@@ -20,6 +20,9 @@
  */
 package org.l2jmobius.gameserver.model.actor;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 
 import org.l2jmobius.commons.threads.ThreadPool;
@@ -61,7 +64,10 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.itemcontainer.PetInventory;
 import org.l2jmobius.gameserver.model.olympiad.OlympiadGameManager;
+import org.l2jmobius.gameserver.model.skill.AbnormalType;
+import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.zone.ZoneRegion;
 import org.l2jmobius.gameserver.network.SystemMessageId;
@@ -78,6 +84,7 @@ import org.l2jmobius.gameserver.network.serverpackets.RelationChanged;
 import org.l2jmobius.gameserver.network.serverpackets.ServerPacket;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 import org.l2jmobius.gameserver.network.serverpackets.TeleportToLocation;
+import org.l2jmobius.gameserver.qol.PersonalSummonerBuffService;
 import org.l2jmobius.gameserver.taskmanagers.DecayTaskManager;
 import org.l2jmobius.gameserver.util.ArrayUtil;
 
@@ -90,6 +97,12 @@ public abstract class Summon extends Playable
 	protected boolean _restoreSummon = true;
 	private int _shotsMask = 0;
 	private ScheduledFuture<?> _abnormalEffectTask;
+
+	// Use the summon monitor that guards mirror admission and stat updates.
+	private final Map<Integer, BuffInfo> _personalBuffsDuringTeleport = new LinkedHashMap<>();
+	private int _activeTeleports;
+	private BuffInfo _mirroredResurrectionSource;
+	private int _mirroredResurrectionPower;
 	
 	// @formatter:off
 	private static final int[] PASSIVE_SUMMONS =
@@ -152,6 +165,146 @@ public abstract class Summon extends Playable
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_SUMMON_SPAWN, this))
 		{
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerSummonSpawn(this), this);
+		}
+		if (!isTeleporting())
+		{
+			PersonalSummonerBuffService.synchronizeOnSpawn(this);
+		}
+	}
+
+	@Override
+	public void teleToLocation(int x, int y, int z, int heading, int instanceId, int randomOffset)
+	{
+		synchronized (this)
+		{
+			_activeTeleports++;
+		}
+		try
+		{
+			super.teleToLocation(x, y, z, heading, instanceId, randomOffset);
+		}
+		finally
+		{
+			final List<BuffInfo> pending;
+			synchronized (this)
+			{
+				if ((--_activeTeleports == 0) && !_personalBuffsDuringTeleport.isEmpty())
+				{
+					pending = List.copyOf(_personalBuffsDuringTeleport.values());
+					_personalBuffsDuringTeleport.clear();
+				}
+				else
+				{
+					pending = List.of();
+				}
+			}
+			for (BuffInfo source : pending)
+			{
+				PersonalSummonerBuffService.mirrorActiveBuff(source, this);
+			}
+		}
+	}
+
+	public boolean deferPersonalBuffIfTeleporting(BuffInfo source)
+	{
+		synchronized (this)
+		{
+			if (_activeTeleports == 0)
+			{
+				return false;
+			}
+			if (PersonalSummonerBuffService.ownerSourceIsCurrent(source, this))
+			{
+				_personalBuffsDuringTeleport.put(source.getSkill().getId(), source);
+			}
+			return true;
+		}
+	}
+
+	@Override
+	public void doRevive()
+	{
+		final boolean wasDead = isDead();
+		super.doRevive();
+		if (wasDead && !isDead())
+		{
+			PersonalSummonerBuffService.synchronizeOnSpawn(this);
+		}
+	}
+
+	boolean prepareMirroredResurrection()
+	{
+		synchronized (this)
+		{
+			final BuffInfo mirror = getEffectList().getBuffInfoByAbnormalType(AbnormalType.RESURRECTION_SPECIAL);
+			final BuffInfo source = mirror == null ? null : mirror.getMirrorSource();
+			if (source == null)
+			{
+				return false;
+			}
+			final int power = mirror.getEffects().stream().mapToInt(effect -> effect.getSummonResurrectionPower()).filter(value -> value >= 0).findFirst().orElse(-1);
+			final boolean consumed = mirror.isInUse() && (power >= 0) && canUseMirroredResurrection(source) && source.consumeSummonMirror();
+			getEffectList().remove(SkillFinishType.REMOVED, mirror);
+			if (consumed)
+			{
+				_mirroredResurrectionSource = source;
+				_mirroredResurrectionPower = power;
+			}
+			return consumed;
+		}
+	}
+
+	boolean consumeMirroredNoblesse()
+	{
+		synchronized (this)
+		{
+			final BuffInfo mirror = getEffectList().getBuffInfoByAbnormalType(AbnormalType.PRESERVE_ABNORMAL);
+			final BuffInfo source = mirror == null ? null : mirror.getMirrorSource();
+			if (source == null)
+			{
+				return false;
+			}
+			final boolean consumed = mirror.isInUse() && isSpawned() && (_owner.getInstanceId() == getInstanceId())
+				&& PersonalSummonerBuffService.ownerSourceIsCurrent(source, this) && source.consumeSummonMirror();
+			getEffectList().remove(SkillFinishType.REMOVED, mirror);
+			return consumed;
+		}
+	}
+
+	@Override
+	public boolean isVisibleFor(Player player)
+	{
+		if ((player == _owner) && isInvisible())
+		{
+			final BuffInfo hide = getEffectList().getBuffInfoByAbnormalType(AbnormalType.HIDE);
+			if ((hide != null) && (hide.getMirrorSource() != null))
+			{
+				return true;
+			}
+		}
+		return super.isVisibleFor(player);
+	}
+
+	private boolean canUseMirroredResurrection(BuffInfo source)
+	{
+		return isDead() && isSpawned() && !isTeleporting() && !isResurrectionBlocked()
+			&& PersonalSummonerBuffService.ownerSourceIsCurrent(source, this)
+			&& (_owner.getInstanceId() == getInstanceId()) && !_owner.isResurrectionBlocked();
+	}
+
+	protected boolean finishMirroredResurrection()
+	{
+		synchronized (this)
+		{
+			final BuffInfo source = _mirroredResurrectionSource;
+			_mirroredResurrectionSource = null;
+			if ((source == null) || !canUseMirroredResurrection(source))
+			{
+				return false;
+			}
+			DecayTaskManager.getInstance().cancel(this);
+			doRevive(_mirroredResurrectionPower);
+			return !isDead();
 		}
 	}
 	
@@ -314,7 +467,8 @@ public abstract class Summon extends Playable
 	@Override
 	public boolean doDie(Creature killer)
 	{
-		if (isNoblesseBlessedAffected())
+		final BuffInfo preservation = getEffectList().getBuffInfoByAbnormalType(AbnormalType.PRESERVE_ABNORMAL);
+		if (isNoblesseBlessedAffected() && ((preservation == null) || (preservation.getMirrorSource() == null)))
 		{
 			stopEffects(EffectType.NOBLESSE_BLESSING);
 			storeEffect(true);
@@ -780,7 +934,27 @@ public abstract class Summon extends Playable
 	
 	public void setOwner(Player newOwner)
 	{
-		_owner = newOwner;
+		synchronized (this)
+		{
+			if (_owner == newOwner)
+			{
+				return;
+			}
+			_personalBuffsDuringTeleport.clear();
+			_mirroredResurrectionSource = null;
+			for (BuffInfo effect : getEffectList().getEffects())
+			{
+				if (effect.getMirrorSource() != null)
+				{
+					getEffectList().remove(SkillFinishType.REMOVED, effect);
+				}
+			}
+			_owner = newOwner;
+		}
+		if (newOwner != null)
+		{
+			PersonalSummonerBuffService.synchronizeOnSpawn(this);
+		}
 	}
 	
 	@Override
