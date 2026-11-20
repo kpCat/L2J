@@ -213,15 +213,25 @@ public sealed class CorpusCandidateIndex
         using var reader = command.ExecuteReader(); reader.Read(); return new(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2), registry.Hash);
     }
 
-    public IReadOnlyList<CorpusIndexNeighbor> Find(string text, int limit = 12, CancellationToken token = default)
+    public IReadOnlyList<CorpusIndexNeighbor> Find(string text, int limit = 12, CancellationToken token = default) =>
+        Find(text, limit, null, token);
+
+    internal IReadOnlyList<CorpusIndexNeighbor> FindProduction(string text, string ownReceipt, CancellationToken token) =>
+        Find(text, 12, ownReceipt, token);
+
+    private IReadOnlyList<CorpusIndexNeighbor> Find(string text, int limit, string? excludedSource, CancellationToken token)
     {
         var normalized = CheckedText(text); V4Rules.Require(limit is >= 1 and <= 64, "CORPUS_INDEX_SHORTLIST_LIMIT");
         var features = Features(normalized); using var db = Open(false, token); var candidates = new Dictionary<long, int>();
         if (features.Length > 0)
         {
             var values = features.Select((value, i) => ("$f" + i, (object)value)).ToArray();
+            var production = excludedSource == null ? "" : """
+                 AND EXISTS(SELECT 1 FROM occurrences WHERE text_id=features.text_id AND qa_only=0 AND source_id<>$exclude)
+                """;
             using var query = Command(db, null, "SELECT text_id,count(*) FROM features WHERE feature IN (" + string.Join(',', values.Select(v => v.Item1))
-                + ") GROUP BY text_id ORDER BY count(*) DESC,text_id LIMIT 128", values);
+                + ")" + production + " GROUP BY text_id ORDER BY count(*) DESC,text_id LIMIT 128", values);
+            if (excludedSource != null) query.Parameters.AddWithValue("$exclude", excludedSource);
             using var reader = query.ExecuteReader(); while (reader.Read()) candidates.Add(reader.GetInt64(0), reader.GetInt32(1));
         }
         using (var exact = Command(db, null, "SELECT id FROM texts WHERE normalized=$text", ("$text", normalized)))
@@ -229,13 +239,19 @@ public sealed class CorpusCandidateIndex
         var matches = new List<CorpusIndexNeighbor>(); var opening = Opening(normalized);
         using var source = Command(db, null, """
             SELECT t.normalized,o.source_id,s.fingerprint,o.number,o.category,o.mode,o.original,o.qa_only FROM texts t
-            JOIN occurrences o ON o.rowid=(SELECT min(rowid) FROM occurrences WHERE text_id=t.id)
+            JOIN occurrences o ON o.rowid=(SELECT min(rowid) FROM occurrences WHERE text_id=t.id
+                AND ($exclude IS NULL OR (qa_only=0 AND source_id<>$exclude)))
             JOIN sources s ON s.id=o.source_id WHERE t.id=$id
-            """, ("$id", 0L));
+            """, ("$id", 0L), ("$exclude", (object?)excludedSource ?? DBNull.Value));
         foreach (var candidate in candidates)
         {
             token.ThrowIfCancellationRequested(); source.Parameters["$id"].Value = candidate.Key;
-            using var reader = source.ExecuteReader(); V4Rules.Require(reader.Read(), "CORPUS_INDEX_DANGLING_TEXT");
+            using var reader = source.ExecuteReader();
+            if (!reader.Read())
+            {
+                V4Rules.Require(excludedSource != null, "CORPUS_INDEX_DANGLING_TEXT");
+                continue;
+            }
             var record = new CorpusIndexRecord(reader.GetString(1), reader.GetString(2), reader.GetInt32(3), reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetInt32(7) != 0);
             var exact = reader.GetString(0) == normalized;
             matches.Add(new(candidate.Key, record, exact, !exact && CorpusQuality.NearClone(text, record.Text), opening.Length > 0 && opening == Opening(record.Text), candidate.Value));

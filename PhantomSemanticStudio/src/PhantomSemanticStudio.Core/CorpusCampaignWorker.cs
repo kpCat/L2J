@@ -7,7 +7,7 @@ internal sealed record CorpusCampaignDraftRow(int Number, string Text, string Js
 internal sealed record CorpusCampaignDraftSnapshot(string RunId, string RunHash, string ScopeHash, string ContentHash, IReadOnlyList<CorpusCampaignDraftRow> Rows);
 
 /// <summary>Serial production. Approval requires a separate owner-approved policy; import and installation are never automatic.</summary>
-public sealed class CorpusCampaignWorker : IDisposable
+public sealed partial class CorpusCampaignWorker : IDisposable
 {
     private readonly WorkspaceStore workspace;
     private readonly PromptLabStore store;

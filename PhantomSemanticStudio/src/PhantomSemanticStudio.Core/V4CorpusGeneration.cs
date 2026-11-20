@@ -44,7 +44,8 @@ public sealed record V4GenerationRequest
         Check(nameof(Strategy), Strategy, PromptProfiles.Strategies.Contains(Strategy), string.Join(", ", PromptProfiles.Strategies));
         Check(nameof(Sampler), Sampler, Sampler != null, "объект параметров sampler");
         Check(nameof(Style), Style, Style != null, "объект параметров style");
-        Check(nameof(Transport), Transport, Transport is "OPENAI_COMPAT" or "LM_NATIVE", "OPENAI_COMPAT, LM_NATIVE");
+        Check(nameof(Transport), Transport, Transport is "OPENAI_COMPAT" or "LM_NATIVE" or "OPENAI_RESPONSES",
+            "OPENAI_COMPAT, LM_NATIVE, OPENAI_RESPONSES");
         Check(nameof(Reasoning), Reasoning, Reasoning is "default" or "off" or "on", "default, off, on");
         Check(nameof(CompatibleThinkingControl), CompatibleThinkingControl, CompatibleThinkingControl is "none" or "reasoning_effort" or "chat_template_kwargs", "none, reasoning_effort, chat_template_kwargs");
         Check(nameof(MaxOutputTokens), MaxOutputTokens, MaxOutputTokens is >= 128 and <= 8192, "целое число от 128 до 8192");

@@ -24,7 +24,7 @@ public sealed record CorpusCampaignPlan(string Id, DateTimeOffset CreatedAtUtc, 
     int AcceptedTarget, int NominalMinimumRequests);
 
 /// <summary>Offline preparation only. A frozen quota plan cannot issue requests, approve records or install a pack.</summary>
-public sealed class CorpusCampaign(PromptLabStore store)
+public sealed partial class CorpusCampaign(PromptLabStore store)
 {
     private const int MaxSpecBytes = 4 * 1024 * 1024;
     private static string CoreHash() => V4Rules.Hash(File.ReadAllBytes(typeof(CorpusCampaign).Assembly.Location));

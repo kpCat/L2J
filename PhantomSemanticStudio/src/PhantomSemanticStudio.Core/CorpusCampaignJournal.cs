@@ -21,7 +21,8 @@ public static class CorpusCampaignControl
         using var document = JsonDocument.Parse(V4Rules.ReadBytes(PathSafety.ResolveRelative(root, folder + "plan.json"), 32 * 1024 * 1024));
         var envelope = document.RootElement; V4Rules.JsonKeys(envelope, ["version", "kind", "sha256", "data"], []);
         var data = JsonSerializer.SerializeToUtf8Bytes(envelope.GetProperty("data"), PromptProfiles.CompactJson);
-        V4Rules.Require(envelope.GetProperty("version").GetInt32() == 1 && V4Rules.String(envelope, "kind") == "CORPUS_CAMPAIGN_PLAN"
+        V4Rules.Require(envelope.GetProperty("version").GetInt32() == 1
+            && V4Rules.String(envelope, "kind") is "CORPUS_CAMPAIGN_PLAN" or "CORPUS_CAMPAIGN_OPENAI_PLAN"
             && V4Rules.String(envelope, "sha256") == hash && V4Rules.Hash(data) == hash
             && envelope.GetProperty("data").GetProperty("Id").GetString() == id, "CAMPAIGN_CONTROL_PLAN_DRIFT");
         return PathSafety.ResolveRelative(root, folder + "journal.sqlite");
@@ -79,7 +80,7 @@ public static class CorpusCampaignControl
     }
 }
 
-internal sealed class CorpusCampaignJournal
+internal sealed partial class CorpusCampaignJournal
 {
     private readonly WorkspaceStore workspace;
     private readonly string id, hash, path;

@@ -53,7 +53,7 @@ internal static class V4BatchReader
         return new(diagnostics.Count == 0 ? entries.Count : 0, 0, diagnostics.Count == 0 ? entries.AsReadOnly() : [], diagnostics.AsReadOnly()) { InputHash = inputHash };
     }
     private static int CommonPrefix(string a, string b) { var length = Math.Min(a.Length, b.Length); var i = 0; while (i < length && a[i] == b[i]) i++; return i; }
-    private static V4Entry ReadRecord(JsonElement record, V4Registry registry, string category, string act, string mode)
+    internal static V4Entry ReadRecord(JsonElement record, V4Registry registry, string category, string act, string mode)
     {
         var trigger = mode == "TRIGGER";
         V4Rules.JsonKeys(record, trigger ? ["text", "intent"] : mode == "INITIATIVE" ? ["text", "stance", "requiredEvent"] : ["text", "stance"],

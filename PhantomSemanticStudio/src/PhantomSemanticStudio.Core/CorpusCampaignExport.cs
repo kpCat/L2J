@@ -127,9 +127,12 @@ public sealed partial class PromptLabStore
         V4Rules.Require(name is { Length: 12 } && name.StartsWith('f') && name.EndsWith(".jsonl", StringComparison.Ordinal) && name.AsSpan(1, 5).ToArray().All(char.IsAsciiDigit), "CAMPAIGN_EXPORT_FILE_NAME");
         return PathSafety.ResolveRelative(CampaignExportRoot(id), name);
     }
-    internal void SaveCampaignExportBytes(string id, string name, byte[] data)
+    internal void SaveCampaignExportBytes(string id, string name, byte[] data) =>
+        SaveCampaignFile(CampaignExportFilePath(id, name), data);
+
+    private void SaveCampaignFile(string path, byte[] data)
     {
-        V4Rules.Require(data.Length <= V4BatchReader.MaxFileBytes, "CAMPAIGN_EXPORT_FILE_LIMIT"); var path = CampaignExportFilePath(id, name);
+        V4Rules.Require(data.Length <= V4BatchReader.MaxFileBytes, "CAMPAIGN_EXPORT_FILE_LIMIT");
         if (File.Exists(path)) { V4Rules.Require(V4Rules.Hash(V4Rules.ReadBytes(path, V4BatchReader.MaxFileBytes)) == V4Rules.Hash(data), "CAMPAIGN_EXPORT_BYTES_CHANGED"); return; }
         Directory.CreateDirectory(Path.GetDirectoryName(path)!); PathSafety.AssertNoReparsePoints(path);
         var temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");

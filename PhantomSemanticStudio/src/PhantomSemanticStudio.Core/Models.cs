@@ -10,10 +10,12 @@ public sealed class StudioSettings
     public double Temperature { get; set; } = 0.7;
     public int MaxTokens { get; set; } = 4096;
     public int TimeoutSeconds { get; set; } = 180;
-    // API-ключ намеренно отсутствует: UI передаёт его только в памяти процесса.
+    public string CampaignProvider { get; set; } = "LM_STUDIO";
+    // Секреты провайдеров не входят в настройки Studio.
     public void Validate()
     {
         LmStudioClient.ValidateEndpoint(Endpoint);
+        if (CampaignProvider is not ("LM_STUDIO" or "OPENAI")) throw new InvalidDataException("Неизвестный провайдер кампании.");
         if (string.IsNullOrWhiteSpace(ModelId) || ModelId.Length > 256) throw new InvalidDataException("Некорректный идентификатор модели.");
         if (!double.IsFinite(Temperature) || Temperature < 0 || Temperature > 2 || MaxTokens < 128 || MaxTokens > 16384 || TimeoutSeconds < 15 || TimeoutSeconds > 600)
             throw new InvalidDataException("Параметры генерации выходят за допустимые пределы.");

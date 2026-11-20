@@ -23,6 +23,16 @@ internal static partial class Program
 
     private static async Task<int> Run(string[] args)
     {
+        if (OperatingSystem.IsWindows() && args.Length is 1 or 2 && args[0] == "--openai-campaign-controls")
+            return OpenAiCampaignControls(args.Length == 2 ? args[1] : null);
+        if (args is ["--openai-campaign"])
+        {
+            await OpenAiCampaignTests();
+            await OpenAiCampaignWorkerTests();
+            if (OperatingSystem.IsWindows()) OpenAiVaultTests();
+            Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL");
+            return failed == 0 ? 0 : 1;
+        }
         if (args.Length == 6 && args[0] == "--prompt-lab-quality-operation") return await PromptLabQualityOperation(args);
         if (args.Length == 2 && args[0] == "--prompt-lab-quality-recovery")
         { await PromptLabQualityRecoveryTests(args[1]); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }

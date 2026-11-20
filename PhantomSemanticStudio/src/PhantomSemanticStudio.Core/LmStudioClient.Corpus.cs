@@ -68,6 +68,7 @@ public sealed partial class LmStudioClient
         V4GenerationRequest request, PromptProfiles profiles, CancellationToken token)
     {
         ValidateSettings(settings); request.Validate(profiles);
+        V4Rules.Require(request.Transport is "LM_NATIVE" or "OPENAI_COMPAT", "LM_CORPUS_TRANSPORT");
         V4Rules.Require(loaded.InstanceId.Length is > 0 and <= 256 && loaded.ContextLength >= 2048, "LOADED_INSTANCE_REQUIRED");
         var native = request.Transport == "LM_NATIVE";
         var system = request.Components == null ? profiles.StrategyText(request.Strategy) + "\n" + profiles.LegacyRules(request.Style) : PromptHierarchy.Compose(request.Components);

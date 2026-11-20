@@ -14,7 +14,7 @@ foreach ($match in [regex]::Matches($body, '\+=\s*(\w+)\s*;')) {
 }
 [xml]$resx = Get-Content (Join-Path $root 'src\PhantomSemanticStudio.WinForms\MainForm.resx') -Raw -Encoding UTF8
 Write-Host 'PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.'
-foreach ($name in @('V4ImportForm','PromptLabControl')) {
+foreach ($name in @('V4ImportForm','PromptLabControl','OpenAiCampaignForm')) {
     $v4Designer = Get-Content (Join-Path $root "src\PhantomSemanticStudio.WinForms\$name.Designer.cs") -Raw -Encoding UTF8
     $v4Form = Get-Content (Join-Path $root "src\PhantomSemanticStudio.WinForms\$name.cs") -Raw -Encoding UTF8
     $v4Body = ($v4Designer -split 'private void InitializeComponent\(\)', 2)[1]

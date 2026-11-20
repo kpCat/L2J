@@ -110,11 +110,13 @@ public partial class MainForm : Form
         txtSourcePath.Text = settings.HighFiveRoot; txtEndpoint.Text = settings.Endpoint; txtModel.Text = settings.ModelId;
         nudTemperature.Value = (decimal)settings.Temperature; nudTokens.Value = settings.MaxTokens; nudTimeout.Value = settings.TimeoutSeconds;
         txtWorkspace.Text = Store.Root;
+        cmbCampaignProvider.SelectedIndex = settings.CampaignProvider == "OPENAI" ? 1 : 0;
     }
     private StudioSettings ReadSettings() => new()
     {
         HighFiveRoot = txtSourcePath.Text.Trim(), Endpoint = txtEndpoint.Text.Trim(), ModelId = txtModel.Text.Trim(),
-        Temperature = (double)nudTemperature.Value, MaxTokens = (int)nudTokens.Value, TimeoutSeconds = (int)nudTimeout.Value
+        Temperature = (double)nudTemperature.Value, MaxTokens = (int)nudTokens.Value, TimeoutSeconds = (int)nudTimeout.Value,
+        CampaignProvider = cmbCampaignProvider.SelectedIndex == 1 ? "OPENAI" : "LM_STUDIO"
     };
     private void ResetSnapshot()
     {
@@ -131,10 +133,23 @@ public partial class MainForm : Form
             var sourceChanged = !Path.GetFullPath(updated.HighFiveRoot).Equals(Path.GetFullPath(settings.HighFiveRoot), StringComparison.OrdinalIgnoreCase);
             Store.SaveSettings(updated); settings = updated;
             if (sourceChanged) ResetSnapshot();
-            txtSettingsResult.Text = "Сохранены только настройки Studio. API token не сохраняется. L2J не изменён.";
+            txtSettingsResult.Text = "Настройки Studio сохранены. Токен LM Studio используется только в памяти. Ключ OpenAI сохраняется из панели кампаний.";
             return Task.CompletedTask;
         });
     }
+    private void CampaignProvider_Changed(object? sender, EventArgs e)
+    {
+        btnOpenAiCampaign.Enabled = cmbCampaignProvider.SelectedIndex == 1;
+    }
+
+    private void OpenAiCampaign_Click(object? sender, EventArgs e)
+    {
+        if (!ready || busy || promptLab.Busy || batchRunning || cmbCampaignProvider.SelectedIndex != 1) return;
+        using var form = new OpenAiCampaignForm();
+        form.SetWorkspace(Store);
+        form.ShowDialog(this);
+    }
+
     private void BrowseSource_Click(object? sender, EventArgs e)
     {
         using var dialog = new FolderBrowserDialog { Description = "Выберите L2J_Mobius_CT_2.6_HighFive (только чтение)", UseDescriptionForTitle = true };
