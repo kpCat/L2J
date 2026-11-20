@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.BodyPart;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ArmorType;
+import org.l2jmobius.gameserver.model.item.type.WeaponType;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.skill.Skill;
 
@@ -51,6 +52,11 @@ public class ConditionUsingItemType extends Condition
 	public boolean matchesItemType(ItemTemplate item)
 	{
 		return item != null && (_armor ? item.isArmor() : item.isWeapon()) && (_mask & item.getItemMask()) != 0;
+	}
+
+	boolean isSkillEquipmentRestriction()
+	{
+		return (_mask != 0) && ((_mask & WeaponType.FISHINGROD.mask()) == 0);
 	}
 	
 	@Override

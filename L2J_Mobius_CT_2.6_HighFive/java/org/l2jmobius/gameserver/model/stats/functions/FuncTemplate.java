@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.conditions.Condition;
+import org.l2jmobius.gameserver.model.conditions.SkillEquipmentConditions;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.stats.Stat;
@@ -35,6 +36,8 @@ public class FuncTemplate
 	
 	private final Condition _attachCond;
 	private final Condition _applyCond;
+	private final Condition _equipmentIndependentAttachCond;
+	private final Condition _equipmentIndependentApplyCond;
 	private final Constructor<?> _constructor;
 	private final Stat _stat;
 	private final int _order;
@@ -54,6 +57,8 @@ public class FuncTemplate
 		
 		_attachCond = attachCond;
 		_applyCond = applyCond;
+		_equipmentIndependentAttachCond = SkillEquipmentConditions.relax(attachCond);
+		_equipmentIndependentApplyCond = SkillEquipmentConditions.relax(applyCond);
 		_stat = stat;
 		_value = value;
 		
@@ -141,14 +146,16 @@ public class FuncTemplate
 	 */
 	private AbstractFunction getFunc(Creature caster, Creature target, Skill skill, Item item, Object owner)
 	{
-		if ((_attachCond != null) && !_attachCond.test(caster, target, skill))
+		final boolean equipmentIndependent = ((_equipmentIndependentAttachCond != _attachCond) || (_equipmentIndependentApplyCond != _applyCond)) && SkillEquipmentConditions.appliesTo(caster, skill);
+		final Condition attach = equipmentIndependent ? _equipmentIndependentAttachCond : _attachCond;
+		if ((attach != null) && !attach.test(caster, target, skill))
 		{
 			return null;
 		}
 		
 		try
 		{
-			return (AbstractFunction) _constructor.newInstance(_stat, _order, owner, _value, _applyCond);
+			return (AbstractFunction) _constructor.newInstance(_stat, _order, owner, _value, equipmentIndependent ? _equipmentIndependentApplyCond : _applyCond);
 		}
 		catch (Exception e)
 		{

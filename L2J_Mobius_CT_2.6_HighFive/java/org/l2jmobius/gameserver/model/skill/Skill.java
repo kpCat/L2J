@@ -47,6 +47,7 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Cubic;
 import org.l2jmobius.gameserver.model.conditions.Condition;
+import org.l2jmobius.gameserver.model.conditions.SkillEquipmentConditions;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.groups.Party;
@@ -181,6 +182,8 @@ public class Skill
 	
 	// Condition lists
 	private List<Condition> _preCondition;
+	private List<Condition> _equipmentIndependentPreCondition;
+	private boolean _hasEquipmentPrecondition;
 	private List<Condition> _itemPreCondition;
 	
 	// Function lists
@@ -950,6 +953,11 @@ public class Skill
 		return _preCondition != null && !_preCondition.isEmpty();
 	}
 
+	public boolean ignoresEquipmentPreconditions(Creature caster)
+	{
+		return _hasEquipmentPrecondition && SkillEquipmentConditions.appliesTo(caster, this);
+	}
+
 	public boolean checkCondition(Creature creature, WorldObject object, boolean itemOrWeapon)
 	{
 		if (creature.isFakePlayer() || (creature.isGM() && !GeneralConfig.GM_SKILL_RESTRICTION))
@@ -972,9 +980,12 @@ public class Skill
 		}
 		
 		final Creature target = object instanceof Creature ? object.asCreature() : null;
-		for (Condition cond : preCondition)
+		final boolean equipmentIndependent = !itemOrWeapon && ignoresEquipmentPreconditions(creature);
+		for (int i = 0; i < preCondition.size(); i++)
 		{
-			if (!cond.test(creature, target, this))
+			final Condition cond = preCondition.get(i);
+			final Condition check = equipmentIndependent ? _equipmentIndependentPreCondition.get(i) : cond;
+			if (!check.test(creature, target, this))
 			{
 				final String msg = cond.getMessage();
 				final int msgId = cond.getMessageId();
@@ -1561,9 +1572,13 @@ public class Skill
 			if (_preCondition == null)
 			{
 				_preCondition = new ArrayList<>();
+				_equipmentIndependentPreCondition = new ArrayList<>();
 			}
 			
 			_preCondition.add(c);
+			final Condition relaxed = SkillEquipmentConditions.relax(c);
+			_equipmentIndependentPreCondition.add(relaxed);
+			_hasEquipmentPrecondition |= relaxed != c;
 		}
 	}
 	

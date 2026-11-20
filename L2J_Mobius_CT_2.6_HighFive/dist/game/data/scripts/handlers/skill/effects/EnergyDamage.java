@@ -112,7 +112,8 @@ public class EnergyDamage extends AbstractEffect
 			final double ssBoost = ss ? 2 : 1.0;
 			double weaponTypeBoost;
 			final Weapon weapon = attacker.getActiveWeaponItem();
-			if ((weapon != null) && ((weapon.getItemType() == WeaponType.BOW) || (weapon.getItemType() == WeaponType.CROSSBOW)))
+			// Learned melee charge skills keep their native melee coefficient on ranged equipment.
+			if ((weapon != null) && ((weapon.getItemType() == WeaponType.BOW) || (weapon.getItemType() == WeaponType.CROSSBOW)) && !skill.ignoresEquipmentPreconditions(attacker))
 			{
 				weaponTypeBoost = 70;
 			}

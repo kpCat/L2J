@@ -40,6 +40,11 @@ public class ConditionLogicNot extends Condition
 			_condition.setListener(this);
 		}
 	}
+
+	Condition getCondition()
+	{
+		return _condition;
+	}
 	
 	@Override
 	void setListener(ConditionListener listener)

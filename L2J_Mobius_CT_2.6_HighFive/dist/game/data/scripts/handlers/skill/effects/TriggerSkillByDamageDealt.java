@@ -24,6 +24,7 @@ import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.enums.creature.InstanceType;
 import org.l2jmobius.gameserver.model.conditions.Condition;
+import org.l2jmobius.gameserver.model.conditions.SkillEquipmentConditions;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageDealt;
@@ -88,7 +89,7 @@ public class TriggerSkillByDamageDealt extends AbstractEffect
 		}
 	}
 	
-	private void onAttackEvent(OnCreatureDamageDealt event)
+	private void onAttackEvent(OnCreatureDamageDealt event, boolean equipmentIndependent)
 	{
 		if (event.isDamageOverTime() || (_chance == 0) || ((_skill.getSkillId() == 0) || (_skill.getSkillLevel() == 0)) || (!_allowNormalAttack && !_allowSkillAttack))
 		{
@@ -135,7 +136,7 @@ public class TriggerSkillByDamageDealt extends AbstractEffect
 			return;
 		}
 		
-		if ((_allowWeapons > 0) && ((event.getAttacker().getActiveWeaponItem() == null) || ((event.getAttacker().getActiveWeaponItem().getItemType().mask() & _allowWeapons) == 0)))
+		if ((_allowWeapons > 0) && !equipmentIndependent && ((event.getAttacker().getActiveWeaponItem() == null) || ((event.getAttacker().getActiveWeaponItem().getItemType().mask() & _allowWeapons) == 0)))
 		{
 			return;
 		}
@@ -165,7 +166,8 @@ public class TriggerSkillByDamageDealt extends AbstractEffect
 	@Override
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
-		effected.addListener(new ConsumerEventListener(effected, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> onAttackEvent(event), this));
+		final boolean equipmentIndependent = (_allowWeapons > 0) && effected.isPlayer() && SkillEquipmentConditions.appliesTo(effector, skill);
+		effected.addListener(new ConsumerEventListener(effected, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> onAttackEvent(event, equipmentIndependent), this));
 	}
 
 	@Override
@@ -176,7 +178,7 @@ public class TriggerSkillByDamageDealt extends AbstractEffect
 		{
 			if (PersonalSummonerBuffService.isCurrentMirror(mirror))
 			{
-				onAttackEvent(event);
+				onAttackEvent(event, false);
 			}
 		}, this));
 	}
