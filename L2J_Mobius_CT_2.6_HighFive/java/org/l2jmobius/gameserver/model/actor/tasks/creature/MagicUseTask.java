@@ -24,6 +24,7 @@ import java.util.function.BooleanSupplier;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 
 /**
@@ -40,10 +41,16 @@ public class MagicUseTask implements Runnable
 	private volatile int _phase;
 	private final boolean _simultaneously;
 	private final boolean _nativeLifetimeOwned;
+	private final PhantomLearnedEscape.Attempt _escape;
 	private final LearningCastEvidence _learning;
 	private final org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3 _healLearning;
 	
 	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous)
+	{
+		this(creature, targets, s, hit, simultaneous, null);
+	}
+
+	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous, PhantomLearnedEscape.Attempt escape)
 	{
 		_creature = creature;
 		_targets = targets;
@@ -52,17 +59,20 @@ public class MagicUseTask implements Runnable
 		_phase = 1;
 		_skillTime = hit;
 		_simultaneously = simultaneous;
+		_escape = escape;
 		_nativeLifetimeOwned = managed(creature) || ((targets != null) && targets.stream().anyMatch(MagicUseTask::managed));
 		_learning = LearningCastEvidence.capture(creature, s, targets, simultaneous);
 		_healLearning = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.capture(creature, s, targets, simultaneous);
 	}
 
 	public LearningCastEvidence learningEvidence() { return _learning; }
+	public PhantomLearnedEscape.Attempt learnedEscape() { return _escape; }
 	/** Passive observation only; cancellation still belongs to Creature/native lifetime. */
 	public void learningCancelled()
 	{
 		if (_learning != null) { _learning.cancelled(); }
 		if (_healLearning != null) { _healLearning.cancelled(); }
+		if (_escape != null) { _escape.nativeCancelled(); }
 	}
 
 	private static boolean managed(WorldObject object)

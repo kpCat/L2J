@@ -14,7 +14,7 @@
   "native": {
     "gsBoots": 0,
     "lsBoots": 0,
-    "sqlBoots": 0,
+    "sqlBoots": 9,
     "off": true,
     "episodeCompleted": 0,
     "episodeFailed": 0,
@@ -52,29 +52,66 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "aggregate-pass.log",
+    "aggregateLog": "aggregate-v2.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
-    "fixtureSource": "Contracts only",
+    "fixtureSource": "DB-free contracts and isolated SQL/asset proof. No combat receipts.",
     "comparison": "NUMERIC_ONLY",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 161,
-    "contractGroupsPassed": 6,
+    "regressionTestsPassed": 162,
+    "contractGroupsPassed": 8,
     "jarExitCode": 0,
-    "jarSha256": "9cae9d2382371d096e0baea26bb7097c45a449cec255e31ed8d73d7fe9e2c5f3",
-    "jarLog": "jar.log"
+    "jarSha256": "0c1d29199733a1f2f2acee77db4fc4dbd4819bb913f834860fc2f20c332109b3",
+    "jarLog": "jar-v2.log"
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback.json"
+    "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v2.json"
+  },
+  "testReadiness": {
+    "iterationParent": "734042731152d24e01f2132c1d86209ce40bea38",
+    "assetFileCount": 25809,
+    "verifiedGeoTiles": 203,
+    "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
+    "lsPort": 2106,
+    "gsPort": 33332,
+    "lsInternalPort": 33333,
+    "sqlHost": "127.0.0.1",
+    "sqlPort": 33331,
+    "sqlSchema": "l2jmobiush5_phantom_test_131",
+    "sqlSchemaTableCount": 152,
+    "sqlScriptsImported": 126,
+    "sqlReadinessLane": "native-ready",
+    "sqlSchemaSealSha256": "913956b3642f15a6cb666c268ca05220f255df0a7ad5f6d5c243292dbb3ea347",
+    "sqlColdReadback": "PASS",
+    "sqlNegativeExternalSchemaRead": "DENIED",
+    "sqlReadinessLaneOff": true,
+    "sqlReadinessStarts": 4,
+    "n01Setup": {
+      "lane": "n01-setup-r3",
+      "status": "STORED_ROSTER_SCENE_UNQUALIFIED",
+      "readyProfiles": 4,
+      "stockSpawnsLoaded": 42407,
+      "candidateTargetsByLevel": {"52": 224, "76": 400},
+      "qualifiedScenes": 0,
+      "remainingWorldPlayers": 0,
+      "sqlStarts": 5,
+      "fixtureSourceSha256": "9bb8a3bc8e691a9f6c5aefcd30b9d3c6fa2520f2e28aab31658e7b3f4ddacc06",
+      "setupJarSha256": "9cae9d2382371d096e0baea26bb7097c45a449cec255e31ed8d73d7fe9e2c5f3",
+      "receiptSha256": "13f0679e7e8d325db34d964e54de3f695d71da85808fbab3a9fec4f525e6d752",
+      "sqlOffReceiptSha256": "22d08ab188e13fbaaf15253789e5fbb00732c24e079cc0a457113829f175b6c0",
+      "fixtureJavacAgainstBuiltJar": "PASS"
+    },
+    "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024",
-      "reason": "Scope latch и оригиналы сверены, отдельный native runtime и fixture pins отсутствуют"
+      "evidence": "S024,verify-native-runtime.log,sql131-cold-off.json,n01-setup-r3/n01-fixture.tsv",
+      "reason": "Физические активы, SQL и сохранённый N01 roster проверены, стартовая сцена и её pins открыты"
     },
     "G1": {
       "phase": "P1",
@@ -104,7 +141,7 @@
       "phase": "P3",
       "status": "UNKNOWN",
       "evidence": "D9,N11–N13",
-      "reason": "Есть офлайн drain при отходе, Return и Mass Return и экономика не проверены"
+      "reason": "Действующий Solo Return и ограждённый адаптер Party Recall офлайн, фактические исходы и экономика открыты"
     },
     "G6": {
       "phase": "P4–P5",
@@ -199,26 +236,26 @@
     "D1": {
       "phase": "P1",
       "status": "UNKNOWN",
-      "evidence": "aggregate-pass.log",
-      "reason": "RED/GREEN для пятого навыка, отрицательный контроль unlearned/unready, полный ON/OFF native отсутствует"
+      "evidence": "aggregate-v2.log",
+      "reason": "Пятый ready и изученный вне каталога доступны, удалённый навык отклонён, native ON/OFF открыта"
     },
     "D2": {
       "phase": "P2",
       "status": "UNKNOWN",
-      "evidence": "aggregate-pass.log",
-      "reason": "RED/GREEN для bounded yield без второго владельца, партийный PvP в TEST не проверен"
+      "evidence": "aggregate-v2.log",
+      "reason": "Владение передаётся одному точному запросу после drain, партийный PvP в TEST открыт"
     },
     "D3": {
       "phase": "P2",
       "status": "UNKNOWN",
-      "evidence": "aggregate-pass.log",
-      "reason": "Чужое поколение и operation key не могут запросить yield, остальная матрица не закрыта"
+      "evidence": "aggregate-v2.log",
+      "reason": "Чужой актёрный запрос и устаревшее поколение отклонены, Party Recall проверяет точных участников, прочие negative controls открыты"
     },
     "D4": {
       "phase": "P1–P2",
       "status": "UNKNOWN",
-      "evidence": "aggregate-pass.log",
-      "reason": "Ready/cost до обрезки и известный DAMAGE прогноз, нет native RED/GREEN WAIT_GROUP_DAMAGE"
+      "evidence": "aggregate-v2.log",
+      "reason": "Обычный PvE и Party используют фактически изученные навыки, native WAIT_GROUP_DAMAGE остаётся открытым"
     },
     "D5": {
       "phase": "P4",
@@ -247,8 +284,8 @@
     "D9": {
       "phase": "P3–P5",
       "status": "UNKNOWN",
-      "evidence": "aggregate-pass.log",
-      "reason": "Retreat drain офлайн, Pause/Resume/Stop и долговечность сцены не проверены"
+      "evidence": "aggregate-v2.log",
+      "reason": "Drain и отзыв отложенного Return проверены офлайн, управление нативной кампанией и стойкость игрового результата открыты"
     },
     "D10": {
       "phase": "P6",

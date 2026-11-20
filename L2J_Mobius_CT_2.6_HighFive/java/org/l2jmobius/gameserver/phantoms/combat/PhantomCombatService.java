@@ -458,7 +458,19 @@ public final class PhantomCombatService
 					_metrics.leaseAcquired();
 					final ActorSnapshot actor = lease.actorSnapshot();
 					final boolean playerCombat = (pvpRequest != null) || ((siegeRequest != null) && (siegeRequest.targetKind() == org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind.PLAYER));
-					Optional<PhantomCombatLoadout> loadout = playerCombat ? _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills()) : _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
+					Optional<PhantomCombatLoadout> loadout;
+					if (playerCombat)
+					{
+						loadout = _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills());
+					}
+					else if (raidRequest != null || siegeRequest != null || retreatOnly)
+					{
+						loadout = _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
+					}
+					else
+					{
+						loadout = _capabilityResolver.resolveOrdinaryPve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
+					}
 					if (loadout.isEmpty() && contentBasicMelee && (request.mode() == PhantomCombatMode.MELEE_PHYSICAL))
 					{
 						loadout = Optional.of(new PhantomCombatLoadout(request.mode(), request.mode().capabilityKey(), 1, List.of(), true));
@@ -863,6 +875,10 @@ public final class PhantomCombatService
 			{
 				return Optional.empty();
 			}
+			if (generation == 0 && pendingPartySupport(session, now()) != null)
+			{
+				return Optional.empty();
+			}
 			_sessions.remove(profileId);
 			_sessionOperationOwners.remove(profileId);
 			removeSessionMetricLocked(session);
@@ -877,9 +893,10 @@ public final class PhantomCombatService
 
 	/** Let the current native action settle before another party action can own this actor. */
 	public boolean requestPartySupportYield(long profileId, long generation, int targetObjectId, String operationOwner,
-		long deadlineNanos, PhantomCancellationToken authority)
+		ExternalActionRequest support)
 	{
-		if (operationOwner == null || !operationOwner.startsWith("party.tactic.") || authority == null || deadlineNanos <= now())
+		if (operationOwner == null || !operationOwner.startsWith("party.tactic.") || support == null
+			|| support.kind() != ExternalActionKind.PARTY_SUPPORT || support.profileId() != profileId || support.deadlineLogicalNanos() <= now())
 		{
 			return false;
 		}
@@ -892,9 +909,30 @@ public final class PhantomCombatService
 			{
 				return false;
 			}
-			session._partySupportYield = new PhantomCombatSession.SupportYield(deadlineNanos, authority);
+			session._partySupportYield = support;
 			return true;
 		}
+	}
+
+	public boolean partySupportHandoffReady(long generation, int targetObjectId, ExternalActionRequest support)
+	{
+		synchronized (_monitor)
+		{
+			return _state == ServiceState.RUNNING && matchesPartySupportHandoff(generation, targetObjectId, support);
+		}
+	}
+
+	private boolean matchesPartySupportHandoff(long generation, int targetObjectId, ExternalActionRequest support)
+	{
+		final var session = _sessions.get(support.profileId());
+		return session != null && session._generation == generation && session._request.targetObjectId() == targetObjectId
+			&& session._result.terminal() && session._cleanupState == CleanupState.COMPLETE && pendingPartySupport(session, now()) == support;
+	}
+
+	private static ExternalActionRequest pendingPartySupport(PhantomCombatSession session, long now)
+	{
+		final var pending = session._partySupportYield;
+		return pending != null && now < pending.deadlineLogicalNanos() ? pending : null;
 	}
 
 	public CancelStatus cancelContentSession(long profileId, long generation, int targetObjectId, String operationOwner)
@@ -1035,6 +1073,20 @@ public final class PhantomCombatService
 
 	public ExternalActionResult acquireExternalAction(ExternalActionRequest request)
 	{
+		return acquireExternalAction(request, 0, 0);
+	}
+
+	public ExternalActionResult acquirePartySupportHandoff(long generation, int targetObjectId, ExternalActionRequest request)
+	{
+		if (generation <= 0 || targetObjectId <= 0 || request.kind() != ExternalActionKind.PARTY_SUPPORT)
+		{
+			return new ExternalActionResult(ExternalActionStatus.REJECTED_EXISTING, null);
+		}
+		return acquireExternalAction(request, generation, targetObjectId);
+	}
+
+	private ExternalActionResult acquireExternalAction(ExternalActionRequest request, long supportGeneration, int oldTargetObjectId)
+	{
 		Objects.requireNonNull(request, "request");
 		_metrics.externalRequested();
 		final ExternalOperation operation;
@@ -1045,13 +1097,16 @@ public final class PhantomCombatService
 				_metrics.externalRejected();
 				return new ExternalActionResult(ExternalActionStatus.REJECTED_STATE, null);
 			}
-			if (request.ownershipToken().isCancelled())
+			if (now() >= request.deadlineLogicalNanos() || request.ownershipToken().isCancelled())
 			{
 				_metrics.externalRejected();
 				return new ExternalActionResult(ExternalActionStatus.CANCELLED, null);
 			}
 			final PhantomCombatSession session = _sessions.get(request.profileId());
-			if (((session != null) && (!session._result.terminal() || (session._cleanupState != CleanupState.COMPLETE))) || _respawnOperations.containsKey(request.profileId()) || _externalOperations.containsKey(request.profileId()))
+			final var pendingSupport = session == null ? null : pendingPartySupport(session, now());
+			final boolean reserved = supportGeneration > 0 ? !matchesPartySupportHandoff(supportGeneration, oldTargetObjectId, request) : pendingSupport != null;
+			if (session != null && (!session._result.terminal() || session._cleanupState != CleanupState.COMPLETE) || reserved
+				|| _respawnOperations.containsKey(request.profileId()) || _externalOperations.containsKey(request.profileId()))
 			{
 				_metrics.externalRejected();
 				return new ExternalActionResult(ExternalActionStatus.REJECTED_EXISTING, null);
@@ -1096,7 +1151,9 @@ public final class PhantomCombatService
 		final ExternalActionLease publishedLease;
 		synchronized (_monitor)
 		{
-			if ((_state == ServiceState.RUNNING) && (_externalOperations.get(request.profileId()) == operation) && !request.ownershipToken().isCancelled())
+			if (_state == ServiceState.RUNNING && _externalOperations.get(request.profileId()) == operation
+				&& now() < request.deadlineLogicalNanos() && !request.ownershipToken().isCancelled()
+				&& (supportGeneration == 0 || matchesPartySupportHandoff(supportGeneration, oldTargetObjectId, request)))
 			{
 				publishedLease = new ExternalActionLease(this, operation, actorLease);
 				operation._lease = publishedLease;
@@ -1434,10 +1491,9 @@ public final class PhantomCombatService
 				}
 				// Six native 500-unit legs fit within this local escape budget. The
 				// original session deadline remains an independent upper bound.
-				final boolean expired = elapsed(now, session._retreatStartedNanos) >= TimeUnit.SECONDS.toNanos(30)
-					|| elapsed(now, session._startedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(session._request.timeoutMillis());
 				final boolean waitingForCast = actor.casting() || session._actorLease.nativeCastPending();
-				if (expired || !waitingForCast && session._actorLease.retreatFrom(session._request.targetObjectId()) != ActionOutcome.ISSUED)
+				if (retreatExpired(session, now) || !waitingForCast && session._actorLease.retreatFrom(
+					session._request.targetObjectId(), () -> learnedReturnCurrent(session)) != ActionOutcome.ISSUED)
 				{
 					finish(session, PhantomCombatResult.LOW_HP_STOPPED);
 				}
@@ -1536,6 +1592,24 @@ public final class PhantomCombatService
 		{
 			finishProcessing(session);
 		}
+	}
+
+	private static boolean retreatExpired(PhantomCombatSession session, long now)
+	{
+		return elapsed(now, session._retreatStartedNanos) >= TimeUnit.SECONDS.toNanos(30)
+			|| elapsed(now, session._startedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(session._request.timeoutMillis());
+	}
+
+	private boolean learnedReturnCurrent(PhantomCombatSession session)
+	{
+		synchronized (_monitor)
+		{
+			if (_state != ServiceState.RUNNING || _sessions.get(session._request.profileId()) != session || session._result.terminal() || session._retreatOnly)
+			{
+				return false;
+			}
+		}
+		return !retreatExpired(session, now()) && !session._request.planOwnershipToken().isCancelled();
 	}
 
 	private void processSiege(PhantomCombatSession session, ActorSnapshot actor)
@@ -1781,19 +1855,22 @@ public final class PhantomCombatService
 		final int ownerObjectId = session._request.targetObjectId();
 		final int tacticalTargetObjectId = session._actorLease.pvpTacticalTargetObjectId(ownerObjectId, _policy.maximumAcquisitionDistance());
 		final List<SelectedSkill> skills = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent() ? session._loadout.selectedSkills() : List.of();
-		if(actor.attacking())
+		final List<SelectedSkill> ready = skills.stream().filter(skill ->
+			session._actorLease.pvpSkillReady(ownerObjectId, tacticalTargetObjectId, skill, session._request.mode())).toList();
+		if (actor.attacking())
 		{
 			// Stop only this owner's fallback renewal. Native earned hits remain published and finish first.
-			if(session._ownedAction.selectedSkill()==null && skills.stream().anyMatch(skill->session._actorLease.pvpSkillReady(ownerObjectId,skill,session._request.mode()))) { session._actorLease.cancelOwnedAction(session._ownedAction); }
+			if (session._ownedAction.selectedSkill() == null && !ready.isEmpty()) { session._actorLease.cancelOwnedAction(session._ownedAction); }
 			return;
 		}
 		if (!session._actorLease.hasPvpShotReserve(session._request.mode(), 2)) { finish(session, PhantomCombatResult.SUPPLY_REQUIRED); return; }
+		final ActionOutcome spacing = session._actorLease.maintainPvpPosition(ownerObjectId, skills.stream().findFirst().orElse(null), session._request.mode());
+		if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
+		if (ready.isEmpty() && !session._loadout.normalAttackFallback()) { return; }
 		final var shot = session._actorLease.activateShot(session._request.mode());
 		_metrics.shot(shot);
 		if (shot != ShotOutcome.ACTIVATED) { finish(session, PhantomCombatResult.SUPPLY_REQUIRED); return; }
-		final ActionOutcome spacing = session._actorLease.maintainPvpPosition(ownerObjectId, skills.stream().findFirst().orElse(null), session._request.mode());
-		if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
-		for (SelectedSkill selected : skills)
+		for (SelectedSkill selected : ready)
 		{
 			final ActionOutcome outcome = session._actorLease.castPvp(ownerObjectId, tacticalTargetObjectId, selected, session._request.mode(), session._pvpRequest.forceUse(), session._pvpRequest.authorityHash());
 			if (outcome == ActionOutcome.ISSUED)
@@ -1819,9 +1896,9 @@ public final class PhantomCombatService
 
 	private boolean yieldToPartySupport(PhantomCombatSession session, ActorSnapshot actor)
 	{
-		final var supportYield = session._partySupportYield;
-		if (supportYield == null || actor.casting() || actor.attacking() || now() >= supportYield.deadlineNanos()
-			|| session._actorLease.nativeCastPending() || supportYield.authority().isCancelled())
+		final var supportYield = pendingPartySupport(session, now());
+		if (supportYield == null || actor.casting() || actor.attacking()
+			|| session._actorLease.nativeCastPending() || supportYield.ownershipToken().isCancelled())
 		{
 			return false;
 		}
@@ -2734,7 +2811,7 @@ public final class PhantomCombatService
 
 		public ActionOutcome castSupport(PhantomPartySupportAction action)
 		{
-			if (!active() || (kind() != ExternalActionKind.PARTY_SUPPORT) || (action == null))
+			if (!active() || (kind() != ExternalActionKind.PARTY_SUPPORT) || (action == null) || expired(_owner.now()))
 			{
 				return ActionOutcome.REJECTED;
 			}

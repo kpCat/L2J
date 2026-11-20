@@ -1259,6 +1259,7 @@
 
 	<target name="phantom-combat131-contract-test" depends="compile-tests" description="Run DB-free TASK131 combat contracts.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomCombat131Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" />
+		<java classname="org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscapeChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" />
 		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning131FrozenChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" />
 		<java classname="org.l2jmobius.tests.phantoms.PhantomLearning131BatchChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<sysproperty key="java.io.tmpdir" value="${build.test.reports}" />

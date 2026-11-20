@@ -838,7 +838,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 
 	private org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout farmLoadout(Player player, Creature target, PhantomCombatMode mode, boolean weapon, boolean continuing)
 	{
-		return _combatLoadouts.resolve(player.getActiveClass(), mode, player::getSkillLevel, selected ->
+		return _combatLoadouts.resolveOrdinaryPve(player.getActiveClass(), mode, player::getSkillLevel,
+			() -> L2jCombatBackend.nativePveSkills(player, mode), selected ->
 		{
 			final var learned = player.getKnownSkill(selected.skillId());
 			// A ready utility can change tactics, but it cannot contribute forecast damage.
@@ -1334,6 +1335,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		}
 		if (player.getAllSkills().size() <= PhantomNativeCombatCapability.MAXIMUM_SKILLS)
 		{
+			final var nativeDamage = new java.util.EnumMap<PhantomCombatMode, MemberCapability>(PhantomCombatMode.class);
 			for (Skill skill : player.getAllSkills())
 			{
 				final double mp = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
@@ -1350,6 +1352,28 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				{
 					final var capability = new MemberCapability("combat.tank", "native.aggro." + skill.getId(), 800, skill.getId(), skill.getLevel(), "SINGLE_TARGET", true, true, affordable, affordable ? "ready" : "native.unavailable", (int) Math.min(10000, Math.max(0, player.getPDef(null))), "native.learned_aggression+equipped_weapon+defense");
 					result.put(capability.identity(), capability);
+				}
+				final var mode = skill.isMagic() ? PhantomCombatMode.RANGED_MAGIC
+					: weapon != null && weapon.isRange() ? PhantomCombatMode.RANGED_PHYSICAL : PhantomCombatMode.MELEE_PHYSICAL;
+				if (L2jCombatBackend.supportsPveSkill(player, skill, mode) && PhantomNativeCombatCapability.mechanics(skill) != null)
+				{
+					final boolean ready = affordable && (targetObjectId <= 0
+						|| target instanceof Monster monster && L2jCombatBackend.nativePveSkillReady(player, monster, skill));
+					final var current = nativeDamage.get(mode);
+					if (current == null || ready && !current.readyNow()
+						|| ready == current.readyNow() && skill.getId() < current.actionSkillId())
+					{
+						nativeDamage.put(mode, new MemberCapability(mode.capabilityKey(), "native.learned_damage", 300,
+							skill.getId(), skill.getLevel(), "SINGLE_TARGET", true, true, ready,
+							ready ? "ready" : "native.unavailable", 300, "native.learned_skill+damage_effect"));
+					}
+				}
+			}
+			for (var candidate : nativeDamage.values())
+			{
+				if (result.values().stream().noneMatch(value -> value.capabilityKey().equals(candidate.capabilityKey()) && value.intrinsic() && value.learned()))
+				{
+					result.put(candidate.identity(), candidate);
 				}
 			}
 		}

@@ -102,7 +102,7 @@ public final class PhantomPartyTactics
 				else
 				{
 					final boolean pressured = !targetSnapshot.attackerObjectIds().isEmpty();
-					final int healThreshold = pressured ? 75 : 55;
+					final int healThreshold = healThreshold(targetSnapshot);
 					if (targetSnapshot.hpPercent() <= healThreshold)
 					{
 						addSupport(candidates, DirectiveKind.HEAL_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.heal", "member.hp.low", (pressured ? 9000 : 8000) + (healThreshold - targetSnapshot.hpPercent()));
@@ -221,27 +221,52 @@ public final class PhantomPartyTactics
 			default -> false;
 		};
 		final ExternalActionKind kind = support ? ExternalActionKind.PARTY_SUPPORT : ExternalActionKind.PARTY_TACTIC;
-		final PhantomCombatService.ExternalActionResult acquisition = _combat.acquireExternalAction(new ExternalActionRequest(directive.actor().profileId(), kind, operationKey, deadlineLogicalNanos, token));
+		final var request = new ExternalActionRequest(directive.actor().profileId(), kind, operationKey, deadlineLogicalNanos, token);
+		return dispatch(directive, _combat.acquireExternalAction(request), stationary);
+	}
+
+	Optional<ExternalActionLease> dispatchSupportHandoff(TacticalDirective directive, ExternalActionRequest request,
+		long generation, int oldTargetObjectId, boolean stationary)
+	{
+		return dispatch(directive, _combat.acquirePartySupportHandoff(generation, oldTargetObjectId, request), stationary);
+	}
+
+	private Optional<ExternalActionLease> dispatch(TacticalDirective directive, PhantomCombatService.ExternalActionResult acquisition, boolean stationary)
+	{
 		final ExternalActionLease lease = acquisition.lease();
 		if (lease == null)
 		{
 			return Optional.empty();
 		}
-		final ActionOutcome outcome;
-		if (support)
+		boolean retained = false;
+		try
 		{
-			outcome = _learning.dispatch(directive, () -> lease.castSupport(new PhantomPartySupportAction(directive.capabilityKey(), directive.variantKey(), directive.targetScope(), directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel()), PhantomPartySupportAction.Audience.PARTY, _policy.rebuffRemainingSeconds(), stationary)));
+			final ActionOutcome outcome = lease.kind() == ExternalActionKind.PARTY_SUPPORT
+				? _learning.dispatch(directive, () -> lease.castSupport(new PhantomPartySupportAction(directive.capabilityKey(), directive.variantKey(), directive.targetScope(), directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel()), PhantomPartySupportAction.Audience.PARTY, _policy.rebuffRemainingSeconds(), stationary)))
+				: lease.attack(directive.targetObjectId());
+			retained = outcome == ActionOutcome.ISSUED || outcome == ActionOutcome.ALREADY_OWNED;
+			return retained ? Optional.of(lease) : Optional.empty();
 		}
-		else
+		finally
 		{
-			outcome = lease.attack(directive.targetObjectId());
+			if (!retained) { lease.close(); }
 		}
-		if ((outcome != ActionOutcome.ISSUED) && (outcome != ActionOutcome.ALREADY_OWNED))
+	}
+
+	static boolean stillNeedsUrgentSupport(TacticalDirective directive, MemberSnapshot target)
+	{
+		return switch (directive.kind())
 		{
-			lease.close();
-			return Optional.empty();
-		}
-		return Optional.of(lease);
+			case HEAL_MEMBER -> !target.dead() && target.hpPercent() <= healThreshold(target);
+			case RECHARGE_MEMBER -> !target.dead() && target.mpPercent() <= 35;
+			case RESURRECT_MEMBER -> target.dead();
+			default -> false;
+		};
+	}
+
+	private static int healThreshold(MemberSnapshot target)
+	{
+		return target.attackerObjectIds().isEmpty() ? 55 : 75;
 	}
 
 	private void addSupport(List<TacticalDirective> output, DirectiveKind kind, MemberSnapshot actor, MemberSnapshot target, List<MemberCapability> capabilities, String capabilityKey, String reason, int priority)

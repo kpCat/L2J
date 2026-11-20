@@ -3333,8 +3333,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				if (directive.kind() == DirectiveKind.PARTY_SUPPORT) { continue; }
 				if (!offense)
 				{
-					_tactics.combatOwner().requestPartySupportYield(active.profileId(), active.generation(), active.targetObjectId(),
-						active.operationKey(), deadline(), supportToken(directive, claim.state()));
+					requestSupportHandoff(active, directive, key, claim.state());
 					continue;
 				}
 				// Retarget only after the current native cast/attack; movement never breaks it.
@@ -3377,6 +3376,22 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return directive.kind() == DirectiveKind.PARTY_SUPPORT && !directive.reasonKey().endsWith(".combat");
 	}
 
+	private void requestSupportHandoff(TacticalCombatClaim active, TacticalDirective directive, String operationKey, PartyState authority)
+	{
+		final var current = active.support().get();
+		if (current != null && _clock.getAsLong() < current.request().deadlineLogicalNanos()
+			&& !current.request().ownershipToken().isCancelled())
+		{
+			return;
+		}
+		final var request = new PhantomCombatService.ExternalActionRequest(active.profileId(), PhantomCombatService.ExternalActionKind.PARTY_SUPPORT,
+			operationKey, deadline(), supportToken(directive, authority));
+		if (_tactics.combatOwner().requestPartySupportYield(active.profileId(), active.generation(), active.targetObjectId(), active.operationKey(), request))
+		{
+			active.support().set(new PendingSupport(directive, request));
+		}
+	}
+
 	/** A pending native approach/cast belongs only to this current party authority. */
 	private PhantomCancellationToken supportToken(TacticalDirective directive, PartyState authority)
 	{
@@ -3384,7 +3399,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			final StoredPartyState current = _claims.get(directive.actor().profileId());
 			if (PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace()) && !currentFarmIntent(authority)) { return true; }
-			if ((_state != State.RUNNING) || !committedClaim(current) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || !_backend.currentMember(directive.actor().profileId()).filter(directive.actor()::equals).isPresent())
+			if ((_state != State.RUNNING) || !committedClaim(current) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration())
+				|| (current.state().membershipRevision() != authority.membershipRevision()) || !current.state().leader().equals(authority.leader()) || !_backend.currentMember(directive.actor().profileId()).filter(directive.actor()::equals).isPresent())
 			{
 				return true;
 			}
@@ -3454,7 +3470,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final var started = combat.startContentSession(request, key);
 			if (started.accepted() && (started.session() != null))
 			{
-				final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), targetId, key, token, loot ? runtime : null);
+				final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), targetId, key, token, loot ? runtime : null,
+					new java.util.concurrent.atomic.AtomicReference<>());
 				if (_tacticalCombat.putIfAbsent(profileId, next) != null)
 				{
 					cancelTacticalCombat(next);
@@ -3494,6 +3511,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	private void cancelTacticalCombat(TacticalCombatClaim claim)
 	{
+		claim.support().set(null);
 		final PhantomCombatService combat = _tactics.combatOwner();
 		if (combat != null)
 		{
@@ -3525,9 +3543,16 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final TacticalCombatClaim combat = _tacticalCombat.get(profileId);
 		if (combat != null)
 		{
-			if (!releaseTacticalCombat(combat))
+			try
 			{
-				_tacticalReleases.offer(profileId);
+				dispatchSupportHandoff(combat);
+			}
+			finally
+			{
+				if (!releaseTacticalCombat(combat))
+				{
+					_tacticalReleases.offer(profileId);
+				}
 			}
 			return;
 		}
@@ -3544,6 +3569,29 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			_tacticalReleases.offer(profileId);
 		}
+	}
+
+	private void dispatchSupportHandoff(TacticalCombatClaim claim)
+	{
+		final var pending = claim.support().get();
+		if (pending == null || !_tactics.combatOwner().partySupportHandoffReady(claim.generation(), claim.targetObjectId(), pending.request())
+			|| !claim.support().compareAndSet(pending, null))
+		{
+			return;
+		}
+		final var target = _backend.memberSnapshot(pending.directive().targetMember()).orElse(null);
+		final var current = _claims.get(claim.profileId());
+		if (!committedClaim(current) || target == null || pending.request().ownershipToken().isCancelled()
+			|| !PhantomPartyTactics.stillNeedsUrgentSupport(pending.directive(), target))
+		{
+			return;
+		}
+		_routes.cancelFollow(current.state().groupId(), current.state().groupGeneration(), claim.profileId());
+		_tactics.dispatchSupportHandoff(pending.directive(), pending.request(), claim.generation(), claim.targetObjectId(), holdsMovement(claim.profileId())).ifPresent(lease ->
+		{
+			_tacticalActions.put(claim.profileId(), lease);
+			_tacticalReleases.offer(claim.profileId());
+		});
 	}
 
 	private StoredPartyState sanitizeAfterRestart(StoredPartyState stored)
@@ -4465,7 +4513,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return (claim != null) && Set.of(StateStatus.LEADER, StateStatus.MEMBER, StateStatus.RECOVERING).contains(claim.state().status());
 	}
 
-	private record TacticalCombatClaim(long profileId, long generation, int targetObjectId, String operationKey, PhantomCancellationToken token, GroupRuntime lootRuntime)
+	private record TacticalCombatClaim(long profileId, long generation, int targetObjectId, String operationKey, PhantomCancellationToken token, GroupRuntime lootRuntime,
+		java.util.concurrent.atomic.AtomicReference<PendingSupport> support)
+	{
+	}
+
+	private record PendingSupport(TacticalDirective directive, PhantomCombatService.ExternalActionRequest request)
 	{
 	}
 

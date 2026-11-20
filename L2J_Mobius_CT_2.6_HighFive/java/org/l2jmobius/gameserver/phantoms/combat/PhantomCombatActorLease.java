@@ -123,6 +123,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return ActionOutcome.REJECTED;
 	}
 
+	default ActionOutcome retreatFrom(int targetObjectId, java.util.function.BooleanSupplier learnedReturnAuthority)
+	{
+		return retreatFrom(targetObjectId);
+	}
+
 	default AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
 	{
 		return null;
@@ -204,6 +209,12 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode);
 
+	/** Capabilities proved by the actor's actual learned inventory. */
+	default List<SelectedSkill> learnedPveSkills(PhantomCombatMode mode)
+	{
+		return List.of();
+	}
+
 	/** Detect casts queued after the actor snapshot and simultaneous native casts. */
 	default boolean nativeCastPending()
 	{
@@ -279,6 +290,10 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	/** Learned native actions in tactical order; observations never grant a skill. */
 	default List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return List.of(); }
 	default boolean pvpSkillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { return false; }
+	default boolean pvpSkillReady(int playerObjectId, int tacticalTargetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+	{
+		return pvpSkillReady(playerObjectId, skill, mode);
+	}
 	default ActionOutcome maintainPvpPosition(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { return maintainRangedSpacing(targetObjectId, skill, mode); }
 
 	/** Existing paid stock, including the current charge, sufficient for this many actions. */

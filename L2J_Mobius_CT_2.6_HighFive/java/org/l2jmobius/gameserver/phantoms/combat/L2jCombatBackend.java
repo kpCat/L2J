@@ -44,6 +44,7 @@ import org.l2jmobius.gameserver.model.actor.instance.RaidBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Servitor;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.conditions.ConditionPlayerCanSummon;
+import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
@@ -173,9 +174,37 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			&& PhantomCombatSkillSafety.supports(skill, mode, player.isTransformed());
 	}
 
+	/** Passive discovery for Party readiness and the same single-target native executor. */
+	public static List<SelectedSkill> nativePveSkills(Player player, PhantomCombatMode mode)
+	{
+		if (player.getSkills().size() > PhantomNativeCombatCapability.MAXIMUM_SKILLS)
+		{
+			return List.of();
+		}
+		return selectNativePveSkills(player, mode, indexNativePveSkills(player.getAllSkills()));
+	}
+
+	private static List<Skill> indexNativePveSkills(java.util.Collection<Skill> learned)
+	{
+		return learned.stream().filter(skill ->
+		{
+			final var mode = skill.isMagic() ? PhantomCombatMode.RANGED_MAGIC : PhantomCombatMode.MELEE_PHYSICAL;
+			return skill.getAffectRange() == 0 && PhantomCombatSkillSafety.supports(skill, mode, false)
+				&& PhantomPvpSkillSafety.supports(skill, mode, false) && !skill.hasEffectType(EffectType.AGGRESSION)
+				&& (skill.isDamage() || skill.isDebuff() || PhantomPvpSkillSafety.priority(skill) >= 300);
+		}).sorted(Comparator.comparingInt((Skill skill) -> skill.isDamage() ? 0 : 1).thenComparingInt(Skill::getId)).toList();
+	}
+
+	private static List<SelectedSkill> selectNativePveSkills(Player player, PhantomCombatMode mode, List<Skill> indexed)
+	{
+		return indexed.stream().filter(skill -> supportsPveSkill(player, skill, mode))
+			.map(skill -> new SelectedSkill(skill.getId(), skill.getLevel())).toList();
+	}
+
 	public static boolean nativePveSkillReady(Player player, Creature target, Skill skill)
 	{
-		return nativeOffensiveResourcesReady(player, target, skill) && player.checkDoCastConditions(skill) && skill.checkCondition(player, target, false);
+		return nativeOffensiveResourcesReady(player, target, skill) && player.checkDoCastConditions(skill) && skill.checkCondition(player, target, false)
+			&& (target == null || !PhantomPvpSkillSafety.requiresRear(skill) || !player.isInFrontOf(target));
 	}
 
 	private static boolean nativeOffensiveResourcesReady(Player player, Creature target, Skill skill)
@@ -250,6 +279,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private long _nextSupportPetScanNanos;
 		private long _nextServitorSkillAttemptNanos;
 		private int _controlledServitorObjectId;
+		private Map<Integer, Skill> _pveIndexSource = Map.of();
+		private List<Skill> _pveIndex = List.of();
 		private int _ownedSummonSkillId;
 		private SelectedSkill _ownedRaidSelfDefense;
 		private int _ownedRaidDefenseTargetObjectId;
@@ -257,6 +288,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private int _ownedSpacingTargetObjectId;
 		private long _spacingStartedNanos;
 		private int _spacingAttempts;
+		private PhantomLearnedEscape.Attempt _learnedReturn;
+		private boolean _learnedReturnAttempted;
 
 		private L2jActorLease(long profileId, ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
 		{
@@ -828,6 +861,27 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public List<SelectedSkill> learnedPveSkills(PhantomCombatMode mode)
+		{
+			final var learned = _player.getSkills();
+			if (learned.size() > PhantomNativeCombatCapability.MAXIMUM_SKILLS)
+			{
+				return List.of();
+			}
+			if (!_pveIndexSource.equals(learned))
+			{
+				final var snapshot = Map.copyOf(learned);
+				if (snapshot.size() > PhantomNativeCombatCapability.MAXIMUM_SKILLS)
+				{
+					return List.of();
+				}
+				_pveIndex = indexNativePveSkills(snapshot.values());
+				_pveIndexSource = snapshot;
+			}
+			return selectNativePveSkills(_player, mode, _pveIndex);
+		}
+
+		@Override
 		public boolean skillReady(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
 		{
 			if (!executionValid() || selected == null || !supportsSkill(selected, mode)
@@ -857,8 +911,23 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return nativePvpSkills(_player, mode, limit); }
 		@Override public boolean pvpSkillReady(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
 		{
-			final var object=World.getInstance().findObject(targetObjectId); final var facts=pvpTargetSnapshot(targetObjectId); final var skill=_player.getKnownSkill(selected.skillId());
-			return object instanceof Player target && facts!=null && facts.validFor(actorSnapshot(),MAXIMUM_ACQUISITION_DISTANCE) && skill!=null && supportsPvpSkill(selected,mode) && nativePvpSkillReady(_player,target,skill);
+			return pvpSkillReady(targetObjectId, targetObjectId, selected, mode);
+		}
+
+		@Override
+		public boolean pvpSkillReady(int playerObjectId, int tacticalTargetObjectId, SelectedSkill selected, PhantomCombatMode mode)
+		{
+			final var owner = World.getInstance().findObject(playerObjectId);
+			final var facts = pvpTargetSnapshot(playerObjectId);
+			if (!(owner instanceof Player opponent) || facts == null || !facts.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE)
+				|| !supportsPvpSkill(selected, mode))
+			{
+				return false;
+			}
+			final var target = pvpActionTarget(opponent, tacticalTargetObjectId, facts);
+			final var skill = _player.getKnownSkill(selected.skillId());
+			return target != null && skill != null && skill.getLevel() == selected.skillLevel() && nativePvpSkillReady(_player, target, skill)
+				&& _player.checkDoCastConditions(skill) && (!PhantomPvpSkillSafety.requiresRear(skill) || !_player.isInFrontOf(target));
 		}
 		@Override public boolean hasPvpShotReserve(PhantomCombatMode mode, int hits) { return !_closed.get() && PhantomNativeShotControl.hasOffensiveReserve(_player, mode.magic(), hits); }
 
@@ -987,6 +1056,21 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome retreatFrom(int targetObjectId)
 		{
+			return retreatFrom(targetObjectId, () -> false);
+		}
+
+		@Override
+		public ActionOutcome retreatFrom(int targetObjectId, java.util.function.BooleanSupplier learnedReturnAuthority)
+		{
+			if (_learnedReturn != null)
+			{
+				switch (_learnedReturn.status())
+				{
+					case ARRIVED: return ActionOutcome.ALREADY_OWNED;
+					case PENDING: return ActionOutcome.ISSUED;
+					case INTERRUPTED: _learnedReturn = null; break;
+				}
+			}
 			final ActorSnapshot actor = actorSnapshot();
 			if (actor.dead() || actor.alikeDead() || actor.casting())
 			{
@@ -1020,14 +1104,14 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				_player.abortAttack();
 				_player.getAI().setIntention(Intention.IDLE);
 			}
-			if (_player.isMoving() || _player.isAttackingNow() || _spacingAttempts >= 6)
+			if (_player.isMoving() || _player.isAttackingNow())
 			{
 				return ActionOutcome.REJECTED;
 			}
 			final GeoEngine geo = GeoEngine.getInstance();
-			if (!geo.hasGeo(_player.getX(), _player.getY()))
+			if (_spacingAttempts >= 6 || !geo.hasGeo(_player.getX(), _player.getY()))
 			{
-				return ActionOutcome.UNAVAILABLE;
+				return tryLearnedSoloReturn(learnedReturnAuthority);
 			}
 			Location destination = null;
 			double best = Double.NEGATIVE_INFINITY;
@@ -1063,7 +1147,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			if (destination == null)
 			{
-				return ActionOutcome.UNAVAILABLE;
+				return tryLearnedSoloReturn(learnedReturnAuthority);
 			}
 			_ownedSpacing = destination;
 			_ownedSpacingTargetObjectId = targetObjectId;
@@ -1071,6 +1155,17 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			_spacingAttempts++;
 			_player.getAI().setIntention(Intention.MOVE_TO, destination);
 			return ActionOutcome.ISSUED;
+		}
+
+		private ActionOutcome tryLearnedSoloReturn(java.util.function.BooleanSupplier authority)
+		{
+			if (_learnedReturnAttempted || _player.getParty() != null || !authority.getAsBoolean())
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			_learnedReturnAttempted = true;
+			_learnedReturn = PhantomLearnedEscape.startSolo(_player, () -> executionValid() && _player.getParty() == null && authority.getAsBoolean());
+			return _learnedReturn == null ? ActionOutcome.UNAVAILABLE : ActionOutcome.ISSUED;
 		}
 
 		private boolean validNpcTacticTarget(Monster target, ActorSnapshot actor)
@@ -2111,6 +2206,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
+			if (_learnedReturn != null && _learnedReturn.status() == PhantomLearnedEscape.Status.PENDING)
+			{
+				_learnedReturn.cancel();
+			}
 			if (_ownedSpacingTargetObjectId == action.combatTargetObjectId())
 			{
 				if (ownsSpacingDestination())
@@ -2369,8 +2468,18 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			if (_closed.compareAndSet(false, true))
 			{
-				_shots.close();
-				_materializationLease.close();
+				try
+				{
+					if (_learnedReturn != null && _learnedReturn.status() == PhantomLearnedEscape.Status.PENDING)
+					{
+						_learnedReturn.cancel();
+					}
+				}
+				finally
+				{
+					_shots.close();
+					_materializationLease.close();
+				}
 			}
 		}
 

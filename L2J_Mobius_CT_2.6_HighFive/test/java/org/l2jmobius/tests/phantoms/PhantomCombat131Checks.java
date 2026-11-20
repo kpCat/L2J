@@ -7,6 +7,8 @@ public final class PhantomCombat131Checks
 	{
 		PhantomCombatCoreSuite.testReadySkillBeyondLoadoutBound();
 		System.out.println("TASK131_D1_READY_SKILL_BOUND_PASS");
+		PhantomCombatCoreSuite.testUnlistedAcquiredPveSkill();
+		System.out.println("TASK131_D1_ACQUIRED_PVE_PASS");
 		PhantomCombatCoreSuite.testPartySupportYield();
 		System.out.println("TASK131_D2_PARTY_SUPPORT_YIELD_PASS");
 		PhantomCombatCoreSuite.testRetreatDrainsNativeCast();

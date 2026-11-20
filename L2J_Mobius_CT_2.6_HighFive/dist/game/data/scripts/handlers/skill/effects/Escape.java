@@ -27,6 +27,7 @@ import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.krateisCube.KrateiArena;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
 
 /**
  * Escape effect implementation.
@@ -57,6 +58,11 @@ public class Escape extends AbstractEffect
 	
 	@Override
 	public void onStart(Creature effector, Creature effected, Skill skill)
+	{
+		PhantomLearnedEscape.applyEffect(effector, effected, skill, _escapeType == TeleportWhereType.TOWN, () -> escape(effected));
+	}
+
+	private void escape(Creature effected)
 	{
 		if (_escapeType == null)
 		{

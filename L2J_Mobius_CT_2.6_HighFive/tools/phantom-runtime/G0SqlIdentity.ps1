@@ -87,8 +87,14 @@ function Get-StrictG0SqlIdentity($Expected,[int]$Port=3308) {
 }
 
 function Get-G0OwnedSqlIdentity([int]$OwnedPid,[long]$Created,[string]$Executable,[string]$Config,[string]$DataDirectory,[int]$Port) {
-    $ownedLanes=@{33306='sql-first-party';33307='sql-rendezvous'}
+    $ownedLanes=@{33306='sql-first-party';33307='sql-rendezvous';33331='sql-task131'}
     if(!$ownedLanes.ContainsKey($Port) -or (Split-Path (Split-Path $Config -Parent) -Leaf) -ine $ownedLanes[$Port] -or $Created -le 0){throw 'G0_OWNED_SCOPE'}
+    if($Port -eq 33331){
+        $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $laneIdRoot=Split-Path (Split-Path $Config -Parent) -Parent
+        if((Split-Path $laneIdRoot -Parent) -ine (Join-Path $repo '.phantom-local\logs\TASK131\sql-lanes') -or
+            (Split-Path $laneIdRoot -Leaf) -cnotmatch '^[a-z][a-z0-9-]{0,23}$'){throw 'G0_TASK131_OWNED_SCOPE'}
+    }
     foreach($file in @($Executable,$Config)){Assert-G0PhysicalFile $file}
     $data=Get-Item -LiteralPath $DataDirectory -Force
     if(!$data.PSIsContainer -or $data.FullName -ine (Join-Path (Split-Path $Config -Parent) 'data') -or ($data.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'G0_OWNED_DATA_PATH'}
@@ -115,5 +121,7 @@ function Get-G0OwnedSqlIdentity([int]$OwnedPid,[long]$Created,[string]$Executabl
         $command=$process.CommandLine
     }
     if((Get-FileHash -LiteralPath $Executable).Hash -cne $binary -or (Get-FileHash -LiteralPath $Config).Hash -cne $configuration){throw 'G0_OWNED_FILE_CHANGED'}
-    return [ordered]@{PID=$OwnedPid;Created=[DateTime]::FromFileTimeUtc($Created).ToString('o');RuntimeImage=$Executable;Binary=$binary;ConfigHash=$configuration;DataDirectory=$data.FullName;Port=$Port;OwnerSid=$sid;RegisteredService=$false}
+    $result=[ordered]@{PID=$OwnedPid;Created=[DateTime]::FromFileTimeUtc($Created).ToString('o');RuntimeImage=$Executable;Binary=$binary;ConfigHash=$configuration;DataDirectory=$data.FullName;Port=$Port;OwnerSid=$sid;RegisteredService=$false}
+    if($Port -eq 33331){$result.CommandLine=$command}
+    return $result
 }

@@ -220,6 +220,21 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, fixture.lease.legacyCasts, "Skill PvP weakened or reused legacy monster cast.");
 			}
 		});
+		registry.add("131-unready-magic-does-not-charge-pvp-shot", _ ->
+		{
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 100))
+			{
+				fixture.lease.skillResources = false;
+				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(Source.ACTUAL_ATTACK, false).status(), "Temporary resource shortage erased the learned loadout.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, fixture.lease.pvpCasts, "An unavailable skill reached the native cast request.");
+				PhantomAssertions.assertEquals(0, fixture.lease.shotsActivated, "An unavailable skill consumed a shot.");
+				fixture.lease.skillResources = true;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.pvpCasts, "The existing authority did not resume a newly available skill.");
+				PhantomAssertions.assertEquals(1, fixture.lease.shotsActivated, "The feasible cast did not prepare one shot.");
+			}
+		});
 		registry.add("03-target-safety-rejection-propagates", _ ->
 		{
 			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
@@ -258,6 +273,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				fixture.dispatcher.runNext();
 				PhantomAssertions.assertEquals(1, fixture.lease.spacingCalls, "Ranged PvP did not consult common bounded spacing.");
 				PhantomAssertions.assertEquals(0, fixture.lease.pvpCasts, "PvP cast interrupted newly owned spacing.");
+				PhantomAssertions.assertEquals(0, fixture.lease.shotsActivated, "A positioning move consumed an offensive shot.");
 				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, true, false, 100, "CAST", 123, 1);
 				fixture.dispatcher.runNext();
 				PhantomAssertions.assertEquals(1, fixture.lease.spacingCalls, "Spacing interrupted an existing native cast.");
@@ -270,6 +286,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				fixture.lease.spacing = ActionOutcome.UNAVAILABLE;
 				fixture.dispatcher.runNext();
 				PhantomAssertions.assertEquals(1, fixture.lease.pvpCasts, "Ranged PvP did not resume its native cast after spacing.");
+				PhantomAssertions.assertEquals(1, fixture.lease.shotsActivated, "Only the admitted cast should activate an offensive shot.");
 			}
 			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
 			{
@@ -644,6 +661,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private int legacyCasts;
 		private int pvpAttacks;
 		private int pvpCasts;
+		private int shotsActivated;
 		private int potionUses;
 		private boolean lastForceUse;
 		private ActionOutcome spacing = ActionOutcome.UNAVAILABLE;
@@ -652,6 +670,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private int movements;
 		private boolean reserve = true;
 		private boolean readySkill;
+		private boolean skillResources = true;
 		private int cancelledActions;
 
 		private FakeLease(double cp)
@@ -701,7 +720,11 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 			return (skill.skillId() == 123) && (skill.skillLevel() == learnedRank) && (learnedRank > 0);
 		}
 		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode,int limit){return readySkill?List.of(new SelectedSkill(123,learnedRank)):List.of();}
-		@Override public boolean pvpSkillReady(int targetObjectId,SelectedSkill skill,PhantomCombatMode mode){return readySkill;}
+		@Override
+		public boolean pvpSkillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+		{
+			return skillResources && (readySkill || mode == PhantomCombatMode.RANGED_MAGIC) && supportsPvpSkill(skill, mode);
+		}
 
 		@Override
 		public int knownSkillLevel(int skillId)
@@ -754,6 +777,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		@Override
 		public ShotOutcome activateShot(PhantomCombatMode mode)
 		{
+			shotsActivated++;
 			return ShotOutcome.ACTIVATED;
 		}
 		@Override public boolean hasPvpShotReserve(PhantomCombatMode mode, int hits) { return reserve; }

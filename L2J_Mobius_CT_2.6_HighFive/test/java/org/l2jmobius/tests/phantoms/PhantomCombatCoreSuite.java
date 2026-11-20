@@ -521,14 +521,40 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		}
 	}
 
+	static void testUnlistedAcquiredPveSkill()
+	{
+		final var fixture = fixture(1);
+		final var mode = PhantomCombatMode.RANGED_MAGIC;
+		final var learned = new SelectedSkill(303, 4);
+		fixture.capabilities = List.of();
+		fixture.lease.acquiredPveSkills = List.of(learned);
+		fixture.lease.supportedSkills.add(learned.skillId());
+		fixture.lease.learnedRanks.put(learned.skillId(), learned.skillLevel());
+		try
+		{
+			PhantomAssertions.assertTrue(fixture.start(1, mode).accepted(), "An exact acquired native skill without authored metadata could not enter combat.");
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(learned, fixture.lease.lastCast, "The acquired skill was not issued through the ordinary owner.");
+			fixture.lease.supportedSkills.remove(learned.skillId());
+			fixture.lease.learnedRanks.remove(learned.skillId());
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(1, fixture.lease.castCount, "A stale acquired index granted a skill the actor no longer knew.");
+			PhantomAssertions.assertEquals(PhantomCombatResult.UNSUPPORTED_LOADOUT, fixture.service.find(1).orElseThrow().result(), "Magic without any remaining learned skill did not fail closed.");
+		}
+		finally
+		{
+			fixture.stop();
+		}
+	}
+
 	static void testPartySupportYield()
 	{
 		final Fixture fixture = fixture(1);
 		final String owner = "party.tactic.fixture.assist_target.1";
 		final var request = fixture.request(1, PhantomCombatMode.MELEE_PHYSICAL);
-		final var support = new PhantomCombatService.ExternalActionRequest(1, PhantomCombatService.ExternalActionKind.PARTY_SUPPORT,
-			"party.tactic.fixture.heal_member.1", 10_000_000_000L, fixture.token);
 		final var supportStale = new AtomicBoolean();
+		final var support = new PhantomCombatService.ExternalActionRequest(1, PhantomCombatService.ExternalActionKind.PARTY_SUPPORT,
+			"party.tactic.fixture.heal_member.1", 10_000_000_000L, supportStale::get);
 		try
 		{
 			final var started = fixture.service.startContentSession(request, owner);
@@ -536,9 +562,9 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			final long generation = started.session().generation();
 			fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100,
 				false, false, true, false, false, 100, "ATTACK", 0, 0);
-			PhantomAssertions.assertFalse(fixture.service.requestPartySupportYield(1, generation + 1, 100, owner, support.deadlineLogicalNanos(), supportStale::get), "A stale generation could stop a newer owner.");
-			PhantomAssertions.assertFalse(fixture.service.requestPartySupportYield(1, generation, 100, owner + ".foreign", support.deadlineLogicalNanos(), supportStale::get), "A foreign operation could stop the native owner.");
-			PhantomAssertions.assertTrue(fixture.service.requestPartySupportYield(1, generation, 100, owner, support.deadlineLogicalNanos(), supportStale::get), "Party could not request a safe support boundary.");
+			PhantomAssertions.assertFalse(fixture.service.requestPartySupportYield(1, generation + 1, 100, owner, support), "A stale generation could stop a newer owner.");
+			PhantomAssertions.assertFalse(fixture.service.requestPartySupportYield(1, generation, 100, owner + ".foreign", support), "A foreign operation could stop the native owner.");
+			PhantomAssertions.assertTrue(fixture.service.requestPartySupportYield(1, generation, 100, owner, support), "Party could not request a safe support boundary.");
 			fixture.dispatcher.runNext();
 			PhantomAssertions.assertEquals(0, fixture.lease.cancelCount, "Yield interrupted the current native attack.");
 			PhantomAssertions.assertTrue(fixture.service.acquireExternalAction(support).lease() == null, "Urgent support acquired a concurrent actor owner.");
@@ -551,16 +577,23 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			fixture.lease.readinessObserver = () ->
 			{
 				supportStale.set(false);
-				PhantomAssertions.assertTrue(fixture.service.requestPartySupportYield(1, generation, 100, owner,
-					support.deadlineLogicalNanos(), supportStale::get), "Fresh authority could not renew urgent support.");
+				PhantomAssertions.assertTrue(fixture.service.requestPartySupportYield(1, generation, 100, owner, support), "Fresh authority could not renew urgent support.");
 			};
 			fixture.dispatcher.runNext();
 			PhantomAssertions.assertEquals(1, fixture.lease.attackCount, "A new attack started before pending support could take ownership.");
 			PhantomAssertions.assertEquals(0, fixture.lease.castCount, "A yield admitted during skill readiness failed to prevent the newly selected cast.");
-			PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation, 100, owner).isPresent(), "The old session did not drain.");
-			final var lease = fixture.service.acquireExternalAction(support).lease();
+			final var competing = new PhantomCombatService.ExternalActionRequest(1, PhantomCombatService.ExternalActionKind.PARTY_TACTIC,
+				"party.tactic.fixture.assist_target.1.next", support.deadlineLogicalNanos(), fixture.token);
+			final var foreign = fixture.service.acquireExternalAction(competing).lease();
+			if (foreign != null) { foreign.close(); }
+			PhantomAssertions.assertTrue(foreign == null, "An unrelated action took the actor after the urgent handoff drained.");
+			PhantomAssertions.assertTrue(fixture.service.consumeTerminal(1).isEmpty(), "A generic terminal consumer removed a pending party handoff.");
+			final var lease = fixture.service.acquirePartySupportHandoff(generation, 100, support).lease();
 			PhantomAssertions.assertTrue(lease != null, "Party support was blocked after the old session drained.");
+			PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation, 100, owner).isPresent(), "The old session did not drain.");
 			lease.close();
+			PhantomAssertions.assertTrue(fixture.service.acquirePartySupportHandoff(generation, 100, support).lease() == null,
+				"The retired combat generation admitted the same handoff twice.");
 		}
 		finally
 		{
@@ -587,6 +620,9 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			fixture.lease.retreatOutcome = ActionOutcome.ISSUED;
 			fixture.dispatcher.runNext();
 			PhantomAssertions.assertEquals(PhantomCombatPhase.RETREATING, fixture.service.find(1).orElseThrow().phase(), "Native cast completion did not resume retreat.");
+			PhantomAssertions.assertTrue(fixture.lease.returnAuthority.getAsBoolean(), "The active ordinary retreat did not own the learned Return alternative.");
+			fixture.cancelled.set(true);
+			PhantomAssertions.assertFalse(fixture.lease.returnAuthority.getAsBoolean(), "A cancelled plan retained authority to publish a Return effect.");
 		}
 		finally
 		{
@@ -1331,6 +1367,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private TargetSnapshot target = target(false, true);
 		private final Set<Integer> supportedSkills = new HashSet<>();
 		private final Set<Integer> unreadySkills = new HashSet<>();
+		private List<SelectedSkill> acquiredPveSkills = List.of();
 		private Runnable readinessObserver = () -> { };
 		private boolean pendingCast;
 		private final Map<Integer, Integer> learnedRanks = new HashMap<>();
@@ -1339,9 +1376,15 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private int spacingCount;
 		private int healingCalls;
 		private ActionOutcome retreatOutcome = ActionOutcome.REJECTED;
+		private java.util.function.BooleanSupplier returnAuthority = () -> false;
 
 		@Override public boolean useHealingPotion() { healingCalls++; return false; }
 		public ActionOutcome retreatFrom(int targetObjectId) { return retreatOutcome; }
+		@Override public ActionOutcome retreatFrom(int targetObjectId, java.util.function.BooleanSupplier authority)
+		{
+			returnAuthority = authority;
+			return retreatFrom(targetObjectId);
+		}
 
 		@Override
 		public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
@@ -1424,6 +1467,12 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		public int knownSkillLevel(int skillId)
 		{
 			return learnedRanks.getOrDefault(skillId, 0);
+		}
+
+		@Override
+		public List<SelectedSkill> learnedPveSkills(PhantomCombatMode mode)
+		{
+			return acquiredPveSkills;
 		}
 
 		@Override

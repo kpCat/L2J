@@ -1,10 +1,10 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024	Scope latch и оригиналы сверены, отдельный native runtime и fixture pins отсутствуют
+G0	P0	UNKNOWN	S024,verify-native-runtime.log,sql131-cold-off.json,n01-setup-r3/n01-fixture.tsv	Физические активы, SQL и сохранённый N01 roster проверены, стартовая сцена и её pins открыты
 G1	P1	UNKNOWN	D1,D4,N02,N03,N14	Готовность до ограничения, неполное покрытие классов и семейств
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
 G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	DB-free ownership проверен, native роли и tactical frame без доказательств
 G4	P2–P3	UNKNOWN	D2,D3,N06–N10	Текущая execution authority передана PvP, native составы и PK не проверены
-G5	P3	UNKNOWN	D9,N11–N13	Есть офлайн drain при отходе, Return и Mass Return и экономика не проверены
+G5	P3	UNKNOWN	D9,N11–N13	Действующий Solo Return и ограждённый адаптер Party Recall офлайн, фактические исходы и экономика открыты
 G6	P4–P5	NOT_RUN	D5,D6,D7,N15	Нет завершённой A→B→A и доказанных native divergences
 G7	P5	NOT_RUN	D8,Q,N16	Нет 32 целостных matched blocks, Q не вычислен по native данным
 G8	P4–P5	UNKNOWN	D7,D9,N13,N15	Офлайн cold и replay проверены, реального управления кампанией нет
@@ -20,15 +20,15 @@ R6	P4–P5	NOT_RUN	D5,D6,D7,N15	Frozen inference и FIT batch офлайн, A→
 R7	P5	NOT_RUN	D8,Q	Математика офлайн, sealed native evaluation не выполнена
 R8	P4–P5	UNKNOWN	D7,D9,N15	Подготовка/commit/replay checkpoint офлайн, отсутствует управление GS и кампания
 R9	P2–P6	UNKNOWN	D10,N14,N16	Проверены отдельные пути композиции, native wiring профилирование не проверено
-D1	P1	UNKNOWN	aggregate-pass.log	RED/GREEN для пятого навыка, отрицательный контроль unlearned/unready, полный ON/OFF native отсутствует
-D2	P2	UNKNOWN	aggregate-pass.log	RED/GREEN для bounded yield без второго владельца, партийный PvP в TEST не проверен
-D3	P2	UNKNOWN	aggregate-pass.log	Чужое поколение и operation key не могут запросить yield, остальная матрица не закрыта
-D4	P1–P2	UNKNOWN	aggregate-pass.log	Ready/cost до обрезки и известный DAMAGE прогноз, нет native RED/GREEN WAIT_GROUP_DAMAGE
+D1	P1	UNKNOWN	aggregate-v2.log	Пятый ready и изученный вне каталога доступны, удалённый навык отклонён, native ON/OFF открыта
+D2	P2	UNKNOWN	aggregate-v2.log	Владение передаётся одному точному запросу после drain, партийный PvP в TEST открыт
+D3	P2	UNKNOWN	aggregate-v2.log	Чужой актёрный запрос и устаревшее поколение отклонены, Party Recall проверяет точных участников, прочие negative controls открыты
+D4	P1–P2	UNKNOWN	aggregate-v2.log	Обычный PvE и Party используют фактически изученные навыки, native WAIT_GROUP_DAMAGE остаётся открытым
 D5	P4	UNKNOWN	aggregate-pass.log	Frozen SHA и выбор MODEL проверены офлайн, изоляция реальных фаз отсутствует
 D6	P4	NOT_RUN	NONE	Полный новый поток native receipt и атрибуция отсутствуют
 D7	P4	PASS	aggregate-pass.log	Офлайн 257, rollover, killed writer, cold load и replay
 D8	P4	UNKNOWN	aggregate-pass.log	Numeric controls офлайн, нет sealed native originals/role validation
-D9	P3–P5	UNKNOWN	aggregate-pass.log	Retreat drain офлайн, Pause/Resume/Stop и долговечность сцены не проверены
+D9	P3–P5	UNKNOWN	aggregate-v2.log	Drain и отзыв отложенного Return проверены офлайн, управление нативной кампанией и стойкость игрового результата открыты
 D10	P6	NOT_RUN	NONE	Native workload и structural fixture не выполнены
 N01	P3	NOT_RUN	NONE	Solo PvE три награждённых цикла
 N02	P3	NOT_RUN	NONE	Механические варианты native

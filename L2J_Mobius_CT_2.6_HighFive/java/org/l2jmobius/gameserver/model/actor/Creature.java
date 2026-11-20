@@ -1911,16 +1911,26 @@ public abstract class Creature extends WorldObject
 	
 	private void beginCast(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets)
 	{
-		final List<WorldObject> participants = targets == null ? new ArrayList<>() : new ArrayList<>(targets);
+		final boolean guardedEscape = org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.requiresAuthority(this, skill);
+		final var escape = guardedEscape ? org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.capture(this, skill, simultaneously) : null;
+		final List<WorldObject> nativeTargets = escape == null ? targets : escape.selectNativeTargets(targets);
+		if (guardedEscape && (escape == null || target != this || nativeTargets == null || nativeTargets.isEmpty()))
+		{
+			if (simultaneously) { setCastingSimultaneouslyNow(false); }
+			else { setCastingNow(false); }
+			return;
+		}
+		final List<WorldObject> participants = nativeTargets == null ? new ArrayList<>() : new ArrayList<>(nativeTargets);
 		participants.add(target);
 		PlayerNativeWork.runOriginalCombat(this, participants, "cast-frontend", () ->
 		{
 			if ((skill.isDamage() || skill.hasNegativeEffect()) && !PlayerNativeWork.prepareOffensiveShot(this, skill.isMagic())) { if (hasAI()) { getAI().setIntention(Intention.IDLE); } return; }
-			beginCastNative(skill, simultaneously, target, targets);
+			beginCastNative(skill, simultaneously, target, nativeTargets, escape);
 		});
 	}
 
-	private void beginCastNative(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets)
+	private void beginCastNative(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets,
+		org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Attempt escape)
 	{
 		if (target == null)
 		{
@@ -1996,6 +2006,11 @@ public abstract class Creature extends WorldObject
 			return;
 		}
 		
+		if (escape != null && !escape.mayPublish(targets))
+		{
+			setCastingNow(false);
+			return;
+		}
 		final int skillTime = calculateSkillCastTime(skill);
 		
 		// queue herbs and potions
@@ -2051,9 +2066,12 @@ public abstract class Creature extends WorldObject
 		
 		// Check if this skill consume mp on start casting
 		final int initmpcons = _stat.getMpInitialConsume(skill);
+		if (escape != null) { escape.published(skillTime); }
 		if (initmpcons > 0)
 		{
+			final double before = escape == null ? 0 : _status.getCurrentMp();
 			_status.reduceMp(initmpcons);
+			if (escape != null) { escape.initialMp(initmpcons, before, _status.getCurrentMp()); }
 			final StatusUpdate su = new StatusUpdate(this);
 			su.addAttribute(StatusUpdate.CUR_MP, (int) _status.getCurrentMp());
 			sendPacket(su);
@@ -2167,7 +2185,7 @@ public abstract class Creature extends WorldObject
 			skill.applyEffectScope(EffectScope.START, new BuffInfo(this, target, skill), true, false);
 		}
 		
-		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously);
+		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously, escape);
 		if (simultaneously) { _nativeMagicUseTask2 = mut; } else { _nativeMagicUseTask = mut; }
 		
 		// launch the magic in skillTime milliseconds
@@ -6002,6 +6020,13 @@ public abstract class Creature extends WorldObject
 			abortCast();
 			return;
 		}
+		final var escape = mut.learnedEscape();
+		if (escape != null && !escape.beginHit(targets))
+		{
+			escape.nativeCancelled();
+			advanceMagicHit(mut);
+			return;
+		}
 		
 		try
 		{
@@ -6045,8 +6070,10 @@ public abstract class Creature extends WorldObject
 					return;
 				}
 				
+				final double before = escape == null ? 0 : _status.getCurrentMp();
 				if (mut.learningEvidence() == null) { _status.reduceMp(mpConsume); }
 				else { mut.learningEvidence().mpDebit(() -> _status.reduceMp(mpConsume)); }
+				if (escape != null) { escape.hitMp(mpConsume, before, _status.getCurrentMp()); }
 				su.addAttribute(StatusUpdate.CUR_MP, (int) _status.getCurrentMp());
 				isSendStatus = true;
 			}
@@ -6092,7 +6119,11 @@ public abstract class Creature extends WorldObject
 			
 			// Launch the magic skill in order to calculate its effects
 			final var learning = mut.learningEvidence();
-			if (learning == null)
+			if (escape != null)
+			{
+				escape.impact(() -> callSkill(skill, targets));
+			}
+			else if (learning == null)
 			{
 				callSkill(mut.getSkill(), mut.getTargets());
 			}
@@ -6106,6 +6137,17 @@ public abstract class Creature extends WorldObject
 			PlayerNativeWork.recordFailure(e);
 			LOGGER.log(Level.WARNING, "", e);
 		}
+		finally
+		{
+			if (escape != null) { escape.endHit(); }
+		}
+		advanceMagicHit(mut);
+	}
+
+	private void advanceMagicHit(MagicUseTask mut)
+	{
+		// A successful escape clears its own cast slot during the native teleport.
+		if (mut.learnedEscape() != null && !isCurrentNativeMagicUseTask(mut)) { return; }
 		
 		if (mut.getSkillTime() > 0)
 		{
@@ -6155,7 +6197,7 @@ public abstract class Creature extends WorldObject
 		
 		// Stop casting
 		setCastingNow(false);
-		setCastingSimultaneouslyNow(false);
+		if (mut.learnedEscape() == null) { setCastingSimultaneouslyNow(false); }
 		
 		final Skill skill = mut.getSkill();
 		final WorldObject target = !mut.getTargets().isEmpty() ? mut.getTargets().get(0) : null;

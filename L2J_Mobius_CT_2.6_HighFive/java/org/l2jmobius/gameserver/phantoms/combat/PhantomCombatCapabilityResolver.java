@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
@@ -101,17 +102,29 @@ public final class PhantomCombatCapabilityResolver
 	public Optional<PhantomCombatLoadout> resolve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
 		java.util.function.Predicate<SelectedSkill> nativeSkill, boolean normalFallback, int maximumSkills)
 	{
-		return resolvePve(classId, mode, learnedLevel, nativeSkill, null, normalFallback, maximumSkills).map(PveSelection::loadout);
+		return resolveOrdinaryPve(classId, mode, learnedLevel, List::of, nativeSkill, normalFallback, maximumSkills);
+	}
+
+	public Optional<PhantomCombatLoadout> resolveOrdinaryPve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
+		Supplier<List<SelectedSkill>> acquired, java.util.function.Predicate<SelectedSkill> nativeSkill, boolean normalFallback, int maximumSkills)
+	{
+		return resolvePve(classId, mode, learnedLevel, acquired, nativeSkill, null, normalFallback, maximumSkills).map(PveSelection::loadout);
+	}
+
+	Optional<PhantomCombatLoadout> resolveOrdinaryPve(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int maximumSkills)
+	{
+		return resolveOrdinaryPve(actor.classId(), mode, lease::knownSkillLevel, () -> lease.learnedPveSkills(mode),
+			skill -> lease.supportsSkill(skill, mode), lease.supportsNormalAttack(mode), maximumSkills);
 	}
 
 	Optional<PveSelection> resolvePveAction(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int targetObjectId, boolean canSpendMp, int maximumSkills)
 	{
-		return resolvePve(actor.classId(), mode, lease::knownSkillLevel, skill -> lease.supportsSkill(skill, mode),
+		return resolvePve(actor.classId(), mode, lease::knownSkillLevel, () -> lease.learnedPveSkills(mode), skill -> lease.supportsSkill(skill, mode),
 			canSpendMp ? skill -> lease.skillReady(targetObjectId, skill, mode) : null, lease.supportsNormalAttack(mode), maximumSkills);
 	}
 
 	private Optional<PveSelection> resolvePve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
-		java.util.function.Predicate<SelectedSkill> nativeSkill, java.util.function.Predicate<SelectedSkill> readyForTarget,
+		Supplier<List<SelectedSkill>> acquired, java.util.function.Predicate<SelectedSkill> nativeSkill, java.util.function.Predicate<SelectedSkill> readyForTarget,
 		boolean normalFallback, int maximumSkills)
 	{
 		Objects.requireNonNull(mode, "mode");
@@ -123,8 +136,11 @@ public final class PhantomCombatCapabilityResolver
 		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(classId));
 		capabilities.sort(CAPABILITY_ORDER);
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
-		final var candidates = matching.stream().flatMap(capability -> capability.skills().stream())
-			.map(skill -> currentLearnedSkill(skill, learnedLevel)).sorted(SKILL_ORDER).distinct().filter(nativeSkill).iterator();
+		final var authored = matching.stream().flatMap(capability -> capability.skills().stream())
+			.map(skill -> currentLearnedSkill(skill, learnedLevel)).sorted(SKILL_ORDER);
+		final var discovered = Stream.of(acquired).flatMap(source -> source.get().stream())
+			.filter(skill -> learnedLevel.applyAsInt(skill.skillId()) == skill.skillLevel());
+		final var candidates = Stream.concat(authored, discovered).distinct().filter(nativeSkill).iterator();
 		final var supported = new ArrayList<SelectedSkill>(maximumSkills);
 		final var ready = new ArrayList<SelectedSkill>(maximumSkills);
 		while (candidates.hasNext())
