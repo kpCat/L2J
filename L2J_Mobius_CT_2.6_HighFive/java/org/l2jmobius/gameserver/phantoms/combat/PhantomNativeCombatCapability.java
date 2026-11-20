@@ -9,11 +9,16 @@ import java.util.stream.Stream;
 import org.l2jmobius.gameserver.config.custom.ClassBalanceConfig;
 import org.l2jmobius.gameserver.config.NpcConfig;
 import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.skill.EffectScope;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.stats.Stat;
+import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131.Offense;
+import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131.OffenseContext;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 
 /** Immutable ordinary-PvE action facts. No execution, resource grant or catalog initialization. */
 public final class PhantomNativeCombatCapability
@@ -87,10 +92,36 @@ public final class PhantomNativeCombatCapability
 		if (!AutoPlayConfig.ENABLE_AUTO_SKILL || player.isAlikeDead() || player.isMounted() || player.isTransformed() || readyNow && player.isAllSkillsDisabled()) { return null; }
 		final var learned = player.getAllSkills();
 		if (learned.size() > MAXIMUM_SKILLS) { return null; }
-		final var configured = List.copyOf(player.getAutoUseSettings().getAutoSkills());
 		final var facts = learned.stream().map(skill -> candidate(player, target, skill, readyNow)).toList();
-		final var selected = select(facts, configured, readyNow);
-		return selected.map(value -> player.getKnownSkill(value.skillId())).orElse(null);
+		if (target == null)
+		{
+			return select(facts, List.copyOf(player.getAutoUseSettings().getAutoSkills()), readyNow)
+				.map(value -> player.getKnownSkill(value.skillId())).orElse(null);
+		}
+		final var available = facts.stream().filter(value -> value.mechanics() != null && (readyNow ? value.readiness().ready() : preparable(value.readiness())))
+			.map(value -> new SelectedSkill(value.skillId(), value.skillLevel())).toList();
+		return rankOffense(player, target, false, available).stream().findFirst().map(value -> player.getKnownSkill(value.skillId())).orElse(null);
+	}
+
+	static List<SelectedSkill> rankOffense(Player actor, Creature target, boolean pvp, List<SelectedSkill> candidates)
+	{
+		if (candidates.size() < 2) { return candidates; }
+		final var geo = GeoEngine.getInstance();
+		final boolean canSee = geo.hasGeo(actor.getX(), actor.getY()) && geo.hasGeo(target.getX(), target.getY()) && geo.canSeeTarget(actor, target);
+		final var context = new OffenseContext(pvp, target.isCastingNow(), canSee,
+			target.getCurrentHp() / Math.max(1, target.getMaxHp()), actor.getCurrentMp() / Math.max(1, actor.getMaxMp()), actor.calculateDistance3D(target));
+		final var facts = candidates.stream().map(choice -> offenseFact(actor, target, pvp, choice)).filter(java.util.Objects::nonNull).toList();
+		return CombatDecisionPolicy131.rankOffense(context, facts).stream().map(Offense::skill).toList();
+	}
+
+	private static Offense offenseFact(Player actor, Creature target, boolean pvp, SelectedSkill choice)
+	{
+		final Skill skill = actor.getKnownSkill(choice.skillId());
+		if (skill == null || skill.getLevel() != choice.skillLevel()) { return null; }
+		final boolean stopsCast = skill.hasEffectType(EffectType.STUN, EffectType.PARALYZE, EffectType.SLEEP, EffectType.MUTE);
+		return new Offense(choice, skill.isDamage(), stopsCast, target.isAffectedBySkill(skill.getId()), PhantomPvpSkillSafety.priority(skill),
+			Math.max(0, skill.getCastRange()), skill.getHitTime(), skill.getMagicLevel(), skill.getPower(pvp, !pvp),
+			actor.getStat().getMpInitialConsume(skill) + actor.getStat().getMpConsume(skill));
 	}
 
 	public static boolean magicShots(Player player)

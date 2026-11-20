@@ -14,7 +14,7 @@
   "native": {
     "gsBoots": 0,
     "lsBoots": 0,
-    "sqlBoots": 9,
+    "sqlBoots": 10,
     "off": true,
     "episodeCompleted": 0,
     "episodeFailed": 0,
@@ -52,26 +52,27 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "aggregate-v2.log",
+    "aggregateLog": "aggregate-v3.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
-    "fixtureSource": "DB-free contracts and isolated SQL/asset proof. No combat receipts.",
-    "comparison": "NUMERIC_ONLY",
+    "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
+    "comparison": "OFFLINE_READER_AND_NEGATIVE_CONTROLS",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 162,
-    "contractGroupsPassed": 8,
+    "regressionTestsPassed": 164,
+    "contractGroupsPassed": 10,
     "jarExitCode": 0,
-    "jarSha256": "0c1d29199733a1f2f2acee77db4fc4dbd4819bb913f834860fc2f20c332109b3",
-    "jarLog": "jar-v2.log"
+    "jarSha256": "a77eae7794b3c1f843120aae922b32a93e0ca7a674b269d981a261d8aa5752b4",
+    "jarLog": "jar-v3.log"
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v2.json"
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v2.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v3.json"
   },
   "testReadiness": {
-    "iterationParent": "734042731152d24e01f2132c1d86209ce40bea38",
+    "iterationParent": "e669c63eab35779c0a5d1728f762cd8be1797a2a",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -104,20 +105,45 @@
       "sqlOffReceiptSha256": "22d08ab188e13fbaaf15253789e5fbb00732c24e079cc0a457113829f175b6c0",
       "fixtureJavacAgainstBuiltJar": "PASS"
     },
+    "n01SceneQualification": {
+      "lane": "n01-setup-r4",
+      "readyProfiles": 4,
+      "qualifiedScenes": 3,
+      "sceneCandidatesSha256": "a87df6c95d5ccaec9b67ed03dbbff6b195930b3915e632bf2f3e05c9ae74d10",
+      "executedFixtureSourceSha256": "b8ba08933c0fe54ff9b6f2297fc50a14bce91bf055a51a42e7961952e680770c",
+      "sqlOffReceiptSha256": "348aeca7b7c798ead4d1b5e34cfd7fc086b0cf373e17f3d20320933df24960d0",
+      "additionalSqlStarts": 1,
+      "r5Javac": "PASS",
+      "r5Runtime": "BLOCKED_AUTOMATIC_APPROVAL_REVIEW"
+    },
+    "classCatalog": {
+      "status": "OFFLINE_NATIVE_CATALOG",
+      "classes": 103,
+      "classRankRows": 43749,
+      "distinctRanks": 7172,
+      "classFamilyRows": 3193,
+      "unmatchedRanks": 0,
+      "sameBytesOnRepeat": true,
+      "report": ".phantom-local/logs/TASK131/build/class-coverage/TASK131-CLASS-COVERAGE.tsv",
+      "reportSha256": "d737ceab61776b30568448405d25e7cdbbaa30f20ea1c12a1c8f99e98974221a",
+      "builtJarReport": ".phantom-local/logs/TASK131/build/class-coverage/TASK131-CLASS-COVERAGE-v3.tsv",
+      "builtJarReportSha256": "aee6f11b04039dc616bf8a296c6cb9a946f8a9f7b8964c347261a07ef1b5a34b",
+      "runtimeEvidence": "NOT_RUN"
+    },
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,verify-native-runtime.log,sql131-cold-off.json,n01-setup-r3/n01-fixture.tsv",
-      "reason": "Физические активы, SQL и сохранённый N01 roster проверены, стартовая сцена и её pins открыты"
+      "evidence": "S024,verify-native-runtime.log,n01-setup-r4/n01-scenes.tsv",
+      "reason": "Три пригодные сцены N01, дополнительная SQL-подготовка четвёртой отклонена автопроверкой"
     },
     "G1": {
       "phase": "P1",
       "status": "UNKNOWN",
-      "evidence": "D1,D4,N02,N03,N14",
-      "reason": "Готовность до ограничения, неполное покрытие классов и семейств"
+      "evidence": "TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14",
+      "reason": "Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия"
     },
     "G2": {
       "phase": "P3",
@@ -141,7 +167,7 @@
       "phase": "P3",
       "status": "UNKNOWN",
       "evidence": "D9,N11–N13",
-      "reason": "Действующий Solo Return и ограждённый адаптер Party Recall офлайн, фактические исходы и экономика открыты"
+      "reason": "Solo Return и групповой Party Recall подключены, native прибытие и расходы остаются открытыми"
     },
     "G6": {
       "phase": "P4–P5",
@@ -183,7 +209,7 @@
       "phase": "P1–P2",
       "status": "UNKNOWN",
       "evidence": "D1,D5,N01,N02,N04,N06",
-      "reason": "Общий owner переиспользован, общий полный контекст и выбор по всем семействам отсутствуют"
+      "reason": "Solo AutoUse и боевые сессии делят порядок доступных атак, остальные семейства и живые сценарии открыты"
     },
     "R2": {
       "phase": "P1–P3",
@@ -213,7 +239,7 @@
       "phase": "P4–P5",
       "status": "NOT_RUN",
       "evidence": "D5,D6,D7,N15",
-      "reason": "Frozen inference и FIT batch офлайн, A→B→A не выполнен"
+      "reason": "V4 учитывает DAMAGE и HEAL в офлайн контракте, A→B→A ещё не выполнен"
     },
     "R7": {
       "phase": "P5",
@@ -236,8 +262,8 @@
     "D1": {
       "phase": "P1",
       "status": "UNKNOWN",
-      "evidence": "aggregate-v2.log",
-      "reason": "Пятый ready и изученный вне каталога доступны, удалённый навык отклонён, native ON/OFF открыта"
+      "evidence": "offense-v3-checks.log,pvp-v3-red.log,pvp-v3-green.log",
+      "reason": "Готовность и контекст применены до лимита, native ON/OFF открыта"
     },
     "D2": {
       "phase": "P2",
@@ -260,14 +286,14 @@
     "D5": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "aggregate-pass.log",
-      "reason": "Frozen SHA и выбор MODEL проверены офлайн, изоляция реальных фаз отсутствует"
+      "evidence": "frozen-v3-green.log",
+      "reason": "Frozen выбор DAMAGE и HEAL и replay проверены офлайн, разведение реальных фаз открыто"
     },
     "D6": {
       "phase": "P4",
-      "status": "NOT_RUN",
-      "evidence": "NONE",
-      "reason": "Полный новый поток native receipt и атрибуция отсутствуют"
+      "status": "UNKNOWN",
+      "evidence": "frozen-v3-green.log",
+      "reason": "Контракт HEAL связывает полезный HP, MP и точного владельца, поток native записей ещё не собран"
     },
     "D7": {
       "phase": "P4",
@@ -278,8 +304,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "aggregate-pass.log",
-      "reason": "Numeric controls офлайн, нет sealed native originals/role validation"
+      "evidence": "TRAINING_EVALUATION131_MATH_CHECKS_PASS",
+      "reason": "Офлайн отклонены отсутствие independent boot proof и подмена, полный native AUDIT не запускался"
     },
     "D9": {
       "phase": "P3–P5",
@@ -296,8 +322,8 @@
     "N01": {
       "phase": "P3",
       "status": "NOT_RUN",
-      "evidence": "NONE",
-      "reason": "Solo PvE три награждённых цикла"
+      "evidence": "n01-setup-r4/n01-scenes.tsv",
+      "reason": "Три площадки SETUP с респавном, боевые циклы и награды ещё не измерены"
     },
     "N02": {
       "phase": "P3",

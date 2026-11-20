@@ -8,11 +8,13 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.World;
@@ -42,6 +44,7 @@ import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceObservation;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot;
@@ -334,6 +337,51 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		if (member == null || member.kind() != MemberKind.PHANTOM) { return 0; }
 		return _materialization.find(member.profileId()).filter(entry -> entry.worldPresent() && entry.characterObjectId() == member.characterObjectId())
 			.map(entry -> entry.materializedAtNanos()).orElse(0L);
+	}
+
+	@Override
+	public PhantomLearnedEscape.Attempt startLearnedRecall(PartySnapshot party, Map<MemberRef, Long> epochs, BooleanSupplier current)
+	{
+		if (!current.getAsBoolean() || party.members().size() < 2 || !epochs.keySet().equals(Set.copyOf(party.members())))
+		{
+			return null;
+		}
+		final var world = World.getInstance();
+		final var leader = world.getPlayer(party.leader().characterObjectId());
+		final var nativeParty = leader == null ? null : leader.getParty();
+		if (nativeParty == null || nativeParty.getLeader() != leader)
+		{
+			return null;
+		}
+		final List<Player> approved = new ArrayList<>(party.members().size());
+		for (var member : party.members())
+		{
+			final long epoch = epochs.get(member);
+			final var player = world.getPlayer(member.characterObjectId());
+			if (member.kind() != MemberKind.PHANTOM || epoch <= 0 || epoch != materializationEpoch(member)
+				|| player == null || player.getParty() != nativeParty || player.isMoving())
+			{
+				return null;
+			}
+			approved.add(player);
+		}
+		if (nativeParty.getMembers().size() != approved.size() || !nativeParty.getMembers().containsAll(approved))
+		{
+			return null;
+		}
+		for (int index = 0; index < approved.size(); index++)
+		{
+			final var caster = approved.get(index);
+			if (!PhantomLearnedEscape.knowsPartyRecall(caster)) { continue; }
+			try (var acquired = acquire(party.members().get(index)))
+			{
+				if (acquired == null || acquired.player() != caster) { continue; }
+				final var attempt = PhantomLearnedEscape.startParty(caster, approved,
+					() -> current.getAsBoolean() && nativeParty.getLeader() == leader && leader.getParty() == nativeParty);
+				if (attempt != null) { return attempt; }
+			}
+		}
+		return null;
 	}
 
 	@Override

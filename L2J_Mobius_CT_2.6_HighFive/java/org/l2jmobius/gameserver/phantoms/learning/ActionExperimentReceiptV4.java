@@ -7,7 +7,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.util.*;
 
-/** Additive DAMAGE adapter v1. Historical V3/V4 codecs and objective remain unchanged. */
+/** Binds the paid native effect to a versioned experiment decision. */
 public final class ActionExperimentReceiptV4
 {
 	private ActionExperimentReceiptV4() { }
@@ -49,7 +49,8 @@ public final class ActionExperimentReceiptV4
 	{
 		public Effect
 		{
-			if (schemaVersion != 1 || !"DAMAGE".equals(family) || List.of(decisionSha, nativeSha, rowSha, episodeSha, eventKey, feedbackFingerprint).stream().anyMatch(s -> !s.matches("[a-f0-9]{64}"))
+			final boolean supportedFamily = schemaVersion == 1 && "DAMAGE".equals(family) || schemaVersion == 2 && "HEAL".equals(family);
+			if (!supportedFamily || List.of(decisionSha, nativeSha, rowSha, episodeSha, eventKey, feedbackFingerprint).stream().anyMatch(s -> !s.matches("[a-f0-9]{64}"))
 				|| !Double.isFinite(usefulHpFraction) || usefulHpFraction <= 0 || usefulHpFraction > 1 || !Double.isFinite(paidHp) || paidHp <= 0 || !Double.isFinite(paidMp) || paidMp <= 0 || elapsedNanos <= 0)
 			{ throw new IllegalArgumentException("Invalid native effect v1"); }
 		}
@@ -68,14 +69,18 @@ public final class ActionExperimentReceiptV4
 		if (decision == null || !decision.plan().sha256().equals(frozenPlanSha) || !decision.plan().episode().equals(episode.id()))
 		{ throw new IllegalArgumentException("Unfrozen experiment decision"); }
 		var row = TacticalStoreV3.decode(rowBytes); var receipt = row.receipt(); var a = receipt.attempt();
+		final var family = a.selected().family();
 		if (!row.split().equals(decision.plan().split()) || !Arrays.equals(a.observation().bytes(), decision.observation().bytes()) || !a.offered().equals(decision.offered())
 			|| !a.baseline().equals(decision.stock()) || !a.selected().equals(decision.selected()) || !receipt.owner().equals(intent.owner())
-			|| decision.capturedNanos() < episode.startedNanos() || intent.capturedNanos() > episode.settledNanos() || a.selected().family() != LegalActionV3.Family.DAMAGE)
+			|| decision.capturedNanos() < episode.startedNanos() || intent.capturedNanos() > episode.settledNanos()
+			|| family == LegalActionV3.Family.HEAL && (receipt.elapsedNanos() > episode.settledNanos() - intent.capturedNanos()
+				|| episode.actors().stream().noneMatch(actor -> actor.objectId() == a.selected().targetObjectId() && actor.epoch() == a.selected().targetEpoch())))
 		{ throw new IllegalArgumentException("Decision/native selection, owner, split or time mismatch"); }
 		String rowSha = TacticalObservationV3.hash(rowBytes);
 		var feedback = ActionFeedbackV4.nativeAction(rowBytes, rowSha, episode, intent.owner(), nativeSha);
 		double max = a.observation().entity(a.selected().targetObjectId()).fact(TacticalObservationV3.Field.MAX_HP).value();
-		return new Effect(1, "DAMAGE", decision.sha256(), nativeSha, rowSha, episode.sha256(), row.eventKey(), feedback.fingerprint(), receipt.actualHp() / max, receipt.actualHp(), receipt.actualMp(), receipt.elapsedNanos());
+		return new Effect(family == LegalActionV3.Family.HEAL ? 2 : 1, family.name(), decision.sha256(), nativeSha, rowSha, episode.sha256(), row.eventKey(),
+			feedback.fingerprint(), receipt.actualHp() / max, receipt.actualHp(), receipt.actualMp(), receipt.elapsedNanos());
 	}
 	/** Bounded post-drain publication, never called by the native selection hot path. */
 	public static void publish(Path target, byte[] bytes) throws IOException

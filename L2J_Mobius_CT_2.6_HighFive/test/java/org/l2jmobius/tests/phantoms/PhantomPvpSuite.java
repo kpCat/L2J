@@ -235,6 +235,18 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(1, fixture.lease.shotsActivated, "The feasible cast did not prepare one shot.");
 			}
 		});
+		registry.add("131-exact-pvp-readiness-applies-before-selection-bound", _ ->
+		{
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 100))
+			{
+				final var ready = new SelectedSkill(805, 2);
+				fixture.lease.additionalSkills = List.of(new SelectedSkill(801, 2), new SelectedSkill(802, 2), new SelectedSkill(803, 2), new SelectedSkill(804, 2), ready);
+				fixture.lease.onlyReadySkillId = ready.skillId();
+				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(Source.ACTUAL_ATTACK, false).status(), "Learned PvP alternatives were rejected.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(ready, fixture.lease.lastPvpSkill, "Target-ready skill beyond the first four must remain available to the existing owner.");
+			}
+		});
 		registry.add("03-target-safety-rejection-propagates", _ ->
 		{
 			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
@@ -671,6 +683,8 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private boolean reserve = true;
 		private boolean readySkill;
 		private boolean skillResources = true;
+		private List<SelectedSkill> additionalSkills = List.of();
+		private int onlyReadySkillId;
 		private int cancelledActions;
 
 		private FakeLease(double cp)
@@ -717,19 +731,23 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		@Override
 		public boolean supportsPvpSkill(SelectedSkill skill, PhantomCombatMode mode)
 		{
-			return (skill.skillId() == 123) && (skill.skillLevel() == learnedRank) && (learnedRank > 0);
+			return ((skill.skillId() == 123) && (skill.skillLevel() == learnedRank) && (learnedRank > 0)) || additionalSkills.contains(skill);
 		}
-		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode,int limit){return readySkill?List.of(new SelectedSkill(123,learnedRank)):List.of();}
+		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit)
+		{
+			return additionalSkills.isEmpty() ? (readySkill ? List.of(new SelectedSkill(123, learnedRank)) : List.of()) : additionalSkills.stream().limit(limit).toList();
+		}
 		@Override
 		public boolean pvpSkillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 		{
-			return skillResources && (readySkill || mode == PhantomCombatMode.RANGED_MAGIC) && supportsPvpSkill(skill, mode);
+			return skillResources && (readySkill || mode == PhantomCombatMode.RANGED_MAGIC) && supportsPvpSkill(skill, mode)
+				&& (onlyReadySkillId == 0 || onlyReadySkillId == skill.skillId());
 		}
 
 		@Override
 		public int knownSkillLevel(int skillId)
 		{
-			return skillId == 123 ? learnedRank : 0;
+			return skillId == 123 ? learnedRank : additionalSkills.stream().filter(skill -> skill.skillId() == skillId).mapToInt(SelectedSkill::skillLevel).findFirst().orElse(0);
 		}
 
 		@Override

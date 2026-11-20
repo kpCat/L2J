@@ -289,6 +289,9 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	/** Learned native actions in tactical order; observations never grant a skill. */
 	default List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return List.of(); }
+	/** Contextual preference only. Readiness and native dispatch validate the action independently. */
+	default List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates) { return candidates; }
+
 	default boolean pvpSkillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { return false; }
 	default boolean pvpSkillReady(int playerObjectId, int tacticalTargetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 	{

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
@@ -47,7 +48,7 @@ public final class PhantomCombatCapabilityResolver
 	private static final Comparator<SelectedSkill> SKILL_ORDER = Comparator.comparingInt(SelectedSkill::skillId).thenComparingInt(SelectedSkill::skillLevel);
 	private final CapabilitySource _source;
 
-	record PveSelection(PhantomCombatLoadout loadout, List<SelectedSkill> readySkills)
+	record SkillSelection(PhantomCombatLoadout loadout, List<SelectedSkill> readySkills)
 	{
 	}
 
@@ -108,7 +109,7 @@ public final class PhantomCombatCapabilityResolver
 	public Optional<PhantomCombatLoadout> resolveOrdinaryPve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
 		Supplier<List<SelectedSkill>> acquired, java.util.function.Predicate<SelectedSkill> nativeSkill, boolean normalFallback, int maximumSkills)
 	{
-		return resolvePve(classId, mode, learnedLevel, acquired, nativeSkill, null, normalFallback, maximumSkills).map(PveSelection::loadout);
+		return resolveSkills(classId, mode, learnedLevel, acquired, nativeSkill, null, null, normalFallback, maximumSkills).map(SkillSelection::loadout);
 	}
 
 	Optional<PhantomCombatLoadout> resolveOrdinaryPve(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int maximumSkills)
@@ -117,15 +118,16 @@ public final class PhantomCombatCapabilityResolver
 			skill -> lease.supportsSkill(skill, mode), lease.supportsNormalAttack(mode), maximumSkills);
 	}
 
-	Optional<PveSelection> resolvePveAction(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int targetObjectId, boolean canSpendMp, int maximumSkills)
+	Optional<SkillSelection> resolvePveAction(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int targetObjectId, boolean canSpendMp, int maximumSkills)
 	{
-		return resolvePve(actor.classId(), mode, lease::knownSkillLevel, () -> lease.learnedPveSkills(mode), skill -> lease.supportsSkill(skill, mode),
-			canSpendMp ? skill -> lease.skillReady(targetObjectId, skill, mode) : null, lease.supportsNormalAttack(mode), maximumSkills);
+		return resolveSkills(actor.classId(), mode, lease::knownSkillLevel, () -> lease.learnedPveSkills(mode), skill -> lease.supportsSkill(skill, mode),
+			canSpendMp ? skill -> lease.skillReady(targetObjectId, skill, mode) : null,
+			skills -> lease.rankOffensiveSkills(targetObjectId, false, skills), lease.supportsNormalAttack(mode), maximumSkills);
 	}
 
-	private Optional<PveSelection> resolvePve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
+	private Optional<SkillSelection> resolveSkills(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
 		Supplier<List<SelectedSkill>> acquired, java.util.function.Predicate<SelectedSkill> nativeSkill, java.util.function.Predicate<SelectedSkill> readyForTarget,
-		boolean normalFallback, int maximumSkills)
+		UnaryOperator<List<SelectedSkill>> rankReady, boolean normalFallback, int maximumSkills)
 	{
 		Objects.requireNonNull(mode, "mode");
 		if ((maximumSkills < 1) || (maximumSkills > 4))
@@ -154,19 +156,20 @@ public final class PhantomCombatCapabilityResolver
 			{
 				ready.add(candidate);
 			}
-			if (ready.size() == maximumSkills || readyForTarget == null && supported.size() == maximumSkills)
+			if (readyForTarget == null && supported.size() == maximumSkills)
 			{
 				break;
 			}
 		}
-		final List<SelectedSkill> selected = ready.isEmpty() ? supported : ready;
+		final List<SelectedSkill> ranked = ready.isEmpty() ? List.of() : rankReady.apply(List.copyOf(ready)).stream().limit(maximumSkills).toList();
+		final List<SelectedSkill> selected = ranked.isEmpty() ? supported : ranked;
 		if (!normalFallback && selected.isEmpty())
 		{
 			return Optional.empty();
 		}
 		// Authored skill metadata ranks learned actions; it does not grant the native ordinary attack.
 		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElse(1);
-		return Optional.of(new PveSelection(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback), List.copyOf(ready)));
+		return Optional.of(new SkillSelection(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback), ranked));
 	}
 
 	private static SelectedSkill currentLearnedSkill(SelectedSkill evidence, java.util.function.IntUnaryOperator learnedLevel)
@@ -178,24 +181,14 @@ public final class PhantomCombatCapabilityResolver
 
 	public Optional<PhantomCombatLoadout> resolvePvp(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int maximumSkills)
 	{
-		Objects.requireNonNull(actor, "actor");
-		Objects.requireNonNull(mode, "mode");
-		Objects.requireNonNull(lease, "lease");
-		if ((maximumSkills < 1) || (maximumSkills > 4))
-		{
-			throw new IllegalArgumentException("Invalid selected skill bound.");
-		}
-		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
-		capabilities.sort(CAPABILITY_ORDER);
-		final List<SelectedSkill> nativeSkills = lease.learnedPvpSkills(mode, 16);
-		final List<SelectedSkill> selected = java.util.stream.Stream.concat(nativeSkills.stream(), capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease::knownSkillLevel)).sorted(SKILL_ORDER)).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
-		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
-		final boolean normalFallback = lease.supportsNormalAttack(mode);
-		if (!normalFallback && selected.isEmpty())
-		{
-			return Optional.empty();
-		}
-		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElse(1);
-		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback));
+		return resolvePvpAction(actor, mode, lease, 0, 0, false, maximumSkills).map(SkillSelection::loadout);
+	}
+
+	Optional<SkillSelection> resolvePvpAction(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease,
+		int opponentId, int tacticalTargetId, boolean canSpendMp, int maximumSkills)
+	{
+		return resolveSkills(actor.classId(), mode, lease::knownSkillLevel, () -> lease.learnedPvpSkills(mode, PhantomNativeCombatCapability.MAXIMUM_SKILLS),
+			skill -> lease.supportsPvpSkill(skill, mode), canSpendMp ? skill -> lease.pvpSkillReady(opponentId, tacticalTargetId, skill, mode) : null,
+			skills -> lease.rankOffensiveSkills(tacticalTargetId, true, skills), lease.supportsNormalAttack(mode), maximumSkills);
 	}
 }

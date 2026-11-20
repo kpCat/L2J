@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
@@ -40,8 +41,10 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
@@ -372,6 +375,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Map<String, GroupRuntime> _groups = new ConcurrentHashMap<>();
 	private final Map<Long, ExternalActionLease> _tacticalActions = new ConcurrentHashMap<>();
 	private final Map<Long, TacticalCombatClaim> _tacticalCombat = new ConcurrentHashMap<>();
+	private final Map<String, ActivePartyRecall> _partyRecalls = new ConcurrentHashMap<>();
 	private volatile java.util.function.LongPredicate _logicalFarmAdmission = _ -> true;
 	private java.util.function.LongFunction<PhantomDomainRef> _farmJourneyExecutionOwner = _ -> null;
 	private java.util.function.LongFunction<PhantomLogicalParty> _logicalFarmGroups;
@@ -529,6 +533,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 			if (_tacticalActions.containsKey(profileId) || _tacticalCombat.containsKey(profileId)) { return false; }
 			final var row = _claims.get(profileId);
+			final var recall = row == null ? null : _partyRecalls.get(row.state().groupId());
+			if (recall != null && !releasePartyRecall(row.state().groupId(), recall, deadlineBoundary)) { return false; }
 			if (leaveParty && autonomousExecution(profileId))
 			{
 				_routes.cancel(row.state().groupId(), row.state().groupGeneration());
@@ -1992,6 +1998,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		_pendingManagedInvitations.clear();
 		_managedInvitationPolicies.clear();
 		_routes.beginStop();
+		_partyRecalls.forEach((groupId, recall) -> releasePartyRecall(groupId, recall, true));
 		_tacticalActions.values().forEach(ExternalActionLease::close);
 		_tacticalActions.clear();
 		_tacticalCombat.values().forEach(this::cancelTacticalCombat);
@@ -2028,9 +2035,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			releaseTacticalCombat(claim);
 		}
+		_partyRecalls.forEach((groupId, recall) -> releasePartyRecall(groupId, recall, true));
 		final PhantomPartyRouteCoordinator.Snapshot route = _routes.snapshot();
 		final DeliveryRegistration registration = _deliveryRegistration;
-		if ((_operationClaims.get() != 0) || (_persistenceClaims.get() != 0) || !_terminalEvents.isEmpty() || !_inbound.isEmpty() || !_tacticalReleases.isEmpty() || !_tacticalActions.isEmpty() || !_tacticalCombat.isEmpty() || ((registration != null) && (registration.pendingInvitations() != 0)) || (route.navigationClaims() != 0) || (route.movementClaims() != 0))
+		if ((_operationClaims.get() != 0) || (_persistenceClaims.get() != 0) || !_terminalEvents.isEmpty() || !_inbound.isEmpty() || !_tacticalReleases.isEmpty() || !_tacticalActions.isEmpty() || !_tacticalCombat.isEmpty() || !_partyRecalls.isEmpty() || ((registration != null) && (registration.pendingInvitations() != 0)) || (route.navigationClaims() != 0) || (route.movementClaims() != 0))
 		{
 			return false;
 		}
@@ -2265,6 +2273,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			final var stored = _claims.get(leaderProfileId);
 			if (!committedClaim(stored) || stored.state().leader().profileId() != leaderProfileId || !PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(stored.state().objectiveRef().namespace()) || !stored.state().realMembers().isEmpty()) { return false; }
+			final var recall = _partyRecalls.get(stored.state().groupId());
+			if (recall != null && !releasePartyRecall(stored.state().groupId(), recall, !graceful)) { return false; }
 			final var members = roster(stored.state()).stream().sorted(Comparator.comparingInt((MemberRef member) -> member.profileId() == leaderProfileId ? 1 : 0)).toList();
 			for (var member : members)
 			{
@@ -2626,14 +2636,28 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final boolean refresh = currentFarmIntentView(sourceAuthority) == null;
 			refreshFarmIntent(runtime, sourceAuthority);
 			final var source = currentFarmIntentView(sourceAuthority);
-			if (source == null) { return examined; } // Unavailable proof cannot establish that the persisted intent was revoked.
+			if (source == null)
+			{
+				// Unknown source state may bar a live cast while durable group ownership remains intact.
+				final var recall = _partyRecalls.get(runtime.groupId());
+				if (recall != null) { releasePartyRecall(runtime.groupId(), recall, true); }
+				return examined;
+			}
 			if (!source.valid())
 			{
+				final var recall = _partyRecalls.get(runtime.groupId());
+				if (recall != null) { releasePartyRecall(runtime.groupId(), recall, true); }
 				runtime.nativeLifetime = null;
 				if (!releaseAutonomousFarm(sourceAuthority.leader().profileId(), "farm_intent_revoked") && refresh)
 				{ groupClaims.forEach(this::reconcileObsoleteFarmOrphan); }
 				return examined;
 			}
+		}
+		final var recall = _partyRecalls.get(runtime.groupId());
+		if (recall != null)
+		{
+			releasePartyRecall(runtime.groupId(), recall, !recall.current().getAsBoolean());
+			return examined;
 		}
 		for (StoredPartyState claim : groupClaims)
 		{
@@ -2739,6 +2763,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			removeGroup(runtime.groupId());
 			return examined;
+		}
+		runtime.walkRetreats.keySet().retainAll(groupAuthority.phantomMembers());
+		if (remainingBudget - examined >= party.members().size() && tryPartyRecall(runtime, groupAuthority, party))
+		{
+			return examined + party.members().size();
 		}
 		commitObserved(current, party);
 		if (examined < remainingBudget)
@@ -3313,6 +3342,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				continue;
 			}
+			final var owningGroup = _groups.get(claim.state().groupId());
+			if (owningGroup != null && pendingWalkRetreat(owningGroup, directive.actor()) != null)
+			{
+				continue;
+			}
 			final CompanionCommand command = claim.state().command();
 			if ((command != null) && (command.mode() != CompanionMode.FOLLOW) && ((command.mode() == CompanionMode.PENDING_HOLD) || !Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PARTY_SUPPORT).contains(directive.kind())))
 			{
@@ -3426,6 +3460,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final long profileId = directive.actor().profileId();
 		final boolean farm = PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace());
 		final var runtime = farm ? _groups.get(authority.groupId()) : null;
+		final long retreatEpoch = authority.realMembers().isEmpty() && authority.phantomMembers().size() > 1 ? _backend.materializationEpoch(directive.actor()) : 0;
+		final var walkRetreat = retreatEpoch > 0 ? new WalkRetreat(directive.actor(), authority, retreatEpoch, new AtomicBoolean()) : null;
 		final var attempt = runtime == null ? null : new FarmCombatAttempt(runtime.farmAttemptSequence.incrementAndGet());
 		final var origin = attempt == null ? null : currentFarmIntentView(authority);
 		final var supportMembers = authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet());
@@ -3462,16 +3498,17 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("frontline.guardian")).count(),
 				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("support.healer")).count(),
 				(int) authority.assignments().stream().filter(role -> role.roleKey().startsWith("damage.")).count()) : null;
-			final var request = learning ? new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token, PhantomCombatRequest.LearningScope.PARTY, roles, () ->
+			final var request = new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token,
+				learning ? PhantomCombatRequest.LearningScope.PARTY : PhantomCombatRequest.LearningScope.NONE, roles, () ->
 			{
 				final StoredPartyState current = _claims.get(profileId);
-				return _state != State.RUNNING || !committedClaim(current) || !authority.matchesLearningAuthority(current.state());
-			}) : new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token);
+				return !learning || _state != State.RUNNING || !committedClaim(current) || !authority.matchesLearningAuthority(current.state());
+			}, walkRetreat == null ? null : () -> walkRetreat.unavailable().set(true));
 			final var started = combat.startContentSession(request, key);
 			if (started.accepted() && (started.session() != null))
 			{
 				final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), targetId, key, token, loot ? runtime : null,
-					new java.util.concurrent.atomic.AtomicReference<>());
+					new java.util.concurrent.atomic.AtomicReference<>(), walkRetreat);
 				if (_tacticalCombat.putIfAbsent(profileId, next) != null)
 				{
 					cancelTacticalCombat(next);
@@ -3497,16 +3534,126 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var terminal = combat == null ? null : combat.consumeContentTerminal(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.operationKey()).orElse(null);
 		if (terminal != null || combat == null || !combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token()))
 		{
-			if (_tacticalCombat.remove(claim.profileId(), claim) && claim.lootRuntime() != null)
+			if (_tacticalCombat.remove(claim.profileId(), claim))
 			{
-				claim.lootRuntime().farmLootOwners.remove(claim.targetObjectId(), claim.profileId());
-				System.getLogger(PhantomPartyCoordinator.class.getName()).log(System.Logger.Level.INFO,
-					"PARTY_FARM_LOOT_END groupId=" + claim.lootRuntime().groupId() + " profileId=" + claim.profileId()
-						+ " targetObjectId=" + claim.targetObjectId() + " result=" + (terminal == null ? "owner_ended" : terminal));
+				if (terminal != null && terminal.result() == PhantomCombatResult.LOW_HP_STOPPED) { recordWalkRetreat(claim); }
+				if (claim.lootRuntime() != null)
+				{
+					claim.lootRuntime().farmLootOwners.remove(claim.targetObjectId(), claim.profileId());
+					System.getLogger(PhantomPartyCoordinator.class.getName()).log(System.Logger.Level.INFO,
+						"PARTY_FARM_LOOT_END groupId=" + claim.lootRuntime().groupId() + " profileId=" + claim.profileId()
+							+ " targetObjectId=" + claim.targetObjectId() + " result=" + (terminal == null ? "owner_ended" : terminal));
+				}
 			}
 			return true;
 		}
 		return false;
+	}
+
+	private void recordWalkRetreat(TacticalCombatClaim claim)
+	{
+		final var walk = claim.walkRetreat();
+		if (_state != State.RUNNING || walk == null || !walk.unavailable().get()) { return; }
+		final var group = _groups.get(walk.authority().groupId());
+		if (group == null || !walkRetreatCurrent(walk)) { return; }
+		final var pending = new PendingWalkRetreat(walk, claim.generation(), _clock.getAsLong() + 5_000_000_000L);
+		group.walkRetreats.merge(walk.member(), pending, (prior, next) -> prior.combatGeneration() > next.combatGeneration() ? prior : next);
+	}
+
+	private boolean walkRetreatCurrent(WalkRetreat walk)
+	{
+		final var current = _claims.get(walk.member().profileId());
+		final var authority = walk.authority();
+		return committedClaim(current) && authority.matchesLearningAuthority(current.state())
+			&& authority.membershipRevision() == current.state().membershipRevision()
+			&& !holdsMovement(walk.member().profileId()) && _backend.materializationEpoch(walk.member()) == walk.epoch();
+	}
+
+	private PendingWalkRetreat pendingWalkRetreat(GroupRuntime group, MemberRef member)
+	{
+		final var pending = group.walkRetreats.get(member);
+		if (pending != null && (_clock.getAsLong() >= pending.deadline() || !walkRetreatCurrent(pending.walk())))
+		{
+			group.walkRetreats.remove(member, pending);
+			return null;
+		}
+		return pending;
+	}
+
+	private boolean tryPartyRecall(GroupRuntime group, PartyState authority, PartySnapshot party)
+	{
+		final var combat = _tactics.combatOwner();
+		if (combat == null || group.walkRetreats.isEmpty() || party.members().size() < 2 || !authority.realMembers().isEmpty()
+			|| !party.leader().equals(authority.leader()) || !sameRoster(authority.phantomMembers(), party.members()))
+		{
+			return false;
+		}
+		synchronized (group)
+		{
+			if (_partyRecalls.containsKey(group.groupId())) { return true; }
+			final List<PendingWalkRetreat> pending = new ArrayList<>(party.members().size());
+			final Map<MemberRef, Long> epochs = new HashMap<>();
+			for (var member : party.members())
+			{
+				final var own = pendingWalkRetreat(group, member);
+				if (own == null) { return false; }
+				pending.add(own);
+				epochs.put(member, own.walk().epoch());
+			}
+			final long expires = deadline();
+			final BooleanSupplier groupCurrent = () -> _state == State.RUNNING && _groups.get(group.groupId()) == group && _clock.getAsLong() < expires
+				&& pending.stream().allMatch(own -> walkRetreatCurrent(own.walk()))
+				&& (!PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace()) || currentFarmIntent(authority));
+			final List<ExternalActionLease> actions = new ArrayList<>(pending.size());
+			boolean retained = false;
+			try
+			{
+				final String operation = tacticalScope(authority) + "retreat." + pending.getFirst().combatGeneration();
+				for (var member : party.members())
+				{
+					final var acquired = combat.acquireExternalAction(new PhantomCombatService.ExternalActionRequest(member.profileId(),
+						PhantomCombatService.ExternalActionKind.PARTY_RETREAT, operation, expires, () -> !groupCurrent.getAsBoolean()));
+					if (acquired.lease() == null) { return groupCurrent.getAsBoolean(); }
+					actions.add(acquired.lease());
+					final var actor = acquired.lease().actorSnapshot();
+					if (actor == null || actor.objectId() != member.characterObjectId() || actor.dead() || actor.alikeDead()
+						|| actor.attacking() || actor.casting() || actor.moving())
+					{
+						return groupCurrent.getAsBoolean();
+					}
+				}
+				final BooleanSupplier current = () ->
+				{
+					final long now = _clock.getAsLong();
+					return actions.stream().allMatch(action -> action.partyRetreatCurrent(now));
+				};
+				pending.forEach(own -> group.walkRetreats.remove(own.walk().member(), own));
+				final var attempt = _backend.startLearnedRecall(party, Map.copyOf(epochs), current);
+				if (attempt == null) { return true; }
+				final var recall = new ActivePartyRecall(attempt, List.copyOf(actions), current);
+				_partyRecalls.put(group.groupId(), recall);
+				retained = true;
+				if (!current.getAsBoolean()) { releasePartyRecall(group.groupId(), recall, true); }
+				return true;
+			}
+			finally
+			{
+				if (!retained) { actions.forEach(ExternalActionLease::complete); }
+			}
+		}
+	}
+
+	private boolean releasePartyRecall(String groupId, ActivePartyRecall recall, boolean cancel)
+	{
+		if (cancel) { recall.attempt().cancel(); }
+		if (recall.attempt().status() == PhantomLearnedEscape.Status.PENDING) { return false; }
+		if (_partyRecalls.remove(groupId, recall))
+		{
+			recall.actions().forEach(ExternalActionLease::complete);
+			System.getLogger(PhantomPartyCoordinator.class.getName()).log(System.Logger.Level.INFO,
+				"PARTY_RECALL_END groupId=" + groupId + " receipt=" + recall.attempt().receipt());
+		}
+		return true;
 	}
 
 	private void cancelTacticalCombat(TacticalCombatClaim claim)
@@ -4416,7 +4563,20 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	private void removeGroup(String groupId)
 	{
-		_groups.remove(groupId);
+		final var group = _groups.get(groupId);
+		if (group != null)
+		{
+			synchronized (group)
+			{
+				final var recall = _partyRecalls.get(groupId);
+				if (recall != null)
+				{
+					releasePartyRecall(groupId, recall, true);
+					if (_partyRecalls.containsKey(groupId)) { return; }
+				}
+				_groups.remove(groupId, group);
+			}
+		}
 		_routes.cancel(groupId);
 		synchronized (_indexLock)
 		{
@@ -4514,7 +4674,19 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	}
 
 	private record TacticalCombatClaim(long profileId, long generation, int targetObjectId, String operationKey, PhantomCancellationToken token, GroupRuntime lootRuntime,
-		java.util.concurrent.atomic.AtomicReference<PendingSupport> support)
+		java.util.concurrent.atomic.AtomicReference<PendingSupport> support, WalkRetreat walkRetreat)
+	{
+	}
+
+	private record WalkRetreat(MemberRef member, PartyState authority, long epoch, AtomicBoolean unavailable)
+	{
+	}
+
+	private record PendingWalkRetreat(WalkRetreat walk, long combatGeneration, long deadline)
+	{
+	}
+
+	private record ActivePartyRecall(PhantomLearnedEscape.Attempt attempt, List<ExternalActionLease> actions, BooleanSupplier current)
 	{
 	}
 
@@ -4614,6 +4786,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private final AtomicLong farmAttemptSequence = new AtomicLong();
 		private final java.util.concurrent.atomic.AtomicReference<FarmCombatAttempt> latestFarmCombat = new java.util.concurrent.atomic.AtomicReference<>();
 		private final ConcurrentHashMap<Integer, Long> farmLootOwners = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<MemberRef, PendingWalkRetreat> walkRetreats = new ConcurrentHashMap<>();
 		private volatile FarmJourney farmJourney;
 		private volatile long farmTravelDeadline;
 		private volatile String farmTravelReason = "";

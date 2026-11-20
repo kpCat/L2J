@@ -29,13 +29,21 @@ public final class TacticalPolicyV3
 	private volatile Consumer<TacticalFailureV3> _failureSink = _ -> { };
 	private volatile TrainExplorationV1 _exploration;
 	private volatile ActionExplorationV4 _experiment;
+	private Consumer<ActionExperimentReceiptV4.Intent> _healIntentSink;
 	/** Mutually exclusive, pre-CUT TEST-only owner; ordinary configuration has no entry point. */
 	public synchronized void actionExplorationTest(ActionExplorationV4 session)
+	{
+		actionExplorationTest(session, null);
+	}
+
+	/** Receives a pre-cast intent from the exact support lease. The sink must enqueue without I/O. */
+	public synchronized void actionExplorationTest(ActionExplorationV4 session, Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
 	{
 		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || session == null || _exploration != null || !_last.isEmpty()
 			|| _experiment != null && (_experiment.plan().frozenInference() || session.plan().frozenInference())
 			|| _actionValueMode != Mode.ON || _actionValue == null || !session.plan().modelSha().equals(_actionValue.sha256()))
 		{ throw new IllegalArgumentException("V4 experiment requires exclusive frozen TEST owner/model"); }
+		_healIntentSink = healIntentSink;
 		_experiment = session;
 	}
 	private volatile Mode _actionValueMode = Mode.OFF;
@@ -55,6 +63,12 @@ public final class TacticalPolicyV3
 	public static ActionValueDecision actionValueChoice(Mode mode, ActionValueV4 model, TacticalObservationV3 observation,
 		List<LegalActionV3> offered, LegalActionV3 stock, boolean critical, long deadline)
 	{
+		return actionValueChoice(mode, model, observation, offered, stock, critical, deadline, false);
+	}
+
+	static ActionValueDecision actionValueChoice(Mode mode, ActionValueV4 model, TacticalObservationV3 observation,
+		List<LegalActionV3> offered, LegalActionV3 stock, boolean critical, long deadline, boolean allowPaidHeal)
+	{
 		final long started = System.nanoTime();
 		final var scores = new ArrayList<Double>(); String reason = "OFF"; boolean consulted = false;
 		LegalActionV3 selected = stock;
@@ -68,7 +82,7 @@ public final class TacticalPolicyV3
 			else
 			{
 				new TacticalReceiptV3.Attempt(observation, offered, stock, stock, 0);
-				if (offered.stream().anyMatch(a -> a.family() != LegalActionV3.Family.DAMAGE)) { reason = "FAMILY_UNTRAINED"; }
+				if (stock.family() != LegalActionV3.Family.DAMAGE && !(allowPaidHeal && stock.family() == LegalActionV3.Family.HEAL)) { reason = "FAMILY_UNTRAINED"; }
 				else
 				{
 					double best = -Double.MAX_VALUE, second = best; LegalActionV3 winner = stock;
@@ -200,24 +214,7 @@ public final class TacticalPolicyV3
 			{
 				final boolean safe = actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
 					&& actor.getCurrentHp() > actor.getMaxHp() * .30 && candidates.stream().allMatch(c -> c.exact().getAsBoolean());
-				final long deadline = now + 5_000_000L;
-				final var stockAction = offered.get(stock);
-				final ActionValueDecision model;
-				final ActionExplorationV4.Decision decision;
-				if (experiment.plan().frozenInference())
-				{
-					final var choice = experiment.chooseFrozen(observation, offered, stockAction, safe, deadline);
-					model = choice.inference();
-					decision = choice.decision();
-				}
-				else
-				{
-					model = actionValueChoice(_actionValueMode, _actionValue, observation, offered, stockAction, !safe, deadline);
-					decision = experiment.choose(observation, offered, stockAction, model.selected(), safe, deadline);
-				}
-				selected = offered.indexOf(decision.selected());
-				_actionValueSink.accept(new ActionValueDecision(decision.selected(), model.scores(), model.consulted(), decision.mode(), model.modelSha(), model.nanos()));
-				reason(decision.mode(), profile, target.getObjectId());
+				selected = offered.indexOf(rankExperiment(experiment, observation, offered, stock, safe, now + 5_000_000L).selected());
 			}
 			else if (_actionValueMode != Mode.OFF)
 			{
@@ -239,6 +236,28 @@ public final class TacticalPolicyV3
 			CPU_SLOT.release();
 		}
 	}
+	private ActionExplorationV4.Decision rankExperiment(ActionExplorationV4 experiment, TacticalObservationV3 observation, List<LegalActionV3> offered,
+		int stock, boolean safe, long deadline)
+	{
+		final var stockAction = offered.get(stock);
+		final ActionValueDecision model;
+		final ActionExplorationV4.Decision decision;
+		if (experiment.plan().frozenInference())
+		{
+			final var choice = experiment.chooseFrozen(observation, offered, stockAction, safe, deadline);
+			model = choice.inference();
+			decision = choice.decision();
+		}
+		else
+		{
+			model = actionValueChoice(_actionValueMode, _actionValue, observation, offered, stockAction, !safe, deadline, experiment.plan().schemaVersion() == 2);
+			decision = experiment.choose(observation, offered, stockAction, model.selected(), safe, deadline);
+		}
+		_actionValueSink.accept(new ActionValueDecision(decision.selected(), model.scores(), model.consulted(), decision.mode(), model.modelSha(), model.nanos()));
+		reason(decision.mode(), observation.profileId(), decision.selected().targetObjectId());
+		return decision;
+	}
+
 	public List<TacticalDirective> rank(List<TacticalDirective> stock, Map<MemberRef, MemberSnapshot> snapshots)
 	{
 		if (_mode == Mode.OFF || SkillData.getInstance().catalogReloaded()) { return stock; }
@@ -271,6 +290,8 @@ public final class TacticalPolicyV3
 				}
 				if (offered.size() != choices.size()) { fallback.increment(); continue; }
 				int selected = 0; float best = -Float.MAX_VALUE, second = best;
+				final var experiment = _experiment;
+				ActionExplorationV4.Decision healDecision = null;
 				if (_model != null)
 				{
 					final long encodeStarted = System.nanoTime();
@@ -301,13 +322,25 @@ public final class TacticalPolicyV3
 						session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),ref.profileId(),decision.selected().targetObjectId());
 					}
 				}
+				else if (experiment != null && offered.stream().allMatch(experiment.plan()::accepts))
+				{
+					final boolean safe = actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
+						&& actor.getCurrentHp() > actor.getMaxHp() * .30 && actor.getAttackByList().isEmpty()
+						&& observation.partyIdentity().equals(TacticalSnapshotV3.partyIdentity(actor))
+						&& offered.stream().allMatch(action -> safeHealAlternative(actor, action));
+					healDecision = rankExperiment(experiment, observation, offered, 0, safe, now + 5_000_000L);
+					selected = offered.indexOf(healDecision.selected());
+				}
 				reason(selected==0?"HEAL_STOCK":"HEAL_REORDER",ref.profileId(),offered.get(selected).targetObjectId());
 				if (selected > 0)
 				{
 					final int first = result.indexOf(choices.getFirst()), chosen = result.indexOf(choices.get(selected));
 					Collections.swap(result, first, chosen); reordered.increment();
 				}
-				final var attempt = new HealEvidenceV3.Attempt(observation, offered, offered.get(selected), offered.getFirst(), _version, _sink, this::recordFailure);
+				final var exactDecision = healDecision;
+				final var intentSink = _healIntentSink;
+				final var attempt = new HealEvidenceV3.Attempt(observation, offered, offered.get(selected), offered.getFirst(), _version, _sink, this::recordFailure,
+					exactDecision == null || intentSink == null ? null : (owner, stamp) -> intentSink.accept(new ActionExperimentReceiptV4.Intent(exactDecision, owner, stamp)));
 				_pending.put(ref.profileId(), attempt); _latest = attempt;
 			}
 			catch (RuntimeException unavailable) { fallback.increment(); }
@@ -320,6 +353,13 @@ public final class TacticalPolicyV3
 			}
 		}
 		return List.copyOf(result);
+	}
+
+	private static boolean safeHealAlternative(Player actor, LegalActionV3 action)
+	{
+		return World.getInstance().findObject(action.targetObjectId()) instanceof Player ally && ally.getParty() == actor.getParty()
+			&& ally.getNativeWorkOwner() != null && ally.getNativeWorkOwner().isCurrent() && TacticalSnapshotV3.epoch(ally) == action.targetEpoch()
+			&& !ally.isAlikeDead() && ally.getCurrentHp() > ally.getMaxHp() * .25 && ally.getAttackByList().isEmpty();
 	}
 	public static boolean safeToRank(List<TacticalDirective> choices, Map<MemberRef, MemberSnapshot> snapshots)
 	{

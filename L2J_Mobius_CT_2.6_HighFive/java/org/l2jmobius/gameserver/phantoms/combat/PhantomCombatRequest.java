@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
 
-public record PhantomCombatRequest(long profileId, int targetObjectId, PhantomCombatMode mode, boolean useShotsIfAvailable, boolean lootAfterVictory, long timeoutMillis, PhantomCancellationToken planOwnershipToken, LearningScope learningScope, PartyRoles partyRoles, PhantomCancellationToken receiptCancellation)
+public record PhantomCombatRequest(long profileId, int targetObjectId, PhantomCombatMode mode, boolean useShotsIfAvailable, boolean lootAfterVictory, long timeoutMillis, PhantomCancellationToken planOwnershipToken, LearningScope learningScope, PartyRoles partyRoles, PhantomCancellationToken receiptCancellation, Runnable walkRetreatUnavailable)
 {
 	public enum LearningScope { NONE, SOLO, PARTY }
 
@@ -23,6 +23,12 @@ public record PhantomCombatRequest(long profileId, int targetObjectId, PhantomCo
 	public PhantomCombatRequest(long profileId, int targetObjectId, PhantomCombatMode mode, boolean useShotsIfAvailable, boolean lootAfterVictory, long timeoutMillis, PhantomCancellationToken planOwnershipToken)
 	{
 		this(profileId, targetObjectId, mode, useShotsIfAvailable, lootAfterVictory, timeoutMillis, planOwnershipToken, LearningScope.NONE, null, () -> true);
+	}
+
+	public PhantomCombatRequest(long profileId, int targetObjectId, PhantomCombatMode mode, boolean useShotsIfAvailable, boolean lootAfterVictory, long timeoutMillis,
+		PhantomCancellationToken planOwnershipToken, LearningScope learningScope, PartyRoles partyRoles, PhantomCancellationToken receiptCancellation)
+	{
+		this(profileId, targetObjectId, mode, useShotsIfAvailable, lootAfterVictory, timeoutMillis, planOwnershipToken, learningScope, partyRoles, receiptCancellation, null);
 	}
 
 	public PhantomCombatRequest

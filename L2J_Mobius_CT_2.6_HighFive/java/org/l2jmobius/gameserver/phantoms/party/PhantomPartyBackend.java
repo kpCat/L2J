@@ -8,11 +8,13 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
@@ -24,6 +26,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
 
 /**
  * Copies exact live Party/Player state without exposing either mutable object.
@@ -88,6 +91,11 @@ public interface PhantomPartyBackend
 
 	/** Current managed materialization lifetime; zero never authorizes a pre-party reservation. */
 	default long materializationEpoch(MemberRef member) { return 0; }
+
+	default PhantomLearnedEscape.Attempt startLearnedRecall(PartySnapshot party, Map<MemberRef, Long> epochs, BooleanSupplier current)
+	{
+		return null;
+	}
 
 	/** Read-only stock identity check. No position, role or action admission is implied. */
 	default boolean farmJourneyRosterCurrent(MemberRef leader, List<MemberRef> roster)

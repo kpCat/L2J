@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.commons.threads.ThreadPool;
@@ -35,6 +37,7 @@ import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.item.EtcItem;
@@ -43,6 +46,7 @@ import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
@@ -69,10 +73,12 @@ public final class PhantomCombat131Fixture
 	private static final long ADENA = 50000;
 	private static final int ANCHOR_RADIUS = 1200;
 	private static final String HEADER = "status\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tskillId\tskillLevel\tweapon\tshotItem\tshots\tadena\tanchor\tnpcId\tspawn\tpreflightObjectId\tx\ty\tz\texp\tsp";
+	private static final String SCENE_HEADER = "profileId\tactorObjectId\tgoalId\tgoalRevision\tplanIdentity\tanchor\tx\ty\tz\tnpcId\tnpcLevel\tspawnKey\trespawnMinMs\trespawnMaxMs\tpreflightObjectId\tpreflightInstanceId\tpreflightGeneration\tqualifyingTargets\tknowledgeSha256\ttopologySha256\tprogressionSha256\tcommerceSha256";
 
 	private record Admission(Path game, Path sql, Path ini, Instant deadline) { }
 	private record Birth(long profile, long seed) { }
-	private record Scene(String anchor, PhantomTopologyPoint point, Monster target, Skill skill, PhantomHistoricalBackgroundPlanner.Result plan, int qualifyingTargets) { }
+	private record Scene(String anchor, PhantomTopologyPoint point, int npcId, int npcLevel, String spawn, int respawnMin, int respawnMax,
+		PlayerNativeEvidence.Target preflightTarget, Skill skill, PhantomHistoricalBackgroundPlanner.Result plan, int qualifyingTargets) { }
 	private record Actor(long profile, int object, String account, PlayerClass profession, int level, Skill skill, int weapon, int shot, long shots, long adena, long exp, long sp, Scene scene) { }
 
 	private enum Role
@@ -204,7 +210,9 @@ public final class PhantomCombat131Fixture
 		final var goals = new PhantomGoalStateStore(profiles);
 		final List<Actor> roster = new ArrayList<>();
 		final Path receipt = admission.sql().resolve("n01-fixture.tsv");
+		final Path scenes = admission.sql().resolve("n01-scenes.tsv");
 		Files.writeString(receipt, HEADER + "\n", StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+		Files.writeString(scenes, SCENE_HEADER + "\n", StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
 		long ordinal = 0;
 		for (int level : List.of(52, 76))
 		{
@@ -221,11 +229,19 @@ public final class PhantomCombat131Fixture
 				verifyStored(actor);
 				roster.add(actor);
 				Files.writeString(receipt, tsv(actor, role), StandardOpenOption.APPEND);
+				if (actor.scene() != null) { Files.writeString(scenes, sceneTsv(actor), StandardOpenOption.APPEND); }
 				System.out.println("TASK131_N01_SETUP profile=" + actor.profile() + " actor=" + actor.object() + " class=" + profession.getId() + " level=" + level + " qualification=" + (actor.scene() == null ? "BLOCKED_STOCK_OPENING" : "SCENE_CANDIDATE"));
 			}
 		}
 		check(World.getInstance().getPlayers().isEmpty() && population.loadManagedAfter(0, 5).size() == 4, "ROSTER_AND_WORLD_CLOSURE");
-		System.out.println("TASK131_N01_SETUP_STORED actors=4 sceneCandidates=" + roster.stream().filter(actor -> actor.scene() != null).count() + " worldPlayers=0");
+		final long qualified = roster.stream().filter(actor -> actor.scene() != null).count();
+		if (qualified == roster.size())
+		{
+			Files.writeString(admission.sql().resolve("n01-scene-scope.properties"), "stage=SETUP_CANDIDATES\nfixtureSha256=" + sha256(receipt)
+				+ "\nsceneSha256=" + sha256(scenes) + "\nprofiles=" + String.join(",", roster.stream().map(actor -> Long.toString(actor.profile())).toList())
+				+ "\nnextBootMustBindNativeTargets=true\n", StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+		}
+		System.out.println("TASK131_N01_SETUP_STORED actors=4 sceneCandidates=" + qualified + " worldPlayers=0");
 	}
 
 	private static PlayerClass minimumClass(Role role, int level)
@@ -420,6 +436,8 @@ public final class PhantomCombat131Fixture
 			.filter(target -> ordinary(target, actor.getLevel()) && geo.hasGeo(target.getX(), target.getY())).toList();
 		final var anchors = source.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING)
 			.sorted(Comparator.comparing(anchor -> anchor.id())).toList();
+		int nearbyAnchors = 0, legacyMultiplicity = 0, sameAnchorPlans = 0, matching = 0, geometry = 0, quiet = 0;
+		final var rejections = new java.util.TreeMap<String, Integer>();
 		for (var anchor : anchors)
 		{
 			final var position = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, 0).orElse(null);
@@ -429,20 +447,51 @@ public final class PhantomCombat131Fixture
 			final var nearby = mobs.stream().filter(mob -> distance(point, mob) <= ANCHOR_RADIUS && Math.abs((long) point.z() - mob.getZ()) <= 150)
 				.sorted(Comparator.comparingDouble((Monster mob) -> distance(point, mob)).thenComparingInt(Monster::getId)
 					.thenComparing(PhantomCombat131Fixture::spawnKey).thenComparingInt(Monster::getObjectId)).toList();
-			if (nearby.size() < 4) { continue; }
+			if (nearby.isEmpty()) { continue; }
+			nearbyAnchors++;
+			if (nearby.size() >= 4) { legacyMultiplicity++; }
 			actor.setXYZInvisible(point.x(), point.y(), point.z());
-			final var plan = planner.planInitial(profile, actor, seed, 1);
-			if (!plan.ready() || !anchor.id().equals(plan.spec().anchorId())) { continue; }
-			final var openings = nearby.stream().filter(mob -> mob.getId() == plan.spec().npcId() && passable(point, mob, geo) && quiet(point, mob))
-				.filter(mob -> minimumSkill(actor, role, mob) != null).toList();
-			if (openings.size() >= 4)
+			var plan = planner.planInitial(profile, actor, seed, 1);
+			if (!plan.ready() || !anchor.id().equals(plan.spec().anchorId()))
+			{
+				rejections.merge(plan.ready() ? "planner.selected_other_anchor" : plan.reasonKey(), 1, Integer::sum);
+				final var admissibleNpcIds = nearby.stream().filter(mob -> passable(point, mob, geo) && quiet(point, mob) && minimumSkill(actor, role, mob) != null)
+					.map(Monster::getId).collect(Collectors.toUnmodifiableSet());
+				if (admissibleNpcIds.isEmpty()) { rejections.merge("local.no_safe_learned_target", 1, Integer::sum); continue; }
+				final var idle = planner.idleInitial(profile, actor, seed, 1);
+				if (!idle.ready()) { rejections.merge(idle.reasonKey(), 1, Integer::sum); continue; }
+				final var state = source.authority().captureOwnedNative(profile, actor, idle.goal(), null).state();
+				plan = planner.replanVisibleLocal(profile, state, idle.goal(), seed, 2, point, Set.of(), Set.of(), candidate ->
+				{
+					final var spec = PhantomBackgroundGoalSpec.parse(candidate);
+					return anchor.id().equals(spec.anchorId()) && admissibleNpcIds.contains(spec.npcId()) && planner.isVisibleLocal(candidate, point);
+				});
+				if (!plan.ready()) { rejections.merge("local." + plan.reasonKey(), 1, Integer::sum); continue; }
+				System.out.println("TASK131_N01_LOCAL_PLAN profile=" + profile + " anchor=" + anchor.id() + " npc=" + plan.spec().npcId());
+			}
+			sameAnchorPlans++;
+			final int npcId = plan.spec().npcId();
+			final var stock = nearby.stream().filter(mob -> mob.getId() == npcId).toList();
+			matching += stock.size();
+			final var passable = stock.stream().filter(mob -> passable(point, mob, geo)).toList();
+			geometry += passable.size();
+			final var safe = passable.stream().filter(mob -> quiet(point, mob)).toList();
+			quiet += safe.size();
+			final var openings = safe.stream().filter(mob -> minimumSkill(actor, role, mob) != null).toList();
+			// The stock timer can yield another qualified generation of the same spawn on a later cycle.
+			if (!openings.isEmpty())
 			{
 				final Monster target = openings.getFirst();
-				System.out.println("TASK131_N01_STOCK_OPENING anchor=" + anchor.id() + " npc=" + target.getId() + " candidates=" + openings.size());
-				return new Scene(anchor.id(), point, target, minimumSkill(actor, role, target), plan, openings.size());
+				final var observed = target.getNativeEvidenceTarget();
+				check(observed.spawnGeneration() > 0 && target.getSpawn().isRespawnEnabled(), "NATIVE_RESPAWN_IDENTITY");
+				System.out.println("TASK131_N01_STOCK_OPENING profile=" + profile + " anchor=" + anchor.id() + " npc=" + target.getId() + " candidates=" + openings.size() + " nearby=" + nearby.size());
+				return new Scene(anchor.id(), point, target.getId(), target.getLevel(), spawnKey(target), target.getSpawn().getRespawnMinDelay(), target.getSpawn().getRespawnMaxDelay(),
+					observed, minimumSkill(actor, role, target), plan, openings.size());
 			}
 		}
-		System.out.println("TASK131_N01_STOCK_OPENING_UNPROVED profile=" + profile + " level=" + actor.getLevel() + " ordinaryMobs=" + mobs.size() + " candidateAnchors=" + anchors.size());
+		System.out.println("TASK131_N01_STOCK_OPENING_UNPROVED profile=" + profile + " level=" + actor.getLevel() + " ordinaryMobs=" + mobs.size() + " candidateAnchors=" + anchors.size()
+			+ " nearbyAnchors=" + nearbyAnchors + " legacyMultiplicity=" + legacyMultiplicity + " sameAnchorPlans=" + sameAnchorPlans + " matching=" + matching
+			+ " geometry=" + geometry + " quiet=" + quiet + " plannerRejections=" + rejections);
 		return null;
 	}
 
@@ -453,7 +502,8 @@ public final class PhantomCombat131Fixture
 		final var dropGroups = target.getTemplate().getDropGroups();
 		return target.isSpawned() && !target.isAlikeDead() && target.getInstanceId() == 0 && !target.isChampion() && !target.isAggressive() && !target.isRaid()
 			&& !target.isQuestMonster() && !target.getTemplate().isUndying() && target.isTargetable() && !target.isInvul()
-			&& (clans == null || clans.isEmpty()) && !target.hasMinions() && target.getLeader() == null && target.getSpawn() != null && target.getSpawn().getRespawnMaxDelay() > 0
+			&& (clans == null || clans.isEmpty()) && !target.hasMinions() && target.getLeader() == null && target.getSpawn() != null
+			&& target.getSpawn().isRespawnEnabled() && target.getSpawn().getRespawnMinDelay() > 0
 			&& Math.abs(level - target.getLevel()) <= 4 && PhantomCombatPolicy.farmRewardAvailable(level - target.getLevel(), RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE,
 				target.getExpReward(level), target.getSpReward(level)) && ((drops != null && !drops.isEmpty()) || (dropGroups != null && !dropGroups.isEmpty()));
 	}
@@ -482,15 +532,20 @@ public final class PhantomCombat131Fixture
 	{
 		final var spawn = mob.getSpawn();
 		final String name = Objects.toString(spawn.getName(), "");
+		final var territory = spawn.getSpawnTerritory();
+		if (territory != null)
+		{
+			return "territory:" + territory.getName() + ":" + territory.geometrySnapshot().map(value -> value.hash()).orElse("NO_GEOMETRY_HASH") + ":" + name;
+		}
 		final var location = spawn.getSpawnLocation();
-		return name + ":" + location.getX() + ":" + location.getY() + ":" + location.getZ();
+		return "fixed:" + name + ":" + location.getX() + ":" + location.getY() + ":" + location.getZ();
 	}
 
 	private static void verifyStored(Actor actor) throws Exception
 	{
 		check(World.getInstance().findObject(actor.object()) == null, "DETACHED_ACTOR");
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement(
-			"SELECT c.account_name,c.classid,c.base_class,c.level,c.online,c.exp,c.sp,s.skill_level FROM characters c JOIN accounts a ON a.login=c.account_name JOIN character_skills s ON s.charId=c.charId AND s.class_index=0 AND s.skill_id=? WHERE c.charId=?"))
+			"SELECT c.account_name,c.classid,c.base_class,c.level,c.online,c.exp,c.sp,s.skill_level,c.x,c.y,c.z FROM characters c JOIN accounts a ON a.login=c.account_name JOIN character_skills s ON s.charId=c.charId AND s.class_index=0 AND s.skill_id=? WHERE c.charId=?"))
 		{
 			query.setInt(1, actor.skill().getId());
 			query.setInt(2, actor.object());
@@ -498,7 +553,13 @@ public final class PhantomCombat131Fixture
 			{
 				check(rows.next() && actor.account().equals(rows.getString(1)) && actor.profession().getId() == rows.getInt(2) && actor.profession().getId() == rows.getInt(3)
 					&& actor.level() == rows.getInt(4) && rows.getInt(5) == 0 && actor.exp() == rows.getLong(6) && actor.sp() == rows.getLong(7)
-					&& rows.getInt(8) == actor.skill().getLevel() && !rows.next(), "DURABLE_CLASS_SKILL_AND_OFF");
+					&& rows.getInt(8) == actor.skill().getLevel(), "DURABLE_CLASS_SKILL_AND_OFF");
+				if (actor.scene() != null)
+				{
+					final var point = actor.scene().point();
+					check(rows.getInt(9) == point.x() && rows.getInt(10) == point.y() && rows.getInt(11) == point.z(), "DURABLE_SCENE_PLACEMENT");
+				}
+				check(!rows.next(), "DURABLE_ACTOR_SINGLE_ROW");
 			}
 		}
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement(
@@ -519,8 +580,19 @@ public final class PhantomCombat131Fixture
 		final Scene scene = actor.scene();
 		final var fields = List.of(scene == null ? "SETUP_BLOCKED_STOCK_OPENING" : "SETUP_STOCK_CANDIDATE", actor.profile(), actor.object(), actor.account(), role, actor.profession().getId(), actor.level(),
 			actor.skill().getId(), actor.skill().getLevel(), actor.weapon(), actor.shot(), actor.shots(), actor.adena(), scene == null ? "" : scene.anchor(),
-			scene == null ? "" : scene.target().getId(), scene == null ? "" : spawnKey(scene.target()), scene == null ? "" : scene.target().getObjectId(),
+			scene == null ? "" : scene.npcId(), scene == null ? "" : scene.spawn(), scene == null ? "" : scene.preflightTarget().objectId(),
 			scene == null ? "" : scene.point().x(), scene == null ? "" : scene.point().y(), scene == null ? "" : scene.point().z(), actor.exp(), actor.sp());
+		return String.join("\t", fields.stream().map(Object::toString).toList()) + "\n";
+	}
+
+	private static String sceneTsv(Actor actor)
+	{
+		final Scene scene = actor.scene();
+		final var hashes = scene.plan().generation().authorityHashes();
+		final var observed = scene.preflightTarget();
+		final var fields = List.of(actor.profile(), actor.object(), scene.plan().goal().goalId(), scene.plan().goal().revision(), scene.plan().planIdentity(),
+			scene.anchor(), scene.point().x(), scene.point().y(), scene.point().z(), scene.npcId(), scene.npcLevel(), scene.spawn(), scene.respawnMin(), scene.respawnMax(),
+			observed.objectId(), observed.instanceId(), observed.spawnGeneration(), scene.qualifyingTargets(), hashes.knowledge(), hashes.topology(), hashes.progression(), hashes.commerce());
 		return String.join("\t", fields.stream().map(Object::toString).toList()) + "\n";
 	}
 

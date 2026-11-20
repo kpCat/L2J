@@ -4,6 +4,7 @@ package org.l2jmobius.gameserver.phantoms.learning;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import org.l2jmobius.gameserver.model.World;
@@ -17,10 +18,14 @@ import org.l2jmobius.gameserver.model.skill.Skill;
 /** Exact passive native writers carried by one real MagicUseTask. Never changes HP, MP or cast validity. */
 public final class HealEvidenceV3
 {
-	public record Attempt(TacticalObservationV3 observation, List<LegalActionV3> offered, LegalActionV3 selected, LegalActionV3 baseline, long modelVersion, Consumer<Receipt> sink, Consumer<TacticalFailureV3> failureSink)
+	public record Attempt(TacticalObservationV3 observation, List<LegalActionV3> offered, LegalActionV3 selected, LegalActionV3 baseline, long modelVersion,
+		Consumer<Receipt> sink, Consumer<TacticalFailureV3> failureSink, BiConsumer<SourceOwner, Long> nativeIntent)
 	{
 		public Attempt(TacticalObservationV3 observation, List<LegalActionV3> offered, LegalActionV3 selected, LegalActionV3 baseline, long version, Consumer<Receipt> sink)
-		{ this(observation,offered,selected,baseline,version,sink,_ -> { }); }
+		{ this(observation,offered,selected,baseline,version,sink,_ -> { }, null); }
+		public Attempt(TacticalObservationV3 observation, List<LegalActionV3> offered, LegalActionV3 selected, LegalActionV3 baseline, long version,
+			Consumer<Receipt> sink, Consumer<TacticalFailureV3> failureSink)
+		{ this(observation, offered, selected, baseline, version, sink, failureSink, null); }
 		public Attempt
 		{
 			offered = List.copyOf(offered);
@@ -88,6 +93,11 @@ public final class HealEvidenceV3
 			|| attempt.selected().skillId() != skill.getId() || attempt.selected().skillLevel() != skill.getLevel()) { return nativeCast.getAsBoolean(); }
 		final HealEvidenceV3 ticket = new HealEvidenceV3(attempt, actor, target, skill, authority);
 		if (System.nanoTime() - attempt.observation().capturedNanos() > 1_000_000_000L || !ticket.current()) { REJECTED.increment(); ticket.failure("STALE_AT_DISPATCH",false); return false; }
+		if (attempt.nativeIntent() != null)
+		{
+			try { attempt.nativeIntent().accept(ticket._actionOwner.identity(), ticket._created); }
+			catch (RuntimeException rejected) { REJECTED.increment(); ticket.failure("INTENT_REJECTED", false); return false; }
+		}
 		final HealEvidenceV3 previous = DISPATCH.get(); DISPATCH.set(ticket);
 		try { final boolean issued = nativeCast.getAsBoolean(); synchronized (ticket) { ticket._issued = issued; if (!issued || !ticket._bound) { ticket.failure("NO_NATIVE_TASK",false); } ticket.publish(); } return issued; }
 		catch (RuntimeException | Error unavailable) { ticket.cancelled(); throw unavailable; }

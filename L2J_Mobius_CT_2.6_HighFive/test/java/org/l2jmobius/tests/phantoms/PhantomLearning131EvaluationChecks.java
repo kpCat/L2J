@@ -1,8 +1,13 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.tests.phantoms;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
@@ -18,14 +23,121 @@ import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Stratum;
 /** DB-free checks for the TASK131 score and matched-block statistics. */
 public final class PhantomLearning131EvaluationChecks
 {
+	private static final String TEST_EVALUATOR_SHA = "e".repeat(64);
 	private record Fixtures(List<BlockPlan> plans, List<Episode> episodes) { }
 
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
 		scoreObjectives();
 		matchedBootstrapAndStockControl();
 		incompleteAndMisattributedBlocks();
+		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
+	}
+
+	private static void untrustedEvidenceIsNeverAResult() throws Exception
+	{
+		final Path reports = Path.of(System.getProperty("phantom.test.reports", ".")).toRealPath();
+		final var temporary = Files.createTempDirectory(reports, "task131-evaluator-");
+		try
+		{
+			final var evidence = Files.createDirectory(temporary.resolve("originals"));
+			final var manifest = temporary.resolve("evaluation.tsv");
+			final var absent = temporary.resolve("absent.tsv");
+			check(PhantomLearning131Evaluation.run(manifest, evidence, absent, TEST_EVALUATOR_SHA) == 2 && Files.readString(absent).contains("UNKNOWN"),
+				"an absent frozen plan must remain unknown");
+			Files.writeString(manifest, "meta\tschema\tRUNNER_SUMMARY_ONLY\nmeta\tQ\tPASS\n");
+			final var rejected = temporary.resolve("rejected.tsv");
+			check(PhantomLearning131Evaluation.run(manifest, evidence, rejected, TEST_EVALUATOR_SHA) == 3 && Files.readString(rejected).contains("REJECTED_EVIDENCE"),
+				"an invented runner summary is rejected");
+			final var original = Files.writeString(evidence.resolve("original.tsv"), "owner bytes\n");
+			try
+			{
+				PhantomLearning131Evaluation.run(manifest, evidence, original, TEST_EVALUATOR_SHA);
+				throw new AssertionError("Report path cannot be an original");
+			}
+			catch (IllegalArgumentException expected)
+			{
+				check(expected.getMessage().contains("OUTPUT"), "output is refused before reading evidence");
+			}
+			check(Files.readString(original).equals("owner bytes\n"), "original report bytes survive an output collision");
+
+			frozenPlan(manifest);
+			final var missingOrigin = temporary.resolve("no-origins.tsv");
+			check(PhantomLearning131Evaluation.run(manifest, evidence, missingOrigin, TEST_EVALUATOR_SHA) == 2
+				&& Files.readString(missingOrigin).contains("UNKNOWN"), "complete frozen plan without independent origin remains unknown");
+
+			final String manifestSha = digest(manifest);
+			final var boot = Files.createDirectories(evidence.resolve("boots/boot-1")).resolve("complete131.tsv");
+			final String started = "2026-11-21T00:00:00Z";
+			Files.writeString(boot, meta("schema", "NATIVE_BOOT131_V1", "bank", "bank-1", "manifestSha", manifestSha, "bootId", "boot-1",
+				"pid", "131", "processStarted", started, "sourceSha", "a".repeat(40), "jarSha", "b".repeat(64), "configSha", "c".repeat(64), "policySha", "d".repeat(64)));
+			Files.writeString(manifest.resolveSibling(manifest.getFileName() + ".origins.tsv"), meta("schema", "AUDIT_ORIGINS131_V1", "manifestSha", manifestSha)
+				+ "boot\tboot-1\t131\t" + started + "\t" + "f".repeat(64) + "\n");
+			final var substituted = temporary.resolve("substituted.tsv");
+			check(PhantomLearning131Evaluation.run(manifest, evidence, substituted, TEST_EVALUATOR_SHA) == 3
+				&& Files.readString(substituted).contains("OWNED_BOOT_PIN"), "original boot substitution fails against the independent origin pin");
+		}
+		finally
+		{
+			try (var paths = Files.walk(temporary))
+			{
+				for (var path : paths.sorted(Comparator.reverseOrder()).toList())
+				{
+					Files.delete(path);
+				}
+			}
+		}
+	}
+
+	private static void frozenPlan(Path manifest) throws Exception
+	{
+		final var protocol = manifest.resolveSibling(manifest.getFileName() + ".protocol.tsv");
+		final var rows = new StringBuilder(meta("schema", "AUDIT_PROTOCOL131_V1", "bank", "bank-1", "seed", "131", "frozenAt", "2026-11-20T00:00:00Z"));
+		rows.append("price\t1463\t1\n");
+		final String[] opponents = { "B0", "A1", "B1" };
+		final int[] levels = { 52, 52, 64, 64, 76, 76, 76, 76 };
+		final int[] groupAllies = { 1, 2, 3, 9 }, groupEnemies = { 2, 2, 5, 9 };
+		for (BlockPlan plan : fixtures(false, false).plans())
+		{
+			final int index = plan.index();
+			final boolean group = plan.stratum() == Stratum.GROUP_PVP;
+			final int roster = group ? groupAllies[index % 4] : plan.scene().initialRosterSize();
+			final int opposition = group ? groupEnemies[index % 4] : 1;
+			final String roles = plan.stratum() == Stratum.PARTY_PVE ? "DAMAGE,HEAL,TANK,CONTROL,SUPPORT" : "DAMAGE";
+			rows.append(String.join("\t", "block", plan.id(), plan.stratum().name(), Integer.toString(index), "scene-" + plan.id(), "9".repeat(64),
+				String.format("%064x", 10 + index + 8 * plan.stratum().ordinal()), opponents[index % 3], Integer.toString(levels[index]), plan.scene().objective().name(),
+				"1", Integer.toString(roster), Integer.toString(opposition), "100", "1000000000", roles));
+			for (Slot slot : plan.order())
+			{
+				rows.append('\t').append(slot.arm()).append(':').append(slot.side());
+			}
+			rows.append('\n');
+		}
+		Files.writeString(protocol, rows);
+		final var splits = manifest.resolveSibling(manifest.getFileName() + ".splits.tsv");
+		Files.writeString(splits, meta("schema", "AUDIT_SPLITS131_V1", "bank", "bank-1", "protocolSha", digest(protocol))
+			+ "source\tTRAIN\t" + "a".repeat(64) + "\t" + "1".repeat(64) + "\nsource\tTUNING\t" + "b".repeat(64) + "\t" + "2".repeat(64) + "\n");
+		Files.writeString(manifest, meta("schema", "FROZEN_EVALUATION131_V1", "bank", "bank-1", "protocolSha", digest(protocol), "splitSha", digest(splits),
+			"sourceSha", "a".repeat(40), "jarSha", "b".repeat(64), "configSha", "c".repeat(64), "policySha", "d".repeat(64), "evaluatorSha", TEST_EVALUATOR_SHA,
+			"modelSchema", "a".repeat(64), "candidateSha", "3".repeat(64), "referenceSha", "4".repeat(64), "opponent.B0", "5".repeat(64),
+			"opponent.A1", "4".repeat(64), "opponent.B1", "6".repeat(64), "trainStartedAt", "2026-11-20T06:00:00Z", "referenceAt", "2026-11-20T12:00:00Z",
+			"selectedAt", "2026-11-20T18:00:00Z", "lockedAt", "2026-11-20T23:00:00Z"));
+	}
+
+	private static String meta(String... pairs)
+	{
+		final var text = new StringBuilder();
+		for (int index = 0; index < pairs.length; index += 2)
+		{
+			text.append("meta\t").append(pairs[index]).append('\t').append(pairs[index + 1]).append('\n');
+		}
+		return text.toString();
+	}
+
+	private static String digest(Path path) throws Exception
+	{
+		return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path)));
 	}
 
 	private static void scoreObjectives()

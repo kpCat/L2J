@@ -1889,6 +1889,90 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Party support fixture did not drain."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Combat fixture did not drain."); }
 			}
 		});
+		registry.add("131-party-recall-requires-every-current-unavailable-walk", context ->
+		{
+			for (String caseKey : List.of("all_unavailable", "walk_issued", "walk_rejected", "lifetime_changed", "other_action_owner"))
+			{
+				final var states = new MemoryPartyStore();
+				final var goals = new MemoryGoalStore();
+				final var backend = new MemoryPartyBackend();
+				backend._farmEnabled = true; // Let the existing fake invitation owner deliver canonical acceptance.
+				final var clock = new AtomicLong(1_000_000_000L);
+				final var worker = new java.util.concurrent.atomic.AtomicReference<Runnable>();
+				final Map<Long, PartyActionLease> actors = new LinkedHashMap<>();
+				final var combat = new PhantomCombatService(actors::get, new PhantomCombatCapabilityResolver(_ -> List.of()),
+					PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, (work, _) ->
+					{
+						worker.set(work);
+						return PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
+						{
+							@Override public boolean cancelIfNotStarted() { return worker.compareAndSet(work, null); }
+							@Override public PhantomCombatService.DispatchState state() { return PhantomCombatService.DispatchState.SCHEDULED; }
+						});
+					});
+				final var leader = backend.add(1, 101);
+				final var peer = backend.add(2, 102);
+				goals.put(1, goal(131001, PhantomPartyCoordinator.FORM_GOAL, null, 0));
+				goals.put(2, goal(131002, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "101"), 0));
+				final var melee = List.of(cap("combat.melee_damage", "native.weapon", 300, 0));
+				for (var member : List.of(leader, peer))
+				{
+					backend._capabilities.put(member, melee);
+					backend.snapshot(member, new MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), melee, ZERO));
+					final var actor = new PartyActionLease();
+					actor.objectId = member.characterObjectId();
+					actor.target = new TargetSnapshot(901, 20001, 0, 1000, 1000, false, false, true, true, false, true, true, 50, false, true);
+					actors.put(member.profileId(), actor);
+				}
+				final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context),
+					new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+				backend.connect(coordinator);
+				combat.start();
+				coordinator.start();
+				try
+				{
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED,
+						coordinator.form(1, 131001, 0, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "task131.retreat"), List.of()), "Retreat fixture must form its Party.");
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED,
+						coordinator.invite(1, peer, PartyDistributionType.FINDERS_KEEPERS), "Retreat fixture invite must be accepted.");
+					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+					PhantomAssertions.assertEquals(2, backend.observe(leader).orElseThrow().members().size(), "Fixture did not form the exact two-member Party.");
+					for (var member : List.of(leader, peer))
+					{
+						backend.snapshot(member, member(member.profileId(), member.characterObjectId(), 10, 100, false, 901, melee));
+					}
+					coordinator.onPulse();
+					PhantomAssertions.assertTrue(combat.hasClaim(1) && combat.hasClaim(2), "Both members need an accepted cooperative fight.");
+					for (var actor : actors.values()) { actor.hp = 10; actor.retreat = ActionOutcome.UNAVAILABLE; }
+					if ("walk_issued".equals(caseKey)) { actors.get(2L).retreat = ActionOutcome.ISSUED; }
+					if ("walk_rejected".equals(caseKey)) { actors.get(2L).retreat = ActionOutcome.REJECTED; }
+					java.util.Objects.requireNonNull(worker.getAndSet(null)).run();
+					if ("lifetime_changed".equals(caseKey)) { backend._nativeEpochs.put(2L, backend.materializationEpoch(peer) + 1); }
+					backend._recallAuthority = () ->
+						combat.hasClaim(1) && combat.hasClaim(2) && combat.find(1).map(session -> session.result().terminal()).orElse(true)
+						&& combat.find(2).map(session -> session.result().terminal()).orElse(true);
+					final var other = "other_action_owner".equals(caseKey) ? combat.acquireExternalAction(new PhantomCombatService.ExternalActionRequest(
+						2, PhantomCombatService.ExternalActionKind.ACQUISITION, "test.current.owner", clock.get() + 1_000_000_000L, () -> false)).lease() : null;
+					try (other)
+					{
+						if ("other_action_owner".equals(caseKey)) { PhantomAssertions.assertTrue(other != null, "Independent actor owner was not acquired."); }
+						coordinator.onPulse();
+						PhantomAssertions.assertEquals("all_unavailable".equals(caseKey) ? 1 : 0, backend._recallDispatches, "Party Recall dispatched with wrong walk/epoch/owner evidence for " + caseKey);
+						if (other != null)
+						{
+							PhantomAssertions.assertTrue(other.actorSnapshot() != null && !combat.hasClaim(1), "Failed Party admission cancelled another owner or retained a partial lease.");
+						}
+					}
+				}
+				finally
+				{
+					coordinator.beginStop();
+					PhantomAssertions.assertTrue(coordinator.finishStop(), "Party retreat fixture did not drain.");
+					combat.beginStop();
+					PhantomAssertions.assertTrue(combat.finishStop(), "Combat retreat fixture did not drain.");
+				}
+			}
+		});
 		registry.add("094-low-mp-castable-support-retains-role-without-maintenance", context ->
 		{
 			final var backend = new MemoryPartyBackend(); final var snapshots = new LinkedHashMap<MemberRef, MemberSnapshot>();
@@ -4118,6 +4202,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private int objectId = 101;
 		@Override public boolean partyWalkSafe(int x, int y, int z, int instanceId) { return true; }
 		private int moves, casts, cancels;
+		private double hp = 100;
+		private ActionOutcome retreat = ActionOutcome.UNAVAILABLE;
 		private boolean moving, casting;
 		private PhantomPartySupportAction support;
 		private TargetSnapshot target;
@@ -4130,7 +4216,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(9300L, leg.feeCount(), "The stock fare no longer matches the test witness.");
 			return gatekeeper == null ? null : gatekeeper.get();
 		}
-		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(objectId, 0, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
+		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(objectId, 0, 0, hp, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
+		@Override public ActionOutcome retreatFrom(int exactTargetObjectId)
+		{
+			PhantomAssertions.assertEquals(901, exactTargetObjectId, "Party retreat lost the exact combat encounter.");
+			return retreat;
+		}
 		@Override public TargetSnapshot targetSnapshot(int objectId) { return target != null && target.objectId() == objectId ? target : null; }
 		@Override public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode) { return false; }
 		@Override public List<ThreatObservation> observedAttackers(int limit) { return List.of(); }
@@ -4153,6 +4244,16 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private java.util.function.LongPredicate _leaveAdmission = _ -> true;
 		private long _nativeEpoch = 1;
 		private final Map<Long, Long> _nativeEpochs = new LinkedHashMap<>();
+		private int _recallDispatches;
+		private java.util.function.BooleanSupplier _recallAuthority;
+		@Override
+		public org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Attempt startLearnedRecall(PartySnapshot liveParty, Map<MemberRef, Long> epochs, java.util.function.BooleanSupplier current)
+		{
+			PhantomAssertions.assertEquals(Set.copyOf(liveParty.members()), epochs.keySet(), "A partial roster reached the recall owner.");
+			PhantomAssertions.assertTrue(current.getAsBoolean() && _recallAuthority.getAsBoolean(), "Party Recall owner received inactive combat leases.");
+			_recallDispatches++;
+			return null; // No native caster in the deterministic ownership fixture.
+		}
 		private final Set<Long> _restartAbsent = new HashSet<>();
 		@Override
 		public boolean withUnmaterializedNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile)

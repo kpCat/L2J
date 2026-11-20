@@ -148,17 +148,14 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	/** Real learned levels and native effect kinds are the fallback when authored coverage is incomplete. */
 	public static List<SelectedSkill> nativePvpSkills(Player player, PhantomCombatMode mode, int limit)
 	{
-		if (player == null || limit < 1 || limit > 16) { return List.of(); }
+		if (player == null || limit < 1 || limit > PhantomNativeCombatCapability.MAXIMUM_SKILLS
+			|| player.getSkills().size() > PhantomNativeCombatCapability.MAXIMUM_SKILLS) { return List.of(); }
 		final var weapon = player.getActiveWeaponItem();
 		final boolean ranged = weapon != null && (weapon.getItemType() == WeaponType.BOW || weapon.getItemType() == WeaponType.CROSSBOW);
-		final Creature target = player.getTarget() instanceof Creature creature ? creature : null;
 		final boolean compatibleWeapon = mode.magic() || ranged == (mode == PhantomCombatMode.RANGED_PHYSICAL);
-		final List<Skill> learned = player.getAllSkills().stream()
+		return player.getAllSkills().stream()
 			.filter(skill -> (compatibleWeapon || skill.ignoresEquipmentPreconditions(player)) && PhantomPvpSkillSafety.supports(skill, mode, player.isTransformed()))
-			.limit(256).toList();
-		final Set<Integer> ready = learned.stream().filter(skill -> nativePvpSkillReady(player, target, skill)).map(Skill::getId).collect(java.util.stream.Collectors.toSet());
-		return learned.stream()
-			.sorted(Comparator.comparingInt((Skill skill) -> ready.contains(skill.getId()) ? 1 : 0).reversed().thenComparing(Comparator.comparingInt((Skill skill) -> PhantomPvpSkillSafety.priority(skill) - (target != null && skill.getElement() >= 0 ? Math.min(100, target.getDefenseElementValue(skill.getElement()) / 10) : 0)).reversed()).thenComparingInt(Skill::getId))
+			.sorted(Comparator.comparingInt(PhantomPvpSkillSafety::priority).reversed().thenComparingInt(Skill::getId))
 			.limit(limit).map(skill -> new SelectedSkill(skill.getId(), skill.getLevel())).toList();
 	}
 	private static boolean nativePvpSkillReady(Player player, Creature target, Skill skill)
@@ -909,6 +906,18 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return nativePvpSkills(_player, mode, limit); }
+
+		@Override
+		public List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates)
+		{
+			if (candidates.size() < 2 || !executionValid() || !(World.getInstance().findObject(targetObjectId) instanceof Creature target)
+				|| target.isAlikeDead() || target.getInstanceId() != _player.getInstanceId())
+			{
+				return candidates;
+			}
+			return PhantomNativeCombatCapability.rankOffense(_player, target, pvp, candidates);
+		}
+
 		@Override public boolean pvpSkillReady(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
 		{
 			return pvpSkillReady(targetObjectId, targetObjectId, selected, mode);

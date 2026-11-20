@@ -104,6 +104,7 @@ public final class PhantomCombatService
 		PARTY_SUPPORT,
 		PARTY_ROUTE,
 		PARTY_REJOIN,
+		PARTY_RETREAT,
 		PVP_RETREAT,
 		SIEGE_ROUTE
 	}
@@ -1492,14 +1493,28 @@ public final class PhantomCombatService
 				// Six native 500-unit legs fit within this local escape budget. The
 				// original session deadline remains an independent upper bound.
 				final boolean waitingForCast = actor.casting() || session._actorLease.nativeCastPending();
-				if (retreatExpired(session, now) || !waitingForCast && session._actorLease.retreatFrom(
-					session._request.targetObjectId(), () -> learnedReturnCurrent(session)) != ActionOutcome.ISSUED)
+				if (retreatExpired(session, now))
 				{
 					finish(session, PhantomCombatResult.LOW_HP_STOPPED);
+					return;
+				}
+				if (waitingForCast)
+				{
+					requeue(session);
+					return;
+				}
+				final ActionOutcome retreat = session._actorLease.retreatFrom(session._request.targetObjectId(), () -> learnedReturnCurrent(session));
+				if (retreat == ActionOutcome.ISSUED)
+				{
+					requeue(session);
 				}
 				else
 				{
-					requeue(session);
+					if (retreat == ActionOutcome.UNAVAILABLE && session._request.walkRetreatUnavailable() != null)
+					{
+						session._request.walkRetreatUnavailable().run();
+					}
+					finish(session, PhantomCombatResult.LOW_HP_STOPPED);
 				}
 				return;
 			}
@@ -1845,18 +1860,20 @@ public final class PhantomCombatService
 		{
 			return;
 		}
-		final Optional<PhantomCombatLoadout> current = _capabilityResolver.resolvePvp(actor, session._request.mode(), session._actorLease, _policy.maximumSelectedSkills());
+		final int ownerObjectId = session._request.targetObjectId();
+		final int tacticalTargetObjectId = session._actorLease.pvpTacticalTargetObjectId(ownerObjectId, _policy.maximumAcquisitionDistance());
+		final boolean canSpendMp = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent();
+		final var current = _capabilityResolver.resolvePvpAction(actor, session._request.mode(), session._actorLease, ownerObjectId, tacticalTargetObjectId,
+			canSpendMp, _policy.maximumSelectedSkills());
 		if (current.isEmpty())
 		{
 			finish(session, PhantomCombatResult.UNSUPPORTED_LOADOUT);
 			return;
 		}
-		session._loadout = current.orElseThrow();
-		final int ownerObjectId = session._request.targetObjectId();
-		final int tacticalTargetObjectId = session._actorLease.pvpTacticalTargetObjectId(ownerObjectId, _policy.maximumAcquisitionDistance());
-		final List<SelectedSkill> skills = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent() ? session._loadout.selectedSkills() : List.of();
-		final List<SelectedSkill> ready = skills.stream().filter(skill ->
-			session._actorLease.pvpSkillReady(ownerObjectId, tacticalTargetObjectId, skill, session._request.mode())).toList();
+		final var selection = current.orElseThrow();
+		session._loadout = selection.loadout();
+		final List<SelectedSkill> skills = canSpendMp ? session._loadout.selectedSkills() : List.of();
+		final List<SelectedSkill> ready = selection.readySkills();
 		if (actor.attacking())
 		{
 			// Stop only this owner's fallback renewal. Native earned hits remain published and finish first.
@@ -1947,10 +1964,11 @@ public final class PhantomCombatService
 			}
 		}
 		SelectedSkill selected = null;
-		final List<SelectedSkill> ready = selection.map(PhantomCombatCapabilityResolver.PveSelection::readySkills).orElseGet(List::of);
+		final List<SelectedSkill> ready = selection.map(PhantomCombatCapabilityResolver.SkillSelection::readySkills).orElseGet(List::of);
 		if (!ready.isEmpty())
 		{
-			selected = ready.get(Math.floorMod(session._nextSkill++, ready.size()));
+			selected = ready.getFirst();
+			session._nextSkill++;
 		}
 		if (session._request.mode() != PhantomCombatMode.MELEE_PHYSICAL)
 		{
@@ -2664,6 +2682,11 @@ public final class PhantomCombatService
 		public boolean expired(long logicalNowNanos)
 		{
 			return (logicalNowNanos >= _operation._request.deadlineLogicalNanos()) || _operation._request.ownershipToken().isCancelled();
+		}
+
+		public boolean partyRetreatCurrent(long logicalNowNanos)
+		{
+			return kind() == ExternalActionKind.PARTY_RETREAT && !_released.get() && !expired(logicalNowNanos) && _actorLease.executionValid();
 		}
 
 		public ActorSnapshot actorSnapshot()

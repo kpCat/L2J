@@ -82,6 +82,11 @@ public final class PhantomLearnedEscape
 		return start(caster, PARTY_RECALL, approvedRoster, authority);
 	}
 
+	public static boolean knowsPartyRecall(Player caster)
+	{
+		return managedPhantom(caster) && stockEscape(caster.getKnownSkill(PARTY_RECALL), PARTY_RECALL);
+	}
+
 	private static Attempt start(Player caster, int skillId, List<Player> approved, BooleanSupplier authority)
 	{
 		if (!managedPhantom(caster) || approved == null || approved.isEmpty() || approved.size() > MAX_PARTY

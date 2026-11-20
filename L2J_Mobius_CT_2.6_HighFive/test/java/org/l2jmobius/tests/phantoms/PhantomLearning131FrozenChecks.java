@@ -11,13 +11,20 @@ import java.util.List;
 import java.util.Map;
 
 import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Entity;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Fact;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Role;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 
 /** DB-free contract checks for the TASK131 frozen evaluation policy. */
 public final class PhantomLearning131FrozenChecks
@@ -36,6 +43,8 @@ public final class PhantomLearning131FrozenChecks
 			final var lineage = ActionContinuationV4.initialize(scratch, model);
 			checkFrozen(scratch, lineage.head(), model);
 			System.out.println("LEARNING131_FROZEN_CONTRACT_GREEN TUNING=MODEL AUDIT=MODEL exploration=0 checkpointUnchanged=true");
+			checkNativeHealOffers(scratch, lineage.head(), model);
+			System.out.println("LEARNING131_V4_HEAL_OFFER_CONTRACT_PASS");
 		}
 		finally
 		{
@@ -45,6 +54,45 @@ public final class PhantomLearning131FrozenChecks
 			}
 			Files.delete(scratch);
 		}
+	}
+
+	private static void checkNativeHealOffers(Path lineage, String head, ActionValueV4 model) throws IOException
+	{
+		final var reference = observation();
+		final var ally = new Entity(Role.ALLY, 102, 2, 0, 0, Map.of(Field.MAX_HP, Fact.known(800)), List.of(), List.of(), List.of(), List.of());
+		final var observation = TacticalObservationV3.restore(new TacticalObservationV3(1, System.nanoTime(), 1, 101, 1, "party", List.of(reference.self(), ally)).bytes());
+		final var stock = offer(observation, 1000, 2).withFamily(LegalActionV3.Family.HEAL);
+		final var alternative = offer(observation, 7000, 2).withFamily(LegalActionV3.Family.HEAL);
+		final var offered = List.of(stock, alternative);
+		final var training = new ActionExplorationV4.Plan(2, "EPSILON_V2", 7, 1, .15, "TRAIN", TRAIN_EPISODE, SOURCE, model.sha256(), SKILLS);
+		final var trained = new ActionExplorationV4(training).choose(observation, offered, stock, true, Long.MAX_VALUE);
+		check(ActionExplorationV4.Decision.restore(trained.bytes()).equals(trained), "TRAIN heal decision must preserve the exact choice and alternatives");
+		checkHealReceipt(trained);
+		final var evaluation = ActionExplorationV4.frozen(plan("AUDIT", EVAL_EPISODE, model.sha256()), lineage, head);
+		final var decision = evaluation.choose(observation, offered, stock, true, Long.MAX_VALUE);
+		check(decision.mode().equals("MODEL") && decision.selected().equals(alternative), "Frozen V4 must rank exact admitted heal alternatives");
+		evaluation.verifyFrozenLog(List.of(ActionExplorationV4.Decision.restore(decision.bytes())));
+		final var legacy = new ActionExplorationV4.Plan(1, "EPSILON_V1", 7, 1, .15, "TRAIN", TRAIN_EPISODE, SOURCE, model.sha256(), SKILLS);
+		rejects(() -> new ActionExplorationV4(legacy).choose(observation, offered, stock, true, Long.MAX_VALUE), "Legacy DAMAGE plan with a foreign family");
+		rejects(() -> new ActionExplorationV4.Plan(2, "EPSILON_V2", 7, 1, .15, "AUDIT", EVAL_EPISODE, SOURCE, model.sha256(), SKILLS), "New exploration policy on AUDIT");
+	}
+
+	/** Receipt binding against controlled bytes. No GS, native model fitting, or combat proof. */
+	private static void checkHealReceipt(ActionExplorationV4.Decision decision) throws IOException
+	{
+		final long elapsed = 1_000_000;
+		final var owner = new SourceOwner(1, "party-support-heal131");
+		final var intent = new ActionExperimentReceiptV4.Intent(decision, owner, decision.capturedNanos());
+		final var attempt = new TacticalReceiptV3.Attempt(decision.observation(), decision.offered(), decision.selected(), decision.stock(), 0);
+		final var receipt = new TacticalReceiptV3("e".repeat(64), attempt, 400, 500, 100, 4, elapsed, TacticalReceiptV3.reward(100, 800, 4, elapsed), owner);
+		final var episode = new TacticalEpisodeV3(decision.plan().episode(), "a".repeat(32), "PARTY", decision.observation().capturedNanos(), decision.capturedNanos() + elapsed,
+			"CONTRACT_PAID_HEAL", List.of(new TacticalEpisodeV3.Actor(1, 101, 1, 12, 52, 700, 600, false, null, null),
+				new TacticalEpisodeV3.Actor(2, 102, 2, 2, 52, 500, 300, false, null, null)), List.of(), List.of(receipt.eventKey()), 0, 100, 4, 0);
+		final byte[] row = TacticalStoreV3.encode(new TacticalStoreV3.Row("TRAIN", "test|" + episode.id(), receipt));
+		final var bound = ActionExperimentReceiptV4.bind(intent, decision.plan().sha256(), row, episode, SOURCE);
+		check(bound.schemaVersion() == 2 && bound.family().equals("HEAL") && bound.usefulHpFraction() == .125 && bound.paidMp() == 4, "Heal effect must retain useful HP and native MP");
+		final var other = new ActionExperimentReceiptV4.Intent(decision, new SourceOwner(2, "other-party-support"), decision.capturedNanos());
+		rejects(() -> ActionExperimentReceiptV4.bind(other, decision.plan().sha256(), row, episode, SOURCE), "Heal effect with a foreign dispatch owner");
 	}
 
 	private static void checkFrozen(Path lineageRoot, String head, ActionValueV4 model) throws IOException

@@ -21,14 +21,21 @@ public final class ActionExplorationV4
 					&& cap >= 1 && cap <= 16 && (!policyId.equals("COVERAGE_TEST_V1") || cap == 1)
 					&& Double.isFinite(epsilon) && epsilon >= .05 && epsilon <= .20
 					&& ("TRAIN".equals(split) || evaluation && policyId.equals("BASELINE_V1"));
-				case 2 -> "MODEL_V2".equals(policyId) && evaluation && seed == 0 && cap == 0 && Double.compare(epsilon, 0) == 0;
+				case 2 -> ("MODEL_V2".equals(policyId) && evaluation && seed == 0 && cap == 0 && Double.compare(epsilon, 0) == 0)
+					|| ("EPSILON_V2".equals(policyId) && "TRAIN".equals(split) && cap >= 1 && cap <= 16 && Double.isFinite(epsilon) && epsilon >= .05 && epsilon <= .20);
 				default -> false;
 			};
 			if (!validPolicy || episode == null || !episode.matches("[a-f0-9]{64}") || !sourceSha.matches("[a-f0-9]{64}") || !modelSha.matches("[a-f0-9]{64}")
 				|| skills.size() < 2 || skills.size() > 16 || new HashSet<>(skills).size() != skills.size() || skills.stream().anyMatch(s -> !s.matches("[1-9][0-9]*:[1-9][0-9]*")))
 			{ throw new IllegalArgumentException("Invalid frozen V4 experiment plan"); }
 		}
-		boolean frozenInference() { return schemaVersion == 2; }
+		boolean frozenInference() { return "MODEL_V2".equals(policyId); }
+		boolean epsilonExploration() { return "EPSILON_V1".equals(policyId) || "EPSILON_V2".equals(policyId); }
+		boolean accepts(LegalActionV3 action)
+		{
+			return (action.family() == LegalActionV3.Family.DAMAGE || schemaVersion == 2 && action.family() == LegalActionV3.Family.HEAL)
+				&& skills.contains(action.skillId() + ":" + action.skillLevel());
+		}
 		void write(DataOutput out) throws IOException
 		{
 			out.writeInt(schemaVersion); out.writeUTF(policyId); out.writeLong(seed); out.writeInt(cap); out.writeDouble(epsilon); out.writeUTF(split);
@@ -66,7 +73,8 @@ public final class ActionExplorationV4
 		{
 			offered = List.copyOf(offered); new TacticalReceiptV3.Attempt(observation, offered, selected, stock, 0);
 			if (cursor < 0 || cursor >= 64 || capturedNanos < observation.capturedNanos() || reason == null || reason.length() > 128
-				|| offered.stream().anyMatch(a -> a.family() != LegalActionV3.Family.DAMAGE || !plan.skills().contains(a.skillId() + ":" + a.skillLevel())))
+				|| offered.stream().anyMatch(a -> !plan.accepts(a))
+				|| stock.family() == LegalActionV3.Family.HEAL && offered.stream().anyMatch(a -> observation.entity(a.targetObjectId()).role() == TacticalObservationV3.Role.ENEMY))
 			{ throw new IllegalArgumentException("Invalid V4 decision authority"); }
 			if (mode.equals("EXPLORE_COVERAGE"))
 			{
@@ -76,7 +84,7 @@ public final class ActionExplorationV4
 			else if (mode.equals("EXPLORE_EPSILON"))
 			{
 				var p = pick(offered.size(), offered.indexOf(stock), plan.epsilon(), draw);
-				if (!plan.policyId().equals("EPSILON_V1") || draw != ActionExplorationV4.draw(plan, cursor) || propensity != p.propensity() || !selected.equals(offered.get(p.index())) || capturedNanos >= deadline)
+				if (!plan.epsilonExploration() || draw != ActionExplorationV4.draw(plan, cursor) || propensity != p.propensity() || !selected.equals(offered.get(p.index())) || capturedNanos >= deadline)
 				{ throw new IllegalArgumentException("Epsilon decision mismatch"); }
 			}
 			else if (!Set.of("BASELINE", "MODEL").contains(mode) || propensity != 1 || draw != 0 || mode.equals("BASELINE") && !selected.equals(stock)
@@ -155,7 +163,7 @@ public final class ActionExplorationV4
 			if (decision.mode().equals("MODEL"))
 			{
 				final var replay = TacticalPolicyV3.actionValueChoice(TacticalPolicyV3.Mode.ON, _frozenModel,
-					decision.observation(), decision.offered(), decision.stock(), false, Long.MAX_VALUE);
+					decision.observation(), decision.offered(), decision.stock(), false, Long.MAX_VALUE, true);
 				if (!ranked(replay.reason()) || !replay.reason().equals(decision.reason()) || !replay.selected().equals(decision.selected()))
 				{ throw new IllegalArgumentException("Frozen evaluation decision differs from the pinned model"); }
 			}
@@ -190,7 +198,7 @@ public final class ActionExplorationV4
 		{ throw new IllegalArgumentException("Missing frozen scope or stale evaluation observation"); }
 		requireSpace();
 
-		final var inference = TacticalPolicyV3.actionValueChoice(TacticalPolicyV3.Mode.ON, _frozenModel, obs, offered, stock, !safe, deadline);
+		final var inference = TacticalPolicyV3.actionValueChoice(TacticalPolicyV3.Mode.ON, _frozenModel, obs, offered, stock, !safe, deadline, true);
 		final long stamp = System.nanoTime();
 		final String reason = inference.reason();
 		final boolean ranked = stamp < deadline && ranked(reason);
@@ -220,7 +228,7 @@ public final class ActionExplorationV4
 		else if (System.nanoTime() >= deadline) { reason = "BUDGET_5MS"; }
 		else if (_plan.policyId().equals("MODEL_V1")) { mode = "MODEL"; selected = model; reason = "MODEL"; }
 		else if (_experiments < _plan.cap() && _plan.policyId().equals("COVERAGE_TEST_V1")) { mode = "EXPLORE_COVERAGE"; selected = coverage(_plan, offered, stock); }
-		else if (_experiments < _plan.cap() && _plan.policyId().equals("EPSILON_V1"))
+		else if (_experiments < _plan.cap() && _plan.epsilonExploration())
 		{
 			mode = "EXPLORE_EPSILON"; random = draw(_plan, cursor); var p = pick(offered.size(), offered.indexOf(stock), _plan.epsilon(), random); selected = offered.get(p.index()); probability = p.propensity();
 		}
