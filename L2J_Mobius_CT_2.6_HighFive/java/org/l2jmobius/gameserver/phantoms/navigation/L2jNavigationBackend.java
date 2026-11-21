@@ -82,6 +82,19 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		return java.util.Optional.of(new PhantomNavigationPoint(hint.x(), hint.y(), z, hint.instanceId()));
 	}
 
+	PhantomNavigationPoint learnedSurface(PhantomNavigationPoint hint, int tolerance)
+	{
+		return hint == null || !GeoEngine.getInstance().hasGeo(hint.x(), hint.y()) ? null : walkSurface(hint, tolerance).orElse(null);
+	}
+
+	boolean canWalkLearned(PhantomNavigationPoint from, PhantomNavigationPoint to)
+	{
+		final var zones = ZoneManager.getInstance();
+		final long generation = zones.loadedGeneration();
+		return generation >= 0 && learnedSurface(from, 0) != null && learnedSurface(to, 0) != null
+			&& canWalkDirect(from, to) && zones.loadedGeneration() == generation;
+	}
+
 	/** The existing visible-travel dry-cell/height contract, plus factual doors/NSWE. */
 	@Override
 	public boolean canWalkDirect(PhantomNavigationPoint from, PhantomNavigationPoint to)
@@ -123,6 +136,10 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	public PhantomWalkCorridorPlanner.Result findWalkEpisode(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomNavigationPoint> visited)
 	{
 		return findWalkCorridor(request, cancellation, policy, clock, paths, java.util.Set.of(), new PhantomWalkCorridorPlanner.Budget(), true, visited);
+	}
+	PhantomWalkCorridorPlanner.Result findSoloWalk(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean episode, java.util.Set<PhantomNavigationPoint> visited)
+	{
+		return findWalkCorridor(request, cancellation, policy, clock, paths, blocked, new PhantomWalkCorridorPlanner.Budget(), episode, visited);
 	}
 	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges)
 	{

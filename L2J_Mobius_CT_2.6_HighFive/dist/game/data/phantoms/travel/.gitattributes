@@ -1,1 +1,2 @@
 *.xml text eol=lf
+learned/*.tsv text eol=lf

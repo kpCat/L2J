@@ -485,6 +485,7 @@ public final class PhantomSystem
 			}
 			if (_productionMaterialization)
 			{
+				_navigationService.startRouteLearning(ServerConfig.DATAPACK_ROOT.toPath(), _topologyService.query());
 				final PhantomGameKnowledgePolicy knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults();
 				final L2jGameKnowledgeBackend knowledgeBackend = new L2jGameKnowledgeBackend();
 				final File knowledgeDirectory = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/knowledge");

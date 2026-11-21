@@ -171,7 +171,7 @@ function Wait-Role([string]$Role, [Diagnostics.Process]$Process, [int]$Seconds) 
     if ($Seconds -lt 1 -or $Seconds -gt 600) { throw 'Startup timeout вне1..600.' }
     $until = [DateTime]::UtcNow.AddSeconds($Seconds)
     do {
-        if ($Process.HasExited) { throw "$Role завершился при старте; смотрите local-play/logs." }
+        if ($Process.HasExited) { throw "$Role завершился при старте; смотрите каталог log соответствующей роли." }
         $owners = Get-LocalPlayPortOwners $ports[$Role]
         foreach ($port in $ports[$Role]) { if ($owners.ContainsKey($port) -and $owners[$port] -ne $Process.Id) { throw "Порт $port занят чужим PID." } }
         if ($owners.Count -eq $ports[$Role].Count) { return }
@@ -183,12 +183,11 @@ function Start-Role([string]$Role) {
     $directory = Join-Path $runtime $(if ($Role -ceq 'GameServer') {'game'} else {'login'})
     $options = (Get-Content -LiteralPath (Join-Path $directory 'java.cfg') -Raw).Trim()
     if ($options -match '-javaagent:|-agentlib:|-agentpath:|phantom\.localplay\.|[\r\n]') { throw 'Forensic/fault agents или runtime markers в java.cfg запрещены.' }
-    $logRoot = Join-Path $runtime 'local-play/logs'; New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
-    $stamp = [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')
     # Existing ownership parser recognizes this relative JAR independent of spaces in the runtime root.
     $arguments = "$options -Dphantom.localplay.runtime=$runtimeId -Dphantom.localplay.role=$Role -jar ..\libs\$Role.jar"
-    $process = Start-Process -FilePath $java -ArgumentList $arguments -WorkingDirectory $directory -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logRoot "$Role-$stamp-stdout.log") -RedirectStandardError (Join-Path $logRoot "$Role-$stamp-stderr.log") -PassThru
+    $process = Start-Process -FilePath $java -ArgumentList $arguments -WorkingDirectory $directory -WindowStyle Normal -PassThru
     Save-LocalPlayRecord (Join-Path $runtime "local-play/pids/$Role.json") $Role ([pscustomobject]@{pid=$process.Id;startTimeUtcTicks=$process.StartTime.ToUniversalTime().Ticks}) "$Role.jar" $runtimeId
+    Write-Information "VISIBLE_CONSOLE_CONFIGURED $Role PID=$($process.Id)" -InformationAction Continue
     $timeoutKey = if ($Role -ceq 'GameServer') {'GameTimeoutSeconds'} else {'LoginTimeoutSeconds'}
     Wait-Role $Role $process ([int](Read-Ini $settings $timeoutKey))
 }

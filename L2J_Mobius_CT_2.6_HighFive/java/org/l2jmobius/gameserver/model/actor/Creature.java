@@ -3806,6 +3806,16 @@ public abstract class Creature extends WorldObject
 		public int geoPathGty;
 		
 		public int lastBroadcastTime;
+		private volatile boolean _physicallyArrived;
+	}
+
+	/** A receipt for this exact native straight move, independent of the current AI intention. */
+	public java.util.function.BooleanSupplier nativeStraightMoveArrival(int x, int y, int z)
+	{
+		final MoveData move = _move;
+		if (move == null || move.geoPath != null || move.disregardingGeodata
+			|| move.xDestination != x || move.yDestination != y || move.zDestination != z) { return null; }
+		return () -> move._physicallyArrived;
 	}
 	
 	/**
@@ -4593,6 +4603,7 @@ public abstract class Creature extends WorldObject
 		{
 			// Set the position of the Creature to the destination.
 			super.setXYZ(move.xDestination, move.yDestination, move.zDestination);
+			if (_move == move && (xPrev != move.xDestination || yPrev != move.yDestination)) { move._physicallyArrived = true; }
 		}
 		else
 		{

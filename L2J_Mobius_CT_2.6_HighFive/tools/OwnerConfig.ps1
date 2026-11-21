@@ -22,7 +22,7 @@ function Assert-OwnerRelative([string]$File){
     foreach($part in $File.Split('/')){if(!$part -or $part -in @('.','..') -or $part.EndsWith('.') -or $part.EndsWith(' ') -or $part.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0){throw 'OwnerConfig: invalid relative INI path.'}}
 }
 function Test-OwnerPrivateFile([string]$File){
-    return [IO.Path]::GetFileName($File) -match '^(Database|Network|Server|CustomMailManager|PasswordChange|LocalPlayPilot)\.ini$|(?:^|[._-])(secret|credentials?|password|private)(?:[._-]|$)'
+    return [IO.Path]::GetFileName($File) -match '^(Database|Network|Server|CustomMailManager|PasswordChange|LocalPlayPilot|PhantomGeoTrainer)\.ini$|(?:^|[._-])(secret|credentials?|password|private)(?:[._-]|$)'
 }
 function Test-OwnerPrivateKey([string]$Key){
     return $Key -match '(?i)Password|Passwd|Credential|Secret|Token|ApiKey|AccessKey|Account|Allowlist|Whitelist|Webhook|SMTP|(?:Character|Char)(?:Names?|Ids?|ObjectIds?)|ObserverCharacter|SyntheticCharacter|PreparedOfflineCharacterIds|^URL$|^Login$|^(Host|Hostname|IP|Port|Endpoint)$|(?:^|[_.-])(?:host|hostname|ipaddress|port|endpoint)$|(?-i:Host|Hostname|IPAddress|Port)$'

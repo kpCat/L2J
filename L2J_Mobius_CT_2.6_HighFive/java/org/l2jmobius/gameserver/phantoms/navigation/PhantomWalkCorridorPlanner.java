@@ -115,7 +115,7 @@ public final class PhantomWalkCorridorPlanner
 		final var result = new Search(request, cancellation, policy, budget, visited).run();
 		return episodeResult(result.status(), result.points(), budget);
 	}
-	private static boolean nearVisited(PhantomNavigationPoint target, java.util.Set<PhantomNavigationPoint> visited)
+	static boolean nearVisited(PhantomNavigationPoint target, java.util.Set<PhantomNavigationPoint> visited)
 	{
 		return visited.stream().anyMatch(point -> point.instanceId() == target.instanceId() && Math.hypot((long) point.x() - target.x(), (long) point.y() - target.y()) < STRIDE / 2 && Math.abs((long) point.z() - target.z()) < 100);
 	}
