@@ -20,6 +20,7 @@
  */
 package org.l2jmobius.gameserver;
 
+import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -72,6 +73,7 @@ import org.l2jmobius.gameserver.util.Broadcast;
 public class Shutdown extends Thread
 {
 	private static final Logger LOGGER = Logger.getLogger(Shutdown.class.getName());
+	private static final DrainProgress DRAIN = new DrainProgress();
 	
 	private static final int SIGTERM = 0;
 	private static final int GM_SHUTDOWN = 1;
@@ -86,7 +88,7 @@ public class Shutdown extends Thread
 	};
 	
 	private static Shutdown _counterInstance;
-	private static boolean _countdownFinished;
+	private static volatile boolean _countdownFinished;
 	
 	private static volatile int _secondsShut;
 	private static volatile int _shutdownMode;
@@ -132,11 +134,18 @@ public class Shutdown extends Thread
 	{
 		if (this == getInstance())
 		{
-			startShutdownActions();
+			// The JVM can exit as soon as its hooks return. Keep this hook alive while STORE is unconfirmed.
+			boolean interrupted = false;
+			while (!startShutdownActions())
+			{
+				try { Thread.sleep(10_000); }
+				catch (InterruptedException e) { interrupted = true; }
+			}
+			if (interrupted) { Thread.currentThread().interrupt(); }
 			return;
 		}
 		
-		if (_countdownFinished)
+		if (DRAIN.complete())
 		{
 			return;
 		}
@@ -340,10 +349,13 @@ public class Shutdown extends Thread
 	 */
 	private boolean startShutdownActions()
 	{
-		if (_countdownFinished)
-		{
-			return true;
-		}
+		final TimeCounter tc = new TimeCounter();
+		final TimeCounter tc1 = new TimeCounter();
+		return DRAIN.attempt(() -> prepareShutdown(tc), () -> finishPhantomDrain(tc), () -> finishShutdown(tc, tc1));
+	}
+
+	private boolean prepareShutdown(TimeCounter tc)
+	{
 		final long merchantDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(20);
 		while (!PhantomSystem.beginOfflineMerchantStop())
 		{
@@ -354,9 +366,6 @@ public class Shutdown extends Thread
 		
 		_countdownFinished = true;
 		
-		final TimeCounter tc = new TimeCounter();
-		final TimeCounter tc1 = new TimeCounter();
-
 		try
 		{
 			if ((OfflineTradeConfig.OFFLINE_TRADE_ENABLE || OfflineTradeConfig.OFFLINE_CRAFT_ENABLE) && OfflineTradeConfig.RESTORE_OFFLINERS && !OfflineTradeConfig.STORE_OFFLINE_TRADE_IN_REALTIME)
@@ -389,7 +398,7 @@ public class Shutdown extends Thread
 			{
 				final boolean stopped = PhantomSystem.shutdownIfStarted();
 				final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
-				if (!snapshot.configured())
+				if (DRAIN.recordPhantomDrain(stopped, snapshot.configured()))
 				{
 					LOGGER.info("Phantom World: Initial subsystem drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
 				}
@@ -401,6 +410,7 @@ public class Shutdown extends Thread
 		}
 		catch (Throwable t)
 		{
+			DRAIN.recordPhantomDrain(false, true);
 			LOGGER.log(Level.WARNING, "Error during initial Phantom World subsystem drain.", t);
 		}
 
@@ -413,9 +423,44 @@ public class Shutdown extends Thread
 		{
 			// ignore
 		}
-		
-		// ensure all services are stopped
-		
+		return true;
+	}
+
+	private boolean finishPhantomDrain(TimeCounter tc)
+	{
+		try
+		{
+			if (PhantomSystem.hasConfiguredInstance())
+			{
+				final boolean stopped = PhantomSystem.shutdownIfStarted();
+				final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
+				if (DRAIN.recordPhantomDrain(stopped, snapshot.configured()))
+				{
+					LOGGER.info("Phantom World: Final subsystem drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
+				}
+				else
+				{
+					LOGGER.severe("STOP_BLOCKED: Phantom World: Final subsystem drain is incomplete; systemState=" + snapshot.systemState() + ", materializationServiceState=" + snapshot.materializationServiceState() + ", retainedMaterializationEntries=" + snapshot.retainedMaterializationEntries() + ", progressionState=" + snapshot.progressionState() + ", progressionCatalogHash=" + snapshot.progressionCatalogHash() + ", progressionOperations=" + snapshot.progressionOperations() + ", progressionActorLeases=" + snapshot.progressionActorLeases() + ", combatState=" + snapshot.combatState() + ", combatActiveSessions=" + snapshot.combatActiveSessions() + ", combatTerminalSessions=" + snapshot.combatTerminalSessions() + ", combatQueuedSessions=" + snapshot.combatQueuedSessions() + ", combatWorkers=" + snapshot.combatWorkers() + ", combatActorLeases=" + snapshot.combatActorLeases() + ", navigationState=" + snapshot.navigationState() + ", navigationActiveRequests=" + snapshot.navigationActiveRequests() + ", navigationQueuedRequests=" + snapshot.navigationQueuedRequests() + ", navigationWorkers=" + snapshot.navigationWorkers() + ", topologyState=" + snapshot.topologyState() + ", topologyRegisteredProfiles=" + snapshot.topologyRegisteredProfiles() + ", topologyEventsInFlight=" + snapshot.topologyEventsInFlight() + ", topologyGeneration=" + snapshot.topologyGeneration() + ", knowledgeState=" + snapshot.knowledgeState() + ". Shutdown is deferred; shared workers and the database remain available.");
+					return false;
+				}
+			}
+			if (!DRAIN.phantomDrainConfirmed())
+			{
+				LOGGER.severe("STOP_BLOCKED: Phantom instance retired without a confirmed drain. Shutdown is deferred.");
+				return false;
+			}
+			return true;
+		}
+		catch (Throwable t)
+		{
+			DRAIN.recordPhantomDrain(false, true);
+			LOGGER.log(Level.SEVERE, "STOP_BLOCKED: Final Phantom drain failed. Shutdown is deferred.", t);
+			return false;
+		}
+	}
+
+	private void finishShutdown(TimeCounter tc, TimeCounter tc1)
+	{
 		try
 		{
 			GameTimeTaskManager.getInstance().interrupt();
@@ -424,28 +469,6 @@ public class Shutdown extends Thread
 		catch (Throwable t)
 		{
 			// ignore
-		}
-		
-		try
-		{
-			if (PhantomSystem.hasConfiguredInstance())
-			{
-				final boolean stopped = PhantomSystem.shutdownIfStarted();
-				final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
-				if (!snapshot.configured())
-				{
-					LOGGER.info("Phantom World: Final subsystem drain completed, stopped=" + stopped + "(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
-				}
-				else
-				{
-					LOGGER.severe("Phantom World: Final subsystem drain is incomplete; systemState=" + snapshot.systemState() + ", materializationServiceState=" + snapshot.materializationServiceState() + ", retainedMaterializationEntries=" + snapshot.retainedMaterializationEntries() + ", progressionState=" + snapshot.progressionState() + ", progressionCatalogHash=" + snapshot.progressionCatalogHash() + ", progressionOperations=" + snapshot.progressionOperations() + ", progressionActorLeases=" + snapshot.progressionActorLeases() + ", combatState=" + snapshot.combatState() + ", combatActiveSessions=" + snapshot.combatActiveSessions() + ", combatTerminalSessions=" + snapshot.combatTerminalSessions() + ", combatQueuedSessions=" + snapshot.combatQueuedSessions() + ", combatWorkers=" + snapshot.combatWorkers() + ", combatActorLeases=" + snapshot.combatActorLeases() + ", navigationState=" + snapshot.navigationState() + ", navigationActiveRequests=" + snapshot.navigationActiveRequests() + ", navigationQueuedRequests=" + snapshot.navigationQueuedRequests() + ", navigationWorkers=" + snapshot.navigationWorkers() + ", topologyState=" + snapshot.topologyState() + ", topologyRegisteredProfiles=" + snapshot.topologyRegisteredProfiles() + ", topologyEventsInFlight=" + snapshot.topologyEventsInFlight() + ", topologyGeneration=" + snapshot.topologyGeneration() + ", knowledgeState=" + snapshot.knowledgeState() + ". Shared ThreadPool is about to stop with retained Phantom ownership(" + tc.getEstimatedTimeAndRestartCounter() + "ms).");
-				}
-			}
-		}
-		catch (Throwable t)
-		{
-			final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
-			LOGGER.log(Level.SEVERE, "Phantom World: Final subsystem drain failed; configured=" + snapshot.configured() + ", systemState=" + snapshot.systemState() + ", materializationServiceState=" + snapshot.materializationServiceState() + ", retainedMaterializationEntries=" + snapshot.retainedMaterializationEntries() + ", progressionState=" + snapshot.progressionState() + ", progressionCatalogHash=" + snapshot.progressionCatalogHash() + ", progressionOperations=" + snapshot.progressionOperations() + ", progressionActorLeases=" + snapshot.progressionActorLeases() + ", combatState=" + snapshot.combatState() + ", combatActiveSessions=" + snapshot.combatActiveSessions() + ", combatTerminalSessions=" + snapshot.combatTerminalSessions() + ", combatQueuedSessions=" + snapshot.combatQueuedSessions() + ", combatWorkers=" + snapshot.combatWorkers() + ", combatActorLeases=" + snapshot.combatActorLeases() + ", navigationState=" + snapshot.navigationState() + ", navigationActiveRequests=" + snapshot.navigationActiveRequests() + ", navigationQueuedRequests=" + snapshot.navigationQueuedRequests() + ", navigationWorkers=" + snapshot.navigationWorkers() + ", topologyState=" + snapshot.topologyState() + ", topologyRegisteredProfiles=" + snapshot.topologyRegisteredProfiles() + ", topologyEventsInFlight=" + snapshot.topologyEventsInFlight() + ", topologyGeneration=" + snapshot.topologyGeneration() + ", knowledgeState=" + snapshot.knowledgeState() + ". Shared ThreadPool is about to stop with incomplete Phantom drain.", t);
 		}
 
 		// stop all thread pools
@@ -491,7 +514,6 @@ public class Shutdown extends Thread
 		}
 		
 		LOGGER.info("The server has been successfully shut down in " + (tc1.getEstimatedTime() / 1000) + "seconds.");
-		return true;
 	}
 	
 	/**
@@ -661,6 +683,65 @@ public class Shutdown extends Thread
 		return SingletonHolder.INSTANCE;
 	}
 	
+	public static boolean hasShutdownStarted()
+	{
+		return DRAIN.started();
+	}
+
+	static final class DrainProgress
+	{
+		private boolean _prepared;
+		private boolean _phantomDrainUnconfirmed;
+		private volatile boolean _started;
+		private volatile boolean _complete;
+
+		synchronized boolean attempt(BooleanSupplier prepare, BooleanSupplier drain, Runnable finish)
+		{
+			if (_complete)
+			{
+				return true;
+			}
+			if (!_prepared)
+			{
+				_started = true;
+				if (!prepare.getAsBoolean())
+				{
+					return false;
+				}
+				_prepared = true;
+			}
+			if (!drain.getAsBoolean() || _phantomDrainUnconfirmed)
+			{
+				return false;
+			}
+			finish.run();
+			_complete = true;
+			return true;
+		}
+
+		// A failed cleanup can retire the configured system without a healthy STOP receipt.
+		boolean recordPhantomDrain(boolean stopped, boolean stillConfigured)
+		{
+			_phantomDrainUnconfirmed = !stopped || stillConfigured;
+			return !_phantomDrainUnconfirmed;
+		}
+
+		boolean phantomDrainConfirmed()
+		{
+			return !_phantomDrainUnconfirmed;
+		}
+
+		boolean started()
+		{
+			return _started;
+		}
+
+		boolean complete()
+		{
+			return _complete;
+		}
+	}
+
 	private static class SingletonHolder
 	{
 		protected static final Shutdown INSTANCE = new Shutdown();

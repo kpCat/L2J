@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongFunction;
 
+import org.l2jmobius.gameserver.Shutdown;
 import org.l2jmobius.gameserver.config.NpcConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
@@ -2310,7 +2311,7 @@ public final class PhantomSystem
 	{ return startConfiguredInternal(inspection, null); }
 	private static boolean startConfiguredInternal(java.util.function.Consumer<PlanningInspection> inspection, StartupPartyRecovery recovery)
 	{
-		if (!PhantomPlayersConfig.isEnabled() || (_configuredInstance != null))
+		if (Shutdown.hasShutdownStarted() || !PhantomPlayersConfig.isEnabled() || (_configuredInstance != null))
 		{
 			return false;
 		}
@@ -2387,6 +2388,10 @@ public final class PhantomSystem
 	{ return operatorEnable(inspection, null); }
 	public static synchronized OperatorControlResult operatorEnable(java.util.function.Consumer<PlanningInspection> inspection, StartupPartyRecovery recovery)
 	{
+		if (Shutdown.hasShutdownStarted())
+		{
+			return operatorControlResult(OperatorControlCode.OWNER_BUSY);
+		}
 		if (_configuredInstance != null)
 		{
 			final State actualState = _configuredInstance.snapshot().state();

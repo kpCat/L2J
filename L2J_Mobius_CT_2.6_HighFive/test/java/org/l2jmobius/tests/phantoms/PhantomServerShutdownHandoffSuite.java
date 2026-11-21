@@ -274,7 +274,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 
 		final List<String> failedEvents = new ArrayList<>();
 		final PolicyResult failed = simulateServerPolicy(failedEvents, false, false);
-		PhantomAssertions.assertEquals(List.of("first", "disconnect", "second", "thread-pool"), failedEvents, "Persistent-failure policy order is wrong.");
+		PhantomAssertions.assertEquals(List.of("first", "disconnect", "second"), failedEvents, "Persistent failure must keep ThreadPool available.");
 		PhantomAssertions.assertEquals(2, failed.shutdownCalls(), "Persistent failure exceeded or skipped the two server-level opportunities.");
 		PhantomAssertions.assertFalse(failed.successful(), "Persistent failure was reported as successful.");
 	}
@@ -753,7 +753,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			shutdownCalls++;
 			configured = !secondTerminal;
 		}
-		events.add("thread-pool");
+		if (!configured) { events.add("thread-pool"); }
 		return new PolicyResult(shutdownCalls, !configured);
 	}
 
