@@ -233,7 +233,7 @@ $body.scenes=@($trainIds | ForEach-Object {@{id=$_;participantCount=1;deadlineSe
 $body.executionSha=Write-PreflightPin (Join-Path $train 'execution.properties') (@("expectedHead=$sha","opponentSha=$sha",'') -join [char]10)
 $trainManifestSha=Write-PreflightPin $trainManifest ($body|ConvertTo-Json -Depth 8)
 
-function Write-TrainClosure([int]$Index,[int]$Prior,[string]$Parent,[string]$Status,[string]$Episode) {
+function Write-TrainClosure([int]$Index,[int]$Prior,[string]$Parent,[string]$Status,[string[]]$Episode,[switch]$Curriculum) {
     $bootId='{0:00000}' -f $Index
     $boot=Join-Path $train ('boots\'+$bootId)
     $null=New-Item -ItemType Directory -Path $boot
@@ -252,17 +252,20 @@ function Write-TrainClosure([int]$Index,[int]$Prior,[string]$Parent,[string]$Sta
         nonce=$nonce;reservationSha=$reservedSha}
     $storePath=Join-Path $boot 'train-store131.tsv'
     $storeSha=Write-FixtureReceipt 'train-store131.tsv' 'controller contract store bytes'
-    $episodeSha=Write-PreflightPin (Join-Path $boot ('episodes\'+$Episode+'\seal131.tsv')) 'controller contract episode bytes'
-    $control=if($Status -ceq 'PAUSED'){'pause'}else{'none'}
+    $control=if($Curriculum){'curriculum'}elseif($Status -ceq 'PAUSED'){'pause'}else{'none'}
     if($control -ceq 'pause'){$null=Write-FixtureReceipt 'pause131.request' ($nonce+[char]10)}
     $sealStatus=if($Status -ceq 'COMPLETED'){'DRAINED'}else{$Status}
     $metadata=[ordered]@{schema='NATIVE_TRAIN_BOOT131_V1';phase='TRAIN';status=$sealStatus;bootId=$bootId;nonce=$nonce;pid='131'
         processStarted=$stamp.ToString('o');manifestSha=$trainManifestSha;sourceCommit=$body.sourceCommit;jarSha=$body.gameJarSha
-        expectedHead=$sha;learnerSha=$body.modelSha;opponentSha=$sha;cycle='1';storeSha=$storeSha}
+        expectedHead=$sha;learnerSha=$body.modelSha;opponentSha=$sha;cycle=[string]$body.cycle;storeSha=$storeSha}
+    if($Curriculum){$metadata.curriculumMisses='3'}
     $sealRows=@($metadata.Keys|ForEach-Object { @('meta',$_,$metadata[$_]) -join [char]9 })
-    $sealRows+=@(@('episode',$Episode,$episodeSha) -join [char]9)
+    foreach($id in $Episode){
+        $episodeSha=Write-PreflightPin (Join-Path $boot ('episodes\'+$id+'\seal131.tsv')) 'controller contract episode bytes'
+        $sealRows+=@(@('episode',$id,$episodeSha) -join [char]9)
+    }
     $sealSha=Write-FixtureReceipt 'complete131.tsv' (($sealRows -join [char]10)+[char]10)
-    $completed=$Prior+1
+    $completed=$Prior+$Episode.Count
     $ackSha=Write-FixtureReceipt 'drain131.properties' ((@('schema=NATIVE_DRAIN131_V1',"nonce=$nonce","manifestSha=$trainManifestSha","bootId=$bootId",
         'pid=131',('startedUtc='+$stamp.ToString('o')),"status=$Status","completed=$completed","sealSha=$sealSha") -join [char]10)+[char]10)
     $closeSha=Write-FixtureReceipt 'closed.json' @{schema='TRAINING_CLOSED131_V1';reservationSha=$reservedSha;status=$Status;completed=$completed
@@ -297,5 +300,31 @@ $terminal.status='STOPPED'
 $null=Write-PreflightPin $lastClose ($terminal | ConvertTo-Json -Depth 4)
 $report=& $scriptPath -Action Report -Manifest $trainManifest | ConvertFrom-Json
 Assert-Check ($report.status -ceq 'STOPPED' -and !$report.resumable -and $report.completed -eq 2) 'stop preserves settled credit and closes the branch'
+
+$train=Join-Path (Split-Path $train -Parent) 'train-02'
+$trainManifest=Join-Path $train 'campaign.json'
+$body.campaignId='train-02'
+$body.cycle=2
+$body.quota.maxEpisodes=4
+$diagnosticIds=@(('1'*64),('2'*64),('3'*64),('4'*64))
+$body.scenes=@($diagnosticIds | ForEach-Object {@{id=$_;participantCount=1;deadlineSeconds=5}})
+$body.executionSha=Write-PreflightPin (Join-Path $train 'execution.properties') (@("expectedHead=$sha","opponentSha=$sha",'') -join [char]10)
+$trainManifestSha=Write-PreflightPin $trainManifest ($body|ConvertTo-Json -Depth 8)
+$held=Write-TrainClosure 1 0 $trainManifestSha 'PAUSED' $diagnosticIds[0..2] -Curriculum
+$report=& $scriptPath -Action Report -Manifest $trainManifest | ConvertFrom-Json
+Assert-Check ($report.status -ceq 'PAUSED' -and !$report.resumable -and $report.completed -eq 3 -and $report.remaining -eq 1 -and
+    $report.resumeReason -ceq 'TRAIN_CURRICULUM_REVIEW_REQUIRED') 'native curriculum pause charges the three scenes and holds admission'
+$reviewPath=Join-Path $train 'boots\00001\curriculum-review131.json'
+$review=[ordered]@{schema='TASK131_CURRICULUM_REVIEW_V1';approval='OWNER_TASK131_CURRICULUM_REVIEW';manifestSha=$trainManifestSha
+    closedSha=('0'*64);reviewRef='controller contract fixture review'}
+$null=Write-PreflightPin $reviewPath ($review | ConvertTo-Json -Depth 4)
+try{
+    $null=& $scriptPath -Action Report -Manifest $trainManifest
+    throw 'UNEXPECTED_FOREIGN_CURRICULUM_REVIEW_SUCCESS'
+}catch{Assert-Check ($_.Exception.Message -ceq 'TRAINING131_CURRICULUM_REVIEW_SCOPE') 'review for a different closure is refused'}
+$review.closedSha=$held.Close
+$null=Write-PreflightPin $reviewPath ($review | ConvertTo-Json -Depth 4)
+$report=& $scriptPath -Action Report -Manifest $trainManifest | ConvertFrom-Json
+Assert-Check ($report.resumable -and $report.completed -eq 3 -and $report.remaining -eq 1 -and $report.boots -eq 1) 'accepted review opens only the existing remaining quota'
 
 Write-Output "TRAINING131_CONTROL_CHECKS_PASS GS=0 LS=0 SQL=0 artifacts=$sandbox"

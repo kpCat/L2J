@@ -10,10 +10,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionFeedbackV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
@@ -35,8 +37,14 @@ public final class PhantomLearning131FrozenChecks
 	private static final String EVAL_EPISODE = "c".repeat(64);
 	private static final List<String> SKILLS = List.of("1000:1", "7000:1");
 
-	public static void main(String[] args) throws IOException
+	public static void main(String[] args) throws Exception
 	{
+		if (args.length == 3 && args[0].equals("cold"))
+		{
+			ActionContinuationV4.cold(Path.of(args[1]), args[2]);
+			return;
+		}
+		if (args.length != 0) { throw new IllegalArgumentException("Unexpected frozen test arguments"); }
 		final var model = checkpoint();
 		final Path scratch = Files.createTempDirectory(Path.of(".").toAbsolutePath().normalize(), "learning131-frozen-");
 		try
@@ -48,6 +56,8 @@ public final class PhantomLearning131FrozenChecks
 			System.out.println("LEARNING131_V4_HEAL_OFFER_CONTRACT_PASS");
 			checkCaptureScope(model);
 			System.out.println("LEARNING131_EPISODE_SCOPE_OFFLINE_PASS");
+			checkCommittedReplay(scratch, lineage.head());
+			System.out.println("LEARNING131_COMMITTED_REPLAY_OFFLINE_PASS");
 		}
 		finally
 		{
@@ -57,6 +67,78 @@ public final class PhantomLearning131FrozenChecks
 			}
 			Files.delete(scratch);
 		}
+	}
+
+	private static void checkCommittedReplay(Path root, String originalHead) throws Exception
+	{
+		final String nativeSha = "1".repeat(64);
+		final var firstSamples = historySamples("8".repeat(64), 1, 257);
+		final var first = ActionContinuationV4.prepareBatch(root, originalHead, firstSamples, nativeSha);
+		final var internal = ActionContinuationV4.prepare(root, originalHead, firstSamples.subList(0, 256), nativeSha);
+		cold(root, internal.head());
+		cold(root, first.head());
+		final var firstPlan = plan("TUNING", EVAL_EPISODE, first.model().sha256());
+		rejects(() -> ActionExplorationV4.frozenCommitted(firstPlan, root, first.head()), "Cold but uncommitted checkpoint");
+		rejects(() -> ActionContinuationV4.verifyCommittedBatchOrigin(root, originalHead, first.head(), firstSamples, nativeSha), "Cold but uncommitted batch");
+		ActionContinuationV4.commitBatch(root, originalHead, first.head(), firstSamples, nativeSha);
+		final var observation = observation();
+		final var stock = offer(observation, 1000, 2);
+		final var choices = List.of(stock, offer(observation, 7000, 2));
+		final var decision = ActionExplorationV4.frozen(firstPlan, root, first.head()).choose(observation, choices, stock, true, Long.MAX_VALUE);
+
+		final String successorSha = "2".repeat(64);
+		final var successorSamples = historySamples("9".repeat(64), 258, 1);
+		final var successor = ActionContinuationV4.prepareBatch(root, first.head(), successorSamples, successorSha);
+		cold(root, successor.head());
+		ActionContinuationV4.commitBatch(root, first.head(), successor.head(), successorSamples, successorSha);
+		final List<Path> paths = files(root);
+		ActionExplorationV4.frozenCommitted(firstPlan, root, first.head()).verifyFrozenLog(List.of(ActionExplorationV4.Decision.restore(decision.bytes())));
+		ActionContinuationV4.verifyCommittedBatchOrigin(root, originalHead, first.head(), firstSamples, nativeSha);
+		rejects(() -> ActionExplorationV4.frozen(firstPlan, root, first.head()), "Historical checkpoint through the live route");
+		rejects(() -> ActionContinuationV4.verifyCurrentBatchOrigin(root, originalHead, first.head(), firstSamples, nativeSha), "Historical batch through the current route");
+		final var internalPlan = plan("AUDIT", EVAL_EPISODE, internal.model().sha256());
+		rejects(() -> ActionExplorationV4.frozenCommitted(internalPlan, root, internal.head()), "Cold intermediate TRAIN chunk");
+		rejects(() -> ActionContinuationV4.verifyCommittedBatchOrigin(root, originalHead, internal.head(), firstSamples, nativeSha), "Intermediate origin of a committed batch");
+		check(ActionContinuationV4.load(root).head().equals(successor.head()) && paths.equals(files(root)), "Historical replay changed continuation artifacts");
+	}
+
+	private static List<Path> files(Path root) throws IOException
+	{
+		try (var stream = Files.list(root)) { return stream.sorted().toList(); }
+	}
+
+	private static List<ActionFeedbackV4> historySamples(String episodeId, int first, int count)
+	{
+		final var self = new Entity(Role.SELF, 101, 1, 0, 0, Map.of(), List.of(), List.of(), List.of(), List.of());
+		final var enemy = new Entity(Role.ENEMY, 102, 2, 0, 0, Map.of(Field.MAX_HP, Fact.known(800)), List.of(), List.of(), List.of(), List.of());
+		final var observation = new TacticalObservationV3(1, 200, 1, 101, 1, "solo:101", List.of(self, enemy));
+		final var stock = offer(observation, 1000, 2);
+		final var offered = List.of(stock, offer(observation, 7000, 2));
+		final var attempt = new TacticalReceiptV3.Attempt(observation, offered, stock, stock, 0);
+		final var owner = new SourceOwner(1, "Combat/1/1/1");
+		final var keys = java.util.stream.IntStream.range(first, first + count).mapToObj(index -> String.format(java.util.Locale.ROOT, "%064x", index)).toList();
+		final var episode = new TacticalEpisodeV3(episodeId, "b".repeat(32), "SOLO", 100, 300, "NATIVE_KILL",
+			List.of(new TacticalEpisodeV3.Actor(1, 101, 1, 12, 52, 700, 600, false, 1L, 1L)),
+			List.of(new TacticalEpisodeV3.Kill(102, 12, 2, 0, 101, 1)), keys, count * 100d, 0, count * 4d, 0);
+		return keys.stream().map(key ->
+		{
+			final var receipt = new TacticalReceiptV3(key, attempt, 400, 300, 100, 4, 50, TacticalReceiptV3.reward(100, 800, 4, 50), owner);
+			final byte[] row = TacticalStoreV3.encode(new TacticalStoreV3.Row("TRAIN", "test|" + episode.id(), receipt));
+			return ActionFeedbackV4.nativeAction(row, TacticalObservationV3.hash(row), episode, owner, SOURCE);
+		}).toList();
+	}
+
+	private static void cold(Path root, String head) throws Exception
+	{
+		final String executable = ProcessHandle.current().info().command().orElseThrow();
+		final Process process = new ProcessBuilder(executable, "-cp", System.getProperty("java.class.path"), PhantomLearning131FrozenChecks.class.getName(),
+			"cold", root.toString(), head).redirectErrorStream(true).start();
+		if (!process.waitFor(30, TimeUnit.SECONDS))
+		{
+			process.destroyForcibly();
+			throw new AssertionError("Offline cold checkpoint verification timed out");
+		}
+		check(process.exitValue() == 0, new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
 	}
 
 	private static void checkCaptureScope(ActionValueV4 model) throws IOException

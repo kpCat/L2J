@@ -64,6 +64,7 @@ public final class PhantomLearning131FitChecks
 			refuse(boot, origin, write(origin, pins), "ROLLBACK_PIN");
 			resumePrefix(campaign, boot);
 			if (Files.exists(task.resolve("fit-ledger"))) { throw new AssertionError("Rejected evidence created FIT state"); }
+			curriculumPrefix(task);
 			tuningPrefix(task);
 			System.out.println("TASK131_FIT_INGRESS_OFFLINE_CHECKS_PASS GS=0 LS=0 SQL=0 FIT=0");
 		}
@@ -74,6 +75,115 @@ public final class PhantomLearning131FitChecks
 				for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) { Files.delete(path); }
 			}
 		}
+	}
+
+	private static void curriculumPrefix(Path task) throws Exception
+	{
+		final Path campaign = task.resolve("campaigns/train-02");
+		final Path first = Files.createDirectories(campaign.resolve("boots/00001"));
+		final Path second = Files.createDirectory(first.resolveSibling("00002"));
+		final Path third = Files.createDirectory(first.resolveSibling("00003"));
+		final Instant start = Instant.parse("2026-11-20T12:00:00Z");
+		final String source = "a".repeat(40);
+		final var plans = List.of("3", "4", "5", "6").stream().map(id -> new ActionExplorationV4.Plan(2, "EPSILON_V2", 131, 2, .1, "TRAIN", id.repeat(64), HASH, HASH,
+			List.of("1000:1", "7000:1"))).toList();
+		final var policy = Map.of("schema", "TRAIN_POLICY131_V1", "expectedHead", HASH, "learnerSha", HASH, "opponentSha", HASH);
+		final String policySha = writeProperties(campaign.resolve("policy131.properties"), policy);
+		final var schedule = new StringBuilder("episodeId\tprofileId\tseconds\n");
+		for (int index = 0; index < plans.size(); index++) { schedule.append(plans.get(index).episode()).append('\t').append(101 + index).append("\t15\n"); }
+		final String scheduleSha = sha(Files.writeString(campaign.resolve("scenes.tsv"), schedule));
+		final var execution = new HashMap<>(policy);
+		execution.putAll(Map.of("schema", "TRAINING_EXECUTION131_V1", "phase", "TRAIN", "campaignId", "train-02", "sourceCommit", source, "gameJarSha", HASH,
+			"rollbackHead", HASH, "rollbackModelSha", HASH, "trainScenesSha", scheduleSha, "policySha", policySha, "maxEpisodes", "4"));
+		execution.put("cycle", "2");
+		for (var plan : plans)
+		{
+			execution.put("episode." + plan.episode() + ".sourceSha", plan.sourceSha());
+			execution.put("episode." + plan.episode() + ".policySha", plan.sha256());
+		}
+		final String executionSha = writeProperties(campaign.resolve("execution.properties"), execution);
+		final var manifest = new HashMap<String, Object>(Map.of("schema", "TRAINING_COMBAT131_V1", "phase", "TRAIN", "campaignId", "train-02", "cycle", 2,
+			"auditBank", 0, "sourceCommit", source, "gameJarSha", HASH, "modelSha", HASH, "javaSha", HASH));
+		manifest.putAll(Map.of("executionSha", executionSha, "fixtureSha", scheduleSha, "policySha", policySha,
+			"configShas", Map.of("game/config/Custom/PhantomPlayers.ini", HASH), "quota", Map.of("maxBoots", 3, "maxEpisodes", 4, "deadlineUtc", start.plusSeconds(600).toString()),
+			"scenes", plans.stream().map(plan -> Map.of("id", plan.episode(), "deadlineSeconds", 15)).toList()));
+		final String manifestSha = write(campaign.resolve("campaign.json"), manifest);
+		final String authority = write(campaign.resolve("authorization.json"), Map.of("schema", "TASK131_LAUNCH_AUTHORITY_V1", "authority", "OWNER_TASK131_GOAL",
+			"scope", "OWNED_TEST131", "manifestSha", manifestSha));
+		final String firstReservation = reserve(first, 1, manifestSha, manifestSha, executionSha, authority, 0, start);
+		final String firstClosed = curriculumBoot(first, firstReservation, manifestSha, start, source, plans.subList(0, 2), 0, 1, false);
+		final String secondReservation = reserve(second, 2, firstClosed, manifestSha, executionSha, authority, 2, start.plusSeconds(20));
+		if (PhantomLearning131Fit.completedPrefix(second, manifestSha, secondReservation).trailingMisses() != 2)
+		{
+			throw new AssertionError("Ordinary Pause lost TRAIN misses");
+		}
+		final String secondClosed = curriculumBoot(second, secondReservation, manifestSha, start.plusSeconds(20), source, plans.subList(2, 3), 2, 2, true);
+		final Instant thirdAt = start.plusSeconds(40);
+		final String unreviewed = reserve(third, 3, secondClosed, manifestSha, executionSha, authority, 3, thirdAt);
+		refuseResume(third, manifestSha, unreviewed, "CURRICULUM_REVIEW_REQUIRED");
+		final Path reviewPath = second.resolve("curriculum-review131.json");
+		final var review = new HashMap<>(Map.of("schema", "TASK131_CURRICULUM_REVIEW_V1", "approval", "OWNER_TASK131_CURRICULUM_REVIEW",
+			"manifestSha", manifestSha, "closedSha", HASH, "reviewRef", "offline contract review"));
+		final String foreign = reserve(third, 3, secondClosed, manifestSha, executionSha, authority, 3, thirdAt, "TRAIN", write(reviewPath, review));
+		refuseResume(third, manifestSha, foreign, "CURRICULUM_REVIEW_SCOPE");
+		review.put("closedSha", secondClosed);
+		final String reviewed = reserve(third, 3, secondClosed, manifestSha, executionSha, authority, 3, thirdAt, "TRAIN", write(reviewPath, review));
+		final var prefix = PhantomLearning131Fit.completedPrefix(third, manifestSha, reviewed);
+		if (prefix.completed() != 3 || prefix.trailingMisses() != 3 || !prefix.episodeIds().equals(plans.subList(0, 3).stream().map(ActionExplorationV4.Plan::episode).toList()))
+		{
+			throw new AssertionError("Reviewed diagnostic pause lost original TRAIN cursor or streak");
+		}
+	}
+
+	private static String curriculumBoot(Path boot, String reservation, String manifest, Instant at, String source,
+		List<ActionExplorationV4.Plan> plans, int prior, int ordinal, boolean diagnostic) throws Exception
+	{
+		final String id = boot.getFileName().toString(), nonce = nonce(ordinal), pid = Integer.toString(131 + ordinal);
+		final Instant entered = at.plusSeconds(1);
+		final String arguments = "javaOpts -Dphantom.learning131.nonce=" + nonce + " org.l2jmobius.tests.phantoms.PhantomLearning131Native --train launch";
+		final String ownerSha = write(boot.resolve("process.json"), Map.of("schema", "TRAINING_PROCESS131_V1", "pid", Integer.parseInt(pid), "nonce", nonce,
+			"reservationSha", reservation, "javaSha", HASH, "arguments", arguments, "commandLine", "java.exe " + arguments,
+			"created", (entered.getEpochSecond() + 11_644_473_600L) * 10_000_000L));
+		final var storeRows = new StringBuilder("profileId\tactorObjectId\tbackgroundSha\texp\tsp\tshots\tadena\n");
+		for (int profile = 101; profile <= 104; profile++) { storeRows.append(profile).append('\t').append(profile + 100).append('\t').append(HASH).append("\t0\t0\t0\t0\n"); }
+		final String storeSha = sha(Files.writeString(boot.resolve("train-store131.tsv"), storeRows));
+		final var meta = new HashMap<>(Map.ofEntries(Map.entry("schema", "NATIVE_TRAIN_BOOT131_V1"), Map.entry("phase", "TRAIN"), Map.entry("status", "PAUSED"),
+			Map.entry("bootId", id), Map.entry("nonce", nonce), Map.entry("pid", pid), Map.entry("processStarted", entered.toString()), Map.entry("manifestSha", manifest),
+			Map.entry("sourceCommit", source), Map.entry("jarSha", HASH), Map.entry("expectedHead", HASH), Map.entry("learnerSha", HASH), Map.entry("opponentSha", HASH),
+			Map.entry("cycle", "2"), Map.entry("storeSha", storeSha)));
+		if (diagnostic) { meta.put("curriculumMisses", "3"); }
+		else { Files.writeString(boot.resolve("pause131.request"), nonce + "\n"); }
+		final var rows = new StringBuilder();
+		final Path originals = Files.createDirectory(boot.resolve("episodes"));
+		for (int index = 0; index < plans.size(); index++)
+		{
+			final var plan = plans.get(index);
+			final int profile = 101 + prior + index, actor = profile + 100;
+			final var observation = new TacticalObservationV3(1, System.nanoTime(), profile, actor, 10, "solo:" + actor, List.of(
+				new Entity(Role.SELF, actor, 10, 0, 12, Map.of(), List.of(), List.of(), List.of(), List.of()),
+				new Entity(Role.ENEMY, 999, 20, 0, 0, Map.of(Field.MAX_HP, Fact.known(800)), List.of(), List.of(), List.of(), List.of())));
+			final var offered = List.of(1000, 7000).stream().map(skill -> new LegalActionV3(LegalActionV3.Family.DAMAGE, "Combat", profile, actor, 10, 1,
+				999, 20, observation.partyIdentity(), skill, 1, 4, 500, 300, false, true)).toList();
+			final var decision = new ActionExplorationV4(plan).choose(observation, offered, offered.getFirst(), true, Long.MAX_VALUE);
+			final var owner = new SourceOwner(10, "Combat/" + profile + "/10/1");
+			final var intent = new ActionExperimentReceiptV4.Intent(decision, owner, decision.capturedNanos());
+			final long elapsed = 1_000_000L;
+			final var attempt = new TacticalReceiptV3.Attempt(observation, offered, decision.selected(), decision.stock(), 0);
+			final var receipt = new TacticalReceiptV3(plan.episode(), attempt, 200, 0, 200, 4, elapsed, TacticalReceiptV3.reward(200, 800, 4, elapsed), owner);
+			final var episode = new TacticalEpisodeV3(plan.episode(), nonce, "SOLO", observation.capturedNanos(), intent.capturedNanos() + elapsed, "NATIVE_TIMEOUT",
+				List.of(new TacticalEpisodeV3.Actor(profile, actor, 10, 12, 52, 500, 300, false, 0L, 0L)), List.of(), List.of(receipt.eventKey()), 200, 0, 4, 0);
+			final var sealed = PhantomLearning131Capture.publishEpisode(originals, id,
+				new PhantomLearning131Capture.Settlement(plan, episode, List.of(receipt), Map.of(1L, intent), List.of(decision)));
+			rows.append("episode\t").append(sealed.episodeId()).append('\t').append(sealed.sealSha()).append('\n');
+		}
+		final String sealSha = seal(boot.resolve("complete131.tsv"), meta, rows.toString());
+		final int completed = prior + plans.size();
+		final String ackSha = writeProperties(boot.resolve("drain131.properties"), Map.of("schema", "NATIVE_DRAIN131_V1", "status", "PAUSED", "manifestSha", manifest,
+			"sealSha", sealSha, "nonce", nonce, "bootId", id, "pid", pid, "completed", Integer.toString(completed), "startedUtc", entered.toString()));
+		final var close = close(reservation, at.plusSeconds(10));
+		close.putAll(Map.of("ownerSha", ownerSha, "ackSha", ackSha, "sealSha", sealSha, "exitCode", 0, "reason", "NATIVE_DRAIN_ACK_VERIFIED",
+			"completed", completed, "control", diagnostic ? "curriculum" : "pause"));
+		return write(boot.resolve("closed.json"), close);
 	}
 
 	private static void tuningPrefix(Path task) throws Exception
@@ -343,13 +453,21 @@ public final class PhantomLearning131FitChecks
 
 	private static String reserve(Path boot, int ordinal, String previous, String manifest, String execution, String authority, int completed, Instant at, String phase) throws Exception
 	{
+		return reserve(boot, ordinal, previous, manifest, execution, authority, completed, at, phase, null);
+	}
+
+	private static String reserve(Path boot, int ordinal, String previous, String manifest, String execution, String authority, int completed, Instant at, String phase,
+		String reviewSha) throws Exception
+	{
 		final String id = boot.getFileName().toString(), deadline = at.plusSeconds(90).toString();
 		final String launch = writeProperties(boot.resolve("launch131.properties"), Map.of("schema", "TRAINING_LAUNCH131_V1", "phase", phase, "campaignId", boot.getParent().getParent().getFileName().toString(),
 			"bootId", id, "bootRoot", boot.toString(), "manifestSha", manifest, "executionSha", execution, "nonce", nonce(ordinal),
 			"lastCompleted", Integer.toString(completed), "deadlineUtc", deadline));
-		return write(boot.resolve("reserved.json"), Map.ofEntries(Map.entry("schema", "TRAINING_RESERVED131_V1"), Map.entry("bootId", id), Map.entry("sequence", ordinal),
+		final var reserved = new HashMap<String, Object>(Map.ofEntries(Map.entry("schema", "TRAINING_RESERVED131_V1"), Map.entry("bootId", id), Map.entry("sequence", ordinal),
 			Map.entry("nonce", nonce(ordinal)), Map.entry("lastCompleted", completed), Map.entry("reservedUtc", at.toString()), Map.entry("deadlineUtc", deadline),
 			Map.entry("manifestSha", manifest), Map.entry("parentSha", previous), Map.entry("launchSha", launch), Map.entry("authoritySha", authority)));
+		if (reviewSha != null) { reserved.put("curriculumReviewSha", reviewSha); }
+		return write(boot.resolve("reserved.json"), reserved);
 	}
 
 	private static Map<String, Object> close(String reservation, Instant at)

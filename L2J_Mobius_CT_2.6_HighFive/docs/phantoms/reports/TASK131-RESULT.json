@@ -52,7 +52,7 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v8-reviewed.log",
+    "aggregateLog": "ant-combat-v9-reviewed.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -60,27 +60,29 @@
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
     "regressionTestsPassed": 170,
-    "contractGroupsPassed": 12,
+    "contractGroupsPassed": 13,
     "jarExitCode": 0,
-    "jarSha256": "27357f27dd82b5c945c352a03c4fe2d52ebc4ce4df84d10136daef79d6a91193",
-    "loginJarSha256": "a6f5ae539c9dd721692b8034eed0d3cd79f4a98fb8cdcd77e6a8695567b2bb4a",
-    "jarLog": "jar-v8-reviewed.log",
-    "fitIngressLog": "v8-PhantomLearning131FitChecks.log",
+    "jarSha256": "3eb87b8487cc2d5a163b8788b095cde058592a7084829ef1d651d81a94c4cfc6",
+    "loginJarSha256": "da1934e7fdcd5bc9d2bf5acb2a09478f5eeb17c36bd3fd403bd2b7657950ea4c",
+    "jarLog": "jar-v9-reviewed.log",
+    "fitIngressLog": "v9-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
-    "auditScheduleLog": "v8-PhantomLearning131EvaluationChecks.log",
+    "auditScheduleLog": "v9-PhantomLearning131EvaluationChecks.log",
+    "supplyChecksLog": "v9-PhantomSupply074Checks.log",
+    "supplyRegressionLog": "v9-supply071.log",
     "partyTacticsPassed": 19,
     "worldCoordination130Passed": 81
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v7.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v8.json",
-    "exactPathCount": 18
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v8.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v9.json",
+    "exactPathCount": 16
   },
   "testReadiness": {
-    "iterationParent": "eacf512969aecb80ddcbfe1a212839af24fc8e27",
+    "iterationParent": "83ea80eb9ee368765a7ad465c0807b24548d5c86",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -140,7 +142,7 @@
     },
     "n01Adapter": {
       "entryPoint": "org.l2jmobius.tests.phantoms.PhantomLearning131Native",
-      "sourceSha256": "785c5a28e27742f039867cb8da4cd3a0ea4cb9c281605c7748864229ba0e2f86",
+      "sourceSha256": "a1b9b63d21849367e5a434d56e6251231a2f7a3ad8f37a292ffa1e119d55ff82",
       "nativeEvidenceContinuityTestsPassed": 14,
       "incompleteR4Preflight": "REJECTED_INCOMPLETE_SCENE_SET",
       "changedFixturePreflight": "REJECTED_PIN_MISMATCH",
@@ -150,17 +152,18 @@
     "campaignController": {
       "script": "tools/phantom-runtime/training/TrainingCombat131.ps1",
       "controlContract": "PASS",
-      "controlContractLog": "controller-v8-reviewed.log",
+      "controlContractLog": "controller-v9-reviewed.log",
       "nativeLaunch": "NOT_RUN",
       "trainAdapter": "SOLO_PVE_SOURCES_AND_DB_FREE_CONTRACTS",
       "tuningAdapter": "SOLO_FROZEN_MODEL_SOURCES_AND_DB_FREE_REPLAY_NATIVE_NOT_RUN",
-      "auditAdapter": "FROZEN_SCHEDULE_VALIDATION_PASS_NATIVE_PRODUCER_PENDING",
+      "auditAdapter": "FROZEN_SCHEDULE_AND_PAID_SOLO_DAMAGE_SOURCE_PRESENT_RUNNER_PENDING",
       "resumeAfterNativeClaim": "OFFLINE_PREFIX_AND_STORE_CONTRACT_PASS_NATIVE_NOT_RUN",
       "fitIngress": "OFFLINE_NEGATIVE_CONTROLS_PASS",
       "nativeFit": "NOT_RUN",
       "trainPreflightR4": "REJECTED_INCOMPLETE_SCENE_SET",
       "tuningPreflightR4": "REJECTED_INCOMPLETE_SCENE_SET",
-      "tuningReplayScope": "EXACT_CURRENT_HEAD"
+      "tuningReplayScope": "ARCHIVED_COMMITTED_HEAD_AND_EXACT_SOURCES",
+      "curriculumPause": "SOLO_TRAIN_THREE_MISSES_OFFLINE_CONTRACT_NATIVE_NOT_RUN"
     },
     "n01RuntimePreparer": {
       "script": "tools/phantom-runtime/Initialize-Task131N01Runtime.ps1",
@@ -175,14 +178,14 @@
       "incompleteR4Prepare": "REJECTED_INCOMPLETE_SCENE_SET",
       "fullCandidate": "NOT_CREATED"
     },
-    "g0OffReceipt": "off-and-protected-v8.json",
+    "g0OffReceipt": "off-and-protected-v9.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v8.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v9.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -332,8 +335,8 @@
     "D5": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v8-PhantomLearning131FitChecks.log",
-      "reason": "Офлайн воспроизведён TUNING с MODEL reorder и оплатой на тестовых данных, живые TRAIN/TUNING/AUDIT открыты"
+      "evidence": "ant-combat-v9-reviewed.log,v9-PhantomLearning131FitChecks.log",
+      "reason": "Офлайн воспроизведены TUNING replay и исторический MODEL после продвижения HEAD, живые фазы открыты"
     },
     "D6": {
       "phase": "P4",
@@ -350,8 +353,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v8-PhantomLearning131EvaluationChecks.log",
-      "reason": "Офлайн проверены расписание, баланс, подмена и отсутствие независимой квитанции запуска, native AUDIT открыт"
+      "evidence": "v9-PhantomLearning131EvaluationChecks.log",
+      "reason": "Офлайн проверены расписание, баланс и привязка оплаченного урона к участнику, native AUDIT открыт"
     },
     "D9": {
       "phase": "P3–P5",
@@ -434,8 +437,8 @@
     "N12": {
       "phase": "P3",
       "status": "NOT_RUN",
-      "evidence": "NONE",
-      "reason": "Оплаченное снабжение и insufficient funds"
+      "evidence": "v9-PhantomSupply074Checks.log,v9-supply071.log",
+      "reason": "Офлайн проверены целые заряды, цена и средства, фактические оплата и возврат открыты"
     },
     "N13": {
       "phase": "P3–P5",
@@ -452,8 +455,8 @@
     "N15": {
       "phase": "P5",
       "status": "NOT_RUN",
-      "evidence": "controller-v8-reviewed.log,v8-PhantomLearning131FitChecks.log",
-      "reason": "Офлайн проверены закрытия TRAIN и TUNING, STORE и frozen replay, живые Pause/Resume/Stop и повтор FIT открыты"
+      "evidence": "controller-v9-reviewed.log,v9-PhantomLearning131FitChecks.log",
+      "reason": "Офлайн проверены сохранение счётчика, диагностическая пауза и точный разбор, нативные Pause/Resume/Stop и повтор FIT открыты"
     },
     "N16": {
       "phase": "P5–P6",

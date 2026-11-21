@@ -64,6 +64,7 @@ public final class PhantomLearning131Evaluation
 	{
 		Slot slot() { return block.order().get(position); }
 	}
+	record SoloDamageBinding(String episodeId, String sha, long started, long actorEpoch, long targetEpoch) { }
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
@@ -343,8 +344,7 @@ public final class PhantomLearning131Evaluation
 
 	private static Binding bind(Path directory, Document manifest, Occurrence occurrence, Document seal) throws IOException
 	{
-		final Document binding = document(directory.resolve("binding131.tsv"), "NATIVE_BINDING131_V1", "schema", "manifestSha", "bootId", "blockId", "episodeId",
-			"attempt", "position", "arm", "side", "sceneId", "fixtureSha", "opponentSha", "policySha", "modelSha", "startNanos");
+		final Document binding = readBinding(directory.resolve("binding131.tsv"));
 		final Block block = occurrence.block();
 		final Slot slot = block.plan().order().get(occurrence.position());
 		final String model = switch (slot.arm())
@@ -359,16 +359,50 @@ public final class PhantomLearning131Evaluation
 			&& binding.get("arm").equals(slot.arm().name()) && binding.get("side").equals(slot.side().name()) && binding.get("sceneId").equals(block.sceneId())
 			&& binding.get("fixtureSha").equals(block.fixtureSha()) && binding.get("opponentSha").equals(manifest.get("opponent." + block.opponent()))
 			&& binding.get("policySha").equals(manifest.get("policySha")) && binding.get("modelSha").equals(model), "NATIVE_EPISODE_BINDING");
+		final var participants = participants(binding, slot.side());
+		final long scored = participants.values().stream().filter(a -> a.side() == slot.side()).count();
+		require(scored == block.plan().scene().initialRosterSize() && participants.size() - scored == block.opponentSize(), "BOUND_ROSTER");
+		return new Binding(binding, slot, Long.parseLong(binding.get("startNanos")), participants);
+	}
+
+	private static Document readBinding(Path path) throws IOException
+	{
+		return document(path, "NATIVE_BINDING131_V1", "schema", "manifestSha", "bootId", "blockId", "episodeId",
+			"attempt", "position", "arm", "side", "sceneId", "fixtureSha", "opponentSha", "policySha", "modelSha", "startNanos");
+	}
+
+	private static Map<Integer, Participant> participants(Document binding, Side side)
+	{
 		final var participants = new HashMap<Integer, Participant>();
 		for (String[] row : binding.rows())
 		{
 			fields(row, "actor", 5);
 			final var actor = new Participant(positive(row[2]), Side.valueOf(row[3]), Role.valueOf(row[4]));
-			require(participants.putIfAbsent(object(row[1]), actor) == null && (actor.side() != slot.side() || actor.role() != Role.OPPONENT), "BOUND_ACTOR");
+			require(participants.putIfAbsent(object(row[1]), actor) == null && (actor.side() != side || actor.role() != Role.OPPONENT), "BOUND_ACTOR");
 		}
-		final long scored = participants.values().stream().filter(a -> a.side() == slot.side()).count();
-		require(scored == block.plan().scene().initialRosterSize() && participants.size() - scored == block.opponentSize(), "BOUND_ROSTER");
-		return new Binding(binding, slot, Long.parseLong(binding.get("startNanos")), participants);
+		return participants;
+	}
+
+	/** Check the pre-action binding of the one native source/target this damage observer can witness. */
+	static SoloDamageBinding soloDamageBinding(ScheduledArm scheduled, Path path, String expectedSha, int actorId, int targetId) throws IOException
+	{
+		final Document binding = readBinding(path);
+		final Slot slot = scheduled.slot();
+		require(scheduled.block().stratum() == Stratum.SOLO_PVE && actorId != targetId && binding.sha().equals(digest(expectedSha))
+			&& binding.get("blockId").equals(scheduled.block().id()) && binding.get("sceneId").equals(scheduled.sceneId())
+			&& binding.get("fixtureSha").equals(scheduled.fixtureSha()) && binding.get("position").equals(Integer.toString(scheduled.position()))
+			&& binding.get("arm").equals(slot.arm().name()) && binding.get("side").equals(slot.side().name())
+			&& Set.of("0", "1").contains(binding.get("attempt")), "SOLO_DAMAGE_BINDING");
+		for (String key : List.of("manifestSha", "opponentSha", "policySha")) { digest(binding.get(key)); }
+		token(binding.get("bootId"));
+		if (slot.arm() == Arm.C || slot.arm() == Arm.R) { digest(binding.get("modelSha")); }
+		else { require(binding.get("modelSha").equals("NONE"), "SOLO_DAMAGE_MODEL"); }
+		final var roster = participants(binding, slot.side());
+		final Participant actor = roster.get(actorId), target = roster.get(targetId);
+		require(roster.size() == 1 + scheduled.opponentSize() && roster.values().stream().filter(value -> value.side() == slot.side()).count() == 1
+			&& actor != null && actor.side() == slot.side() && actor.role() == Role.DAMAGE
+			&& target != null && target.side() != slot.side() && target.role() == Role.OPPONENT, "SOLO_DAMAGE_ROSTER");
+		return new SoloDamageBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), actor.epoch(), target.epoch());
 	}
 
 	private static final class Raw

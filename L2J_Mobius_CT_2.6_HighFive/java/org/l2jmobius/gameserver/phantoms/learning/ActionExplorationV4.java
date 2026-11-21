@@ -135,11 +135,29 @@ public final class ActionExplorationV4
 	/** Admit against an externally pinned plan and published continuation HEAD before any scoring. */
 	public static ActionExplorationV4 frozen(Plan plan, Path lineageRoot, String expectedHead) throws IOException
 	{
-		if (plan == null || !plan.frozenInference() || expectedHead == null || !expectedHead.matches("[a-f0-9]{64}"))
-		{ throw new IllegalArgumentException("Frozen evaluation requires a versioned plan and exact lineage HEAD"); }
+		requireFrozenPlan(plan, expectedHead);
 		final var lineage = ActionContinuationV4.load(lineageRoot);
+		if (!lineage.head().equals(expectedHead)) { throw new IllegalArgumentException("Frozen evaluation requires the exact current HEAD"); }
+		return admitFrozen(plan, lineage);
+	}
+
+	/** Offline replay may bind to an older checkpoint on the current committed lineage. */
+	public static ActionExplorationV4 frozenCommitted(Plan plan, Path lineageRoot, String checkpointHead) throws IOException
+	{
+		requireFrozenPlan(plan, checkpointHead);
+		return admitFrozen(plan, ActionContinuationV4.committedState(lineageRoot, checkpointHead));
+	}
+
+	private static void requireFrozenPlan(Plan plan, String head)
+	{
+		if (plan == null || !plan.frozenInference() || head == null || !head.matches("[a-f0-9]{64}"))
+		{ throw new IllegalArgumentException("Frozen evaluation requires a versioned plan and exact lineage HEAD"); }
+	}
+
+	private static ActionExplorationV4 admitFrozen(Plan plan, ActionContinuationV4.State lineage)
+	{
 		final var model = lineage.model();
-		if (!lineage.head().equals(expectedHead) || model.updates() == 0 || !plan.modelSha().equals(model.sha256())
+		if (model.updates() == 0 || !plan.modelSha().equals(model.sha256())
 			|| lineage.episodes().containsKey(plan.episode()))
 		{ throw new IllegalArgumentException("Frozen evaluation requires the pinned trained checkpoint and a fresh episode"); }
 		return new ActionExplorationV4(plan, model);

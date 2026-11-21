@@ -128,7 +128,7 @@ public final class ActionContinuationV4
 			return value;
 		}
 	}
-	private static State state(Path root, String target) throws IOException
+	private static List<Map.Entry<String, Seal>> lineage(Path root, String target) throws IOException
 	{
 		physical(root); var chain = new ArrayList<Map.Entry<String, Seal>>(); var seen = new HashSet<String>(); String cursor = target;
 		while (!cursor.isEmpty())
@@ -137,7 +137,17 @@ public final class ActionContinuationV4
 			var seal = seal(root, cursor); chain.add(Map.entry(cursor, seal)); cursor = seal.previous;
 		}
 		require(!chain.isEmpty(), "empty lineage"); Collections.reverse(chain);
-		var events = new TreeMap<String, String>(); var episodes = new TreeMap<String, String>(); State previous = null;
+		return chain;
+	}
+
+	private static State state(Path root, String target) throws IOException
+	{
+		return state(root, lineage(root, target), target);
+	}
+
+	private static State state(Path root, List<Map.Entry<String, Seal>> chain, String target) throws IOException
+	{
+		var events = new TreeMap<String, String>(); var episodes = new TreeMap<String, String>(); State previous = null, selected = null;
 		for (var entry : chain)
 		{
 			var s = entry.getValue(); var model = ActionLearningV4.load(root.resolve("candidate-" + s.model + ".bin"), s.model);
@@ -162,10 +172,48 @@ public final class ActionContinuationV4
 			{ String old = episodes.putIfAbsent(episode.getKey(), episode.getValue()); require(old == null || old.equals(episode.getValue()), "global split contamination"); }
 			for (var event : model.events().entrySet()) { require(event.getValue().equals(events.get(event.getKey())), "model/global key conflict"); }
 			previous = new State(entry.getKey(), model, s.updates, s.segment, s.sequence, events, episodes);
+			if (previous.head.equals(target)) { selected = previous; }
 		}
-		return previous;
+		require(selected != null, "checkpoint is not a committed ancestor");
+		return selected;
 	}
-	public static State load(Path root) throws IOException { physical(root); return state(root, Files.readString(root.resolve("HEAD"))); }
+
+	private static String readHead(Path root) throws IOException
+	{
+		final Path path = physical(root).resolve("HEAD");
+		require(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && Files.size(path) == 64, "physical HEAD");
+		final String current = Files.readString(path, StandardCharsets.US_ASCII);
+		digest(current);
+		return current;
+	}
+
+	public static State load(Path root) throws IOException { return state(root, readHead(root)); }
+
+	/** Select only a published checkpoint, excluding internal FIT chunks even when they were cold-read. */
+	static State committedState(Path root, String target) throws IOException
+	{
+		return committedState(root, target, readHead(root));
+	}
+
+	private static State committedState(Path root, String target, String current) throws IOException
+	{
+		digest(target);
+		final var chain = lineage(root, current);
+		for (int index = 0; index < chain.size(); index++)
+		{
+			final var entry = chain.get(index);
+			if (!entry.getKey().equals(target)) { continue; }
+			final String batch = entry.getValue().trainBatchSha;
+			require(batch.isEmpty() || index + 1 == chain.size() || !chain.get(index + 1).getValue().trainBatchSha.equals(batch),
+				"checkpoint is an internal TRAIN chunk");
+			final State selected = state(root, chain, target);
+			// initialize publishes the imported root directly. Every later HEAD transition required a cold seal.
+			if (index > 0) { requireCold(root, selected); }
+			require(readHead(root).equals(current), "committed lineage HEAD changed");
+			return selected;
+		}
+		throw new IllegalArgumentException("V4 continuation: checkpoint is not a committed ancestor");
+	}
 	public static State initialize(Path root, ActionValueV4 parent) throws IOException
 	{
 		return locked(root, () -> {
@@ -307,7 +355,17 @@ public final class ActionContinuationV4
 		final State current = load(root);
 		require(current.head.equals(target) && !expected.equals(target), "committed TRAIN HEAD required");
 		requireCold(root, verifyBatch(root, current, expected, target, samples, nativeSha));
-		require(load(root).head.equals(target), "committed TRAIN HEAD changed");
+		require(readHead(root).equals(target), "committed TRAIN HEAD changed");
+	}
+
+	/** Reauthenticate an exact complete TRAIN batch whose final cold-verified checkpoint is on published lineage. */
+	public static void verifyCommittedBatchOrigin(Path root, String expected, String target, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
+	{
+		require(!Objects.equals(expected, target), "committed TRAIN HEAD required");
+		final String current = readHead(root);
+		final State checkpoint = committedState(root, target, current);
+		verifyBatch(root, checkpoint, expected, target, samples, nativeSha);
+		require(readHead(root).equals(current), "committed lineage HEAD changed");
 	}
 
 	private static State verifyBatch(Path root, State current, String expected, String target, List<ActionFeedbackV4> samples, String nativeSha) throws IOException

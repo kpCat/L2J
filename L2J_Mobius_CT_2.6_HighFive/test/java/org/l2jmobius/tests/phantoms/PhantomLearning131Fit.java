@@ -70,13 +70,17 @@ public final class PhantomLearning131Fit
 	private record Scene(String id, long profile, String sourceSha, String policySha) { }
 	private record Scope(Path campaign, Path ledger, Phase phase, String manifestSha, String executionSha, String masterSha, String source, String jar, String javaSha,
 		String head, String learner, String opponent, int cycle, int maxBoots, Instant deadline, List<Scene> scenes, String trainClosedSha) { }
-	private record Reservation(Path boot, String id, String sha, String parent, String nonce, int completed, Instant reservedAt, Instant deadline) { }
-	private record Closure(Reservation reservation, Map<String, Object> body, Instant closedAt) { }
+	private record Reservation(Path boot, String id, String sha, String parent, String nonce, int completed, Instant reservedAt, Instant deadline, String reviewSha) { }
+	private record Closure(Reservation reservation, Map<String, Object> body, Instant closedAt, String sha) { }
 	private record Store(Path path, String sha) { }
+	private record CurriculumReview(Path boot, String closedSha) { }
+	private record BootResult(Store store, int trailingMisses) { }
 	private record PaidEvidence(Set<String> events, List<ActionFeedbackV4> samples, List<ActionExplorationV4.Decision> tuning) { }
 	private record Chain(int completed, List<ActionFeedbackV4> samples, Store store, Set<String> nonces, Instant lastClose,
+		int trailingMisses, CurriculumReview curriculumReview,
 		long paidModel, long paidModelReordered) { }
-	record CompletedPrefix(int completed, List<String> episodeIds, Path store, String storeSha) { }
+	record CompletedPrefix(int completed, List<String> episodeIds, Path store, String storeSha, int trailingMisses) { }
+	record VerifiedTraining(Path execution, String sha) { }
 
 	private PhantomLearning131Fit() { }
 
@@ -92,11 +96,11 @@ public final class PhantomLearning131Fit
 			final String closedSha = digest(args[2]);
 			final Location location = location(Path.of(args[1]), Phase.TUNING);
 			final Scope scope = closedScope(location, closedSha, Phase.TUNING);
-			verifyTuningOrigin(location.task(), scope.cycle(), scope.trainClosedSha(), scope.head());
+			final var train = verifyTuningOrigin(location.task(), scope.cycle(), scope.trainClosedSha(), scope.head(), true);
+			PhantomLearning131Native.verifyArchivedTuningSources(location.task(), scope.campaign().resolve("execution.properties"), scope.executionSha(), train);
 			ActionLearningV4.load(scope.campaign().resolve("candidate-" + scope.learner() + ".bin"), scope.learner());
 			final var chain = chain(scope, location.ordinal(), closedSha, true);
 			require(chain.completed() == scope.scenes().size() && chain.samples().isEmpty(), "TUNING_COMPLETION_QUOTA");
-			require(ActionContinuationV4.load(scope.ledger()).head().equals(scope.head()), "TUNING_HEAD_CHANGED");
 			System.out.println("TASK131_TUNING_REPLAY_VERIFIED episodes=" + chain.completed() + " head=" + scope.head()
 				+ " paidModel=" + chain.paidModel() + " paidModelReordered=" + chain.paidModelReordered());
 			return;
@@ -165,7 +169,30 @@ public final class PhantomLearning131Fit
 	}
 
 	/** Prove that the pinned same-cycle TRAIN originals produced the current cold-verified HEAD. */
-	static Path verifyTuningOrigin(Path task, int cycle, String trainClosedSha, String head) throws Exception
+	static VerifiedTraining verifyTuningOrigin(Path task, int cycle, String trainClosedSha, String head) throws Exception
+	{
+		return verifyTuningOrigin(task, cycle, trainClosedSha, head, false);
+	}
+
+	static VerifiedTraining verifyEarlierTrain(Path task, int cycle, String head) throws Exception
+	{
+		require(cycle >= 1 && cycle <= 5, "TUNING_TRAIN_CYCLE");
+		final Path roots = task.resolve("campaigns").resolve(Phase.TRAIN.campaign(cycle)).resolve("boots");
+		physical(roots);
+		try (var entries = Files.list(roots))
+		{
+			final var boots = entries.limit(13).sorted().toList();
+			require(!boots.isEmpty() && boots.size() <= 12, "TUNING_TRAIN_HISTORY");
+			for (int index = 0; index < boots.size(); index++)
+			{
+				require(leaf(boots.get(index)).equals(String.format(Locale.ROOT, "%05d", index + 1)), "TUNING_TRAIN_HISTORY");
+			}
+			final String closedSha = TacticalObservationV3.hash(original(boots.getLast().resolve("closed.json"), META_LIMIT));
+			return verifyTuningOrigin(task, cycle, closedSha, head, true);
+		}
+	}
+
+	private static VerifiedTraining verifyTuningOrigin(Path task, int cycle, String trainClosedSha, String head, boolean archived) throws Exception
 	{
 		digest(trainClosedSha);
 		digest(head);
@@ -183,8 +210,9 @@ public final class PhantomLearning131Fit
 			final Scope scope = closedScope(location, trainClosedSha, Phase.TRAIN);
 			final Chain train = chain(scope, ordinal, trainClosedSha, true);
 			require(train.completed() == scope.scenes().size() && !train.samples().isEmpty(), "TUNING_TRAIN_COMPLETION");
-			ActionContinuationV4.verifyCurrentBatchOrigin(scope.ledger(), scope.head(), head, train.samples(), trainClosedSha);
-			return campaign.resolve("execution.properties");
+			if (archived) { ActionContinuationV4.verifyCommittedBatchOrigin(scope.ledger(), scope.head(), head, train.samples(), trainClosedSha); }
+			else { ActionContinuationV4.verifyCurrentBatchOrigin(scope.ledger(), scope.head(), head, train.samples(), trainClosedSha); }
+			return new VerifiedTraining(campaign.resolve("execution.properties"), scope.executionSha());
 		}
 		throw new IllegalArgumentException("FIT131_TUNING_TRAIN_CLOSURE");
 	}
@@ -208,14 +236,17 @@ public final class PhantomLearning131Fit
 		final Phase phase = Phase.valueOf(phaseName);
 		final Location location = location(openBoot, phase);
 		final Scope scope = scope(location, digest(manifestSha), phase);
+		if (phase == Phase.TUNING) { require(ActionContinuationV4.load(scope.ledger()).head().equals(scope.head()), "TUNING_HEAD_CHANGED"); }
 		require(Files.notExists(openBoot.resolve("closed.json"), LinkOption.NOFOLLOW_LINKS), "RESUME_ALREADY_CLOSED");
 		final Reservation next = reservation(scope, location.ordinal(), digest(reservationSha));
 		final Chain previous = chain(scope, location.ordinal() - 1, next.parent(), false);
+		verifyCurriculumReview(scope, previous.curriculumReview(), next);
 		require(previous.completed() == next.completed() && previous.completed() < scope.scenes().size() && !previous.nonces().contains(next.nonce())
 			&& (previous.lastClose() == null || !next.reservedAt().isBefore(previous.lastClose())), "RESUME_PREFIX_CURSOR");
 		final Store store = previous.store();
+		if (phase == Phase.TUNING) { require(ActionContinuationV4.load(scope.ledger()).head().equals(scope.head()), "TUNING_HEAD_CHANGED"); }
 		return new CompletedPrefix(previous.completed(), scope.scenes().subList(0, previous.completed()).stream().map(Scene::id).toList(),
-			store == null ? null : store.path(), store == null ? "NONE" : store.sha());
+			store == null ? null : store.path(), store == null ? "NONE" : store.sha(), previous.trailingMisses());
 	}
 
 	private static Location location(Path boot, Phase phase) throws IOException
@@ -309,7 +340,23 @@ public final class PhantomLearning131Fit
 		require(propertiesMatch(launch, Map.of("schema", "TRAINING_LAUNCH131_V1", "phase", scope.phase().name(), "campaignId", leaf(scope.campaign()), "bootId", id,
 			"bootRoot", boot.toString(), "manifestSha", scope.manifestSha(), "executionSha", scope.executionSha(), "nonce", nonce,
 			"lastCompleted", Integer.toString(completed), "deadlineUtc", deadlineText)), "TRAIN_LAUNCH_SCOPE");
-		return new Reservation(boot, id, sha, hashField(reserved, "parentSha"), nonce, completed, at, deadline);
+		return new Reservation(boot, id, sha, hashField(reserved, "parentSha"), nonce, completed, at, deadline,
+			reserved.containsKey("curriculumReviewSha") ? hashField(reserved, "curriculumReviewSha") : null);
+	}
+
+	private static void verifyCurriculumReview(Scope scope, CurriculumReview pending, Reservation next) throws IOException
+	{
+		if (pending == null)
+		{
+			require(next.reviewSha() == null, "UNEXPECTED_CURRICULUM_REVIEW");
+			return;
+		}
+		require(next.reviewSha() != null, "CURRICULUM_REVIEW_REQUIRED");
+		final var review = json(checked(pending.boot().resolve("curriculum-review131.json"), next.reviewSha(), META_LIMIT));
+		require(review.keySet().equals(Set.of("schema", "approval", "manifestSha", "closedSha", "reviewRef"))
+			&& string(review, "schema").equals("TASK131_CURRICULUM_REVIEW_V1") && string(review, "approval").equals("OWNER_TASK131_CURRICULUM_REVIEW")
+			&& hashField(review, "manifestSha").equals(scope.manifestSha()) && hashField(review, "closedSha").equals(pending.closedSha())
+			&& string(review, "reviewRef").matches("\\S[^\\r\\n]{0,159}"), "CURRICULUM_REVIEW_SCOPE");
 	}
 
 	private static Chain chain(Scope scope, int count, String tail, boolean finalRequired) throws Exception
@@ -322,7 +369,7 @@ public final class PhantomLearning131Fit
 			final Instant closedAt = Instant.parse(string(close, "closedUtc"));
 			require(string(close, "schema").equals("TRAINING_CLOSED131_V1") && hashField(close, "masterSha").equals(scope.masterSha())
 				&& !closedAt.isBefore(reserved.reservedAt()), "TRAIN_CLOSE_CHAIN");
-			closures.add(new Closure(reserved, close, closedAt));
+			closures.add(new Closure(reserved, close, closedAt, tail));
 			tail = reserved.parent();
 		}
 		require(tail.equals(scope.manifestSha()), "TRAIN_CHAIN_GENESIS");
@@ -331,6 +378,8 @@ public final class PhantomLearning131Fit
 		final var nonces = new HashSet<String>();
 		final var processes = new HashSet<String>();
 		int done = 0;
+		int misses = 0;
+		CurriculumReview pending = null;
 		Instant priorClose = null;
 		Store store = null;
 		for (int index = 0; index < closures.size(); index++)
@@ -340,12 +389,15 @@ public final class PhantomLearning131Fit
 			final var close = closure.body();
 			final int next = Math.toIntExact(number(close, "completed"));
 			final boolean last = finalRequired && index == closures.size() - 1;
+			final String control = string(close, "control");
+			final boolean curriculum = control.equals("curriculum");
+			verifyCurriculumReview(scope, pending, reserved);
+			pending = null;
 			require(reserved.completed() == done && nonces.add(reserved.nonce()) && (priorClose == null || !reserved.reservedAt().isBefore(priorClose))
 				&& next >= done && next <= scope.scenes().size()
 				&& string(close, "status").equals(last ? "COMPLETED" : "PAUSED")
-				&& (last ? next == scope.scenes().size() && next > done : next < scope.scenes().size()), "TRAIN_PREFIX_CURSOR");
-			final String control = string(close, "control");
-			require(control.equals("pause") || last && control.equals("none"), "TRAIN_CLOSE_CONTROL");
+				&& (last ? next == scope.scenes().size() && next > done : next < scope.scenes().size() || curriculum), "TRAIN_PREFIX_CURSOR");
+			require(control.equals("pause") || last && control.equals("none") || curriculum && scope.phase() == Phase.TRAIN && !last && next > done, "TRAIN_CLOSE_CONTROL");
 			if (control.equals("pause"))
 			{
 				final byte[] expected = (reserved.nonce() + "\n").getBytes(StandardCharsets.US_ASCII);
@@ -354,7 +406,7 @@ public final class PhantomLearning131Fit
 			final String reason = string(close, "reason");
 			if (reason.equals("CONTROL_BEFORE_JAVA") || reason.equals("CONTROL_BEFORE_NATIVE_ADMISSION"))
 			{
-				require(!last && next == done && string(close, "ackSha").equals("NONE") && string(close, "sealSha").equals("NONE")
+				require(!curriculum && !last && next == done && string(close, "ackSha").equals("NONE") && string(close, "sealSha").equals("NONE")
 					&& Set.of("complete131.tsv", "drain131.properties", "episodes", "train-store131.tsv", "train-java.claim", "tuning-store131.tsv", "tuning-java.claim", "n01-java.claim",
 						"n01-binding.tsv", "n01-native-cycles.tsv", "n01-native-costs.tsv", "n01-native-loot.tsv")
 						.stream().allMatch(file -> Files.notExists(reserved.boot().resolve(file), LinkOption.NOFOLLOW_LINKS)), "TRAIN_UNCLAIMED_PAUSE");
@@ -372,13 +424,16 @@ public final class PhantomLearning131Fit
 			else
 			{
 				require(reason.equals("NATIVE_DRAIN_ACK_VERIFIED") && number(close, "exitCode") == 0, "TRAIN_NOT_DRAINED");
-				store = readBoot(scope, closure, next, last, processes, evidence);
+				final var boot = readBoot(scope, closure, next, last, curriculum, misses, processes, evidence);
+				store = boot.store();
+				misses = boot.trailingMisses();
+				if (curriculum) { pending = new CurriculumReview(reserved.boot(), closure.sha()); }
 			}
 			done = next;
 			priorClose = closure.closedAt();
 		}
 		final var model = evidence.tuning().stream().filter(decision -> decision.mode().equals("MODEL")).toList();
-		return new Chain(done, List.copyOf(evidence.samples()), store, Set.copyOf(nonces), priorClose, model.size(),
+		return new Chain(done, List.copyOf(evidence.samples()), store, Set.copyOf(nonces), priorClose, misses, pending, model.size(),
 			model.stream().filter(decision -> !decision.selected().equals(decision.stock())).count());
 	}
 
@@ -399,7 +454,8 @@ public final class PhantomLearning131Fit
 		return new OwnedProcess(pid, created);
 	}
 
-	private static Store readBoot(Scope scope, Closure closure, int next, boolean last, Set<String> processes, PaidEvidence evidence) throws Exception
+	private static BootResult readBoot(Scope scope, Closure closure, int next, boolean last, boolean curriculum, int priorMisses,
+		Set<String> processes, PaidEvidence evidence) throws Exception
 	{
 		final var reserved = closure.reservation();
 		final Path boot = reserved.boot();
@@ -412,8 +468,10 @@ public final class PhantomLearning131Fit
 		require(Duration.between(process.created(), started).abs().compareTo(Duration.ofMillis(1)) <= 0, "TRAIN_PROCESS_IDENTITY");
 		require(propertiesMatch(ack, Map.of("schema", "NATIVE_DRAIN131_V1", "status", last ? "COMPLETED" : "PAUSED", "manifestSha", scope.manifestSha(),
 			"sealSha", nativeSha, "nonce", reserved.nonce(), "bootId", reserved.id(), "pid", Long.toString(pid), "completed", Integer.toString(next))), "TRAIN_PROCESS_DRAIN");
-		final var bootSeal = seal(checked(boot.resolve("complete131.tsv"), nativeSha, META_LIMIT), "NATIVE_" + scope.phase().name() + "_BOOT131_V1", "phase", "status",
-			"bootId", "nonce", "pid", "processStarted", "manifestSha", "sourceCommit", "jarSha", "expectedHead", "learnerSha", "opponentSha", "cycle", "storeSha");
+		final var fields = new ArrayList<>(List.of("phase", "status", "bootId", "nonce", "pid", "processStarted", "manifestSha", "sourceCommit", "jarSha",
+			"expectedHead", "learnerSha", "opponentSha", "cycle", "storeSha"));
+		if (curriculum) { fields.add("curriculumMisses"); }
+		final var bootSeal = seal(checked(boot.resolve("complete131.tsv"), nativeSha, META_LIMIT), "NATIVE_" + scope.phase().name() + "_BOOT131_V1", fields.toArray(String[]::new));
 		matches(bootSeal, Map.ofEntries(Map.entry("phase", scope.phase().name()), Map.entry("status", last ? "DRAINED" : "PAUSED"), Map.entry("bootId", reserved.id()),
 			Map.entry("nonce", reserved.nonce()), Map.entry("pid", Long.toString(pid)), Map.entry("manifestSha", scope.manifestSha()), Map.entry("sourceCommit", scope.source()),
 			Map.entry("jarSha", scope.jar()), Map.entry("expectedHead", scope.head()), Map.entry("learnerSha", scope.learner()), Map.entry("opponentSha", scope.opponent()),
@@ -422,14 +480,21 @@ public final class PhantomLearning131Fit
 		final String storeSha = digest(bootSeal.meta().get("storeSha"));
 		final Path store = boot.resolve(scope.phase().store());
 		final var actors = verifyStore(scope, checked(store, storeSha, META_LIMIT));
+		int misses = priorMisses;
 		for (int index = reserved.completed(); index < next; index++)
 		{
 			final String[] row = bootSeal.rows().get(index - reserved.completed());
 			final Scene scene = scope.scenes().get(index);
 			require(row.length == 3 && row[0].equals("episode") && row[1].equals(scene.id()), "TRAIN_EPISODE_PREFIX_ORDER");
-			readEpisode(scope, boot.resolve("episodes").resolve(scene.id()), row[2], scene, actors.get(scene.profile()), reserved.id(), reserved.nonce(), evidence);
+			final boolean reachedObjective = readEpisode(scope, boot.resolve("episodes").resolve(scene.id()), row[2], scene, actors.get(scene.profile()), reserved.id(), reserved.nonce(), evidence);
+			if (scope.phase() == Phase.TRAIN)
+			{
+				misses = reachedObjective ? 0 : misses + 1;
+				require(misses < 3 || curriculum && index == next - 1, "CURRICULUM_ADMISSION_EXCEEDED");
+			}
 		}
-		return new Store(store, storeSha);
+		require(!curriculum || misses >= 3 && Integer.toString(misses).equals(bootSeal.meta().get("curriculumMisses")), "CURRICULUM_STREAK_MISMATCH");
+		return new BootResult(new Store(store, storeSha), misses);
 	}
 
 	private static Map<Long, Integer> verifyStore(Scope scope, byte[] bytes) throws IOException
@@ -452,7 +517,7 @@ public final class PhantomLearning131Fit
 		return Map.copyOf(profiles);
 	}
 
-	private static void readEpisode(Scope scope, Path root, String sealSha, Scene scene, int objectId, String bootId, String nonce, PaidEvidence evidence) throws Exception
+	private static boolean readEpisode(Scope scope, Path root, String sealSha, Scene scene, int objectId, String bootId, String nonce, PaidEvidence evidence) throws Exception
 	{
 		final Phase phase = scope.phase();
 		final var fields = new ArrayList<>(List.of("split", "status", "bootId", "nonce", "episodeId", "sourceSha", "policySha", "startedNanos", "settledNanos", "episodeSha"));
@@ -504,6 +569,7 @@ public final class PhantomLearning131Fit
 			else { evidence.tuning().add(decision); }
 		}
 		require(paid.isEmpty(), "MISSING_PAID_EVENT");
+		return settled.reason().equals("NATIVE_KILL") && !settled.kills().isEmpty();
 	}
 
 	private static boolean matchesPlan(Scope scope, Scene scene, ActionExplorationV4.Plan plan)
@@ -530,7 +596,7 @@ public final class PhantomLearning131Fit
 				&& decision.capturedNanos() <= episode.settledNanos(), "TUNING_DECISION_ORIGINAL");
 			decisions.add(decision);
 		}
-		ActionExplorationV4.frozen(decisions.getFirst().plan(), scope.ledger(), scope.head()).verifyFrozenLog(decisions);
+		ActionExplorationV4.frozenCommitted(decisions.getFirst().plan(), scope.ledger(), scope.head()).verifyFrozenLog(decisions);
 		return List.copyOf(decisions);
 	}
 

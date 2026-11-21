@@ -2,6 +2,7 @@
 package org.l2jmobius.gameserver.phantoms.commerce;
 
 import java.util.List;
+import java.util.stream.LongStream;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 
@@ -24,6 +25,10 @@ public final class PhantomSupply074Checks
 		PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.optionalPotionStockAllowed(false, true, false), "Optional potion stock had priority over ammunition.");
 		PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.optionalPotionStockAllowed(false, false, true), "Optional potion stock had priority over shots.");
 		PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.optionalPotionStockAllowed(false, false, false), "Ordinary optional potion stock was suppressed after release.");
+		PhantomAssertions.assertEquals(4L, L2jPhantomSupplyJourney.usableShotStock(LongStream.of(5, 1), 2), "Residues from ordinary and blessed Spiritshots falsely met the three-hit low-water mark.");
+		PhantomAssertions.assertEquals(6L, L2jPhantomSupplyJourney.usableShotStock(LongStream.of(4, 2), 2), "Enough complete charges across compatible stacks caused a redundant purchase journey.");
+		PhantomAssertions.assertEquals(0L, L2jPhantomSupplyJourney.usableShotStock(LongStream.of(1, 1), 2), "Two partial stacks enabled a shot neither native handler can use.");
+		System.out.println("SUPPLY131_WHOLE_NATIVE_CHARGES_PASS");
 		System.out.println("SUPPLY130_OPTIONAL_PREPARATION_PASS;EXACT_ASSEMBLY=DEFERRED;PRODUCER_CALLS=0;NO_ASSEMBLY=ORDINARY;GAMEPLAY_WRITES=0");
 		final var destination = new PhantomNavigationPoint(-61717, 75401, -3352, 0);
 		final var checkpoint = new PhantomNavigationPoint(-63000, 76500, -3280, 0);

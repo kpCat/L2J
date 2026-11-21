@@ -15,6 +15,7 @@ import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 import java.util.function.Predicate;
 import java.util.function.Function;
+import java.util.stream.LongStream;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.ItemData;
@@ -427,7 +428,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (missingWeapon) { return equipmentProposal(profileId, root, player, cached, now); }
 			final var need = supplyNeed(player, deferOptional); if (need == null) { return optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)); }
 			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
-			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena() + ':' + deferOptional;
+			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId()
+				+ ':' + items.getFirst().getId() + ':' + stock + ':' + need.fallbackStock() + ':' + player.getAdena() + ':' + deferOptional;
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return cached.offer == null ? optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)) : Optional.of(cached.offer); }
 			cached.facts = facts; cached.nextCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()); cached.offer = null;
 			final long targetStock = need.targetStock();
@@ -499,17 +501,27 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{
 		return !deferOptional && !ammoNeeded && !shotNeeded;
 	}
+	static long usableShotStock(LongStream stacks, int perHit)
+	{
+		// Native shot handlers debit one item object at a time.
+		return perHit > 0 ? stacks.map(count -> count - count % perHit).sum() : 0;
+	}
+	private static LongStream stockCounts(Player player, List<ItemTemplate> items)
+	{
+		return items.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1));
+	}
 	private SupplyNeed supplyNeed(Player player) { return supplyNeed(player, false); }
 	private SupplyNeed supplyNeed(Player player, boolean deferOptional)
 	{
 		final var weapon = player.getActiveWeaponItem();
 		if (weapon == null || player.getActiveWeaponInstance() == null || weapon == player.getFistsWeaponItem()) { return null; }
 		final var ammunition = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.AMMUNITION)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
-		final boolean ammoNeeded = !ammunition.isEmpty() && ammunition.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < _policy.lowWaterHits();
+		final boolean ammoNeeded = !ammunition.isEmpty() && stockCounts(player, ammunition).sum() < _policy.lowWaterHits();
 		final var action = neededShotAction(player, weapon);
 		final int shotCount = action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-		final var shots = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == action && compatible(player, item)).toList();
-		final boolean shotNeeded = shotCount > 0 && shots.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < (long) shotCount * _policy.lowWaterHits();
+		final var shots = compatibleShots(player, weapon, action);
+		final long shotStock = usableShotStock(stockCounts(player, shots), shotCount);
+		final boolean shotNeeded = shotCount > 0 && !shots.isEmpty() && shotStock < (long) shotCount * _policy.lowWaterHits();
 		// Mandatory ammunition and productive amplification must not starve behind an optional potion stock target.
 		final boolean optionalPotions = optionalPotionStockAllowed(deferOptional, ammoNeeded, shotNeeded) && _policy.optionalPotionsAllowed(player.getLevel());
 		final boolean healing = optionalPotions && _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
@@ -519,12 +531,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (perHit <= 0 || perHit > 100) { return null; }
 		final var all = healing ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammoNeeded ? ammunition : cp ? cpItems : shots;
 		if (all.isEmpty()) { return null; }
-		final long allStock = all.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
+		final long allStock = healing || ammoNeeded || cp ? stockCounts(player, all).sum() : shotStock;
 		// Existing regular amplification is useful stock; optional blessed preference must not duplicate it.
 		if (allStock >= (cp ? 3 : (long) perHit * _policy.lowWaterHits())) { return null; }
 		final var blessed = !healing && !ammoNeeded && !cp && action == ActionType.SPIRITSHOT ? all.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
 		final var preferred = blessed.isEmpty() ? all : blessed;
-		return new SupplyNeed(preferred, all, preferred.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum(), allStock, perHit, healing ? 20 : cp ? 25 : _policy.plannedStock(perHit, supplyActionMillis(player, weapon, action)));
+		final long preferredStock = blessed.isEmpty() ? allStock : usableShotStock(stockCounts(player, blessed), perHit);
+		return new SupplyNeed(preferred, all, preferredStock, allStock, perHit, healing ? 20 : cp ? 25 : _policy.plannedStock(perHit, supplyActionMillis(player, weapon, action)));
 	}
 
 	private static long supplyActionMillis(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon, ActionType action)
@@ -677,7 +690,12 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		final var action = shotActions(player).getFirst();
 		if (!ammunition && (player.getLevel() < 20 || item.getDefaultAction() != action)) { return false; }
 		final int perHit = ammunition ? 1 : action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-		return perHit > 0 && player.getInventory().getItems().stream().filter(owned -> compatible(player, owned.getTemplate(), weapon) && (ammunition ? owned.getEtcItem() != null && (owned.getEtcItem().getItemType() == EtcItemType.ARROW || owned.getEtcItem().getItemType() == EtcItemType.BOLT) : owned.getTemplate().getDefaultAction() == action)).mapToLong(owned -> owned.getCount()).sum() < (long) perHit * _policy.lowWaterHits();
+		if (perHit <= 0) { return false; }
+		final var counts = player.getInventory().getItems().stream().filter(owned -> compatible(player, owned.getTemplate(), weapon)
+			&& (ammunition ? owned.getEtcItem() != null && (owned.getEtcItem().getItemType() == EtcItemType.ARROW || owned.getEtcItem().getItemType() == EtcItemType.BOLT)
+				: owned.getTemplate().getDefaultAction() == action)).mapToLong(owned -> owned.getCount());
+		final long stock = ammunition ? counts.sum() : usableShotStock(counts, perHit);
+		return stock < (long) perHit * _policy.lowWaterHits();
 	}
 
 	private Npc nearestMaintenanceNpc(Player player, boolean warehouse)
@@ -870,7 +888,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (weapon.isRange() && player.getInventory().getItems().stream().filter(item -> item.getEtcItem() != null && (item.getEtcItem().getItemType() == EtcItemType.ARROW || item.getEtcItem().getItemType() == EtcItemType.BOLT) && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount()).sum() < _policy.lowWaterHits()) { return false; }
 		if (player.getLevel() < 20) { return true; }
 		final var action = shotActions(player).getFirst(); final int perHit = action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-		return perHit > 0 && player.getInventory().getItems().stream().filter(item -> item.getTemplate().getDefaultAction() == action && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount()).sum() >= (long) perHit * _policy.lowWaterHits();
+		final var counts = player.getInventory().getItems().stream()
+			.filter(item -> item.getTemplate().getDefaultAction() == action && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount());
+		return perHit > 0 && usableShotStock(counts, perHit) >= (long) perHit * _policy.lowWaterHits();
 	}
 
 	private PhantomGoal equipmentOffer(PhantomGoal root, Player player, Cached cached, List<Choice> choices, Map<String, Long> preparation, int ownedTemplate, long now)
@@ -927,11 +947,18 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		for (ActionType action : actions)
 		{
 			final int consumed = action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-			final var items = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == action && compatible(player, item, weapon)).toList();
-			final var preferred = action == ActionType.SPIRITSHOT ? items.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
-			if ((preferred.isEmpty() ? items : preferred).stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < (long) consumed * _policy.lowWaterHits()) { return action; }
+			if (consumed <= 0) { continue; }
+			final var items = compatibleShots(player, weapon, action);
+			if (!items.isEmpty() && usableShotStock(stockCounts(player, items), consumed) < (long) consumed * _policy.lowWaterHits()) { return action; }
 		}
 		return actions.getFirst();
+	}
+
+	private List<ItemTemplate> compatibleShots(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon, ActionType action)
+	{
+		return _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT))
+			.map(supply -> ItemData.getInstance().getTemplate(supply.itemId()))
+			.filter(item -> item.getDefaultAction() == action && compatible(player, item, weapon)).toList();
 	}
 
 	private static boolean healingPotion(ItemTemplate item)

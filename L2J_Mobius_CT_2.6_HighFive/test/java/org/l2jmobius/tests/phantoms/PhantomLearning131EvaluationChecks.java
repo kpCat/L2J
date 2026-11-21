@@ -98,6 +98,7 @@ public final class PhantomLearning131EvaluationChecks
 		check(plan.size() == 128 && plan.getFirst().block().index() == 0 && plan.getFirst().slot().equals(new Slot(Arm.C, Side.LEFT))
 			&& plan.getLast().block().stratum() == Stratum.GROUP_PVP && plan.getLast().block().index() == 7 && plan.getLast().position() == 3,
 			"producer can read all planned arms in stratum, block-index and position order before collecting evidence");
+		checkSoloDamageBinding(plan.getFirst(), temporary);
 
 		final var lines = Files.readAllLines(protocol);
 		final int firstBlock = 5;
@@ -126,6 +127,29 @@ public final class PhantomLearning131EvaluationChecks
 		changed.set(firstBlock + 1, String.join("\t", second));
 		Files.write(variant, changed);
 		refuseSchedule(variant, digest(variant), "DUPLICATE_BLOCK");
+	}
+
+	private static void checkSoloDamageBinding(PhantomLearning131Evaluation.ScheduledArm slot, Path temporary) throws Exception
+	{
+		final Path path = temporary.resolve("binding131.tsv");
+		final String metadata = meta("schema", "NATIVE_BINDING131_V1", "manifestSha", "a".repeat(64), "bootId", "00001", "blockId", slot.block().id(),
+			"episodeId", "ep-01", "attempt", "0", "position", "0", "arm", "C", "side", "LEFT", "sceneId", slot.sceneId(), "fixtureSha", slot.fixtureSha(),
+			"opponentSha", "b".repeat(64), "policySha", "c".repeat(64), "modelSha", "d".repeat(64), "startNanos", "100");
+		Files.writeString(path, metadata + "actor\t42\t71\tLEFT\tDAMAGE\nactor\t102\t91\tRIGHT\tOPPONENT\n");
+		final String trusted = digest(path);
+		final var bound = PhantomLearning131Evaluation.soloDamageBinding(slot, path, trusted, 42, 102);
+		check(bound.episodeId().equals("ep-01") && bound.started() == 100 && bound.actorEpoch() == 71 && bound.targetEpoch() == 91,
+			"only the scheduled source and stock target epochs are made available to the damage capture");
+		Files.writeString(path, metadata + "actor\t42\t71\tRIGHT\tDAMAGE\nactor\t102\t91\tLEFT\tDAMAGE\n");
+		try
+		{
+			PhantomLearning131Evaluation.soloDamageBinding(slot, path, digest(path), 42, 102);
+			throw new AssertionError("An inverted binding cannot attribute Solo damage");
+		}
+		catch (IllegalArgumentException refused)
+		{
+			check(refused.getMessage().equals("EVAL131_SOLO_DAMAGE_ROSTER"), "actor and target sides are checked independently of the binding hash");
+		}
 	}
 
 	private static void refuseSchedule(Path protocol, String sha, String reason) throws Exception

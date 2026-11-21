@@ -377,6 +377,7 @@ function Get-131State($Context) {
     $parent=$Context.Sha
     $latest=$null
     $close=$null
+    $curriculum=0
     if(Test-Path -LiteralPath $Context.Boots){
         Assert-131Directory $Context.Boots
         foreach($directory in @(Get-ChildItem -LiteralPath $Context.Boots -Force|Sort-Object Name)){
@@ -392,6 +393,13 @@ function Get-131State($Context) {
                 $reservation.bootId -ceq $directory.Name -and $reservation.manifestSha -ceq $Context.Sha -and
                 $reservation.parentSha -ceq $parent -and $reservation.lastCompleted -eq $completed -and
                 $reservation.nonce -cmatch '^[a-f0-9]{32}$' -and $reservation.authoritySha -cmatch '^[a-f0-9]{64}$') 'BOOT_RESERVATION_CHAIN'
+            if($curriculum -gt 0){
+                $reviewSha=Get-131CurriculumReview $Context $latest $parent
+                Assert-131 ($reviewSha -and $reservation.PSObject.Properties['curriculumReviewSha'] -and
+                    $reservation.curriculumReviewSha -ceq $reviewSha) 'CURRICULUM_RESERVATION_REVIEW'
+            }else{
+                Assert-131 (!$reservation.PSObject.Properties['curriculumReviewSha']) 'UNEXPECTED_CURRICULUM_REVIEW'
+            }
             $reservedAt=ConvertTo-131Utc $reservation.reservedUtc
             $reservedDeadline=ConvertTo-131Utc $reservation.deadlineUtc
             Assert-131 ($reservedAt -lt $reservedDeadline -and $reservedDeadline -le $Context.Deadline -and
@@ -400,6 +408,7 @@ function Get-131State($Context) {
             $latest=@{Root=$directory.FullName;Reservation=$reservation;Sha=$reservationSha}
             $closePath=Join-Path $directory.FullName 'closed.json'
             $close=$null
+            $curriculum=0
             if(!(Test-Path -LiteralPath $closePath)){$status='UNCLOSED_BOOT';continue}
             $close=Read-131Json $closePath
             $parent=Get-131Sha $closePath
@@ -409,8 +418,8 @@ function Get-131State($Context) {
                 [long]$close.nativeMillis -ge 0 -and ($close.status -cne 'UNKNOWN' -or $close.completed -eq $completed) -and
                 ($close.status -cne 'COMPLETED' -or $close.completed -eq $Context.Body.quota.maxEpisodes) -and
                 $close.masterSha -ceq $Context.Body.configShas.'game/config/Custom/PhantomPlayers.ini' -and
-                $close.control -cin @('none','pause','stop')) 'BOOT_CLOSE_CHAIN'
-            Assert-131ClosedProof $Context $latest $close $completed
+                $close.control -cin @('none','pause','stop','curriculum')) 'BOOT_CLOSE_CHAIN'
+            $curriculum=[int](Assert-131ClosedProof $Context $latest $close $completed)
             $completed=$close.completed
             $milliseconds+=[long]$close.nativeMillis
             $status=$close.status
@@ -423,7 +432,20 @@ function Get-131State($Context) {
             $stop.parentSha -ceq $parent -and $status -cin @('READY','PAUSED')) 'STOP_CHAIN'
         $status='STOPPED'
     }
-    return @{Status=$status;Completed=$completed;Boots=$count;Milliseconds=$milliseconds;Parent=$parent;Latest=$latest;Closed=$close}
+    return @{Status=$status;Completed=$completed;Boots=$count;Milliseconds=$milliseconds;Parent=$parent;Latest=$latest;Closed=$close;Curriculum=$curriculum}
+}
+
+function Get-131CurriculumReview($Context,$Boot,[string]$ClosedSha) {
+    $path=Join-Path $Boot.Root 'curriculum-review131.json'
+    if(!(Test-Path -LiteralPath $path)){return $null}
+    $sha=Get-131Sha $path
+    $review=Read-131Json $path
+    Assert-131Sha $path $sha
+    Assert-131Fields $review @('schema','approval','manifestSha','closedSha','reviewRef')
+    Assert-131 ($review.schema -ceq 'TASK131_CURRICULUM_REVIEW_V1' -and $review.approval -ceq 'OWNER_TASK131_CURRICULUM_REVIEW' -and
+        $review.manifestSha -ceq $Context.Sha -and $review.closedSha -ceq $ClosedSha -and $review.reviewRef -is [string] -and
+        $review.reviewRef -cmatch '^\S[^\r\n]{0,159}$') 'CURRICULUM_REVIEW_SCOPE'
+    return $sha
 }
 
 function Assert-131SuiteBudget($Context,[long]$Milliseconds) {
@@ -434,10 +456,19 @@ function Assert-131SuiteBudget($Context,[long]$Milliseconds) {
         $other=if($directory.FullName -ieq $Context.Root){$Context}else{Read-131Manifest (Join-Path $directory.FullName 'campaign.json')}
         $state=Get-131State $other
         Assert-131 ($state.Status -cne 'UNCLOSED_BOOT') 'UNRESOLVED_OWNED_BOOT'
+        if($state.Curriculum -gt 0){Assert-131 ([bool](Get-131CurriculumReview $other $state.Latest $state.Parent)) 'CURRICULUM_REVIEW_REQUIRED'}
         $boots+=$state.Boots
         $used+=$state.Milliseconds
     }
     Assert-131 ($boots -lt 12 -and $used+$Milliseconds -lt 28800000) 'SUITE_BOOT_OR_TIME_LIMIT'
+}
+
+function Get-131AdmissionDeadline($Context,$State) {
+    $seconds=(Get-131SceneSeconds $Context.Body $State.Completed)+$Context.Body.quota.bootSeconds+$Context.Body.quota.drainSeconds
+    $deadline=[DateTime]::UtcNow.AddSeconds($seconds)
+    Assert-131 ($deadline -le $Context.Deadline) 'REMAINING_SCENES_EXCEED_DEADLINE'
+    Assert-131SuiteBudget $Context ($seconds*1000L)
+    return $deadline
 }
 
 function Write-131Properties([string]$Path,$Body) {
@@ -466,6 +497,10 @@ function New-131Reservation($Context,$State,$Boundary,[datetime]$Deadline) {
     $reservation=[ordered]@{schema='TRAINING_RESERVED131_V1';sequence=$sequence;bootId=$bootId;nonce=$nonce;manifestSha=$Context.Sha;parentSha=$State.Parent
         launchSha=(Get-131Sha $stagedLaunch);authoritySha=$Boundary.AuthoritySha;lastCompleted=$State.Completed
         reservedUtc=[DateTime]::UtcNow.ToString('o');deadlineUtc=$Deadline.ToString('o')}
+    if($State.Curriculum -gt 0){
+        $reservation.curriculumReviewSha=Get-131CurriculumReview $Context $State.Latest $State.Parent
+        Assert-131 ([bool]$reservation.curriculumReviewSha) 'CURRICULUM_REVIEW_REQUIRED'
+    }
     $reservedPath=Join-Path $stagedRoot 'reserved.json'
     Write-131Json $reservedPath $reservation
     $reservationSha=Get-131Sha $reservedPath
@@ -581,24 +616,30 @@ function Get-131Ack($Context,$Boot,$Owner,[int]$ExitCode,[string]$Control='obser
         [Math]::Abs(($started-$created).TotalMilliseconds) -le 1 -and $ack['completed'] -cmatch '^(?:0|[1-9][0-9]{0,2})$') 'DRAIN_ACK_IDENTITY'
     $completed=[int]$ack['completed']
     $status=$ack['status']
-    if($Control -ceq 'observe'){
-        $Control=Get-131Request $Boot
-        if(!$Control){$Control='none'}
-    }
-    Assert-131 ($Control -ceq 'none' -or (Test-131Request $Boot $Control)) 'DRAIN_CONTROL_RECEIPT'
-    Assert-131 ($completed -ge $Boot.Reservation.lastCompleted -and $completed -le $Context.Body.quota.maxEpisodes -and
-        (($status -ceq 'COMPLETED' -and $completed -eq $Context.Body.quota.maxEpisodes) -or
-         ($status -ceq 'PAUSED' -and $Control -cne 'none' -and (Test-131Request $Boot 'pause') -and $completed -lt $Context.Body.quota.maxEpisodes) -or
-         ($status -ceq 'STOPPED' -and $Control -ceq 'stop') -or $status -ceq 'UNKNOWN')) 'DRAIN_ACK_BOUNDARY'
     $sealName=if($Context.Body.phase -ceq 'N01'){'n01-drain.properties'}else{'complete131.tsv'}
     Assert-131Sha (Join-Path $Boot.Root $sealName) $ack['sealSha']
+    $curriculum=0
     if($Context.Body.phase -ceq 'N01'){Assert-131N01Seal $Context $Boot $ack}
-    if($Context.Body.phase -cin @('TRAIN','TUNING')){Assert-131TrainSeal $Context $Boot $ack}
+    if($Context.Body.phase -cin @('TRAIN','TUNING')){$curriculum=Assert-131TrainSeal $Context $Boot $ack}
+    if($Control -ceq 'observe'){
+        $Control=Get-131Request $Boot
+        if($curriculum -gt 0 -and $Control -cne 'stop'){$Control='curriculum'}
+        if(!$Control){$Control='none'}
+    }
+    Assert-131 (($Control -ceq 'curriculum' -and $curriculum -gt 0) -or
+        ($Control -ceq 'none' -and $curriculum -eq 0) -or
+        ($Control -ceq 'pause' -and $curriculum -eq 0 -and (Test-131Request $Boot 'pause')) -or
+        ($Control -ceq 'stop' -and (Test-131Request $Boot 'stop'))) 'DRAIN_CONTROL_RECEIPT'
+    Assert-131 ($completed -ge $Boot.Reservation.lastCompleted -and $completed -le $Context.Body.quota.maxEpisodes -and
+        (($status -ceq 'COMPLETED' -and $completed -eq $Context.Body.quota.maxEpisodes) -or
+         ($status -ceq 'PAUSED' -and (($curriculum -gt 0 -and $Control -cin @('curriculum','stop')) -or
+            ($Control -cin @('pause','stop') -and (Test-131Request $Boot 'pause') -and $completed -lt $Context.Body.quota.maxEpisodes))) -or
+         ($status -ceq 'STOPPED' -and $Control -ceq 'stop') -or $status -ceq 'UNKNOWN')) 'DRAIN_ACK_BOUNDARY'
     if($status -ceq 'UNKNOWN'){$completed=$Boot.Reservation.lastCompleted}
     if($Control -ceq 'stop' -and ($status -ceq 'PAUSED' -or $Context.Body.phase -cin @('TRAIN','TUNING') -and $status -ceq 'COMPLETED')){
         $status='STOPPED'
     }
-    return @{Status=$status;Completed=$completed;AckSha=$ackSha;SealSha=$ack['sealSha'];Control=$Control}
+    return @{Status=$status;Completed=$completed;AckSha=$ackSha;SealSha=$ack['sealSha'];Control=$Control;Curriculum=$curriculum}
 }
 
 function Test-131NativeClaim($Boot) {
@@ -631,7 +672,13 @@ function Assert-131TrainSeal($Context,$Boot,$Ack) {
             Assert-131Sha (Join-Path $Boot.Root ('episodes/'+$cell[1]+'/seal131.tsv')) $cell[2]
         }
     }
-    Assert-131 ($metadata.Count -eq 15 -and $metadata.ContainsKey('storeSha')) 'TRAIN_NATIVE_STORE_PIN'
+    $curriculum=0
+    if($metadata.ContainsKey('curriculumMisses')){
+        Assert-131 ($Context.Body.phase -ceq 'TRAIN' -and $Ack['status'] -ceq 'PAUSED' -and $episodes.Count -gt 0 -and
+            $metadata['curriculumMisses'] -cmatch '^[3-6]$' -and [int]$metadata['curriculumMisses'] -le [int]$Ack['completed']) 'TRAIN_CURRICULUM_PROOF'
+        $curriculum=[int]$metadata['curriculumMisses']
+    }
+    Assert-131 ($metadata.Count -eq $(if($curriculum -gt 0){16}else{15}) -and $metadata.ContainsKey('storeSha')) 'TRAIN_NATIVE_STORE_PIN'
     $phase=$Context.Body.phase
     Assert-131Sha (Join-Path $Boot.Root ($phase.ToLowerInvariant()+'-store131.tsv')) $metadata['storeSha']
     $expectedStatus=if($Ack['status'] -ceq 'COMPLETED'){'DRAINED'}else{$Ack['status']}
@@ -642,6 +689,7 @@ function Assert-131TrainSeal($Context,$Boot,$Ack) {
         $metadata['expectedHead'] -ceq $plan['expectedHead'] -and $metadata['learnerSha'] -ceq $Context.Body.modelSha -and
         $metadata['opponentSha'] -ceq $plan['opponentSha'] -and $metadata['cycle'] -ceq [string]$Context.Body.cycle -and
         $Boot.Reservation.lastCompleted+$episodes.Count -eq [int]$Ack['completed']) 'TRAIN_NATIVE_SEAL_DRIFT'
+    return $curriculum
 }
 
 function Assert-131ClosedProof($Context,$Boot,$Close,[int]$LastCompleted) {
@@ -658,7 +706,7 @@ function Assert-131ClosedProof($Context,$Boot,$Close,[int]$LastCompleted) {
         $ack=Get-131Ack $Context $Boot $owner $Close.exitCode $Close.control
         Assert-131 ($ack.Status -ceq $Close.status -and $ack.Completed -eq $Close.completed -and
             $ack.AckSha -ceq $Close.ackSha -and $ack.SealSha -ceq $Close.sealSha) 'CLOSE_ACK_DISAGREES'
-        return
+        return $ack.Curriculum
     }
     Assert-131 ($Close.completed -eq $LastCompleted -and $Close.sealSha -ceq 'NONE') 'UNSEALED_CREDIT'
     if($Close.status -ceq 'UNKNOWN'){
@@ -828,8 +876,12 @@ function Get-131Summary($Context,$State,[switch]$Detailed) {
         bootId=$bootId;lastRecordedPid=$processId;completed=$State.Completed;remaining=$Context.Body.quota.maxEpisodes-$State.Completed;boots=$State.Boots
         bootsRemaining=$Context.Body.quota.maxBoots-$State.Boots;resumable=(Test-131Resumable $Context $State)
         chargedNativeMillis=$State.Milliseconds;deadlineUtc=$Context.Deadline.ToString('o');reason=$reason}
+    if($State.Curriculum -gt 0){$summary.curriculumMisses=$State.Curriculum}
     if($Context.Body.phase -cin @('TRAIN','TUNING') -and $status -ceq 'PAUSED' -and !$summary.resumable){
         $summary.resumeReason=$Context.Body.phase+'_BOOT_QUOTA_OR_CLOSURE_REQUIRED'
+        if($State.Curriculum -gt 0 -and !(Get-131CurriculumReview $Context $State.Latest $State.Parent)){
+            $summary.resumeReason='TRAIN_CURRICULUM_REVIEW_REQUIRED'
+        }
     }
     if($Detailed){
         $summary.sourceCommit=$Context.Body.sourceCommit
@@ -848,6 +900,7 @@ function Test-131Resumable($Context,$State) {
     if($State.Status -cne 'PAUSED' -or $State.Boots -ge $Context.Body.quota.maxBoots -or $State.Completed -ge $Context.Body.quota.maxEpisodes){
         return $false
     }
+    if($State.Curriculum -gt 0 -and !(Get-131CurriculumReview $Context $State.Latest $State.Parent)){return $false}
     if($Context.Body.phase -ceq 'N01'){return $State.Completed -eq 0 -and !(Test-131NativeClaim $State.Latest)}
     if($Context.Body.phase -cin @('TRAIN','TUNING') -and (Test-131NativeClaim $State.Latest)){
         return $State.Closed.ackSha -cne 'NONE' -and $State.Closed.sealSha -cne 'NONE'
@@ -948,6 +1001,7 @@ switch ($Action){
         Assert-131 ($state131.Status -cin @('READY','PAUSED') -and $state131.Boots -lt $context131.Body.quota.maxBoots -and
             ($state131.Status -ceq 'READY' -or (Test-131Resumable $context131 $state131))) 'PREFLIGHT_STATE_OR_QUOTA'
         $boundary131=Get-131Boundary $context131
+        $null=Get-131AdmissionDeadline $context131 $state131
         [ordered]@{schema='TRAINING_PREFLIGHT131_V1';campaignId=$context131.Scope;manifestSha=$context131.Sha;status='READY';sqlPid=$boundary131.Sql.Identity.PID;
             sourceCommit=$context131.Body.sourceCommit;gameJarSha=$context131.Body.gameJarSha;sqlAttestationSha=$boundary131.Sql.AttestationSha;
             completed=$state131.Completed;boots=$state131.Boots}|ConvertTo-Json -Depth 8
@@ -964,10 +1018,7 @@ switch ($Action){
             Assert-131 ($Action -ieq 'Start' -or (Test-131Resumable $context131 $state131)) 'RESUME_NATIVE_BOUNDARY_UNAVAILABLE'
             $boundary131=Get-131Boundary $context131
             if($null -ne $state131.Latest){Assert-131 ($state131.Latest.Reservation.authoritySha -ceq $boundary131.AuthoritySha) 'AUTHORITY_CHANGED_ON_RESUME'}
-            $seconds131=(Get-131SceneSeconds $context131.Body $state131.Completed)+$context131.Body.quota.bootSeconds+$context131.Body.quota.drainSeconds
-            $deadline131=[DateTime]::UtcNow.AddSeconds($seconds131)
-            Assert-131 ($deadline131 -le $context131.Deadline) 'REMAINING_SCENES_EXCEED_DEADLINE'
-            Assert-131SuiteBudget $context131 ($seconds131*1000L)
+            $deadline131=Get-131AdmissionDeadline $context131 $state131
             Invoke-131Boot $context131 $state131 $boundary131 $deadline131
             Get-131Summary $context131 (Get-131State $context131) -Detailed|ConvertTo-Json -Depth 8
         }finally{$lock131.Dispose()}
