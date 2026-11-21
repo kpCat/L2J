@@ -41,7 +41,10 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progr
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
@@ -49,7 +52,6 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleP
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
-import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 
@@ -66,6 +68,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final PhantomBackgroundService _background;
 	private final PhantomMaterializationService _materialization;
 	private volatile java.util.function.BiFunction<Long, java.util.function.Supplier<Result>, Result> _authorityRefreshBoundary = (_, work) -> work.get();
+	private volatile java.util.function.LongFunction<PhantomExecutionAdmission.Scope> _initialPlanningScope = _ -> null;
 	private final ConcurrentHashMap<Long, Admission> _admissions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ActiveForegroundHandoff> _foregroundHandoffs = new ConcurrentHashMap<>();
 	private volatile boolean _foregroundDecisionsRevoked;
@@ -552,6 +555,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (!lifecycle.successful()) { return lifecycle; }
 		Snapshot current = lifecycle.snapshot();
 		StoredGoal storedGoal = _goals.load(profileId).orElse(null);
+		if (storedGoal == null && current.state().status() == Status.PENDING && current.state().goalId() == 0
+			&& _goals.publication(profileId).filter(row -> row.state().status() == PhantomGoalPublication.Status.PENDING).isPresent())
+		{
+			return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.publication_pending", current);
+		}
 		final Optional<PhantomBackgroundState> existingBackground = _background.acquisitionSnapshot(profileId);
         if (current.state().status() == Status.PENDING && current.state().goalId() == 0 && current.state().planOrdinal() == 0 && current.state().intervalOrdinal() == 0
             && storedGoal != null && existingBackground.filter(state -> state.state() == PhantomBackgroundState.State.READY).isPresent()
@@ -660,30 +668,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			storedGoal = _goals.load(profileId).orElse(null);
 			if (storedGoal == null)
 			{
-				final Optional<ActionLease> action = _materialization.tryAcquireAction(profileId);
-				if (action.isEmpty())
-				{
-					deferredFailure = "catchup.baseline.action_lease";
-				}
-				else
-				{
-					try (ActionLease lease = action.get())
-					{
-						var plan = _planner.planInitial(profileId, lease.player(), current.state().deterministicSeed(), current.state().planOrdinal());
-						if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleInitial(profileId, lease.player(), current.state().deterministicSeed(), current.state().planOrdinal()); }
-						if (!plan.ready())
-						{
-							deferredFailure = plan.reasonKey();
-						}
-						else
-						{
-							final PhantomBackgroundCatchupState plannedState = current.state().withPlan(plan.goal().goalId(), plan.goal().revision(), current.state().planOrdinal(), plan.planIdentity(), plan.generation().knowledgeGeneration(), plan.generation().topologyGeneration());
-							final PlannedSnapshot persisted = _store.persistInitialPlan(profileId, current, plannedState, plan.goal());
-							current = persisted.catchup();
-							storedGoal = persisted.goal();
-						}
-					}
-				}
+				final Result planning = planInitialBaseline(profileId, current);
+				current = planning.snapshot();
+				if (!planning.successful()) { deferredFailure = planning.reason(); }
 			}
 			else if ((current.state().goalId() <= 0) || (storedGoal.goal().goalId() != current.state().goalId()) || (storedGoal.goal().revision() != current.state().goalRevision()))
 			{
@@ -707,6 +694,35 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			return deferredFailure.startsWith("planner.") ? fail(profileId, _store.load(profileId).orElse(current), deferredFailure) : Result.rejected(ResultStatusCode.RETRY, deferredFailure, _store.load(profileId).orElse(current));
 		}
 		return ensureBaseline(profileId, _store.load(profileId).orElse(current));
+	}
+
+	private Result planInitialBaseline(long profileId, Snapshot current)
+	{
+		try (var scope = _initialPlanningScope.apply(profileId); var lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null) { return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.action_lease", current); }
+			var plan = _planner.planInitial(profileId, lease.player(), current.state().deterministicSeed(), current.state().planOrdinal());
+			if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleInitial(profileId, lease.player(), current.state().deterministicSeed(), current.state().planOrdinal()); }
+			if (!plan.ready()) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, plan.reasonKey(), current); }
+			final var planned = current.state().withPlan(plan.goal().goalId(), plan.goal().revision(), current.state().planOrdinal(), plan.planIdentity(), plan.generation().knowledgeGeneration(), plan.generation().topologyGeneration());
+			return Result.success(_store.persistInitialPlan(profileId, current, planned, plan.goal()).catchup(), 0);
+		}
+		catch (PhantomGoalStateStore.PublicationPending pending)
+		{
+			return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.publication_pending", current);
+		}
+	}
+
+	/** Only the current solo owner may attempt fresh native initial planning. */
+	public void bindInitialPlanningExecution(PhantomExecutionAdmission admission, java.util.function.LongFunction<PhantomDomainRef> currentOwner)
+	{
+		Objects.requireNonNull(admission);
+		Objects.requireNonNull(currentOwner);
+		_initialPlanningScope = profileId ->
+		{
+			final var solo = PhantomExecutionHandoff.solo(profileId);
+			return admission.enterOwner(id -> id == profileId && solo.equals(currentOwner.apply(id)) ? solo : null);
+		};
 	}
 
 	public void bindAuthorityRefreshBoundary(java.util.function.BiFunction<Long, java.util.function.Supplier<Result>, Result> boundary)
@@ -794,7 +810,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current); }
 			if (_materialization.find(profileId).isPresent()) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.native_owner_busy", current); }
 			if (!owned) { return _authorityRefreshBoundary.apply(profileId, () -> prepareCurrentAuthority(profileId, true)); }
-			if (current.state().status() == Status.PENDING) { return ensureBaseline(profileId, current); }
+			if (current.state().status() == Status.PENDING)
+			{
+				// Fresh native planning waits for the historical worker after the refresh boundary.
+				if (current.state().goalId() == 0 && _goals.load(profileId).isEmpty())
+				{ return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.initial_planning_deferred", current); }
+				return ensureBaseline(profileId, current);
+			}
 			if (current.state().status() != Status.COMPLETE) { return recoverStale(profileId, current, generation); }
 			final var goal = _goals.load(profileId).orElse(null);
 			final String invalid = recoveryPrerequisite(profileId, current, state, goal);

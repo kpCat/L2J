@@ -1063,6 +1063,7 @@ public final class PhantomSystem
 				});
 				_executionDecisions = _executionControl.decisionAdmission();
 				_executionControl.installGoalPublications(productionGoals);
+				_historicalBackgroundService.bindInitialPlanningExecution(_executionAdmission, _executionControl::owner);
 				_historicalBackgroundService.bindAuthorityRefreshBoundary((id, work) ->
 				{
 					final var owner = _executionControl.ensure(id);
