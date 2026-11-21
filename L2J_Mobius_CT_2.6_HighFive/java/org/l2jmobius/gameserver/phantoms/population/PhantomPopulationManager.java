@@ -27,6 +27,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,6 +56,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.ScheduleEvaluation;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State;
@@ -78,7 +80,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final Object _monitor = new Object();
 	private final PhantomPopulationPersistencePort _store;
 	private final PhantomPopulationCatalog _catalog;
-	private final PhantomGoalStateStore _goals;
+	private final PhantomGoalStore _goals;
 	private final PhantomScheduler _scheduler;
 	private final LongPredicate _materialized;
 	private final Clock _clock;
@@ -106,6 +108,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final Map<Integer, Integer> _levelHistogram = new HashMap<>();
 	private final Map<Integer, Integer> _regionHistogram = new HashMap<>();
 	private PhantomDecisionEngine _decisionEngine;
+	private LongPredicate _bootstrapExecutionReady = _ -> true;
 	private PhantomPopulationOwnershipPort _ownership;
 	private PhantomPopulationEcologyService _ecology;
 	private boolean _ecologyInstalled;
@@ -163,7 +166,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		_activeTarget = activeTarget;
 	}
 
-	public PhantomPopulationManager(PhantomPopulationPersistencePort store, PhantomPopulationCatalog catalog, PhantomGoalStateStore goals, PhantomPopulationOwnershipPort ownership, Clock clock, ZoneId zoneId, int target, int activeTarget, int maximumScheduled, int maximumMaterialized, int creationLimit, int boundaryBudget)
+	public PhantomPopulationManager(PhantomPopulationPersistencePort store, PhantomPopulationCatalog catalog, PhantomGoalStore goals, PhantomPopulationOwnershipPort ownership, Clock clock, ZoneId zoneId, int target, int activeTarget, int maximumScheduled, int maximumMaterialized, int creationLimit, int boundaryBudget)
 	{
 		_store = Objects.requireNonNull(store, "Population store must not be null.");
 		_catalog = Objects.requireNonNull(catalog, "Population catalog must not be null.");
@@ -206,12 +209,18 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 
 	public void installDecisionEngine(PhantomDecisionEngine decisionEngine)
 	{
+		installDecisionEngine(decisionEngine, _ -> true);
+	}
+
+	public void installDecisionEngine(PhantomDecisionEngine decisionEngine, LongPredicate bootstrapExecutionReady)
+	{
 		synchronized (_monitor)
 		{
 			if ((_lifecycle != LifecycleState.NEW) || (_decisionEngine != null) || (_scheduler == null))
 			{
 				throw new IllegalStateException("Population decision engine can only be installed once before start.");
 			}
+			_bootstrapExecutionReady = Objects.requireNonNull(bootstrapExecutionReady, "Bootstrap execution readiness must not be null.");
 			_decisionEngine = Objects.requireNonNull(decisionEngine, "Decision engine must not be null.");
 			_ownership = new ProductionOwnershipPort(_scheduler, _decisionEngine, _materialized);
 		}
@@ -741,51 +750,86 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 
 	private void bootstrap(long profileId)
 	{
-		final Entry entry;
 		synchronized (_monitor)
 		{
-			entry = _entries.get(profileId);
-			if ((_lifecycle != LifecycleState.RUNNING) || (entry == null))
+			final Entry entry = _entries.get(profileId);
+			if ((entry != null) && entry._snapshot.state().creationPending() && !entry._retirementPending)
+			{
+				queueActionLocked(entry, RetryActionType.BOOTSTRAP_GOAL, 0, _controlCalls);
+			}
+		}
+	}
+
+	private void processBootstrapGoal(RetryAction action, RetryActionType registration)
+	{
+		final Entry entry = currentEntry(action);
+		if (entry == null)
+		{
+			return;
+		}
+		final ManagedSnapshot snapshot;
+		synchronized (_monitor)
+		{
+			snapshot = entry._snapshot;
+			final boolean bootstrapping = registration == RetryActionType.BOOTSTRAP_REGISTER
+				? snapshot.state().creationPending() && !entry._retirementPending
+				: snapshot.state().state() == State.RETIRED && entry._returnPending;
+			if (!bootstrapping)
 			{
 				return;
 			}
 		}
-		if (!repairBootstrapGoal(entry))
+		try
 		{
-			markInconsistent(profileId, "bootstrap.goal_conflict");
+			if (!_bootstrapExecutionReady.test(action.profileId()))
+			{
+				retryOrFail(action, "bootstrap.execution_not_ready");
+				return;
+			}
+			if (!repairBootstrapGoal(snapshot))
+			{
+				failAction(action, "bootstrap.goal_conflict");
+				return;
+			}
+		}
+		catch (PhantomGoalStateStore.PublicationPending pending)
+		{
+			// The execution control port owns the transfer. A later pulse must read the durable Goal.
+			retryOrFail(action, "bootstrap.goal_publication_pending");
 			return;
 		}
-		synchronized (_monitor)
+		catch (ConcurrentModificationException conflict)
 		{
-			queueActionLocked(entry, RetryActionType.BOOTSTRAP_REGISTER, 0, _controlCalls);
+			retryOrFail(action, "bootstrap.goal_publication_conflict");
+			return;
 		}
+		queueNext(action, registration);
 	}
 
-	private boolean repairBootstrapGoal(Entry entry)
+	private boolean repairBootstrapGoal(ManagedSnapshot snapshot)
 	{
 		if (_goals == null)
 		{
 			return true;
 		}
-		final long profileId = entry._snapshot.profile().profileId();
+		final long profileId = snapshot.profile().profileId();
+		final PhantomGoal bootstrap = bootstrapGoal(snapshot);
 		final Optional<StoredGoal> stored = _goals.load(profileId);
 		if (stored.isPresent())
 		{
 			final PhantomGoal goal = stored.get().goal();
-			if (BOOTSTRAP_GOAL_TYPE.equals(goal.goalType()) && (goal.status() == PhantomGoalStatus.ACTIVE))
-			{
-				return true;
-			}
-			if (BOOTSTRAP_GOAL_TYPE.equals(goal.goalType()))
-			{
-				_goals.delete(profileId, stored.get().rowVersion());
-			}
-			else
+			if (!BOOTSTRAP_GOAL_TYPE.equals(goal.goalType()) || (goal.goalId() != bootstrap.goalId())
+				|| !goal.subject().equals(bootstrap.subject()) || !Objects.equals(goal.constraints().get("generation"), snapshot.state().populationGeneration()))
 			{
 				return false;
 			}
+			if (goal.status() == PhantomGoalStatus.ACTIVE)
+			{
+				return true;
+			}
+			_goals.delete(profileId, stored.get().rowVersion());
 		}
-		_goals.insert(profileId, bootstrapGoal(entry._snapshot));
+		_goals.insert(profileId, bootstrap);
 		return true;
 	}
 
@@ -1087,6 +1131,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			switch (action.type())
 			{
+				case BOOTSTRAP_GOAL -> processBootstrapGoal(action, RetryActionType.BOOTSTRAP_REGISTER);
 				case BOOTSTRAP_REGISTER -> processRegister(action, RetryActionType.BOOTSTRAP_ATTACH);
 				case BOOTSTRAP_ATTACH -> processAttach(action, RetryActionType.BOOTSTRAP_SIGNAL);
 				case BOOTSTRAP_SIGNAL -> processSignal(action, BOOTSTRAP_SIGNAL_SOURCE, PhantomActivityState.WARM, RetryActionType.BOOTSTRAP_REGISTER);
@@ -1098,6 +1143,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				case RETIRE_WITHDRAW -> processRetireWithdraw(action);
 				case RETIRE_UNREGISTER -> processRetireUnregister(action);
 				case RETIRE_COMPLETE -> processRetireComplete(action);
+				case RETURN_BOOTSTRAP_GOAL -> processBootstrapGoal(action, RetryActionType.RETURN_REGISTER);
 				case RETURN_REGISTER -> processRegister(action, RetryActionType.RETURN_ATTACH);
 				case RETURN_ATTACH -> processAttach(action, RetryActionType.RETURN_SCHEDULE);
 				case RETURN_SCHEDULE -> processReturnSchedule(action);
@@ -1577,20 +1623,6 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 
 	private void returnRetired(long profileId)
 	{
-		final Entry entry;
-		synchronized (_monitor)
-		{
-			entry = _entries.get(profileId);
-			if ((entry == null) || (entry._snapshot.state().state() != State.RETIRED))
-			{
-				return;
-			}
-		}
-		if ((entry._snapshot.state().creationStage() != PhantomPopulationState.CreationStage.LINKED) && !repairBootstrapGoal(entry))
-		{
-			markInconsistent(profileId, "bootstrap.goal_conflict");
-			return;
-		}
 		synchronized (_monitor)
 		{
 			final Entry current = _entries.get(profileId);
@@ -1598,7 +1630,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				current._ownershipGeneration++;
 				current._queuedActions.clear();
-				queueActionLocked(current, RetryActionType.RETURN_REGISTER, 0, _controlCalls);
+				final boolean linked = current._snapshot.state().creationStage() == PhantomPopulationState.CreationStage.LINKED;
+				queueActionLocked(current, linked ? RetryActionType.RETURN_REGISTER : RetryActionType.RETURN_BOOTSTRAP_GOAL, 0, _controlCalls);
 			}
 		}
 	}
@@ -2072,6 +2105,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 
 	public enum RetryActionType
 	{
+		BOOTSTRAP_GOAL,
 		BOOTSTRAP_REGISTER,
 		BOOTSTRAP_ATTACH,
 		BOOTSTRAP_SIGNAL,
@@ -2083,6 +2117,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		RETIRE_WITHDRAW,
 		RETIRE_UNREGISTER,
 		RETIRE_COMPLETE,
+		RETURN_BOOTSTRAP_GOAL,
 		RETURN_REGISTER,
 		RETURN_ATTACH,
 		RETURN_SCHEDULE

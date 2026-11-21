@@ -1076,7 +1076,11 @@ public final class PhantomSystem
 				}));
 				_decisionEngine.start();
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
-				_populationManager.installDecisionEngine(_decisionEngine);
+				_populationManager.installDecisionEngine(_decisionEngine, id ->
+				{
+					_executionControl.watch(id);
+					return _executionControl.owner(id) != null;
+				});
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_executionControl,
 					executionControl(_populationManager, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo), executionControl(_partyCoordinator, this::partyExecutionScope),
 					executionControl(_conversationService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo), executionControl(_conversationExecutionService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo),

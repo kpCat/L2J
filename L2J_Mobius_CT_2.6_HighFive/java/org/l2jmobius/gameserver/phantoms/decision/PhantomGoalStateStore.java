@@ -34,7 +34,7 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 	{
 		private static final long serialVersionUID = 1L;
 
-		private PublicationPending()
+		PublicationPending()
 		{
 			super("Goal publication awaits REQUEST/YIELD/CHECKPOINT/TRANSFER.");
 		}
