@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -36,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.ScheduledArm;
+import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
 
 /** Records the existing native cast/apply receipts for one active TASK131 episode at a time. */
 final class PhantomLearning131Capture
@@ -93,12 +95,31 @@ final class PhantomLearning131Capture
 	private final AtomicReference<Episode> current = new AtomicReference<>();
 	private final TacticalPolicyV3 tactical;
 	private final LearningPolicy damage;
+	private final boolean heuristicAudit;
 
 	PhantomLearning131Capture(String manifestSha, ActionValueV4 model)
 	{
+		this(manifestSha, Objects.requireNonNull(model), false);
+	}
+
+	static PhantomLearning131Capture heuristicAudit(String manifestSha)
+	{
+		return new PhantomLearning131Capture(manifestSha, null, true);
+	}
+
+	private PhantomLearning131Capture(String manifestSha, ActionValueV4 model, boolean heuristicAudit)
+	{
+		this.heuristicAudit = heuristicAudit;
 		tactical = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, heal -> paid(TacticalReceiptV3.fromHeal(heal)));
-		tactical.actionValueTest(TacticalPolicyV3.Mode.ON, model, _ -> { });
-		tactical.actionEpisodes131(this::selectExperiment, this::before);
+		if (heuristicAudit)
+		{
+			tactical.actionHeuristicAudit131(this::selectExperiment, this::before);
+		}
+		else
+		{
+			tactical.actionValueTest(TacticalPolicyV3.Mode.ON, model, _ -> { });
+			tactical.actionEpisodes131(this::selectExperiment, this::before);
+		}
 		tactical.damageObserver(this::paid);
 		damage = LearningPolicy.ownedEpisodes131(tactical, manifestSha);
 		damage.observer(new LearningPolicy.Observer()
@@ -127,6 +148,7 @@ final class PhantomLearning131Capture
 	{
 		synchronized (episode)
 		{
+			require(episode.experiment.plan().heuristicAudit() == heuristicAudit, "EPISODE_POLICY_MODE");
 			require(episode.accepting && current.compareAndSet(null, episode), "EPISODE_OVERLAP");
 		}
 	}
@@ -255,21 +277,22 @@ final class PhantomLearning131Capture
 		return new Settlement(plan, settled, receipts, intents, decisions);
 	}
 
-	/** Seal the C/R decision and dispatch originals after this arm's native players have drained. */
+	/** Seal the C/H/R decision and dispatch originals after this arm's native players have drained. */
 	String publishAuditPolicy(Episode episode, ScheduledArm scheduled, Path bindingFile, String bindingSha, String head,
 		Map<Integer, Player> drained, String nonce) throws IOException
 	{
 		require(nonce != null && nonce.matches("[a-f0-9]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
-			&& head.matches("[a-f0-9]{64}"), "OWNED_FROZEN_POLICY");
+			&& (heuristicAudit ? "NONE".equals(head) : head.matches("[a-f0-9]{64}")), "OWNED_FROZEN_POLICY");
 		PhantomLearning131Native.taskRoot(bindingFile);
 		PhantomLearning131Native.physical(bindingFile, true);
-		final var binding = PhantomLearning131Evaluation.modelArmBinding(scheduled, bindingFile, bindingSha);
+		final var binding = PhantomLearning131Evaluation.policyArmBinding(scheduled, bindingFile, bindingSha);
 		final Path directory = bindingFile.getParent();
 		require(bindingFile.getFileName().toString().equals("binding131.tsv") && directory.getFileName().toString().equals(binding.episodeId())
 			&& directory.getParent().getFileName().toString().equals("episodes"), "FROZEN_POLICY_OUTPUT");
 		final var plan = episode.experiment.plan();
 		require(plan.split().equals("AUDIT") && plan.episode().equals(binding.episodeId()) && plan.sourceSha().equals(scheduled.fixtureSha())
-			&& plan.modelSha().equals(binding.modelSha()) && episode.started == binding.started() && drained.keySet().equals(binding.scoredEpochs().keySet())
+			&& (scheduled.slot().arm() == Arm.H) == heuristicAudit && plan.modelSha().equals(binding.modelSha())
+			&& episode.started == binding.started() && drained.keySet().equals(binding.scoredEpochs().keySet())
 			&& episode.roster.size() == drained.size(), "FROZEN_POLICY_SCOPE");
 		for (Actor actor : episode.roster.values())
 		{
@@ -287,7 +310,8 @@ final class PhantomLearning131Capture
 			intents = List.copyOf(episode.intents.values());
 		}
 		final var decisions = episode.experiment.decisions();
-		episode.experiment.verifyFrozenLog(decisions);
+		if (heuristicAudit) { ActionExplorationV4.verifyHeuristicLog(decisions); }
+		else { episode.experiment.verifyFrozenLog(decisions); }
 		final var encoder = Base64.getUrlEncoder().withoutPadding();
 		final var proof = new StringBuilder(row("meta", "schema", "NATIVE_FROZEN_POLICY131_V1"))
 			.append(row("meta", "episodeId", binding.episodeId())).append(row("meta", "bindingSha", binding.sha()))

@@ -1,5 +1,5 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024,end-off-v24.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
+G0	P0	UNKNOWN	S024,end-off-v25.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
 G1	P1	UNKNOWN	TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14	Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
 G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE, AREA/AURA и ограниченное окно смерти или дефицита MP, живые эффекты и tactical frame открыты
@@ -27,7 +27,7 @@ D4	P1–P2	UNKNOWN	aggregate-v2.log	Обычный PvE и Party использу
 D5	P4	UNKNOWN	ant-combat-v19-reviewed.log,v19-PhantomLearning131EvaluationChecks.log	Офлайн проверены порядок коммитов C/R, replay закреплённой модели и точная связь выбранного действия с нативным допуском, живые фазы открыты
 D6	P4	UNKNOWN	ant-combat-v21-final.log,v21-recharge-red.log,v21-native-evidence-continuation022.log	Офлайн проверены раздельный учёт расхода кастера и прироста MP союзника, нулевой исход Recharge и отрицательные контроли, живые квитанции и обучение поддержки открыты
 D7	P4	PASS	aggregate-v5-reviewed.log	Офлайн 257, rollover, полный эпизод, prepared receipts, абсолютные времена, cold load и replay
-D8	P4	UNKNOWN	v24-escape-reviewed.log,v23-final-evaluation-checks.log,v22-controller-e2e-final.log	Офлайн проверены точные оригиналы NPC aggro и оплаченного PvP Return/Party Recall, живой AUDIT и нативные решения ролей остаются открытыми
+D8	P4	UNKNOWN	v25-heuristic-reviewed.log,v25-frozen-reviewed.log,v22-controller-e2e-final.log	Офлайн проверены выбор H без модели и привязка Intent к касту, самостоятельный S и живой C/H/S/R остаются открытыми
 D9	P3–P5	UNKNOWN	TRAINING131_CONTROL_CHECKS_PASS	Офлайн удержание квоты и неизменяемый статус проверены, устойчивость живой кампании открыта
 D10	P6	NOT_RUN	NONE	Native workload и structural fixture не выполнены
 N01	P3	NOT_RUN	n01-setup-r4/n01-scenes.tsv	Три площадки SETUP с респавном, боевые циклы и награды ещё не измерены

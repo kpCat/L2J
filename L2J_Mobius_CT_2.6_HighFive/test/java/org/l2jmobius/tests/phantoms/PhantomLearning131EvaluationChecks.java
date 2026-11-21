@@ -790,6 +790,7 @@ public final class PhantomLearning131EvaluationChecks
 			}
 			catch (IllegalArgumentException refused) { check(refused.getMessage().contains("committed ancestor"), "checkpoint must be in committed lineage"); }
 			check(ActionContinuationV4.load(root).head().equals(state.head()), "AUDIT verification is read-only");
+			verifyHeuristicAuditControl(episode, scene, observed, stock, other, owner, operation, plan, rows);
 		}
 		finally
 		{
@@ -797,6 +798,63 @@ public final class PhantomLearning131EvaluationChecks
 			{
 				for (var path : paths.sorted(Comparator.reverseOrder()).toList()) { Files.delete(path); }
 			}
+		}
+	}
+
+	private static void verifyHeuristicAuditControl(String episode, String scene, TacticalObservationV3 observed, LegalActionV3 stock, LegalActionV3 other,
+		SourceOwner owner, String operation, ActionExplorationV4.Plan modelPlan, List<String[]> modelRows)
+	{
+		final var plan = new ActionExplorationV4.Plan(2, "HEURISTIC_V2", 0, 0, 0, "AUDIT", episode, scene, "NONE", modelPlan.skills());
+		refuse(() -> new ActionExplorationV4.Plan(2, "HEURISTIC_V2", 0, 0, 0, "AUDIT", episode, scene, modelPlan.modelSha(), modelPlan.skills()),
+			"H excludes checkpoint weights from its plan");
+		final var experiment = new ActionExplorationV4(plan);
+		final var before = System.getProperty("phantom.learning.train");
+		try
+		{
+			System.setProperty("phantom.learning.train", "true");
+			final var capture = PhantomLearning131Capture.heuristicAudit("a".repeat(64));
+			final var roster = List.of(new PhantomLearning131Capture.Actor(1, 42, 7));
+			final var opponents = java.util.Set.of(new PhantomLearning131Capture.Target(102, 91));
+			final var train = new ActionExplorationV4(new ActionExplorationV4.Plan(2, "EPSILON_V2", 1, 1, .10, "TRAIN", episode,
+				scene, modelPlan.modelSha(), modelPlan.skills()));
+			try
+			{
+				capture.open(new PhantomLearning131Capture.Episode(train, observed.capturedNanos(), roster, opponents));
+				throw new AssertionError("The model-free H observer cannot admit a TRAIN session");
+			}
+			catch (IllegalStateException refused)
+			{
+				check(refused.getMessage().equals("TASK131_CAPTURE_EPISODE_POLICY_MODE"), "Only an H session can open the H observer");
+			}
+			capture.open(new PhantomLearning131Capture.Episode(experiment, observed.capturedNanos(), roster, opponents));
+			check(capture.selectExperiment(observed, List.of(stock, other)) == experiment && capture.damage().collecting(),
+				"Model-free H offers the canonical cast path a TEST-only in-memory observer");
+			final var decision = experiment.choose(observed, List.of(stock, other), stock, other, true, Long.MAX_VALUE);
+			check(decision.selected().equals(stock) && decision.mode().equals("BASELINE"), "H selects the canonical heuristic even when a different ranking is supplied");
+			final long dispatched = decision.capturedNanos() + 1;
+			final var cast = new NativeCastTrace("4".repeat(64), 42, 7, 102, 91, 0, stock.skillId(), 1, stock.skillId(), 1,
+				dispatched, dispatched + 1, dispatched + 2, TacticalObservationV3.hash(observed.bytes()));
+			final var encoder = Base64.getUrlEncoder().withoutPadding();
+			final String[] choice = {"decision", encoder.encodeToString(decision.bytes())};
+			final String[] intent = {"intent", encoder.encodeToString(new Intent(decision, owner, dispatched).bytes())};
+			final long started = observed.capturedNanos();
+			final var window = new EpisodeWindow(started, dispatched + 10 - started, dispatched + 20 - started);
+			PhantomLearning131Evaluation.verifyHeuristicDispatch(episode, scene, List.of(choice, intent), Map.of(operation, cast), window);
+			refuse(() -> PhantomLearning131Evaluation.verifyHeuristicDispatch(episode, scene, List.of(choice, intent), Map.of(), window),
+				"A decision log alone is not a paid demonstration of H");
+			refuse(() -> PhantomLearning131Evaluation.verifyHeuristicDispatch(episode, scene, Collections.singletonList(choice), Map.of(operation, cast), window),
+				"H must prove that the frozen stock choice went through native dispatch");
+			refuse(() -> PhantomLearning131Evaluation.verifyHeuristicDispatch(episode, scene, modelRows, Map.of(), window),
+				"A model arm cannot masquerade as the H control even if it used the same heuristic skill");
+			refuse(() -> ActionExplorationV4.validateLog(List.of(decision)), "The historical fit verifier cannot grant credit from H");
+			final var late = new ActionExplorationV4(plan).choose(observed, List.of(stock, other), stock, true, observed.capturedNanos());
+			check(late.selected().equals(stock) && late.reason().equals("BUDGET_5MS"), "Late observation must preserve H's existing heuristic");
+			ActionExplorationV4.verifyHeuristicLog(List.of(late));
+		}
+		finally
+		{
+			if (before == null) { System.clearProperty("phantom.learning.train"); }
+			else { System.setProperty("phantom.learning.train", before); }
 		}
 	}
 

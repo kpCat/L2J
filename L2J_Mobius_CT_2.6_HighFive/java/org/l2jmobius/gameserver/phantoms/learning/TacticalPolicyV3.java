@@ -54,10 +54,31 @@ public final class TacticalPolicyV3
 	public synchronized void actionEpisodes131(BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
 		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
 	{
-		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || _experiment != null || _exploration != null
-			|| _episodes131 != null || !_last.isEmpty() || _model != null || _actionValueMode != Mode.ON || _actionValue == null)
+		if (_actionValueMode != Mode.ON || _actionValue == null)
 		{
-			throw new IllegalArgumentException("TASK131 requires an exclusive TEST episode source and fixed V4 model");
+			throw new IllegalArgumentException("TASK131 model episodes require fixed V4 weights");
+		}
+		bindEpisodes131(episodes, healIntentSink);
+	}
+
+	/** Bind H after explicitly verifying that no learning model is installed. */
+	public synchronized void actionHeuristicAudit131(BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
+		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
+	{
+		if (_actionValueMode != Mode.OFF || _actionValue != null)
+		{
+			throw new IllegalArgumentException("TASK131 heuristic AUDIT requires learning OFF and no weights");
+		}
+		bindEpisodes131(episodes, healIntentSink);
+	}
+
+	private void bindEpisodes131(BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
+		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
+	{
+		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || _experiment != null || _exploration != null
+			|| _episodes131 != null || !_last.isEmpty() || _model != null)
+		{
+			throw new IllegalArgumentException("TASK131 requires an exclusive TEST episode source");
 		}
 		_healIntentSink = Objects.requireNonNull(healIntentSink);
 		_episodes131 = Objects.requireNonNull(episodes);
@@ -70,7 +91,10 @@ public final class TacticalPolicyV3
 		final var source = _episodes131;
 		if (source == null) { return _experiment; }
 		final var active = source.apply(observation, offered);
-		return active != null && active.plan().schemaVersion() == 2 && active.plan().modelSha().equals(_actionValue.sha256()) ? active : null;
+		if (active == null || active.plan().schemaVersion() != 2) { return null; }
+		final var plan = active.plan();
+		final var weights = _actionValue;
+		return (weights == null ? plan.heuristicAudit() : !plan.heuristicAudit() && plan.modelSha().equals(weights.sha256())) ? active : null;
 	}
 	private volatile Mode _actionValueMode = Mode.OFF;
 	private volatile ActionValueV4 _actionValue;
@@ -271,6 +295,12 @@ public final class TacticalPolicyV3
 		int stock, boolean safe, long deadline)
 	{
 		final var stockAction = offered.get(stock);
+		if (experiment.plan().heuristicAudit())
+		{
+			final var decision = experiment.choose(observation, offered, stockAction, safe, deadline);
+			reason(decision.mode(), observation.profileId(), decision.selected().targetObjectId());
+			return decision;
+		}
 		final ActionValueDecision model;
 		final ActionExplorationV4.Decision decision;
 		if (experiment.plan().frozenInference())
@@ -339,8 +369,9 @@ public final class TacticalPolicyV3
 					_lastMargin=best-second;
 					if (best - second < .025f || _mode != Mode.ON) { reason(_mode!=Mode.ON?"SHADOW":"MARGIN",ref.profileId(),0);selected = 0; }
 				}
-				if (System.nanoTime() - now > 5_000_000L) { reason("BUDGET_5MS",ref.profileId(),0);overBudget.increment(); selected = 0; }
-				else if(_exploration!=null&&!_exploration.spent())
+				final boolean rankingDeadlinePassed = System.nanoTime() - now > 5_000_000L;
+				if (rankingDeadlinePassed) { reason("BUDGET_5MS",ref.profileId(),0);overBudget.increment(); selected = 0; }
+				if (!rankingDeadlinePassed && _exploration != null && !_exploration.spent())
 				{
 					var session=_exploration;
 					var decision=session.offer(observation,offered,offered.getFirst(),actor.getNativeWorkOwner()!=null&&actor.getNativeWorkOwner().isCurrent()
@@ -354,9 +385,9 @@ public final class TacticalPolicyV3
 						session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),ref.profileId(),decision.selected().targetObjectId());
 					}
 				}
-				else if (experiment != null && offered.stream().allMatch(experiment.plan()::accepts))
+				else if (experiment != null && (!rankingDeadlinePassed || experiment.plan().heuristicAudit()) && offered.stream().allMatch(experiment.plan()::accepts))
 				{
-					final boolean safe = actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
+					final boolean safe = !rankingDeadlinePassed && actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
 						&& actor.getCurrentHp() > actor.getMaxHp() * .30 && actor.getAttackByList().isEmpty()
 						&& observation.partyIdentity().equals(TacticalSnapshotV3.partyIdentity(actor))
 						&& offered.stream().allMatch(action -> safeHealAlternative(actor, action));

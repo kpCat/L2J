@@ -84,7 +84,7 @@ public final class PhantomLearning131Evaluation
 	record SoloDamageBinding(String episodeId, String sha, long started, long actorEpoch, long targetEpoch) { }
 	record DuelDamageBinding(String episodeId, String sha, long started, long scoredEpoch, long opponentEpoch) { }
 	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs, Set<Integer> scoredPlayers, Map<Integer, Long> npcEpochs) { }
-	record ModelArmBinding(String episodeId, String sha, long started, String modelSha, Map<Integer, Long> scoredEpochs) { }
+	record PolicyArmBinding(String episodeId, String sha, long started, String modelSha, Map<Integer, Long> scoredEpochs) { }
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt, Set<String> encounters) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, String modelProofSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
@@ -447,7 +447,7 @@ public final class PhantomLearning131Evaluation
 					verifyModelArchive(manifestPath, manifest);
 					modelOrderVerified = true;
 				}
-					verifyModelArm(manifestPath, manifest, directory, occurrence, binding, auditRows, window);
+				verifyPolicyArm(manifestPath, manifest, directory, occurrence, binding, auditRows, window);
 				final var raw = new Raw(binding, occurrence.block(), audit.prices(), window);
 				for (String[] event : evidence.rows())
 				{
@@ -459,17 +459,17 @@ public final class PhantomLearning131Evaluation
 		return report(audit, origins.sha(), plans, rows);
 	}
 
-	private static void verifyModelArm(Path manifestPath, Document manifest, Path directory, Occurrence occurrence, Binding binding,
+	private static void verifyPolicyArm(Path manifestPath, Document manifest, Path directory, Occurrence occurrence, Binding binding,
 		AuditRows originals, EpisodeWindow window) throws IOException
 	{
 		final Arm arm = binding.slot().arm();
-		if (arm == Arm.H || arm == Arm.S)
+		if (arm == Arm.S)
 		{
 			require(occurrence.modelProofSha().equals("NONE"), "MODEL_PROOF_IN_CONTROL_ARM");
 			return;
 		}
-		if (occurrence.modelProofSha().equals("NONE")) { throw new Incomplete("FROZEN_MODEL_DISPATCH_MISSING"); }
-		final String head = manifest.get(arm == Arm.C ? "candidateHead" : "referenceHead");
+		if (occurrence.modelProofSha().equals("NONE")) { throw new Incomplete(arm == Arm.H ? "HEURISTIC_DISPATCH_MISSING" : "FROZEN_MODEL_DISPATCH_MISSING"); }
+		final String head = arm == Arm.H ? "NONE" : manifest.get(arm == Arm.C ? "candidateHead" : "referenceHead");
 		final Document proof = document(directory.resolve("policy131.tsv"), "NATIVE_FROZEN_POLICY131_V1", "schema", "episodeId", "bindingSha", "arm", "modelHead");
 		require(proof.sha().equals(occurrence.modelProofSha()) && proof.get("episodeId").equals(occurrence.id()) && proof.get("bindingSha").equals(binding.document().sha())
 			&& proof.get("arm").equals(arm.name()) && proof.get("modelHead").equals(head), "FROZEN_MODEL_ORIGIN_PIN");
@@ -483,12 +483,39 @@ public final class PhantomLearning131Evaluation
 			final var cast = heal.original().cast();
 			if (binding.participants().get(cast.actorObjectId()).side() == binding.slot().side()) { paid.put(heal.operationId(), cast); }
 		}
-		verifyFrozenDispatch(modelArchive(manifestPath), head, occurrence.id(), occurrence.block().fixtureSha(), binding.document().get("modelSha"),
-			proof.rows(), paid, window);
+		if (arm == Arm.H)
+		{
+			verifyHeuristicDispatch(occurrence.id(), occurrence.block().fixtureSha(), proof.rows(), paid, window);
+		}
+		else
+		{
+			verifyFrozenDispatch(modelArchive(manifestPath), head, occurrence.id(), occurrence.block().fixtureSha(), binding.document().get("modelSha"),
+				proof.rows(), paid, window);
+		}
 	}
 
 	static void verifyFrozenDispatch(Path lineage, String head, String episode, String fixtureSha, String modelSha, List<String[]> rows,
 		Map<String, NativeCastTrace> paid, EpisodeWindow window) throws IOException
+	{
+		final var decisions = verifyDispatch(rows, episode, paid, window);
+		final var plan = decisions.getFirst().plan();
+		require(plan.policyId().equals("MODEL_V2") && plan.split().equals("AUDIT") && plan.episode().equals(episode)
+			&& plan.sourceSha().equals(fixtureSha) && plan.modelSha().equals(modelSha), "FROZEN_DISPATCH_PLAN");
+		ActionExplorationV4.frozenCommitted(plan, lineage, head).verifyFrozenLog(decisions);
+	}
+
+	static void verifyHeuristicDispatch(String episode, String fixtureSha, List<String[]> rows,
+		Map<String, NativeCastTrace> paid, EpisodeWindow window)
+	{
+		final var decisions = verifyDispatch(rows, episode, paid, window);
+		final var plan = decisions.getFirst().plan();
+		require(plan.heuristicAudit() && plan.episode().equals(episode) && plan.sourceSha().equals(fixtureSha), "HEURISTIC_DISPATCH_PLAN");
+		ActionExplorationV4.verifyHeuristicLog(decisions);
+		require(!paid.isEmpty(), "HEURISTIC_PAID_DISPATCH_REQUIRED");
+	}
+
+	private static List<ActionExplorationV4.Decision> verifyDispatch(List<String[]> rows, String episode, Map<String, NativeCastTrace> paid,
+		EpisodeWindow window)
 	{
 		require(!rows.isEmpty() && rows.size() <= 128, "MODEL_PROOF_ROW_LIMIT");
 		final var decoder = Base64.getUrlDecoder();
@@ -519,20 +546,17 @@ public final class PhantomLearning131Evaluation
 			}
 		}
 		require(!decisions.isEmpty(), "MISSING_FROZEN_MODEL_DECISIONS");
-		final var plan = decisions.getFirst().plan();
-		require(plan.policyId().equals("MODEL_V2") && plan.split().equals("AUDIT") && plan.episode().equals(episode)
-			&& plan.sourceSha().equals(fixtureSha) && plan.modelSha().equals(modelSha), "FROZEN_DISPATCH_PLAN");
 		final var used = new HashSet<String>();
 		for (var intent : intents.values())
 		{
 			final String key = intent.decision().sha256();
 			require(decisionKeys.contains(key) && used.add(key), "MODEL_INTENT_WITHOUT_UNIQUE_DECISION");
 		}
-		ActionExplorationV4.frozenCommitted(plan, lineage, head).verifyFrozenLog(decisions);
-		paid.forEach((operation, cast) -> require(matchesModelDispatch(intents.get(operation), cast), "MODEL_NATIVE_DISPATCH"));
+		paid.forEach((operation, cast) -> require(matchesPolicyDispatch(intents.get(operation), cast), "MODEL_NATIVE_DISPATCH"));
+		return decisions;
 	}
 
-	private static boolean matchesModelDispatch(Intent intent, NativeCastTrace cast)
+	private static boolean matchesPolicyDispatch(Intent intent, NativeCastTrace cast)
 	{
 		if (intent == null || intent.capturedNanos() < cast.decisionNanos() || intent.capturedNanos() > cast.admittedNanos()) { return false; }
 		final var decision = intent.decision();
@@ -1031,16 +1055,16 @@ public final class PhantomLearning131Evaluation
 		return new HealBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), Map.copyOf(players), Set.copyOf(scoredPlayers), Map.copyOf(npcs));
 	}
 
-	static ModelArmBinding modelArmBinding(ScheduledArm scheduled, Path path, String expectedSha) throws IOException
+	static PolicyArmBinding policyArmBinding(ScheduledArm scheduled, Path path, String expectedSha) throws IOException
 	{
 		final Slot slot = scheduled.slot();
-		require(slot.arm() == Arm.C || slot.arm() == Arm.R, "MODEL_ARM_REQUIRED");
+		require(slot.arm() == Arm.C || slot.arm() == Arm.H || slot.arm() == Arm.R, "AUDIT_POLICY_ARM_REQUIRED");
 		final var binding = scheduledBinding(scheduled, path, expectedSha, "MODEL_ARM");
 		final var roster = participants(binding, slot.side());
 		final var scored = new HashMap<Integer, Long>();
 		roster.forEach((actor, member) -> { if (member.side() == slot.side()) { scored.put(actor, member.epoch()); } });
-		require(scored.size() == scheduled.block().scene().initialRosterSize() && roster.size() - scored.size() == scheduled.opponentSize(), "MODEL_ARM_ROSTER");
-		return new ModelArmBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), digest(binding.get("modelSha")), Map.copyOf(scored));
+		require(scored.size() == scheduled.block().scene().initialRosterSize() && roster.size() - scored.size() == scheduled.opponentSize(), "AUDIT_POLICY_ARM_ROSTER");
+		return new PolicyArmBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), binding.get("modelSha"), Map.copyOf(scored));
 	}
 
 	private static Document scheduledBinding(ScheduledArm scheduled, Path path, String expectedSha, String name) throws IOException
