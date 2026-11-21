@@ -12,6 +12,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
+import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
@@ -129,6 +130,7 @@ public final class LearningCastEvidence
 	private final long _created = System.nanoTime();
 	private final double _maxHp;
 	private boolean _bound;
+	private boolean _immediatePublished;
 	private boolean _issued;
 	private boolean _completed;
 	private boolean _published;
@@ -166,21 +168,65 @@ public final class LearningCastEvidence
 
 	public static void dispatch(LearningPolicy.Attempt attempt, Player actor, Monster target, Skill skill, BooleanSupplier leaseValid, Runnable nativeDispatch)
 	{
+		dispatchMonster(attempt, actor, target, skill, leaseValid, nativeDispatch, false);
+	}
+
+	public static boolean dispatchImmediateSolo(LearningPolicy.Attempt attempt, Player actor, Monster target, Skill skill,
+		BooleanSupplier leaseValid, Runnable nativeDispatch)
+	{
+		if (!TRAIN || !archivedSolo(attempt) || DISPATCH.get() != null) { return false; }
+		return dispatchMonster(attempt, actor, target, skill, leaseValid, nativeDispatch, true);
+	}
+
+	private static boolean archivedSolo(LearningPolicy.Attempt attempt)
+	{
+		return attempt.tactical() != null && attempt.tactical().observation().stockSelection() instanceof TacticalObservationV3.StockSoloSelection;
+	}
+
+	/** The existing native CAST guards can only see this exact writer while it submits synchronously. */
+	public static boolean immediateSoloDispatch(Creature actor)
+	{
+		if (!TRAIN) { return false; }
+		final var ticket = DISPATCH.get();
+		return ticket != null && ticket._actor == actor && archivedSolo(ticket._attempt);
+	}
+
+	private static boolean dispatchMonster(LearningPolicy.Attempt attempt, Player actor, Monster target, Skill skill,
+		BooleanSupplier leaseValid, Runnable nativeDispatch, boolean immediate)
+	{
 		final LearningCastEvidence previous = DISPATCH.get();
 		final LearningCastEvidence ticket = new LearningCastEvidence(attempt, actor, target, skill, leaseValid);
+		if (immediate && ticket.lifetimeRejection() != null) { return false; }
+		final var priorSkill = immediate ? actor.getCurrentSkill() : null;
 		attempt.policy().observeIssued(attempt, actor, target);
 		DISPATCH.set(ticket);
 		try
 		{
 			nativeDispatch.run();
-			ticket.issued();
+			if (immediate && !ticket._immediatePublished) { ticket.cancelled(); }
+			else { ticket.issued(); }
 		}
 		catch (RuntimeException | Error unavailable) { ticket.cancelled(); throw unavailable; }
 		finally
 		{
-			restore(DISPATCH, previous);
+			try
+			{
+				// Match the unsubmitted scoped AoE cleanup. Preserve any previously owned cast.
+				if (immediate && !ticket._immediatePublished && actor.getNativeWorkOwner() == ticket._owner && actor.hasAI())
+				{
+					final var current = actor.getCurrentSkill();
+					if (current != null && current != priorSkill && current.getSkill() == skill && actor.getAI().getIntention() == Intention.CAST)
+					{
+						actor.getAI().setIntention(Intention.ACTIVE);
+					}
+				}
+			}
+			finally { restore(DISPATCH, previous); }
 		}
+		return ticket._immediatePublished;
 	}
+
+	public void immediatePublished() { _immediatePublished = true; }
 
 	public static boolean dispatchPvp(LearningPolicy.Attempt attempt, Player actor, Player opponent, Skill skill, BooleanSupplier leaseValid, BooleanSupplier nativeDispatch)
 	{

@@ -101,6 +101,11 @@ public class AutoUseSettingsHolder
 	{
 		_skillIndex++;
 	}
+
+	public int getSkillOrder()
+	{
+		return _skillIndex;
+	}
 	
 	public void resetSkillOrder()
 	{

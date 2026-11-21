@@ -17,7 +17,6 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSelection;
-import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSelection;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.*;
 
 /** A bounded tie-break inside stock Party support, with rescue and dispatch authority retained by its owner. */
@@ -46,12 +45,18 @@ public final class TacticalPolicyV3
 		StockAuditAuthority bind(long profileId, int actorObjectId, int targetObjectId);
 	}
 
-	public record StockAuditAuthority(Object episodeFence, BooleanSupplier current)
+	public record StockAuditAuthority(Object episodeFence, BooleanSupplier current, Runnable incomplete)
 	{
+		public StockAuditAuthority(Object episodeFence, BooleanSupplier current)
+		{
+			this(episodeFence, current, () -> { });
+		}
+
 		public StockAuditAuthority
 		{
 			Objects.requireNonNull(episodeFence);
 			Objects.requireNonNull(current);
+			Objects.requireNonNull(incomplete);
 		}
 
 		/** The same fence closes future dispatch, while already published native work drains. */
@@ -121,11 +126,11 @@ public final class TacticalPolicyV3
 
 	boolean hasEpisodes131() { return _episodes131 != null; }
 	boolean hasStockControl131() { return _episodes131 != null && _auditControl131 != null && _auditControl131.archived(); }
-	boolean hasStockPveControl131() { return hasStockControl131() && _auditControl131 == AuditControl.STOCK_PVE; }
-	StockAuditAuthority bindStockAudit131(long profileId, int actorId, int targetId, boolean pvp)
+	boolean hasStockControl131(AuditControl control) { return hasStockControl131() && _auditControl131 == control; }
+	boolean ownsPvp131() { return hasEpisodes131() && (!hasStockControl131() || _auditControl131 == AuditControl.STOCK_PVP); }
+	StockAuditAuthority bindStockAudit131(long profileId, int actorId, int targetId, AuditControl control)
 	{
-		return hasStockControl131() && _auditControl131 == (pvp ? AuditControl.STOCK_PVP : AuditControl.STOCK_PVE)
-			? _stockAuditScope131.bind(profileId, actorId, targetId) : null;
+		return hasStockControl131(control) ? _stockAuditScope131.bind(profileId, actorId, targetId) : null;
 	}
 
 	private ActionExplorationV4 experiment(TacticalObservationV3 observation, List<LegalActionV3> offered)
@@ -249,13 +254,14 @@ public final class TacticalPolicyV3
 		StockSelection stockSelection)
 	{
 		final boolean pvp = request.learningScope() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.PVP;
-		if (pvp && (_episodes131 == null || hasStockPveControl131())) { return null; }
-		if (hasStockControl131() != (stockSelection != null)) { return null; }
-		if (stockSelection != null && (pvp != (stockSelection instanceof StockPvpSelection)
-			|| _auditControl131 != (pvp ? AuditControl.STOCK_PVP : AuditControl.STOCK_PVE))) { return null; }
-		if (_mode == Mode.OFF || candidates.size() < 2 || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { reason("DAMAGE_OFFER_OR_MODE",request.profileId(),request.targetObjectId());return null; }
+		if (pvp && !ownsPvp131()) { return null; }
+		final var archive = ActionExplorationV4.archivedControl(stockSelection);
+		if (archive != (hasStockControl131() ? _auditControl131 : null) || archive != null && pvp != (archive == AuditControl.STOCK_PVP)) { return null; }
+		final int minimum = archive == AuditControl.STOCK_SOLO ? 1 : 2;
+		if (_mode == Mode.OFF || candidates.size() < minimum || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { reason("DAMAGE_OFFER_OR_MODE",request.profileId(),request.targetObjectId());return null; }
 		final long now = System.nanoTime(), profile = request.profileId();
-		if (_last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(profile)) { reason("COOLDOWN_OR_ACTOR_CAP",profile,request.targetObjectId());return null; }
+		if (archive != AuditControl.STOCK_SOLO && _last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos
+			|| _last.size() >= 256 && !_last.containsKey(profile)) { reason("COOLDOWN_OR_ACTOR_CAP",profile,request.targetObjectId());return null; }
 		if (!CPU_SLOT.tryAcquire()) { reason("CPU_SLOT",profile,request.targetObjectId());fallback.increment(); return null; }
 		final long allocated = allocated(), cpu = THREADS.getCurrentThreadCpuTime();
 		try

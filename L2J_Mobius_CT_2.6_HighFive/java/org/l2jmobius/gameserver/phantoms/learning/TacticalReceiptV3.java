@@ -14,7 +14,8 @@ public record TacticalReceiptV3(String eventKey, Attempt attempt, double beforeH
 		public Attempt
 		{
 			offered = List.copyOf(offered);
-			if (observation == null || observation.capturedNanos() <= 0 || modelVersion < 0 || offered.size() < 2 || offered.size() > 16
+			if (observation == null || observation.capturedNanos() <= 0 || modelVersion < 0 || offered.isEmpty() || offered.size() > 16
+				|| offered.size() < 2 && !(observation.stockSelection() instanceof TacticalObservationV3.StockSoloSelection)
 				|| !offered.contains(selected) || !offered.contains(baseline) || new HashSet<>(offered).size() != offered.size())
 			{ throw new IllegalArgumentException("Incomplete native V3 choice"); }
 			for (var action : offered)

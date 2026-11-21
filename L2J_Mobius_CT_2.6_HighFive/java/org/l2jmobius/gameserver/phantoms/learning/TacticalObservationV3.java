@@ -15,6 +15,7 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 	public static final int VERSION = 3, MAX_ENTITIES = 20;
 	private static final int STOCK_SKILLS = 4;
 	public static final int STOCK_PVP_SCAN_LIMIT = 256;
+	public static final int STOCK_SOLO_SKILL_LIMIT = 256;
 	public enum Role { SELF, ALLY, SUMMON, ENEMY }
 	public enum Field
 	{
@@ -48,10 +49,29 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 	}
 	public record PastAction(int skillId, int targetObjectId, long observedNanos) { }
 
-	public sealed interface StockSelection permits StockPveSelection, StockPvpSelection
+	public sealed interface StockSelection permits StockPveSelection, StockPvpSelection, StockSoloSelection
 	{
 		List<SelectedSkill> ready();
 		SelectedSkill selected();
+	}
+
+	/** The stock AutoUse cursor and the unavailable prefix from its actual scan. */
+	public record StockSoloSelection(int cursor, List<Integer> configured, int skipped, SelectedSkill selected) implements StockSelection
+	{
+		public StockSoloSelection
+		{
+			configured = List.copyOf(configured);
+			Objects.requireNonNull(selected);
+			if (cursor < 0 || cursor >= configured.size() || configured.size() > STOCK_SOLO_SKILL_LIMIT
+				|| skipped < 0 || skipped >= configured.size() || configured.stream().anyMatch(id -> id <= 0)
+				|| configured.stream().distinct().count() != configured.size()
+				|| configured.get((cursor + skipped) % configured.size()) != selected.skillId())
+			{
+				throw new IllegalArgumentException("Archived AutoUse scan does not reproduce the selected skill");
+			}
+		}
+
+		public List<SelectedSkill> ready() { return List.of(selected); }
 	}
 
 	public record StockPveSelection(int cursor, List<SelectedSkill> loadout, List<SelectedSkill> ready) implements StockSelection
@@ -142,6 +162,7 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 		+ "/gear32/item-grade-enchant-family-augmentation-known/effects64/skills128/history8/entity20/role-sort-objectid/no-hidden-hostile-facts").getBytes(StandardCharsets.UTF_8));
 	private static final String STOCK_PVE_SCHEMA = hash((SCHEMA + "/TASK131_STOCK_PVE_SELECTION_V1").getBytes(StandardCharsets.UTF_8));
 	private static final String STOCK_PVP_SCHEMA = hash((SCHEMA + "/TASK131_STOCK_PVP_SELECTION_V1").getBytes(StandardCharsets.UTF_8));
+	private static final String STOCK_SOLO_SCHEMA = hash((SCHEMA + "/TASK131_STOCK_SOLO_SELECTION_V1").getBytes(StandardCharsets.UTF_8));
 
 	public TacticalObservationV3(long decisionId, long capturedNanos, long profileId, int actorObjectId, long actorEpoch,
 		String partyIdentity, List<Entity> entities)
@@ -196,7 +217,14 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 		try
 		{
 			final var buffer = new ByteArrayOutputStream(); final var out = new DataOutputStream(buffer);
-			out.writeInt(VERSION); out.writeUTF(stockSelection instanceof StockPvpSelection ? STOCK_PVP_SCHEMA : stockSelection == null ? SCHEMA : STOCK_PVE_SCHEMA);
+			out.writeInt(VERSION);
+			out.writeUTF(switch (stockSelection)
+			{
+				case StockPveSelection ignored -> STOCK_PVE_SCHEMA;
+				case StockPvpSelection ignored -> STOCK_PVP_SCHEMA;
+				case StockSoloSelection ignored -> STOCK_SOLO_SCHEMA;
+				case null -> SCHEMA;
+			});
 			out.writeLong(decisionId); out.writeLong(capturedNanos); out.writeLong(profileId);
 			out.writeInt(actorObjectId); out.writeLong(actorEpoch); out.writeUTF(partyIdentity);
 			if (stockSelection instanceof StockPveSelection pve)
@@ -216,6 +244,12 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 				}
 				writeStockSkills(out, pvp.authored());
 				writeStockSkills(out, pvp.ready());
+			}
+			else if (stockSelection instanceof StockSoloSelection solo)
+			{
+				out.writeInt(solo.cursor()); out.writeInt(solo.skipped()); out.writeInt(solo.configured().size());
+				for (int skillId : solo.configured()) { out.writeInt(skillId); }
+				out.writeInt(solo.selected().skillId()); out.writeInt(solo.selected().skillLevel());
 			}
 			out.writeInt(entities.size());
 			for (Entity entity : entities)
@@ -253,12 +287,14 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 			final var in = new DataInputStream(new ByteArrayInputStream(bytes));
 			final int version = in.readInt();
 			final String schema = in.readUTF();
-			if (version != VERSION || !(SCHEMA.equals(schema) || STOCK_PVE_SCHEMA.equals(schema) || STOCK_PVP_SCHEMA.equals(schema))) { throw new IllegalArgumentException("Observation schema"); }
+			if (version != VERSION || !(SCHEMA.equals(schema) || STOCK_PVE_SCHEMA.equals(schema) || STOCK_PVP_SCHEMA.equals(schema) || STOCK_SOLO_SCHEMA.equals(schema)))
+			{ throw new IllegalArgumentException("Observation schema"); }
 			final long decision = in.readLong(), now = in.readLong(), profile = in.readLong(); final int actor = in.readInt(); final long epoch = in.readLong(); final String party = in.readUTF();
 			final StockSelection stock = switch (schema)
 			{
 				case String value when STOCK_PVE_SCHEMA.equals(value) -> new StockPveSelection(in.readInt(), readStockSkills(in), readStockSkills(in));
 				case String value when STOCK_PVP_SCHEMA.equals(value) -> readStockPvp(in);
+				case String value when STOCK_SOLO_SCHEMA.equals(value) -> readStockSolo(in);
 				default -> null;
 			};
 			final var entities = new ArrayList<Entity>();
@@ -309,6 +345,14 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 			learned.add(new StockPvpSkill(new SelectedSkill(in.readInt(), in.readInt()), in.readBoolean(), in.readInt(), in.readInt(), in.readBoolean()));
 		}
 		return new StockPvpSelection(limit, learned, readStockSkills(in), readStockSkills(in));
+	}
+
+	private static StockSoloSelection readStockSolo(DataInput in) throws IOException
+	{
+		final int cursor = in.readInt(), skipped = in.readInt();
+		final var configured = new ArrayList<Integer>();
+		for (int count = bounded(in.readInt(), STOCK_SOLO_SKILL_LIMIT); count > 0; count--) { configured.add(in.readInt()); }
+		return new StockSoloSelection(cursor, configured, skipped, new SelectedSkill(in.readInt(), in.readInt()));
 	}
 
 	private static void writeStockSkills(DataOutput out, List<SelectedSkill> skills) throws IOException

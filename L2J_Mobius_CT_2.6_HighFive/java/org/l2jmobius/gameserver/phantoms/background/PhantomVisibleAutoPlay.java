@@ -73,10 +73,12 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	/** Optional TEST131 policy over stock-ready candidates in the current visible Solo lifetime. */
 	public interface SoloOffense
 	{
+		boolean archived();
 		boolean active(long profileId, Player player);
 		boolean permitsSkill(long profileId, Skill skill);
 		AutoPlayTaskManager.ScopedOffenseChoice choose(long profileId, long epoch, long goalId, long goalRevision, Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
-			java.util.List<Skill> ready, Skill baseline, java.util.function.BooleanSupplier current);
+			java.util.List<Skill> ready, Skill baseline, java.util.function.BooleanSupplier current,
+			java.util.function.BooleanSupplier lifetime, org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSoloSelection archived);
 	}
 	private final Map<Long, Session> _sessions = new ConcurrentHashMap<>();
 	private final LongSupplier _clock;
@@ -916,24 +918,44 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		@Override public AutoPlayTaskManager.ScopedOffenseChoice chooseScopedOffense(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
 			java.util.List<Skill> ready, Skill baseline)
 		{
+			return observeSolo(player, target, ready, baseline, null);
+		}
+
+		@Override public boolean archivesSoloOffense(Player player)
+		{
+			return _soloOffense != null && _soloOffense.archived() && player == _player;
+		}
+
+		@Override public AutoPlayTaskManager.ScopedOffenseChoice observeArchivedSolo(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
+			Skill skill, org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSoloSelection archived)
+		{
+			return observeSolo(player, target, java.util.List.of(skill), skill, Objects.requireNonNull(archived));
+		}
+
+		private AutoPlayTaskManager.ScopedOffenseChoice observeSolo(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
+			java.util.List<Skill> ready, Skill baseline, org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSoloSelection archived)
+		{
 			final Session session = _sessions.get(_profileId);
 			final var owner = player.getNativeWorkOwner();
 			if (!usesScopedOffense(player) || session == null || session._policy != this || !session._commandGate.get() || session._yieldRequested || owner == null
-				|| ready.size() < 2 || ready.size() > 4 || !permitsScopedOffenseSkill(player, baseline) || ready.stream().anyMatch(skill -> !permitsScopedOffenseSkill(player, skill))
+				|| archivesSoloOffense(player) != (archived != null)
+				|| archived == null && (ready.size() < 2 || ready.size() > 4 || !permitsScopedOffenseSkill(player, baseline)
+					|| ready.stream().anyMatch(skill -> !permitsScopedOffenseSkill(player, skill)))
 				|| !preparedTarget(target)) { return null; }
 			final var generation = target.getNativeEvidenceTarget();
-			final java.util.function.BooleanSupplier current = () ->
+			final java.util.function.BooleanSupplier lifetime = () ->
 			{
 				final var engine = _decision.get();
 				final var goal = engine == null ? null : engine.find(_profileId).orElse(null);
-				return _sessions.get(_profileId) == session && session._current.get() && !session._yieldRequested && usesScopedOffense(player)
+				return _sessions.get(_profileId) == session && session._current.get() && !player.isInParty()
 					&& player.getNativeWorkOwner() == owner && owner.isCurrent() && owner.player() == player && owner.epoch() == session._epoch
 					&& goal != null && goal.goalId() == _goalId && goal.goalRevision() == _revision && goal.goalStatus() == PhantomGoalStatus.ACTIVE
-					&& _permitsOrdinary.test(_profileId) && _permitsNewRoots.test(_profileId) && _targetScope.test(player, target)
 					&& target.getInstanceId() == player.getInstanceId() && World.getInstance().findObject(target.getObjectId()) == target && generation.equals(target.getNativeEvidenceTarget());
 			};
+			final java.util.function.BooleanSupplier current = () -> lifetime.getAsBoolean() && !session._yieldRequested && usesScopedOffense(player)
+				&& _permitsOrdinary.test(_profileId) && _permitsNewRoots.test(_profileId) && _targetScope.test(player, target);
 			if (!current.getAsBoolean()) { return null; }
-			final var choice = _soloOffense.choose(_profileId, session._epoch, _goalId, _revision, player, target, ready, baseline, current);
+			final var choice = _soloOffense.choose(_profileId, session._epoch, _goalId, _revision, player, target, ready, baseline, current, lifetime, archived);
 			return choice == null ? null : new AutoPlayTaskManager.ScopedOffenseChoice(choice.skill(), cast ->
 			{
 				if (current.getAsBoolean() && permitsScopedOffenseSkill(player, choice.skill())) { choice.aroundCast().accept(cast); }

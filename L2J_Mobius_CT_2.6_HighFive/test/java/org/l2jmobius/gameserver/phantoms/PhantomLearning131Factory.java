@@ -16,6 +16,7 @@ import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSoloSelection;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.ScopedOffenseChoice;
@@ -40,6 +41,8 @@ public final class PhantomLearning131Factory
 		Objects.requireNonNull(permitsSkill);
 		final var solo = new PhantomVisibleAutoPlay.SoloOffense()
 		{
+			@Override public boolean archived() { return damage.visibleStockAudit131(); }
+
 			@Override
 			public boolean active(long profileId, Player actor)
 			{
@@ -54,14 +57,34 @@ public final class PhantomLearning131Factory
 
 			@Override
 			public ScopedOffenseChoice choose(long profileId, long epoch, long goalId, long goalRevision, Player actor, Monster target,
-				List<Skill> ready, Skill baseline, BooleanSupplier current)
+				List<Skill> ready, Skill baseline, BooleanSupplier current, BooleanSupplier lifetime, StockSoloSelection archived)
 			{
 				if (!active(profileId, actor)) { return null; }
-				final var attempt = damage.chooseVisible131(profileId, epoch, actor, target, ready, baseline, current);
-				if (attempt == null) { return null; }
-				final var selected = actor.getKnownSkill(attempt.candidate().skill().skillId());
-				if (selected == null || selected.getLevel() != attempt.candidate().skill().skillLevel()) { return null; }
-				return new ScopedOffenseChoice(selected, nativeCast -> LearningCastEvidence.dispatch(attempt, actor, target, selected, current, nativeCast));
+				final var authority = archived == null ? null : damage.bindVisibleStockAudit131(profileId, actor.getObjectId(), target.getObjectId());
+				if (archived != null && authority == null) { return null; }
+				final BooleanSupplier stillCurrent = authority == null ? current : () -> current.getAsBoolean() && authority.current().getAsBoolean();
+				final BooleanSupplier receiptLifetime = authority == null ? current : lifetime;
+				final var attempt = damage.chooseVisible131(profileId, epoch, actor, target, ready, baseline, stillCurrent, receiptLifetime, archived);
+				final var selected = attempt == null ? null : actor.getKnownSkill(attempt.candidate().skill().skillId());
+				if (selected == null || selected.getLevel() != attempt.candidate().skill().skillLevel() || archived != null && selected != baseline)
+				{
+					if (authority != null) { authority.submit(authority.incomplete()); }
+					return null;
+				}
+				return new ScopedOffenseChoice(selected, nativeCast ->
+				{
+					if (authority == null) { LearningCastEvidence.dispatch(attempt, actor, target, selected, receiptLifetime, nativeCast); }
+					else
+					{
+						authority.submit(() ->
+						{
+							if (stillCurrent.getAsBoolean() && !LearningCastEvidence.dispatchImmediateSolo(attempt, actor, target, selected, receiptLifetime, nativeCast))
+							{
+								authority.incomplete().run();
+							}
+						});
+					}
+				});
 			}
 		};
 		return PhantomSystem.startConfiguredForTesting(settings, inspection, observer, targetScope, new PhantomSystem.TestLearning131(damage, tactical, solo, admittedProfiles));

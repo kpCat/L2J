@@ -907,6 +907,28 @@ public final class PhantomLearning131EvaluationChecks
 				pvpDispatch, pvpDispatch + 1, pvpDispatch + 2, archivedTrace.observationSha());
 			refuse(() -> PhantomLearning131Evaluation.verifyControlDispatch(pvpControl, episode, scene, pvpRows,
 				Map.of(operation, traceWithPveObservation), pvpWindow), "Identical damage paid under a PvE observation is not PvP S evidence");
+			final var soloInput = new TacticalObservationV3.StockSoloSelection(2, List.of(other.skillId(), 4000, 5000), 1, ready.getLast());
+			refuse(() -> new TacticalObservationV3.StockSoloSelection(2, soloInput.configured(), 0, ready.getLast()),
+				"The actual number of rejected AutoUse slots determines the first issued skill after wrap");
+			final var soloPlan = new ActionExplorationV4.Plan(2, "STOCK_SOLO_V2", 0, 0, 0, "AUDIT", episode, scene, "NONE", plan.skills());
+			final var soloObserved = new TacticalObservationV3(observed.decisionId(), observed.capturedNanos(), observed.profileId(),
+				observed.actorObjectId(), observed.actorEpoch(), observed.partyIdentity(), observed.entities(), soloInput);
+			final var soloChoice = new ActionExplorationV4(soloPlan).choose(soloObserved, List.of(other), other, true, Long.MAX_VALUE);
+			check(java.util.Arrays.equals(soloChoice.bytes(), ActionExplorationV4.Decision.restore(soloChoice.bytes()).bytes()),
+				"The archived writer offers a single actual selection, with no fabricated alternative");
+			refuse(() -> new ActionExplorationV4(plan).choose(observed, List.of(stock), stock, true, Long.MAX_VALUE),
+				"An H control cannot use the singleton stock dispatch exception");
+			refuse(() -> ActionExplorationV4.validateLog(List.of(soloChoice)), "Visible Solo S cannot enter FIT");
+			final long soloDispatch = soloChoice.capturedNanos() + 1;
+			final var soloTrace = new NativeCastTrace(cast.eventKey(), 42, 7, 102, 91, 0, other.skillId(), 1, other.skillId(), 1,
+				soloDispatch, soloDispatch + 1, soloDispatch + 2, TacticalObservationV3.hash(soloObserved.bytes()));
+			final List<String[]> soloRows = List.of(new String[] { "decision", encoder.encodeToString(soloChoice.bytes()) },
+				new String[] { "intent", encoder.encodeToString(new Intent(soloChoice, owner, soloDispatch).bytes()) });
+			final var soloWindow = new EpisodeWindow(started, soloDispatch + 10 - started, soloDispatch + 20 - started);
+			final var soloControl = PhantomLearning131Evaluation.stockControl(Stratum.SOLO_PVE);
+			PhantomLearning131Evaluation.verifyControlDispatch(soloControl, episode, scene, soloRows, Map.of(operation, soloTrace), soloWindow);
+			refuse(() -> PhantomLearning131Evaluation.verifyControlDispatch(soloControl, episode, scene, archivedRows,
+				Map.of(operation, archivedTrace), archivedWindow), "The generic PvE archive cannot replace the visible Solo control");
 			refuse(() -> PhantomLearning131Evaluation.verifyHeuristicDispatch(episode, scene, archivedRows, Map.of(operation, archivedTrace), archivedWindow),
 				"The archived PvE transcript cannot serve as H");
 		}

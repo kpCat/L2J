@@ -45,6 +45,27 @@ public final class PhantomScopedOffense131Checks
 		}
 		System.out.println("TASK131_SCOPED_SOLO_WRITER_PASS fresh=1 stale=0 duplicate=0 deferred=0 crossThread=0");
 		testAllowedSkillsBeforeBound();
+		testArchiveCannotChangeStockSkill();
+	}
+
+	private static void testArchiveCannotChangeStockSkill()
+	{
+		final Skill stock = skill(2, 2), sameRankOtherObject = skill(2, 2);
+		final var writes = new AtomicInteger();
+		final var current = new AtomicBoolean(true);
+		final var replacement = new ScopedOffenseChoice(sameRankOtherObject, Runnable::run);
+		final var exact = new ScopedOffenseChoice(stock, Runnable::run);
+		if (AutoUseTaskManager.submitArchivedSolo(replacement, stock, current::get, writes::incrementAndGet)
+			|| !AutoUseTaskManager.submitArchivedSolo(exact, stock, current::get, writes::incrementAndGet) || writes.get() != 1)
+		{
+			throw new AssertionError("Only the stock loop's exact native skill can reach the writer.");
+		}
+		current.set(false);
+		if (AutoUseTaskManager.submitArchivedSolo(exact, stock, current::get, writes::incrementAndGet) || writes.get() != 1)
+		{
+			throw new AssertionError("An expired archived writer substituted an unobserved stock submission.");
+		}
+		System.out.println("TASK131_ARCHIVED_SOLO_WRITER_PASS exact=1 replacement=0 revoked=0");
 	}
 
 	private static void testAllowedSkillsBeforeBound()

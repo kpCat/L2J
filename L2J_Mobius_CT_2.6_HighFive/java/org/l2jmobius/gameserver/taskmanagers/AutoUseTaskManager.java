@@ -58,7 +58,10 @@ import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSoloSelection;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.ScopedOffenseChoice;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease;
@@ -107,6 +110,11 @@ public class AutoUseTaskManager
 			.filter(ready).limit(MAX_SCOPED_SKILLS - 1).forEachOrdered(result::add);
 		return result.size() < 2 ? List.of() : List.copyOf(result);
 	}
+
+	static boolean submitArchivedSolo(ScopedOffenseChoice choice, Skill stock, BooleanSupplier current, Runnable nativeCast)
+	{
+		return choice != null && choice.skill() == stock && submitScoped(choice, current, nativeCast);
+	}
 	
 	private class AutoUse implements Runnable
 	{
@@ -147,6 +155,8 @@ public class AutoUseTaskManager
 				}
 				try (lease)
 				{
+				final boolean archivedSolo = phantomPolicy != null && phantomPolicy.archivesSoloOffense(player);
+				if (archivedSolo && !phantomPolicy.usesScopedOffense(player)) { continue; }
 				if ((phantomPolicy != null) && (player.getTarget() != null) && player.getTarget().isCreature() && !phantomPolicy.permitsTarget(player.getTarget().asCreature()))
 				{
 					player.setTarget(null);
@@ -343,8 +353,14 @@ public class AutoUseTaskManager
 							if (directive.target() == null || directive.target().isAlikeDead() || !phantomPolicy.permitsTarget(directive.target())) { continue; }
 							player.setTarget(directive.target());
 						}
-						if (count > 0 && phantomPolicy.usesScopedOffense(player) && player.getTarget() instanceof Monster target && useScopedOffense(player, target, phantomPolicy)) { continue; }
+						if (!archivedSolo && count > 0 && phantomPolicy.usesScopedOffense(player) && player.getTarget() instanceof Monster target
+							&& useScopedOffense(player, target, phantomPolicy)) { continue; }
 					}
+					final var settings = player.getAutoUseSettings();
+					if (archivedSolo && count > TacticalObservationV3.STOCK_SOLO_SKILL_LIMIT) { continue; }
+					final var archivedOrder = archivedSolo ? List.copyOf(settings.getAutoSkills()) : List.<Integer>of();
+					if (archivedSolo && archivedOrder.size() != count) { continue; }
+					final int cursor = archivedSolo && settings.getSkillOrder() < count ? settings.getSkillOrder() : 0;
 					SKILLS: for (int i = 0; i < count; i++)
 					{
 						// Already casting.
@@ -363,6 +379,7 @@ public class AutoUseTaskManager
 						Playable pet = null;
 						final WorldObject target = player.getTarget();
 						final Integer skillId = player.getAutoUseSettings().getNextSkillId();
+						if (archivedSolo && !archivedOrder.get((cursor + i) % count).equals(skillId)) { break SKILLS; }
 						Skill skill = player.getKnownSkill(skillId);
 						if (skill == null)
 						{
@@ -436,8 +453,26 @@ public class AutoUseTaskManager
 						}
 						
 						if (phantomOffense && !stockOffenseCurrent(player, caster, target, phantomPolicy, stockLifetime)) { break SKILLS; }
-						// Use the skill.
-						caster.useMagic(skill, true, false);
+						if (archivedSolo && caster == player && skill.isDamage() && target instanceof Monster monster)
+						{
+							final Skill stock = skill;
+							final var selection = new StockSoloSelection(cursor, archivedOrder, i, new SelectedSkill(stock.getId(), stock.getLevel()));
+							final var choice = phantomPolicy.observeArchivedSolo(player, monster, stock, selection);
+							submitArchivedSolo(choice, stock, () -> stockOffenseCurrent(player, caster, target, phantomPolicy, stockLifetime)
+								&& settings.getAutoSkills().equals(archivedOrder) && player.getKnownSkill(stock.getId()) == stock
+								&& canUseMagic(caster, target, stock), () ->
+								{
+									if (!player.isCastingNow() && !player.isCastingSimultaneouslyNow() && !player.isMoving()
+										&& player.getQueuedSkill() == null && readyOffense(player, monster, stock))
+									{
+										caster.useMagic(stock, true, true);
+									}
+								});
+						}
+						else
+						{
+							caster.useMagic(skill, true, false);
+						}
 						
 						break SKILLS;
 					}

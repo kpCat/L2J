@@ -1738,7 +1738,7 @@ public abstract class Creature extends WorldObject
 
 	public final boolean isScopedNativeCastDispatch()
 	{
-		return _scopedNativeCastDispatch != null;
+		return _scopedNativeCastDispatch != null || org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.immediateSoloDispatch(this);
 	}
 	
 	/** Pure query extracted from beginCast; uses the same native speed, shot and animation rules. */
@@ -1952,13 +1952,23 @@ public abstract class Creature extends WorldObject
 		PlayerNativeWork.runOriginalCombat(this, participants, "cast-frontend", () ->
 		{
 			if (authorizedCast != null && !authorizedCast.currentTargets(nativeTargets)) { setCastingNow(false); return; }
+			final var archivedSolo = org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.immediateSoloDispatch(this);
+			final var soloTicket = archivedSolo && nativeTargets != null && nativeTargets.size() == 1 && nativeTargets.getFirst() == target
+				? org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.capture(this, skill, nativeTargets, simultaneously) : null;
+			if (archivedSolo && soloTicket == null)
+			{
+				if (simultaneously) { setCastingSimultaneouslyNow(false); }
+				else { setCastingNow(false); }
+				return;
+			}
 			if ((skill.isDamage() || skill.hasNegativeEffect()) && !PlayerNativeWork.prepareOffensiveShot(this, skill.isMagic())) { if (hasAI()) { getAI().setIntention(Intention.IDLE); } return; }
-			beginCastNative(skill, simultaneously, target, nativeTargets, escape, authorizedCast);
+			beginCastNative(skill, simultaneously, target, soloTicket == null ? nativeTargets : List.copyOf(nativeTargets), escape, authorizedCast, soloTicket);
 		});
 	}
 
 	private void beginCastNative(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets,
-		org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Attempt escape, PhantomAreaControl131.Attempt authorizedCast)
+		org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Attempt escape, PhantomAreaControl131.Attempt authorizedCast,
+		org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence soloTicket)
 	{
 		if (target == null)
 		{
@@ -2213,9 +2223,10 @@ public abstract class Creature extends WorldObject
 			skill.applyEffectScope(EffectScope.START, new BuffInfo(this, target, skill), true, false);
 		}
 		
-		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously, escape, authorizedCast);
+		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously, escape, authorizedCast, soloTicket);
 		if (simultaneously) { _nativeMagicUseTask2 = mut; } else { _nativeMagicUseTask = mut; }
 		if (authorizedCast != null) { authorizedCast.published(); }
+		if (soloTicket != null) { soloTicket.immediatePublished(); }
 		
 		// launch the magic in skillTime milliseconds
 		if (skillTime > 0)

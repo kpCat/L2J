@@ -78,6 +78,9 @@ public class AutoPlayTaskManager
 		default boolean usesScopedOffense(Player player) { return false; }
 		default boolean permitsScopedOffenseSkill(Player player, Skill skill) { return false; }
 		default ScopedOffenseChoice chooseScopedOffense(Player player, Monster target, java.util.List<Skill> ready, Skill baseline) { return null; }
+		default boolean archivesSoloOffense(Player player) { return false; }
+		default ScopedOffenseChoice observeArchivedSolo(Player player, Monster target, Skill skill,
+			org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSoloSelection archived) { return null; }
 		/** Runs only under the same admitted tick/command lease, before target replacement. */
 		default boolean collectBeforeTarget(Player player) { return false; }
 		default void stopObserved(String reason) { }

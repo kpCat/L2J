@@ -81,8 +81,10 @@ final class PhantomLearning131Capture
 		boolean fits(TacticalObservationV3 observation, List<LegalActionV3> offered)
 		{
 			final var actor = roster.get(observation.profileId());
+			final boolean archiveSolo = experiment.plan().auditControl() == AuditControl.STOCK_SOLO
+				&& observation.stockSelection() instanceof TacticalObservationV3.StockSoloSelection;
 			return actor != null && actor.objectId() == observation.actorObjectId() && actor.epoch() == observation.actorEpoch()
-				&& observation.capturedNanos() >= started && offered.size() >= 2 && offered.stream().allMatch(action ->
+				&& observation.capturedNanos() >= started && offered.size() >= (archiveSolo ? 1 : 2) && offered.stream().allMatch(action ->
 				{
 					final Target target = new Target(action.targetObjectId(), action.targetEpoch());
 					return switch (action.family())
@@ -118,6 +120,11 @@ final class PhantomLearning131Capture
 	static PhantomLearning131Capture stockPvpAudit(String manifestSha)
 	{
 		return new PhantomLearning131Capture(manifestSha, null, AuditControl.STOCK_PVP);
+	}
+
+	static PhantomLearning131Capture stockSoloAudit(String manifestSha)
+	{
+		return new PhantomLearning131Capture(manifestSha, null, AuditControl.STOCK_SOLO);
 	}
 
 	private PhantomLearning131Capture(String manifestSha, ActionValueV4 model, AuditControl auditControl)
@@ -194,6 +201,9 @@ final class PhantomLearning131Capture
 						&& world.getPlayer(actorId) == player && PlayerNativeWork.observationEvidence(player) == sensor
 						&& targetCurrent.getAsBoolean();
 				}
+			}, () ->
+			{
+				synchronized (episode) { episode.fault = true; }
 			});
 		}
 	}
@@ -208,7 +218,7 @@ final class PhantomLearning131Capture
 				? () -> world.findObject(targetId) == opponent && PlayerNativeWork.observationEvidence(opponent) == sensor
 					&& actor.getInstanceId() == opponent.getInstanceId() && (actor.getParty() == null || actor.getParty() != opponent.getParty()) : null;
 		}
-		if (auditControl == AuditControl.STOCK_PVE && target instanceof Monster monster)
+		if ((auditControl == AuditControl.STOCK_PVE || auditControl == AuditControl.STOCK_SOLO) && target instanceof Monster monster)
 		{
 			final var nativeTarget = monster.getNativeEvidenceTarget();
 			return nativeTarget != null && episode.foes.contains(new Target(targetId, nativeTarget.spawnGeneration()))

@@ -61,6 +61,12 @@ public class MagicUseTask implements Runnable
 	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous, PhantomLearnedEscape.Attempt escape,
 		PhantomAreaControl131.Attempt authorizedCast)
 	{
+		this(creature, targets, s, hit, simultaneous, escape, authorizedCast, null);
+	}
+
+	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous, PhantomLearnedEscape.Attempt escape,
+		PhantomAreaControl131.Attempt authorizedCast, LearningCastEvidence reservedLearning)
+	{
 		_creature = creature;
 		_targets = targets;
 		_skill = s;
@@ -71,7 +77,7 @@ public class MagicUseTask implements Runnable
 		_escape = escape;
 		_authorizedCast = authorizedCast;
 		_nativeLifetimeOwned = managed(creature) || ((targets != null) && targets.stream().anyMatch(MagicUseTask::managed));
-		_learning = LearningCastEvidence.capture(creature, s, targets, simultaneous);
+		_learning = reservedLearning == null ? LearningCastEvidence.capture(creature, s, targets, simultaneous) : reservedLearning;
 		_healLearning = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.capture(creature, s, targets, simultaneous);
 	}
 

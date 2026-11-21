@@ -12,8 +12,18 @@ public final class ActionExplorationV4
 {
 	public enum AuditControl
 	{
-		HEURISTIC, STOCK_PVE, STOCK_PVP;
+		HEURISTIC, STOCK_PVE, STOCK_PVP, STOCK_SOLO;
 		public boolean archived() { return this != HEURISTIC; }
+	}
+	static AuditControl archivedControl(TacticalObservationV3.StockSelection selection)
+	{
+		return switch (selection)
+		{
+			case TacticalObservationV3.StockPveSelection ignored -> AuditControl.STOCK_PVE;
+			case TacticalObservationV3.StockPvpSelection ignored -> AuditControl.STOCK_PVP;
+			case TacticalObservationV3.StockSoloSelection ignored -> AuditControl.STOCK_SOLO;
+			case null -> null;
+		};
 	}
 
 	public record Plan(int schemaVersion, String policyId, long seed, int cap, double epsilon, String split,
@@ -23,7 +33,8 @@ public final class ActionExplorationV4
 		{
 			skills = List.copyOf(skills);
 			final boolean evaluation = "TUNING".equals(split) || "AUDIT".equals(split);
-			final boolean controlAudit = "HEURISTIC_V2".equals(policyId) || "STOCK_PVE_V2".equals(policyId) || "STOCK_PVP_V2".equals(policyId);
+			final boolean controlAudit = "HEURISTIC_V2".equals(policyId) || "STOCK_PVE_V2".equals(policyId)
+				|| "STOCK_PVP_V2".equals(policyId) || "STOCK_SOLO_V2".equals(policyId);
 			final boolean deterministic = seed == 0 && cap == 0 && Double.compare(epsilon, 0) == 0;
 			final boolean validPolicy = switch (schemaVersion)
 			{
@@ -49,6 +60,7 @@ public final class ActionExplorationV4
 				case "HEURISTIC_V2" -> AuditControl.HEURISTIC;
 				case "STOCK_PVE_V2" -> AuditControl.STOCK_PVE;
 				case "STOCK_PVP_V2" -> AuditControl.STOCK_PVP;
+				case "STOCK_SOLO_V2" -> AuditControl.STOCK_SOLO;
 				default -> null;
 			};
 		}
@@ -100,14 +112,8 @@ public final class ActionExplorationV4
 				|| stock.family() == LegalActionV3.Family.HEAL && offered.stream().anyMatch(a -> observation.entity(a.targetObjectId()).role() == TacticalObservationV3.Role.ENEMY))
 			{ throw new IllegalArgumentException("Invalid V4 decision authority"); }
 			final var archived = observation.stockSelection();
-			final var stockControl = switch (archived)
-			{
-				case TacticalObservationV3.StockPveSelection ignored -> AuditControl.STOCK_PVE;
-				case TacticalObservationV3.StockPvpSelection ignored -> AuditControl.STOCK_PVP;
-				case null -> null;
-			};
 			final var audit = plan.auditControl();
-			if (stockControl != (audit != null && audit.archived() ? audit : null))
+			if (archivedControl(archived) != (audit != null && audit.archived() ? audit : null))
 			{
 				throw new IllegalArgumentException("Archived observation is required only for the matching S control");
 			}
@@ -149,7 +155,9 @@ public final class ActionExplorationV4
 			{
 				if (in.readInt() != 0x45583231) { throw new IllegalArgumentException("Decision schema"); }
 				var plan = Plan.read(in); long cursor = in.readLong(); int length = in.readInt(); if (length < 1 || length > 450000) { throw new IllegalArgumentException("Observation size"); }
-				var obs = TacticalObservationV3.restore(in.readNBytes(length)); int n = in.readInt(); if (n < 2 || n > 16) { throw new IllegalArgumentException("Offer size"); }
+				var obs = TacticalObservationV3.restore(in.readNBytes(length));
+				int n = in.readInt();
+				if (n < (plan.auditControl() == AuditControl.STOCK_SOLO ? 1 : 2) || n > 16) { throw new IllegalArgumentException("Offer size"); }
 				var offered = new ArrayList<LegalActionV3>(); for (int i = 0; i < n; i++) { offered.add(LegalActionV3.read(in)); }
 				var result = new Decision(plan, cursor, obs, offered, LegalActionV3.read(in), LegalActionV3.read(in), in.readUTF(), in.readDouble(), in.readDouble(), in.readLong(), in.readLong(), in.readUTF());
 				if (in.available() != 0) { throw new IllegalArgumentException("Trailing decision bytes"); } return result;

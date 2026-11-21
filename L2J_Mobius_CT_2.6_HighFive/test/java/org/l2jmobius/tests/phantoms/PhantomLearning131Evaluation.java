@@ -470,7 +470,7 @@ public final class PhantomLearning131Evaluation
 			throw new Incomplete(switch (arm)
 			{
 				case H -> "HEURISTIC_DISPATCH_MISSING";
-				case S -> stock == AuditControl.STOCK_PVE ? "STOCK_PVE_DISPATCH_MISSING" : "STOCK_PVP_DISPATCH_MISSING";
+				case S -> stock.name() + "_DISPATCH_MISSING";
 				default -> "FROZEN_MODEL_DISPATCH_MISSING";
 			});
 		}
@@ -1094,7 +1094,12 @@ public final class PhantomLearning131Evaluation
 
 	static AuditControl stockControl(Stratum stratum)
 	{
-		return stratum == Stratum.SOLO_PVE || stratum == Stratum.PARTY_PVE ? AuditControl.STOCK_PVE : AuditControl.STOCK_PVP;
+		return switch (stratum)
+		{
+			case SOLO_PVE -> AuditControl.STOCK_SOLO;
+			case PARTY_PVE -> AuditControl.STOCK_PVE;
+			case DUEL_PVP, GROUP_PVP -> AuditControl.STOCK_PVP;
+		};
 	}
 
 	private static Document scheduledBinding(ScheduledArm scheduled, Path path, String expectedSha, String name) throws IOException
