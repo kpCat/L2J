@@ -1,5 +1,5 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024,off-and-protected-v5.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
+G0	P0	UNKNOWN	S024,off-and-protected-v6.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
 G1	P1	UNKNOWN	TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14	Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
 G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE и AREA/AURA с точной областью, фактические исходы и tactical frame открыты
@@ -7,24 +7,24 @@ G4	P2–P3	UNKNOWN	D2,D3,N06–N10	Групповой фокус ранжиру�
 G5	P3	UNKNOWN	D9,N11–N13	Solo Return и групповой Party Recall подключены, native прибытие и расходы остаются открытыми
 G6	P4–P5	NOT_RUN	D5,D6,D7,N15	Нет завершённой A→B→A и доказанных native divergences
 G7	P5	NOT_RUN	D8,Q,N16	Нет 32 целостных matched blocks, Q не вычислен по native данным
-G8	P4–P5	UNKNOWN	D7,D9,N13,N15	CLI проверен офлайн, живые Pause/Resume/Stop и переходы фаз остаются открытыми
+G8	P4–P5	UNKNOWN	D7,D9,N13,N15	Офлайн проверены controller и FIT для Solo TRAIN, нативный restart и повтор префикса остаются открытыми
 G9	P2–P6	UNKNOWN	D10,N16	DB-free regressions, профиль native 18 и structural 128/5000 отсутствуют
 G10	P6	UNKNOWN	DELIVERY	Итоговая поставка FULL отсутствует, GitHub readback partial фиксируется отдельно
 O1	P6	NOT_RUN	OWNER_REQUIRED	Клиентский сценарий ждёт технической готовности
 R1	P1–P2	UNKNOWN	D1,D5,N01,N02,N04,N06	Solo AutoUse и боевые сессии делят порядок доступных атак, остальные семейства и живые сценарии открыты
-R2	P1–P3	UNKNOWN	D2,D3,D4,N02–N05,N08,N09	Guarded Cleanse и AoE PvE подключены, достаточный PvP peel и живые эффекты остаются открытыми
+R2	P1–P3	UNKNOWN	D2,D3,D4,N02–N05,N08,N09	Добавлена срочная поддержка PARTY_DEFENSE после drain с нативными guards, живые роли и исходы открыты
 R3	P2–P3	NOT_RUN	N06–N09,N11	Размеры составов и законный массовый отход не проверены
 R4	P2–P3	UNKNOWN	N04,N08,N10	Эскалация переиспользована, native PvP/PK safety negatives не выполнены
 R5	P3	NOT_RUN	N01,N03,N12,N13	Награды, расходы, снабжение и restart не проверены на новой версии
-R6	P4–P5	NOT_RUN	D5,D6,D7,N15	V4 учитывает DAMAGE и HEAL в офлайн контракте, A→B→A ещё не выполнен
+R6	P4–P5	NOT_RUN	D5,D6,D7,N15	Solo TRAIN связан со штатным кастом и sealed FIT, живые бой, обучение и A→B→A не выполнены
 R7	P5	NOT_RUN	D8,Q	Математика офлайн, sealed native evaluation не выполнена
-R8	P4–P5	UNKNOWN	D7,D9,N15	Добавлены управление квотами и native N01 entrypoint, запуск фаз и durable restart не проверены
+R8	P4–P5	UNKNOWN	D7,D9,N15	Новая ветвь Solo TRAIN проверена офлайн, TUNING/AUDIT и возобновление после native claim открыты
 R9	P2–P6	UNKNOWN	D10,N14,N16	Проверены отдельные пути композиции, native wiring профилирование не проверено
 D1	P1	UNKNOWN	offense-v3-checks.log,pvp-v3-red.log,pvp-v3-green.log	Готовность и контекст применены до лимита, native ON/OFF открыта
-D2	P2	UNKNOWN	focused-v5-reviewed/d2.log	Terminal удерживает точный резерв при временном отказе в lease, партийный PvP в TEST открыт
+D2	P2	UNKNOWN	aggregate-v6-reviewed.log	Офлайн проверены единственный PvP-владелец и отзыв срочной поддержки до и после передачи, TEST открыт
 D3	P2	UNKNOWN	party-actions-v4-contracts.log,build/area-control/green.log	DB-free проверки нового AoE и штатного списка целей, race расходов и живые PvP negatives открыты
 D4	P1–P2	UNKNOWN	aggregate-v2.log	Обычный PvE и Party используют фактически изученные навыки, native WAIT_GROUP_DAMAGE остаётся открытым
-D5	P4	UNKNOWN	frozen-v3-green.log	Frozen выбор DAMAGE и HEAL и replay проверены офлайн, разведение реальных фаз открыто
+D5	P4	UNKNOWN	aggregate-v6-reviewed.log	Frozen выбор и точная область V4 проверены офлайн, живые TRAIN/TUNING/AUDIT ещё открыты
 D6	P4	UNKNOWN	frozen-v3-green.log	Контракт HEAL связывает полезный HP, MP и точного владельца, поток native записей ещё не собран
 D7	P4	PASS	aggregate-v5-reviewed.log	Офлайн 257, rollover, полный эпизод, prepared receipts, абсолютные времена, cold load и replay
 D8	P4	UNKNOWN	TRAINING_EVALUATION131_MATH_CHECKS_PASS	Офлайн отклонены отсутствие independent boot proof и подмена, полный native AUDIT не запускался
@@ -44,6 +44,6 @@ N11	P3	NOT_RUN	NONE	Отход, Return и Mass Return
 N12	P3	NOT_RUN	NONE	Оплаченное снабжение и insufficient funds
 N13	P3–P5	NOT_RUN	NONE	Смерть, STORE и sameDB/sameJAR cold restart
 N14	P3	NOT_RUN	NONE	SkillEquipmentFreedom ON/OFF и действующие условия
-N15	P5	NOT_RUN	NONE	Native Pause/Resume/Stop, drain и replay
+N15	P5	NOT_RUN	NONE	Native Pause/Resume/Stop, drain и replay, префикс начатого TRAIN пока нельзя возобновить
 N16	P5–P6	NOT_RUN	NONE	18 участников, CPU/heap/GC/fairness и p95
 Q	P5	NOT_RUN	NONE	Не проводился ни один frozen AUDIT

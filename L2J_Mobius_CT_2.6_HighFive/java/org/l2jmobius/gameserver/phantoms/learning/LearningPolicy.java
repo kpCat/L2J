@@ -19,7 +19,9 @@ import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope;
 
@@ -83,7 +85,29 @@ public final class LearningPolicy
 	public Decision choose(List<Candidate> candidates, SelectedSkill baseline, long sequence, PhantomCombatRequest request, int actorObjectId)
 	{
 		final var choice = _tactical.damage(request, actorObjectId, candidates, baseline);
-		return choice == null ? choose(candidates, baseline, sequence) : new Decision(choice.selected().skill(), choice.selected(), choice.attempt());
+		if (choice != null) { return new Decision(choice.selected().skill(), choice.selected(), choice.attempt()); }
+		return _tactical.hasEpisodes131() ? new Decision(baseline, null) : choose(candidates, baseline, sequence);
+	}
+
+	/** The stock visible Solo caster supplies ready skills and keeps execution ownership. */
+	public Attempt chooseVisible131(long profileId, long actorEpoch, Player actor, Monster target, List<Skill> ready, Skill baseline, BooleanSupplier current)
+	{
+		if (!_tactical.hasEpisodes131() || !active(LearningScope.SOLO) || actorEpoch <= 0 || ready.size() < 2 || ready.size() > _maxCandidates
+			|| actor.getParty() != null || !ready.contains(baseline) || !current.getAsBoolean())
+		{
+			return null;
+		}
+		final var stock = new SelectedSkill(baseline.getId(), baseline.getLevel());
+		final var cancellation = (org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken) () -> !current.getAsBoolean();
+		// This descriptor identifies the stock cast for the receipt. It never starts a Combat session.
+		final var request = new PhantomCombatRequest(profileId, target.getObjectId(), baseline.isMagic() ? PhantomCombatMode.RANGED_MAGIC : PhantomCombatMode.MELEE_PHYSICAL,
+			false, false, 15_000, cancellation, LearningScope.SOLO, null, cancellation);
+		final var candidates = ready.stream().map(skill -> new Candidate(new SelectedSkill(skill.getId(), skill.getLevel()), new float[0],
+			actor.getStat().getMpInitialConsume(skill) + actor.getStat().getMpConsume(skill), skill.getHitTime(), skill.getItemConsumeCount(),
+			() -> current.getAsBoolean() && actor.getKnownSkill(skill.getId()) == skill)).toList();
+		final var choice = _tactical.damage(request, actor.getObjectId(), candidates, stock);
+		if (choice == null || choice.attempt().observation().actorEpoch() != actorEpoch || !choice.selected().exact().getAsBoolean()) { return null; }
+		return new Attempt(this, choice.selected(), request, actorEpoch, choice.attempt().observation().decisionId(), stock, 0, candidates, choice.attempt());
 	}
 	void recordTactical(TacticalReceiptV3 receipt) { _tactical.recordDamage(receipt); }
 	void recordTacticalFailure(TacticalFailureV3 failure) { _tactical.recordFailure(failure); }
@@ -144,7 +168,7 @@ public final class LearningPolicy
 
 	public boolean active(LearningScope scope)
 	{
-		return scope != LearningScope.NONE && _mode != Mode.OFF && (_model != null || _writer != null) && _catalogCurrent.getAsBoolean();
+		return scope != LearningScope.NONE && _mode != Mode.OFF && (_model != null || _writer != null || _tactical.hasEpisodes131()) && _catalogCurrent.getAsBoolean();
 	}
 
 	public int maximumCandidates()
@@ -229,6 +253,20 @@ public final class LearningPolicy
 			|| identity == null || !identity.matches("[a-f0-9]{64}"))
 		{ throw new IllegalArgumentException("Exact accepted V1 and explicit TEST evaluation identity required"); }
 		final var policy = new LearningPolicy(mode, version, model, maximumCandidates, 0, null, () -> !SkillData.getInstance().catalogReloaded());
+		policy._evaluationIdentity = identity;
+		return policy;
+	}
+
+	/** Owns in-memory TASK131 evidence only. It cannot open a legacy learning database writer. */
+	public static LearningPolicy ownedEpisodes131(TacticalPolicyV3 tactical, String identity)
+	{
+		if (!Boolean.getBoolean("phantom.learning.train") || tactical == null || !tactical.hasEpisodes131()
+			|| identity == null || !identity.matches("[a-f0-9]{64}"))
+		{
+			throw new IllegalArgumentException("TASK131 requires an explicit TEST episode scope");
+		}
+		final var policy = new LearningPolicy(Mode.SHADOW, 0, null, 4, 0, null, () -> !SkillData.getInstance().catalogReloaded());
+		policy.tactical(tactical);
 		policy._evaluationIdentity = identity;
 		return policy;
 	}

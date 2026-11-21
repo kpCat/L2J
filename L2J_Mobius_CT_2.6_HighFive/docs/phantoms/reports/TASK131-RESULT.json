@@ -52,28 +52,30 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "aggregate-v5-reviewed.log",
+    "aggregateLog": "aggregate-v6-reviewed.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
     "comparison": "OFFLINE_READER_AND_NEGATIVE_CONTROLS",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 167,
-    "contractGroupsPassed": 11,
+    "regressionTestsPassed": 169,
+    "contractGroupsPassed": 12,
     "jarExitCode": 0,
-    "jarSha256": "7eb743704c6f844647d82825539c332c7e47a6a7d6deb7df8047751b834eba54",
-    "loginJarSha256": "64e90e79ed7d7aeb7d1ecdb22fa978c785f0e5b431db57f31da01fd39d820bb7",
-    "jarLog": "jar-v5-reviewed.log"
+    "jarSha256": "7b16845fb6d297db09fa9a426fbdab75861c7aac9823e6fe4dcc13e27162c40c",
+    "loginJarSha256": "f305e6da0da860b414669b79ae86b46786d23bbe678f720e0fcdbd40bd17555c",
+    "jarLog": "jar-v6-reviewed.log",
+    "fitIngressLog": "v6-PhantomLearning131FitChecks.log",
+    "scopedAutoUseLog": "v6-PhantomScopedOffense131Checks.log"
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v4.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v5.json"
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v5.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v6.json"
   },
   "testReadiness": {
-    "iterationParent": "b1bc7ced4e66a390dfa0554b173f96ff59583aea",
+    "iterationParent": "0471fb0ddd0ca6b3ddb2cfb5a1f6aeba365ec07a",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -133,7 +135,7 @@
     },
     "n01Adapter": {
       "entryPoint": "org.l2jmobius.tests.phantoms.PhantomLearning131Native",
-      "sourceSha256": "b84a0298091430175f8f94f76ddba08255108eb4f30db03d6f9655d277022936",
+      "sourceSha256": "f99e0a72d5ae4e934ba8618089c10fadf8a65d69549e085eb66e8ed43b29e2c1",
       "nativeEvidenceContinuityTestsPassed": 14,
       "incompleteR4Preflight": "REJECTED_INCOMPLETE_SCENE_SET",
       "changedFixturePreflight": "REJECTED_PIN_MISMATCH",
@@ -143,9 +145,14 @@
     "campaignController": {
       "script": "tools/phantom-runtime/training/TrainingCombat131.ps1",
       "controlContract": "PASS",
-      "controlContractLog": "controller-v5-reviewed.log",
+      "controlContractLog": "controller-v6-reviewed.log",
       "nativeLaunch": "NOT_RUN",
-      "trainTuningAuditAdapter": "PENDING"
+      "trainAdapter": "SOLO_PVE_SOURCES_AND_DB_FREE_CONTRACTS",
+      "tuningAuditAdapters": "PENDING",
+      "resumeAfterNativeClaim": "NATIVE_PREFIX_REPLAY_UNAVAILABLE",
+      "fitIngress": "OFFLINE_NEGATIVE_CONTROLS_PASS",
+      "nativeFit": "NOT_RUN",
+      "trainPreflightR4": "REJECTED_INCOMPLETE_SCENE_SET"
     },
     "n01RuntimePreparer": {
       "script": "tools/phantom-runtime/Initialize-Task131N01Runtime.ps1",
@@ -154,14 +161,14 @@
       "incompleteR4Attest": "REJECTED_INCOMPLETE_SCENE_SET",
       "fullCandidate": "NOT_CREATED"
     },
-    "g0OffReceipt": "off-and-protected-v5.json",
+    "g0OffReceipt": "off-and-protected-v6.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v5.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v6.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -210,7 +217,7 @@
       "phase": "P4–P5",
       "status": "UNKNOWN",
       "evidence": "D7,D9,N13,N15",
-      "reason": "CLI проверен офлайн, живые Pause/Resume/Stop и переходы фаз остаются открытыми"
+      "reason": "Офлайн проверены controller и FIT для Solo TRAIN, нативный restart и повтор префикса остаются открытыми"
     },
     "G9": {
       "phase": "P2–P6",
@@ -240,7 +247,7 @@
       "phase": "P1–P3",
       "status": "UNKNOWN",
       "evidence": "D2,D3,D4,N02–N05,N08,N09",
-      "reason": "Guarded Cleanse и AoE PvE подключены, достаточный PvP peel и живые эффекты остаются открытыми"
+      "reason": "Добавлена срочная поддержка PARTY_DEFENSE после drain с нативными guards, живые роли и исходы открыты"
     },
     "R3": {
       "phase": "P2–P3",
@@ -264,7 +271,7 @@
       "phase": "P4–P5",
       "status": "NOT_RUN",
       "evidence": "D5,D6,D7,N15",
-      "reason": "V4 учитывает DAMAGE и HEAL в офлайн контракте, A→B→A ещё не выполнен"
+      "reason": "Solo TRAIN связан со штатным кастом и sealed FIT, живые бой, обучение и A→B→A не выполнены"
     },
     "R7": {
       "phase": "P5",
@@ -276,7 +283,7 @@
       "phase": "P4–P5",
       "status": "UNKNOWN",
       "evidence": "D7,D9,N15",
-      "reason": "Добавлены управление квотами и native N01 entrypoint, запуск фаз и durable restart не проверены"
+      "reason": "Новая ветвь Solo TRAIN проверена офлайн, TUNING/AUDIT и возобновление после native claim открыты"
     },
     "R9": {
       "phase": "P2–P6",
@@ -293,8 +300,8 @@
     "D2": {
       "phase": "P2",
       "status": "UNKNOWN",
-      "evidence": "focused-v5-reviewed/d2.log",
-      "reason": "Terminal удерживает точный резерв при временном отказе в lease, партийный PvP в TEST открыт"
+      "evidence": "aggregate-v6-reviewed.log",
+      "reason": "Офлайн проверены единственный PvP-владелец и отзыв срочной поддержки до и после передачи, TEST открыт"
     },
     "D3": {
       "phase": "P2",
@@ -311,8 +318,8 @@
     "D5": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "frozen-v3-green.log",
-      "reason": "Frozen выбор DAMAGE и HEAL и replay проверены офлайн, разведение реальных фаз открыто"
+      "evidence": "aggregate-v6-reviewed.log",
+      "reason": "Frozen выбор и точная область V4 проверены офлайн, живые TRAIN/TUNING/AUDIT ещё открыты"
     },
     "D6": {
       "phase": "P4",
@@ -432,7 +439,7 @@
       "phase": "P5",
       "status": "NOT_RUN",
       "evidence": "NONE",
-      "reason": "Native Pause/Resume/Stop, drain и replay"
+      "reason": "Native Pause/Resume/Stop, drain и replay, префикс начатого TRAIN пока нельзя возобновить"
     },
     "N16": {
       "phase": "P5–P6",

@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConseque
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLinkedServitorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.SiegeTargetSnapshot;
@@ -923,6 +924,41 @@ public final class PhantomCombatService
 		}
 	}
 
+	public record PartySupportHandoff(long generation, int targetObjectId)
+	{
+	}
+
+	/** Only a live reactive Party defense may give its actor to the Party support owner. */
+	public Optional<PartySupportHandoff> requestPartyDefenseSupportYield(ExternalActionRequest support)
+	{
+		if (support == null || support.kind() != ExternalActionKind.PARTY_SUPPORT || !support.operationKey().startsWith("party.tactic.")
+			|| support.deadlineLogicalNanos() <= now() || support.ownershipToken().isCancelled())
+		{
+			return Optional.empty();
+		}
+		synchronized (_monitor)
+		{
+			final var session = _sessions.get(support.profileId());
+			if (_state != ServiceState.RUNNING || session == null || session._result.terminal() || session._pvpRequest == null
+				|| session._pvpRequest.source() != Source.PARTY_DEFENSE || session._pvpRequest.forceUse() || pendingPartySupport(session, now()) != null)
+			{
+				return Optional.empty();
+			}
+			session._partySupportYield = support;
+			return Optional.of(new PartySupportHandoff(session._generation, session._request.targetObjectId()));
+		}
+	}
+
+	public boolean partyDefenseYieldedToSupport(long profileId, int targetObjectId, String authorityHash)
+	{
+		synchronized (_monitor)
+		{
+			final var session = _sessions.get(profileId);
+			return session != null && session._pvpRequest != null && session._result == PhantomCombatResult.YIELDED_TO_PARTY_SUPPORT
+				&& session._pvpRequest.targetObjectId() == targetObjectId && session._pvpRequest.authorityHash().equals(authorityHash);
+		}
+	}
+
 	public void abandonPartySupportHandoff(long generation, int targetObjectId, ExternalActionRequest support)
 	{
 		synchronized (_monitor)
@@ -1169,7 +1205,9 @@ public final class PhantomCombatService
 				&& now() < request.deadlineLogicalNanos() && !request.ownershipToken().isCancelled()
 				&& (supportGeneration == 0 || matchesPartySupportHandoff(supportGeneration, oldTargetObjectId, request)))
 			{
-				publishedLease = new ExternalActionLease(this, operation, actorLease);
+				final var previous = supportGeneration > 0 ? _sessions.get(request.profileId()) : null;
+				final boolean partyDefenseSupport = previous != null && previous._result == PhantomCombatResult.YIELDED_TO_PARTY_SUPPORT;
+				publishedLease = new ExternalActionLease(this, operation, actorLease, partyDefenseSupport);
 				operation._lease = publishedLease;
 				if (supportGeneration > 0)
 				{
@@ -1862,6 +1900,11 @@ public final class PhantomCombatService
 			finish(session, PhantomCombatResult.TARGET_LOST);
 			return;
 		}
+		if (holdPvpForPartySupport(session, actor))
+		{
+			requeue(session);
+			return;
+		}
 		if ((actor.maximumCp() > 0) && (percent(actor.currentCp(), actor.maximumCp()) <= session._pvpRequest.cpPotionThresholdPercent()))
 		{
 			session._actorLease.cpPotions().stream().filter(PhantomCombatBackend.CpPotionSnapshot::ready).findFirst().ifPresent(potion -> session._actorLease.useCpPotion(potion.itemObjectId(), potion.itemId()));
@@ -1891,6 +1934,7 @@ public final class PhantomCombatService
 		session._loadout = selection.loadout();
 		final List<SelectedSkill> skills = canSpendMp ? session._loadout.selectedSkills() : List.of();
 		final List<SelectedSkill> ready = selection.readySkills();
+		if (holdPvpForPartySupport(session, actor)) { return; }
 		if (actor.attacking())
 		{
 			// Stop only this owner's fallback renewal. Native earned hits remain published and finish first.
@@ -1936,7 +1980,20 @@ public final class PhantomCombatService
 		{
 			return false;
 		}
-		finish(session, PhantomCombatResult.CANCELLED);
+		finish(session, session._pvpRequest == null ? PhantomCombatResult.CANCELLED : PhantomCombatResult.YIELDED_TO_PARTY_SUPPORT);
+		return true;
+	}
+
+	private boolean holdPvpForPartySupport(PhantomCombatSession session, ActorSnapshot actor)
+	{
+		final var support = pendingPartySupport(session, now());
+		if (support == null || support.ownershipToken().isCancelled()) { return false; }
+		if (actor.attacking() && !actor.casting() && !session._actorLease.nativeCastPending() && session._ownedAction.selectedSkill() == null)
+		{
+			// The existing PvP owner stops renewing its own attack. The published native hit still settles.
+			session._actorLease.cancelOwnedAction(session._ownedAction);
+		}
+		yieldToPartySupport(session, actor);
 		return true;
 	}
 
@@ -2280,6 +2337,7 @@ public final class PhantomCombatService
 	{
 		session._phase = PhantomCombatPhase.TERMINAL;
 		session._result = result;
+		if (session._pvpRequest != null && result != PhantomCombatResult.YIELDED_TO_PARTY_SUPPORT) { session._partySupportYield = null; }
 		_queued.remove(session._request.profileId());
 		_queue.remove(session._request.profileId());
 		session._cleanupState = session._actorLease == null ? CleanupState.COMPLETE : CleanupState.PENDING;
@@ -2717,14 +2775,16 @@ public final class PhantomCombatService
 		private final PhantomCombatService _owner;
 		private final ExternalOperation _operation;
 		private final PhantomCombatActorLease _actorLease;
+		private final boolean _partyDefenseSupport;
 		private final AtomicBoolean _released = new AtomicBoolean();
 		private volatile ExternalOwnedAction _ownedAction;
 
-		private ExternalActionLease(PhantomCombatService owner, ExternalOperation operation, PhantomCombatActorLease actorLease)
+		private ExternalActionLease(PhantomCombatService owner, ExternalOperation operation, PhantomCombatActorLease actorLease, boolean partyDefenseSupport)
 		{
 			_owner = owner;
 			_operation = operation;
 			_actorLease = actorLease;
+			_partyDefenseSupport = partyDefenseSupport;
 		}
 
 		public long profileId()
@@ -2908,7 +2968,7 @@ public final class PhantomCombatService
 			}
 			final java.util.function.BooleanSupplier current = () -> active() && !expired(_owner.now());
 			final ActionOutcome outcome = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.withOwnerAuthority(generation(), operationKey(),
-				current, () -> _actorLease.castSupport(action, current));
+				current, () -> _partyDefenseSupport ? _actorLease.castPartyDefenseSupport(action, current) : _actorLease.castSupport(action, current));
 			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
 			{
 				_ownedAction = new ExternalOwnedAction(kind(), action.targetObjectId(), action.skill(), 0, 0, 0, 0);

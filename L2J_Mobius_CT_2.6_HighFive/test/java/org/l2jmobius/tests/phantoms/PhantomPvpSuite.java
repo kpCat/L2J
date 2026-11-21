@@ -220,6 +220,48 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, fixture.lease.legacyCasts, "Skill PvP weakened or reused legacy monster cast.");
 			}
 		});
+		registry.add("131-party-defense-urgent-support-reserves-and-drains", _ ->
+		{
+			for (Source source : List.of(Source.PARTY_DEFENSE, Source.ACTUAL_ATTACK, Source.REVENGE))
+			{
+				try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 100))
+				{
+					PhantomAssertions.assertTrue(fixture.start(source, source.proactive()).accepted(), "The exact PvP session was not admitted.");
+					final var stale = new AtomicBoolean();
+					final var support = new PhantomCombatService.ExternalActionRequest(1, PhantomCombatService.ExternalActionKind.PARTY_SUPPORT,
+						"party.tactic.fixture.cleanse_member.1", 10_000_000_000L, stale::get);
+					stale.set(true);
+					PhantomAssertions.assertTrue(fixture.service.requestPartyDefenseSupportYield(support).isEmpty(), "Revoked Party authority could reserve PvP actor.");
+					stale.set(false);
+					final var reserved = fixture.service.requestPartyDefenseSupportYield(support);
+					if (source != Source.PARTY_DEFENSE)
+					{
+						PhantomAssertions.assertTrue(reserved.isEmpty(), "Solo or proactive PvP opened Party support handoff.");
+						continue;
+					}
+					final var handoff = reserved.orElseThrow();
+					fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, true, false, 100, "CAST", 123, 1);
+					fixture.dispatcher.runNext();
+					PhantomAssertions.assertEquals(0, fixture.lease.cancelledActions, "An earned PvP cast was interrupted.");
+					PhantomAssertions.assertTrue(fixture.service.acquirePartySupportHandoff(handoff.generation(), handoff.targetObjectId(), support).lease() == null,
+						"Support gained a second native owner during the paid cast.");
+					fixture.lease.actor = actor(100, 100);
+					fixture.dispatcher.runNext();
+					PhantomAssertions.assertEquals(0, fixture.lease.shotsActivated + fixture.lease.pvpCasts, "The old owner bought another shot or issued a new cast during yield.");
+					PhantomAssertions.assertTrue(fixture.service.partyDefenseYieldedToSupport(1, 100, HASH), "A drained Party defense did not record its exact support transition.");
+					PhantomAssertions.assertTrue(fixture.service.consumeTerminal(1).isEmpty(), "The PvP owner removed the reserved handoff.");
+					PhantomAssertions.assertTrue(fixture.service.acquireExternalAction(support).lease() == null, "Generic external acquisition bypassed the reserved handoff.");
+					try (var action = fixture.service.acquirePartySupportHandoff(handoff.generation(), handoff.targetObjectId(), support).lease())
+					{
+						PhantomAssertions.assertTrue(action != null, "Party could not acquire the drained native slot.");
+						PhantomAssertions.assertEquals(PhantomCombatResult.YIELDED_TO_PARTY_SUPPORT, fixture.service.consumeTerminal(1).orElseThrow().result(),
+							"PvP learned a false fight terminal instead of a support transition.");
+						PhantomAssertions.assertFalse(fixture.start(source, false).accepted(), "PvP restarted during the support lease.");
+					}
+					PhantomAssertions.assertTrue(fixture.start(source, false).accepted(), "The exact lawful PvP request remained blocked after support released.");
+				}
+			}
+		});
 		registry.add("131-unready-magic-does-not-charge-pvp-shot", _ ->
 		{
 			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 100))

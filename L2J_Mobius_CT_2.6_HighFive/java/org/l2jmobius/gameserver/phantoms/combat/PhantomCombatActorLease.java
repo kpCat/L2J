@@ -397,6 +397,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return current.getAsBoolean() ? castSupport(action) : ActionOutcome.REJECTED;
 	}
 
+	default ActionOutcome castPartyDefenseSupport(PhantomPartySupportAction action, java.util.function.BooleanSupplier current)
+	{
+		return ActionOutcome.UNAVAILABLE;
+	}
+
 	default ActionOutcome moveTo(int x, int y, int z, int instanceId)
 	{
 		return ActionOutcome.REJECTED;

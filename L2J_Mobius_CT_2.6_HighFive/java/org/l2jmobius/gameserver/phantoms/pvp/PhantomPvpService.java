@@ -196,8 +196,11 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			final Encounter encounter = stored.encounter();
 			if (_combat.matchesPvpSession(profileId, encounter.counterpart().currentObjectId(), encounter.authorityHash()))
 			{
-				final Snapshot current = _context.observeOwned(encounter, now).orElse(null);
-				if (needsPartyDefenseCancellation(encounter, current, now))
+				final int targetObjectId = encounter.counterpart().currentObjectId();
+				final boolean supportYield = _combat.partyDefenseYieldedToSupport(profileId, targetObjectId, encounter.authorityHash());
+				final Snapshot current = supportYield ? null : _context.observeOwned(encounter, now).orElse(null);
+				if (!supportYield && needsPartyDefenseCancellation(encounter, current, now)
+					&& !_combat.partyDefenseYieldedToSupport(profileId, targetObjectId, encounter.authorityHash()))
 				{
 					cancelOwned(encounter);
 				}
@@ -221,7 +224,10 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 					return;
 				}
 				_ownerships.remove(profileId);
-				handleCombatTerminal(stored, terminal.get(), now);
+				if (terminal.get().result() != PhantomCombatResult.YIELDED_TO_PARTY_SUPPORT)
+				{
+					handleCombatTerminal(stored, terminal.get(), now);
+				}
 				return;
 			}
 			if (_combat.hasClaim(profileId))

@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.model.World;
@@ -29,6 +30,7 @@ public final class TacticalPolicyV3
 	private volatile Consumer<TacticalFailureV3> _failureSink = _ -> { };
 	private volatile TrainExplorationV1 _exploration;
 	private volatile ActionExplorationV4 _experiment;
+	private volatile BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> _episodes131;
 	private Consumer<ActionExperimentReceiptV4.Intent> _healIntentSink;
 	/** Mutually exclusive, pre-CUT TEST-only owner; ordinary configuration has no entry point. */
 	public synchronized void actionExplorationTest(ActionExplorationV4 session)
@@ -39,12 +41,35 @@ public final class TacticalPolicyV3
 	/** Receives a pre-cast intent from the exact support lease. The sink must enqueue without I/O. */
 	public synchronized void actionExplorationTest(ActionExplorationV4 session, Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
 	{
-		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || session == null || _exploration != null || !_last.isEmpty()
+		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || session == null || _exploration != null || _episodes131 != null || !_last.isEmpty()
 			|| _experiment != null && (_experiment.plan().frozenInference() || session.plan().frozenInference())
 			|| _actionValueMode != Mode.ON || _actionValue == null || !session.plan().modelSha().equals(_actionValue.sha256()))
 		{ throw new IllegalArgumentException("V4 experiment requires exclusive frozen TEST owner/model"); }
 		_healIntentSink = healIntentSink;
 		_experiment = session;
+	}
+
+	/** Bind the exact active TEST episode before starting the canonical combat and support owners. */
+	public synchronized void actionEpisodes131(BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
+		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
+	{
+		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || _experiment != null || _exploration != null
+			|| _episodes131 != null || !_last.isEmpty() || _model != null || _actionValueMode != Mode.ON || _actionValue == null)
+		{
+			throw new IllegalArgumentException("TASK131 requires an exclusive TEST episode source and fixed V4 model");
+		}
+		_healIntentSink = Objects.requireNonNull(healIntentSink);
+		_episodes131 = Objects.requireNonNull(episodes);
+	}
+
+	boolean hasEpisodes131() { return _episodes131 != null; }
+
+	private ActionExplorationV4 experiment(TacticalObservationV3 observation, List<LegalActionV3> offered)
+	{
+		final var source = _episodes131;
+		if (source == null) { return _experiment; }
+		final var active = source.apply(observation, offered);
+		return active != null && active.plan().schemaVersion() == 2 && active.plan().modelSha().equals(_actionValue.sha256()) ? active : null;
 	}
 	private volatile Mode _actionValueMode = Mode.OFF;
 	private volatile ActionValueV4 _actionValue;
@@ -54,7 +79,7 @@ public final class TacticalPolicyV3
 	/** Explicit TEST-only pre-CUT binding. Ordinary configuration never installs V4. */
 	public synchronized void actionValueTest(Mode mode, ActionValueV4 model, Consumer<ActionValueDecision> sink)
 	{
-		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || mode == null || sink == null || !_last.isEmpty()
+		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || mode == null || sink == null || !_last.isEmpty() || _episodes131 != null
 			|| _experiment != null && _experiment.plan().frozenInference())
 		{ throw new IllegalArgumentException("V4 requires separate explicit pre-combat TEST policy"); }
 		_actionValue = model; _actionValueSink = sink; _actionValueMode = mode;
@@ -134,7 +159,7 @@ public final class TacticalPolicyV3
 	/** Explicit pre-CUT owned TRAIN binding. Ordinary ON inference cannot receive an exploration window. */
 	public synchronized void trainExploration(TrainExplorationV1 session)
 	{
-		if (session != null && _experiment != null) { throw new IllegalArgumentException("Only one experiment owner per decision"); }
+		if (session != null && (_experiment != null || _episodes131 != null)) { throw new IllegalArgumentException("Only one experiment owner per decision"); }
 		if(session!=null&&(_mode!=Mode.SHADOW||_model==null||session.modelVersion()!=_version||!session.modelSha().equals(_model.sha256())))
 		{throw new IllegalArgumentException("Exploration requires exact SHADOW TEST model authority");}
 		_exploration=session;
@@ -209,7 +234,8 @@ public final class TacticalPolicyV3
 					session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),profile,target.getObjectId());
 				}
 			}
-			final var experiment = _experiment;
+			final var experiment = experiment(observation, offered);
+			if (_episodes131 != null && (experiment == null || offered.stream().anyMatch(action -> !experiment.plan().accepts(action)))) { return null; }
 			if (experiment != null)
 			{
 				final boolean safe = actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
@@ -290,7 +316,8 @@ public final class TacticalPolicyV3
 				}
 				if (offered.size() != choices.size()) { fallback.increment(); continue; }
 				int selected = 0; float best = -Float.MAX_VALUE, second = best;
-				final var experiment = _experiment;
+				final var experiment = experiment(observation, offered);
+				if (_episodes131 != null && (experiment == null || offered.stream().anyMatch(action -> !experiment.plan().accepts(action)))) { continue; }
 				ActionExplorationV4.Decision healDecision = null;
 				if (_model != null)
 				{

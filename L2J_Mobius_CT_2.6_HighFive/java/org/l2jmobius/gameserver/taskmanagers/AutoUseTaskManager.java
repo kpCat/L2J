@@ -20,20 +20,33 @@
  */
 package org.l2jmobius.gameserver.taskmanagers;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
 import org.l2jmobius.gameserver.data.xml.PetSkillData;
+import org.l2jmobius.gameserver.data.xml.SkillTreeData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.handler.IItemHandler;
 import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Playable;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.model.actor.Summon;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Guard;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.instance.Item;
@@ -43,7 +56,11 @@ import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
+import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.ScopedOffenseChoice;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease;
 
 /**
@@ -56,9 +73,39 @@ public class AutoUseTaskManager
 	private static final int POOL_SIZE = 200;
 	private static final int TASK_DELAY = 300;
 	private static final int REUSE_MARGIN_TIME = 3;
+	private static final int MAX_SCOPED_SKILLS = 4;
 	
 	protected AutoUseTaskManager()
 	{
+	}
+
+	static boolean submitScoped(ScopedOffenseChoice choice, BooleanSupplier current, Runnable nativeCast)
+	{
+		final Thread writer = Thread.currentThread();
+		final var open = new AtomicBoolean(true);
+		final var submitted = new AtomicBoolean();
+		try
+		{
+			choice.aroundCast().accept(() ->
+			{
+				if (Thread.currentThread() != writer || !open.get() || submitted.get() || !current.getAsBoolean()) { return; }
+				submitted.set(true);
+				nativeCast.run();
+			});
+		}
+		finally { open.set(false); }
+		return submitted.get();
+	}
+
+	static List<Skill> scopedOffenseCandidates(Skill baseline, Collection<Skill> learned, Predicate<Skill> allowed, Predicate<Skill> ready)
+	{
+		if (baseline == null || !allowed.test(baseline) || !ready.test(baseline)) { return List.of(); }
+		final var result = new ArrayList<Skill>(MAX_SCOPED_SKILLS);
+		result.add(baseline);
+		learned.stream().filter(skill -> skill != baseline && allowed.test(skill))
+			.sorted(Comparator.comparingInt(Skill::getId).thenComparingInt(Skill::getLevel))
+			.filter(ready).limit(MAX_SCOPED_SKILLS - 1).forEachOrdered(result::add);
+		return result.size() < 2 ? List.of() : List.copyOf(result);
 	}
 	
 	private class AutoUse implements Runnable
@@ -296,6 +343,7 @@ public class AutoUseTaskManager
 							if (directive.target() == null || directive.target().isAlikeDead() || !phantomPolicy.permitsTarget(directive.target())) { continue; }
 							player.setTarget(directive.target());
 						}
+						if (count > 0 && phantomPolicy.usesScopedOffense(player) && player.getTarget() instanceof Monster target && useScopedOffense(player, target, phantomPolicy)) { continue; }
 					}
 					SKILLS: for (int i = 0; i < count; i++)
 					{
@@ -380,11 +428,14 @@ public class AutoUseTaskManager
 						
 						// Skill use check.
 						final Playable caster = pet != null ? pet : player;
+						final boolean phantomOffense = phantomPolicy != null && (skill.isDamage() || skill.hasNegativeEffect() || skill.isDebuff());
+						final Target stockLifetime = phantomOffense && target instanceof Monster stock ? stock.getNativeEvidenceTarget() : null;
 						if (!canUseMagic(caster, target, skill))
 						{
 							continue SKILLS;
 						}
 						
+						if (phantomOffense && !stockOffenseCurrent(player, caster, target, phantomPolicy, stockLifetime)) { break SKILLS; }
 						// Use the skill.
 						caster.useMagic(skill, true, false);
 						
@@ -462,6 +513,62 @@ public class AutoUseTaskManager
 			}
 			
 			return !playable.isSkillDisabled(skill) && skill.checkCondition(playable, target, false);
+		}
+
+		private boolean useScopedOffense(Player player, Monster target, PhantomPolicy policy)
+		{
+			final var owner = player.getNativeWorkOwner();
+			final var lifetime = target.getNativeEvidenceTarget();
+			if (!currentOffense(player, target, policy, owner, lifetime)) { return true; }
+			final var baseline = player.getKnownSkill(player.getAutoUseSettings().getNextSkillId());
+			if (player.getSkills().size() > PhantomNativeCombatCapability.MAXIMUM_SKILLS) { return false; }
+			final var ready = scopedOffenseCandidates(baseline, player.getAllSkills(), skill -> policy.permitsScopedOffenseSkill(player, skill), skill -> readyOffense(player, target, skill));
+			if (ready.isEmpty()) { return false; }
+			final var choice = policy.chooseScopedOffense(player, target, ready, baseline);
+			// A revoked scoped tick cannot use the result or fall back into a different native scene.
+			if (!currentOffense(player, target, policy, owner, lifetime)) { return true; }
+			if (choice == null || ready.stream().noneMatch(skill -> skill == choice.skill())) { return false; }
+			return submitScoped(choice, () -> currentOffense(player, target, policy, owner, lifetime) && policy.permitsScopedOffenseSkill(player, choice.skill())
+				&& readyOffense(player, target, choice.skill()), () ->
+				{
+					if (player.useMagic(choice.skill(), true, true)) { player.getAutoUseSettings().incrementSkillOrder(); }
+				}) || !currentOffense(player, target, policy, owner, lifetime);
+		}
+
+		private boolean stockOffenseCurrent(Player player, Playable caster, WorldObject target, PhantomPolicy policy, Target lifetime)
+		{
+			return PHANTOM_POLICIES.get(player) == policy && player.getTarget() == target && caster.getTarget() == target && World.getInstance().findObject(target.getObjectId()) == target
+				&& target.isCreature() && !target.asCreature().isAlikeDead() && target.getInstanceId() == player.getInstanceId()
+				&& (lifetime == null || lifetime.spawnGeneration() > 0 && lifetime.equals(((Monster) target).getNativeEvidenceTarget()))
+				&& policy.permitsTarget(target.asCreature());
+		}
+
+		private boolean currentOffense(Player player, Monster target, PhantomPolicy policy, PlayerNativeWork.Owner owner,
+			Target lifetime)
+		{
+			return owner != null && owner.player() == player && owner.isCurrent() && player.getNativeWorkOwner() == owner && !player.isInParty()
+				&& !player.isTeleporting() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && !player.isAlikeDead() && !player.isSitting()
+				&& player.isOnline() && player.isAutoPlaying() && player.getTarget() == target && !target.isAlikeDead() && target.isTargetable() && !target.isInvul()
+				&& !target.isRaid() && !target.isQuestMonster() && lifetime.spawnGeneration() > 0 && lifetime.equals(target.getNativeEvidenceTarget())
+				&& target.getInstanceId() == player.getInstanceId() && World.getInstance().findObject(target.getObjectId()) == target
+				&& !target.isInsideZone(ZoneId.PEACE) && target.isAutoAttackable(player) && policy.usesScopedOffense(player) && policy.permitsTarget(target);
+		}
+
+		private boolean readyOffense(Player player, Monster target, Skill skill)
+		{
+			if (skill == null || !skill.isDamage() || skill.getAffectRange() != 0 || skill.isChanneling() || skill.isSimultaneousCast() || skill.getFlyType() != null
+				|| skill.getHpConsume() != 0 || skill.getItemConsumeCount() != 0 || skill.getChargeConsumeCount() != 0 || skill.getMaxSoulConsumeCount() != 0
+				|| AutoPlayConfig.DISABLED_AUTO_SKILLS.contains(skill.getId())) { return false; }
+			final var mode = skill.isMagic() ? PhantomCombatMode.RANGED_MAGIC : PhantomCombatMode.MELEE_PHYSICAL;
+			if (!L2jCombatBackend.supportsPveSkill(player, skill, mode)) { return false; }
+			final var learned = SkillTreeData.getInstance().getClassSkill(skill.getId(), skill.getLevel(), player.getPlayerClass());
+			if (learned == null || learned.getGetLevel() > player.getLevel()) { return false; }
+			final int range = player.getMagicalAttackRange(skill);
+			final var geo = GeoEngine.getInstance();
+			return range > 0 && skill.getCastRange() > 0 && player.calculateDistance3D(target) <= Math.min(range, skill.getCastRange())
+				&& geo.hasGeo(player.getX(), player.getY()) && geo.hasGeo(target.getX(), target.getY())
+				&& geo.canSeeTarget(player, target) && player.getStat().getMpConsume(skill) > 0 && L2jCombatBackend.nativePveSkillReady(player, target, skill)
+				&& canUseMagic(player, target, skill);
 		}
 	}
 	

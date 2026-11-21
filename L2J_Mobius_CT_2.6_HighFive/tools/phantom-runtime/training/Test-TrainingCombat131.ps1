@@ -149,12 +149,30 @@ $body.campaignId='train-01'
 $body.phase='TRAIN'
 $body.cycle=1
 $body.modelSha=$sha
+$previousSqlLane=$body.sqlLane
+$body.sqlLane='foreign-scope'
 [IO.File]::WriteAllText($trainManifest,($body|ConvertTo-Json -Depth 8),$encoding)
 try{
     $null=& $scriptPath -Action Preflight -Manifest $trainManifest
     throw 'UNEXPECTED_TRAIN_PREFLIGHT_SUCCESS'
 }catch{
-    Assert-Check ($_.Exception.Message -ceq 'TRAINING131_NATIVE_ADAPTER_PHASE_UNAVAILABLE') 'absent TRAIN adapter cannot report readiness'
+    Assert-Check ($_.Exception.Message -ceq 'TRAINING131_NATIVE_SQL_SETUP_LANE') 'TRAIN preflight cannot cross its owned setup lane'
+}
+$body.sqlLane=$previousSqlLane
+
+$tuning=Join-Path (Split-Path $campaign -Parent) 'tuning-01'
+$null=New-Item -ItemType Directory -Path $tuning
+$tuningManifest=Join-Path $tuning 'campaign.json'
+$body.campaignId='tuning-01'
+$body.phase='TUNING'
+$body.quota.maxEpisodes=3
+$body.scenes=@($body.scenes | Select-Object -First 3)
+[IO.File]::WriteAllText($tuningManifest,($body|ConvertTo-Json -Depth 8),$encoding)
+try{
+    $null=& $scriptPath -Action Preflight -Manifest $tuningManifest
+    throw 'UNEXPECTED_TUNING_PREFLIGHT_SUCCESS'
+}catch{
+    Assert-Check ($_.Exception.Message -ceq 'TRAINING131_NATIVE_ADAPTER_PHASE_UNAVAILABLE') 'absent TUNING adapter cannot report readiness'
 }
 
 function Write-FixtureReceipt([string]$Name,$Value) {
@@ -166,21 +184,21 @@ function Write-FixtureReceipt([string]$Name,$Value) {
 
 # The only readback from this fabricated receipt chain must be a refusal.
 $body.configShas=@{'game/config/Custom/PhantomPlayers.ini'=$sha}
-[IO.File]::WriteAllText($trainManifest,($body|ConvertTo-Json -Depth 8),$encoding)
-$manifestSha=(Get-FileHash -LiteralPath $trainManifest).Hash.ToLowerInvariant()
+[IO.File]::WriteAllText($tuningManifest,($body|ConvertTo-Json -Depth 8),$encoding)
+$manifestSha=(Get-FileHash -LiteralPath $tuningManifest).Hash.ToLowerInvariant()
 $nonce='c'*32
-$boot=Join-Path $train 'boots\00001'
+$boot=Join-Path $tuning 'boots\00001'
 $null=New-Item -ItemType Directory -Path $boot
 $launchSha=Write-FixtureReceipt 'launch131.properties' "nonce=$nonce`n"
 $reservedSha=Write-FixtureReceipt 'reserved.json' @{schema='TRAINING_RESERVED131_V1';sequence=1;bootId='00001';manifestSha=$manifestSha
     parentSha=$manifestSha;lastCompleted=0;nonce=$nonce;authoritySha=$sha;launchSha=$launchSha
     reservedUtc=$now.AddMinutes(-2).ToString('o');deadlineUtc=$now.AddMinutes(-1).ToString('o')}
 $libraries=@('GameServer.jar','HikariCP-7.0.2.jar','mysql-connector-j-9.5.0.jar','slf4j-api-2.0.17.jar','slf4j-simple-2.0.17.jar')
-$classpath=@($libraries|ForEach-Object {Join-Path $body.runtimeRoot ('libs\'+$_)})+@(Join-Path $train 'native-classes')
+$classpath=@($libraries|ForEach-Object {Join-Path $body.runtimeRoot ('libs\'+$_)})+@(Join-Path $tuning 'native-classes')
 $executable=Join-Path $sandbox 'java.exe'
 $argumentText=('-XX:ActiveProcessorCount=4 -Xms512m -Xmx4g -Djava.util.logging.config.file=log.cfg -Dphantom.learning131.nonce='+$nonce+
-    ' -cp "'+($classpath -join ';')+'" org.l2jmobius.tests.phantoms.PhantomLearning131Native --train "'+
-    (Join-Path $train 'execution.properties')+'" "'+(Join-Path $boot 'launch131.properties')+'"')
+    ' -cp "'+($classpath -join ';')+'" org.l2jmobius.tests.phantoms.PhantomLearning131Native --tuning "'+
+    (Join-Path $tuning 'execution.properties')+'" "'+(Join-Path $boot 'launch131.properties')+'"')
 $owner=[ordered]@{schema='TRAINING_PROCESS131_V1';pid=131;created=$now.ToFileTimeUtc();executable=$executable;javaSha=$body.javaSha
     arguments=$argumentText;commandLine=('"'+$executable+'" '+$argumentText);controllerPid=132;controllerCreated=$now.ToFileTimeUtc()
     nonce=$nonce;reservationSha=$reservedSha}
@@ -189,10 +207,10 @@ $sealSha=Write-FixtureReceipt 'complete131.tsv' "fabricated test input`n"
 $null=Write-FixtureReceipt 'pause131.request' ($nonce+"`n")
 $ackSha=Write-FixtureReceipt 'drain131.properties' ((@('schema=NATIVE_DRAIN131_V1',"nonce=$nonce","manifestSha=$manifestSha",'bootId=00001',
     'pid=131',('startedUtc='+$now.ToString('o')),'status=PAUSED','completed=0',"sealSha=$sealSha") -join "`n")+"`n")
-$null=Write-FixtureReceipt 'closed.json' @{schema='TRAINING_CLOSED131_V1';reservationSha=$reservedSha;status='COMPLETED';completed=4
+$null=Write-FixtureReceipt 'closed.json' @{schema='TRAINING_CLOSED131_V1';reservationSha=$reservedSha;status='COMPLETED';completed=3
     nativeMillis=1;exitCode=0;ownerSha=$ownerSha;ackSha=$ackSha;sealSha=$sealSha;control='pause';masterSha=$sha;reason='NATIVE_DRAIN_ACK_VERIFIED'}
 try{
-    $null=& $scriptPath -Action Report -Manifest $trainManifest
+    $null=& $scriptPath -Action Report -Manifest $tuningManifest
     throw 'UNEXPECTED_DRAIN_SUBSTITUTION_SUCCESS'
 }catch{
     Assert-Check ($_.Exception.Message -ceq 'TRAINING131_CLOSE_ACK_DISAGREES') 'an exact PAUSED acknowledgement cannot credit completion'

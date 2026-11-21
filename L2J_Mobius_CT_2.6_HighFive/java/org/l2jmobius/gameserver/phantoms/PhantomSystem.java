@@ -71,6 +71,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatStepHandlers;
 import org.l2jmobius.gameserver.phantoms.commerce.L2jCommerceBackend;
 import org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney;
@@ -242,6 +243,8 @@ public final class PhantomSystem
 	private final PhantomPlayersConfig.Settings _settings;
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
 	private java.util.function.BiPredicate<Player, org.l2jmobius.gameserver.model.actor.Creature> _testFarmTargetScope = (actor, target) -> true;
+	private TestLearning131 _testLearning131;
+	record TestLearning131(LearningPolicy damage, TacticalPolicyV3 support, PhantomVisibleAutoPlay.SoloOffense soloOffense) { }
 	private StartupPartyRecovery _startupPartyRecovery;
 	public record StartupPartyRecovery(java.util.Set<Long> profiles, java.util.concurrent.CompletableFuture<Void> completion)
 	{
@@ -482,7 +485,7 @@ public final class PhantomSystem
 				_progressionService.start();
 				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, _gameKnowledgeService::query, () -> _progressionService.findCatalog().orElse(null));
 				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
-				_combatService.installLearning(LearningPolicy.configured(ServerConfig.DATAPACK_ROOT.toPath()));
+				_combatService.installLearning(_testLearning131 == null ? LearningPolicy.configured(ServerConfig.DATAPACK_ROOT.toPath()) : _testLearning131.damage());
 				_combatService.start();
 				final File economyPolicyFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/economy/high-five-economy-v1.xml");
 				final PhantomEconomyPolicy economyPolicy = PhantomEconomyPolicy.load(economyPolicyFile.toPath());
@@ -562,7 +565,8 @@ public final class PhantomSystem
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> localityPreparationCandidate(_populationManager, profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, backgroundPlanner, _backgroundService, _materializationService);
-				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime, _testFarmTargetScope);
+				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime,
+					_testFarmTargetScope, _testLearning131 == null ? null : _testLearning131.soloOffense());
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				final var supplyLifecycleBridge = new PhantomMaterializationLifecycleBridge();
@@ -666,7 +670,7 @@ public final class PhantomSystem
 					partyBackend,
 					partyRoleCatalog,
 					new PhantomPartyRouteCoordinator(_navigationService, _combatService, PhantomPartyFollowPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-follow-v1.xml").toPath())),
-					new PhantomPartyTactics(_combatService, partyBackend, partySupportPolicy),
+					new PhantomPartyTactics(_combatService, partyBackend, partySupportPolicy, _testLearning131 == null ? TacticalPolicyV3.OFF : _testLearning131.support()),
 					() -> _topologyService.query().snapshot().canonicalHash(),
 					System::nanoTime,
 					_settings.partyOperationsPerPulse(),
@@ -2301,10 +2305,21 @@ public final class PhantomSystem
 	static synchronized boolean startConfiguredForTesting(PhantomPlayersConfig.Settings settings, java.util.function.Consumer<PlanningInspection> inspection,
 		PhantomMaterializationLifecyclePort loadObserver, java.util.function.BiPredicate<Player, org.l2jmobius.gameserver.model.actor.Creature> targetScope)
 	{
+		return startConfiguredForTesting(settings, inspection, loadObserver, targetScope, null);
+	}
+
+	static synchronized boolean startConfiguredForTesting(PhantomPlayersConfig.Settings settings, java.util.function.Consumer<PlanningInspection> inspection,
+		PhantomMaterializationLifecyclePort loadObserver, java.util.function.BiPredicate<Player, org.l2jmobius.gameserver.model.actor.Creature> targetScope, TestLearning131 learning)
+	{
 		if (_configuredInstance != null) { return false; }
+		if (learning != null && (!Boolean.getBoolean("phantom.learning.train") || PhantomPlayersConfig.isEnabled() || !"OFF".equals(PhantomPlayersConfig.learningSettings().mode())))
+		{
+			throw new IllegalStateException("TASK131 TEST learning requires the disk master and ordinary learning OFF");
+		}
 		final var candidate = new PhantomSystem(Objects.requireNonNull(settings), true, Objects.requireNonNull(loadObserver));
 		candidate._planningInspection = Objects.requireNonNull(inspection);
 		candidate._testFarmTargetScope = Objects.requireNonNull(targetScope);
+		candidate._testLearning131 = learning;
 		return startConfiguredCandidate(candidate);
 	}
 

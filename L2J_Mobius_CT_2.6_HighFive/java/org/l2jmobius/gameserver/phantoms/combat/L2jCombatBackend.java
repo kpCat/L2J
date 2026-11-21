@@ -1991,6 +1991,21 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome castSupport(PhantomPartySupportAction action, java.util.function.BooleanSupplier authority)
 		{
+			return castSupport(action, authority, false);
+		}
+
+		@Override
+		public ActionOutcome castPartyDefenseSupport(PhantomPartySupportAction action, java.util.function.BooleanSupplier authority)
+		{
+			if (action == null || !Set.of("combat.heal", "combat.recharge", "combat.cleanse").contains(action.capabilityKey()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			return castSupport(action, authority, true);
+		}
+
+		private ActionOutcome castSupport(PhantomPartySupportAction action, java.util.function.BooleanSupplier authority, boolean partyDefenseSupport)
+		{
 			if ((action == null) || !PARTY_SUPPORT_CAPABILITIES.contains(action.capabilityKey()))
 			{
 				return ActionOutcome.REJECTED;
@@ -2056,9 +2071,9 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
-			if (cleanse)
+			if (cleanse || partyDefenseSupport)
 			{
-				return castCleanse(action, target, skill, authority);
+				return castScopedPartySupport(action, target, skill, authority, cleanse);
 			}
 			final SkillUseHolder current = _player.getCurrentSkill();
 			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == action.skill().skillId()) && (current.getSkillLevel() == action.skill().skillLevel()))
@@ -2073,13 +2088,13 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				() -> _player.useMagic(skill, false, action.stationary())) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
 		}
 
-		private ActionOutcome castCleanse(PhantomPartySupportAction action, Player target, Skill skill, java.util.function.BooleanSupplier authority)
+		private ActionOutcome castScopedPartySupport(PhantomPartySupportAction action, Player target, Skill skill, java.util.function.BooleanSupplier authority, boolean cleanse)
 		{
 			final var party = _player.getParty();
 			final java.util.function.BooleanSupplier current = () -> authority.getAsBoolean() && executionValid() && _player.getParty() == party
 				&& (target == _player || party != null && target.getParty() == party);
 			if (action.audience() != PhantomPartySupportAction.Audience.PARTY || !current.getAsBoolean()
-				|| PhantomSupportEffectAuthority.cleanseUrgency(_player, target, skill) == 0)
+				|| cleanse && PhantomSupportEffectAuthority.cleanseUrgency(_player, target, skill) == 0)
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -2089,9 +2104,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.UNAVAILABLE;
 			}
 			_player.setTarget(target);
-			return PhantomAreaControl131.castSingleSupport(_player, skill, target, current,
-				recipient -> recipient == target && PhantomSupportEffectAuthority.cleanseUrgency(_player, target, skill) > 0)
-				? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
+			final java.util.function.BooleanSupplier cast = () -> PhantomAreaControl131.castSingleSupport(_player, skill, target, current,
+				recipient -> recipient == target && (!cleanse || PhantomSupportEffectAuthority.cleanseUrgency(_player, target, skill) > 0));
+			final boolean issued = cleanse ? cast.getAsBoolean()
+				: org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.dispatch(_player, target, skill, current, cast);
+			return issued ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
 		}
 
 		@Override

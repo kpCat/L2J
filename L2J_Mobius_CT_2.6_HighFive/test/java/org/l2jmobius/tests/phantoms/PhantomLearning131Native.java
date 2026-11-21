@@ -54,6 +54,9 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ResourceWrite;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.events.EventType;
+import org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDeath;
+import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.phantoms.PhantomLearning131Factory;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
@@ -61,6 +64,13 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
+import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
@@ -69,7 +79,7 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
-/** Runs the bounded N01 stock-lifetime observation against an independently commissioned TEST131 boot. */
+/** Runs bounded stock encounters against an independently commissioned TEST131 boot. */
 public final class PhantomLearning131Native
 {
 	private static final String SCHEMA = "l2jmobiush5_phantom_test_131";
@@ -87,7 +97,13 @@ public final class PhantomLearning131Native
 		long stockShots, long stockAdena, long initialExp, long initialSp, long goal, long revision, String planIdentity, String anchor, PhantomTopologyPoint point,
 		int npc, int npcLevel, String spawn, int respawnMin, int respawnMax, PhantomBackgroundState.Hashes hashes) { }
 	private record Scope(Path execution, Path task, Path runtime, Path game, Path jar, Path sql, String campaign, String gameJarSha, String sourceCommit,
-		String executionSha, String fixtureSha, String scenesSha, String enabledConfigSha, String jdbcSha, int maxCycles, int seconds, int drainSeconds, List<Scene> scenes) { }
+		String executionSha, String fixtureSha, String scenesSha, String enabledConfigSha, String jdbcSha, int maxCycles, int seconds, int drainSeconds,
+		List<Scene> scenes, Training training)
+	{
+		String phase() { return training == null ? "N01" : "TRAIN"; }
+	}
+	private record TrainScene(long profile, int seconds, ActionExplorationV4.Plan plan) { }
+	private record Training(int cycle, String planSha, String policySha, String head, String opponentSha, ActionValueV4 model, List<TrainScene> episodes) { }
 	private record Launch(Path root, String manifestSha, String boot, String nonce, Instant deadline) { }
 	private record Bound(Scene scene, Player player, PlayerNativeEvidence sensor, PlayerNativeEvidence.Snapshot initial, Target stock) { }
 	private record Award(Target target, Target next, long cycle, long damage, long kill, long reward, long settled, long exp, long sp) { }
@@ -99,11 +115,12 @@ public final class PhantomLearning131Native
 	{
 		try
 		{
-			check(args.length == 2 && args[0].equals("--preflight") || args.length == 3 && args[0].equals("--n01"), "MODE");
-			final Scope scope = scope(Path.of(args[1]));
-			if (args[0].equals("--preflight"))
+			check(args.length == 2 && Set.of("--preflight", "--train-preflight").contains(args[0])
+				|| args.length == 3 && Set.of("--n01", "--train").contains(args[0]), "MODE");
+			final Scope scope = scope(Path.of(args[1]), args[0].startsWith("--train") ? "TRAIN" : "N01");
+			if (args.length == 2)
 			{
-				System.out.println("TASK131_NATIVE_PREFLIGHT_READY phase=N01 scenes=" + scope.scenes().size() + " live=false");
+				System.out.println("TASK131_NATIVE_PREFLIGHT_READY phase=" + scope.phase() + " scenes=" + (scope.training() == null ? scope.scenes().size() : scope.training().episodes().size()) + " live=false");
 				return;
 			}
 			run(scope, launch(scope, Path.of(args[2])));
@@ -116,12 +133,12 @@ public final class PhantomLearning131Native
 		}
 	}
 
-	private static Scope scope(Path supplied) throws Exception
+	private static Scope scope(Path supplied, String phase) throws Exception
 	{
 		final Path execution = physical(supplied, true);
 		final Path task = taskRoot(execution);
 		final Properties fields = properties(execution);
-		check("TRAINING_EXECUTION131_V1".equals(value(fields, "schema")) && "N01".equals(value(fields, "phase")) && n(fields, "maxEpisodes") == 4, "EXECUTION_SCHEMA");
+		check("TRAINING_EXECUTION131_V1".equals(value(fields, "schema")) && phase.equals(value(fields, "phase")), "EXECUTION_SCHEMA");
 		final String campaign = value(fields, "campaignId");
 		final String source = value(fields, "sourceCommit");
 		check(campaign.matches("[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}") && source.matches("[a-f0-9]{40}"), "CAMPAIGN_SCOPE");
@@ -131,6 +148,8 @@ public final class PhantomLearning131Native
 		final Path fixture = physical(sql.resolve("n01-fixture.tsv"), true), scenes = physical(sql.resolve("n01-scenes.tsv"), true);
 		final String fixtureSha = pin(fixture, value(fields, "fixtureSha")), sceneSha = pin(scenes, value(fields, "sceneSha"));
 		final List<Scene> cohort = scenes(fixture, scenes);
+		final Training training = phase.equals("TRAIN") ? training(task, execution.getParent(), fields, cohort) : null;
+		check(training != null || n(fields, "maxEpisodes") == 4, "N01_EPISODE_COUNT");
 		final Path sceneScope = physical(sql.resolve("n01-scene-scope.properties"), true);
 		pin(sceneScope, value(fields, "sceneScopeSha"));
 		final var sealed = properties(sceneScope);
@@ -162,34 +181,79 @@ public final class PhantomLearning131Native
 		final var settings = PhantomPlayersConfig.read(enabled);
 		check(settings.enabled() && settings.populationTarget() == 4 && settings.populationActiveTarget() == 4 && settings.maxMaterializedPhantoms() == 4
 			&& settings.materializationBurstSlots() == 0 && !settings.partySeeking().enabled() && settings.starterShotLifetimeLimit() == 0
-			&& "OFF".equals(value(properties(enabled), "LearningMode")) && !Boolean.getBoolean("phantom.learning.train"), "BOUNDED_N01_SETTINGS");
+			&& "OFF".equals(value(properties(enabled), "LearningMode")) && (training != null) == Boolean.getBoolean("phantom.learning.train"), "BOUNDED_N01_SETTINGS");
 		final int maxCycles = n(fields, "maxCyclesPerActor"), seconds = n(fields, "observeSeconds"), drainSeconds = n(fields, "drainSeconds");
 		check(maxCycles >= CYCLES_REQUIRED && maxCycles <= 12 && seconds > 0 && seconds <= 1200 && drainSeconds > 0 && drainSeconds <= 120, "N01_QUOTAS");
-		return new Scope(execution, task, runtime, game, jar, sql, campaign, jarSha, source, sha(execution), fixtureSha, sceneSha, enabledSha, jdbcSha, maxCycles, seconds, drainSeconds, cohort);
+		check(training == null || training.episodes().stream().mapToInt(TrainScene::seconds).sum() == seconds, "TRAIN_OBSERVE_BUDGET");
+		return new Scope(execution, task, runtime, game, jar, sql, campaign, jarSha, source, sha(execution), fixtureSha, sceneSha, enabledSha, jdbcSha, maxCycles, seconds, drainSeconds, cohort, training);
+	}
+
+	private static Training training(Path task, Path campaign, Properties fields, List<Scene> cohort) throws Exception
+	{
+		final int cycle = n(fields, "cycle");
+		check(cycle >= 1 && cycle <= 6 && campaign.equals(task.resolve("campaigns/train-%02d".formatted(cycle)))
+			&& campaign.getFileName().toString().equals(value(fields, "campaignId")), "OWN_TRAIN_CYCLE");
+		final String head = value(fields, "expectedHead"), learner = value(fields, "learnerSha"), opponent = value(fields, "opponentSha");
+		check(head.matches("[0-9a-f]{64}") && learner.matches("[0-9a-f]{64}") && opponent.matches("[0-9a-f]{64}")
+			&& head.equals(value(fields, "rollbackHead")) && learner.equals(value(fields, "rollbackModelSha")), "TRAIN_FROZEN_PAIR");
+		final var checkpoint = ActionContinuationV4.load(physical(task.resolve("fit-ledger"), false));
+		final var model = checkpoint.model();
+		check(checkpoint.head().equals(head) && model.sha256().equals(learner), "TRAIN_COLD_LINEAGE");
+		pin(campaign.resolve("candidate-" + learner + ".bin"), learner);
+		final Path opponentFile = physical(campaign.resolve("candidate-" + opponent + ".bin"), true);
+		check(Files.size(opponentFile) <= MAX_ARTIFACT_BYTES, "TRAIN_OPPONENT_BYTE_BOUND");
+		ActionValueV4.restore(Files.readAllBytes(opponentFile), opponent);
+		final Path schedule = physical(campaign.resolve("scenes.tsv"), true), policyFile = physical(campaign.resolve("policy131.properties"), true);
+		final String scheduleSha = pin(schedule, value(fields, "trainScenesSha")), policySha = pin(policyFile, value(fields, "policySha"));
+		final var policy = properties(policyFile);
+		check("TRAIN_POLICY131_V1".equals(value(policy, "schema")) && head.equals(value(policy, "expectedHead"))
+			&& learner.equals(value(policy, "learnerSha")) && opponent.equals(value(policy, "opponentSha")), "TRAIN_POLICY_SCOPE");
+		final String header = "episodeId\tprofileId\tseconds";
+		final var scheduleRows = table(schedule, header, 3);
+		final int maximum = n(fields, "maxEpisodes");
+		check(maximum >= 1 && maximum <= 4 && scheduleRows.size() == maximum, "TRAIN_NATIVE_SCENE_COUNT");
+		final var selection = new ArrayList<TrainScene>();
+		for (var entry : scheduleRows)
+		{
+			final String episode = entry[0];
+			final long profile = Long.parseLong(entry[1]);
+			final int seconds = Integer.parseInt(entry[2]);
+			check(episode.matches("[a-f0-9]{64}") && seconds >= 5 && seconds <= 180 && cohort.stream().anyMatch(actor -> actor.profile() == profile)
+				&& selection.stream().noneMatch(scene -> scene.profile() == profile || scene.plan().episode().equals(episode)), "TRAIN_SOLO_SCENE_SCOPE");
+			final String key = "episode." + episode + ".";
+			final var plan = new ActionExplorationV4.Plan(2, "EPSILON_V2", Long.parseLong(value(policy, key + "seed")), n(policy, key + "cap"),
+				Double.parseDouble(value(policy, key + "epsilon")), "TRAIN", episode, value(fields, key + "sourceSha"), learner,
+				List.of(value(policy, key + "skills").split(",", -1)));
+			check(plan.sha256().equals(value(fields, key + "policySha")), "TRAIN_EPISODE_POLICY_PIN");
+			selection.add(new TrainScene(profile, seconds, plan));
+		}
+		return new Training(cycle, scheduleSha, policySha, head, opponent, model, List.copyOf(selection));
 	}
 
 	private static Launch launch(Scope scope, Path supplied) throws Exception
 	{
 		final Path path = physical(supplied, true), root = path.getParent();
-		final Path campaign = scope.task().resolve("campaigns/n01");
-		check("n01".equals(scope.campaign()) && scope.execution().equals(campaign.resolve("execution.properties"))
+		final Path campaign = scope.task().resolve("campaigns").resolve(scope.campaign());
+		check((scope.training() != null || "n01".equals(scope.campaign())) && scope.execution().equals(campaign.resolve("execution.properties"))
 			&& path.getFileName().toString().equals("launch131.properties") && root.getParent().equals(campaign.resolve("boots"))
 			&& root.getFileName().toString().matches("[0-9]{5}"), "OWN_BOOT_ROOT");
 		check(physical(Path.of("").toAbsolutePath().normalize(), false).equals(scope.game()), "OWN_GAME_WORKING_DIRECTORY");
 		final var fields = properties(path);
 		final String nonce = value(fields, "nonce"), boot = value(fields, "bootId"), manifest = value(fields, "manifestSha");
-		check("TRAINING_LAUNCH131_V1".equals(value(fields, "schema")) && "N01".equals(value(fields, "phase")) && scope.campaign().equals(value(fields, "campaignId"))
+		check("TRAINING_LAUNCH131_V1".equals(value(fields, "schema")) && scope.phase().equals(value(fields, "phase")) && scope.campaign().equals(value(fields, "campaignId"))
 			&& scope.executionSha().equalsIgnoreCase(value(fields, "executionSha")) && nonce.matches("[0-9a-f]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
 			&& root.getFileName().toString().equals(boot) && root.equals(Path.of(value(fields, "bootRoot"))) && manifest.matches("(?i)[a-f0-9]{64}")
 			&& n(fields, "lastCompleted") == 0, "BOOT_LAUNCH_BINDING");
 		final Path manifestPath = physical(campaign.resolve("campaign.json"), true);
 		pin(manifestPath, manifest);
 		final String manifestBody = smallText(manifestPath);
-		check(jsonScalar(manifestBody, "schema").equals("TRAINING_COMBAT131_V1") && jsonScalar(manifestBody, "phase").equals("N01") && jsonScalar(manifestBody, "campaignId").equals("n01")
+		check(jsonScalar(manifestBody, "schema").equals("TRAINING_COMBAT131_V1") && jsonScalar(manifestBody, "phase").equals(scope.phase()) && jsonScalar(manifestBody, "campaignId").equals(scope.campaign())
 			&& jsonScalar(manifestBody, "executionSha").equalsIgnoreCase(scope.executionSha()) && jsonScalar(manifestBody, "sourceCommit").equals(scope.sourceCommit())
-			&& jsonScalar(manifestBody, "fixtureSha").equalsIgnoreCase(scope.fixtureSha()) && jsonScalar(manifestBody, "gameJarSha").equalsIgnoreCase(scope.gameJarSha())
-			&& jsonScalar(manifestBody, "policySha").equalsIgnoreCase(scope.enabledConfigSha())
+			&& jsonScalar(manifestBody, "fixtureSha").equalsIgnoreCase(scope.training() == null ? scope.fixtureSha() : scope.training().planSha())
+			&& jsonScalar(manifestBody, "gameJarSha").equalsIgnoreCase(scope.gameJarSha())
+			&& jsonScalar(manifestBody, "policySha").equalsIgnoreCase(scope.training() == null ? scope.enabledConfigSha() : scope.training().policySha())
 			&& jsonScalar(manifestBody, "jdbcSha").equalsIgnoreCase(scope.jdbcSha()) && jsonScalar(manifestBody, "sqlLane").equals(scope.sql().getParent().getFileName().toString()), "CAMPAIGN_BYTES_SCOPE");
+		check(scope.training() == null || jsonScalar(manifestBody, "modelSha").equals(scope.training().model().sha256()), "TRAIN_CAMPAIGN_MODEL");
 		final var deadline = Instant.parse(value(fields, "deadlineUtc"));
 		final var now = Instant.now();
 		check(now.isBefore(deadline) && deadline.isBefore(now.plusSeconds(1801)), "BOOT_DEADLINE");
@@ -264,7 +328,9 @@ public final class PhantomLearning131Native
 		final var settings = PhantomPlayersConfig.read(enabled);
 		check(sha(enabled).equals(scope.enabledConfigSha()) && settings.enabled() && request(launch) == null, "BOOT_CANCELLED_OR_CHANGED_CONFIG");
 		verifyBeforeBoot(scope);
-		writeNew(launch.root().resolve("n01-java.claim"), line("pid", ProcessHandle.current().pid()) + line("nonce", launch.nonce())
+		final var training = scope.training() == null ? null : new PhantomLearning131Capture(launch.manifestSha(), scope.training().model());
+		final var settlements = new ArrayList<PhantomLearning131Capture.Settlement>();
+		writeNew(launch.root().resolve(training == null ? "n01-java.claim" : "train-java.claim"), line("pid", ProcessHandle.current().pid()) + line("nonce", launch.nonce())
 			+ line("executionSha", scope.executionSha()) + line("jarSha", scope.gameJarSha()) + line("startedUtc", currentStart()));
 		boolean bootAttempted = false, enabledRuntime = false;
 		Status terminal = Status.UNKNOWN;
@@ -287,9 +353,13 @@ public final class PhantomLearning131Native
 				{
 					try (Connection database = DatabaseFactory.getConnection()) { verifyDatabase(scope, database); }
 					check(!PhantomPlayersConfig.isEnabled() && "OFF".equals(PhantomPlayersConfig.learningSettings().mode()) && sha(config).equals(disabled), "DISK_MASTER_STAYS_OFF");
-					enabledRuntime = PhantomLearning131Factory.start(settings, binding, inspection -> verifyConfigured(scope, inspection), binding::permitsTarget);
+					enabledRuntime = training == null
+						? PhantomLearning131Factory.start(settings, binding, inspection -> verifyConfigured(scope, inspection), binding::permitsTarget)
+						: PhantomLearning131Factory.startEpisodeLearning(settings, binding, inspection -> verifyConfigured(scope, inspection), binding::permitsTarget,
+							training.tactical(), training.damage(), training::eligible, training::permitsSkill);
 					check(enabledRuntime && PhantomSystem.operatorStatus().runtimeState() == PhantomSystem.State.RUNNING, "PRODUCTION_SCHEDULER_START");
-					final var outcome = observe(scope, launch, binding, drops, resource);
+					final var outcome = training == null ? observe(scope, launch, binding, drops, resource)
+						: observeTraining(scope, launch, binding, training, settlements);
 					terminal = outcome.status();
 					completed = outcome.completed();
 				}
@@ -314,14 +384,23 @@ public final class PhantomLearning131Native
 				final var stored = drain(scope, launch, binding, enabledRuntime);
 				check(!PhantomPlayersConfig.isEnabled() && "OFF".equals(PhantomPlayersConfig.learningSettings().mode()) && sha(config).equals(disabled), "DISK_MASTER_STAYS_OFF");
 				final var status = terminal == null ? Status.UNKNOWN : terminal;
-				final var seal = launch.root().resolve("n01-drain.properties");
+				final var seal = launch.root().resolve(training == null ? "n01-drain.properties" : "complete131.tsv");
 				final String bindingSha = optionalSha(launch.root().resolve("n01-binding.tsv")), cyclesSha = optionalSha(launch.root().resolve("n01-native-cycles.tsv"));
 				final String costsSha = optionalSha(launch.root().resolve("n01-native-costs.tsv")), lootSha = optionalSha(launch.root().resolve("n01-native-loot.tsv"));
-				check(completed == 0 || java.util.stream.Stream.of(bindingSha, cyclesSha, costsSha, lootSha).noneMatch("NONE"::equals), "COMPLETED_RECEIPTS_ABSENT");
-				writeNew(seal, line("schema", "N01_DRAIN131_V1") + line("status", status) + line("reason", reason) + line("worldOwnedPlayers", 0)
-					+ line("durableStoredActors", stored) + line("minRequiredCycles", CYCLES_REQUIRED) + line("completed", completed)
-					+ line("manifestSha", launch.manifestSha()) + line("bootId", launch.boot()) + line("jarSha", scope.gameJarSha()) + line("bindingSha", bindingSha)
-					+ line("cyclesSha", cyclesSha) + line("costsSha", costsSha) + line("lootSha", lootSha));
+				if (training == null)
+				{
+					check(completed == 0 || java.util.stream.Stream.of(bindingSha, cyclesSha, costsSha, lootSha).noneMatch("NONE"::equals), "COMPLETED_RECEIPTS_ABSENT");
+					writeNew(seal, line("schema", "N01_DRAIN131_V1") + line("status", status) + line("reason", reason) + line("worldOwnedPlayers", 0)
+						+ line("durableStoredActors", stored) + line("minRequiredCycles", CYCLES_REQUIRED) + line("completed", completed)
+						+ line("manifestSha", launch.manifestSha()) + line("bootId", launch.boot()) + line("jarSha", scope.gameJarSha()) + line("bindingSha", bindingSha)
+						+ line("cyclesSha", cyclesSha) + line("costsSha", costsSha) + line("lootSha", lootSha));
+				}
+				else
+				{
+					completed = settlements.size();
+					check(stored == scope.scenes().size() && (status != Status.COMPLETED || completed == scope.training().episodes().size()), "TRAIN_DURABLE_CLOSURE");
+					publishTraining(scope, launch, status, settlements, seal);
+				}
 				writeNew(launch.root().resolve("drain131.properties"), line("schema", "NATIVE_DRAIN131_V1") + line("nonce", launch.nonce())
 					+ line("manifestSha", launch.manifestSha()) + line("bootId", launch.boot()) + line("pid", ProcessHandle.current().pid())
 					+ line("startedUtc", currentStart()) + line("status", status) + line("completed", completed) + line("sealSha", sha(seal)));
@@ -335,6 +414,183 @@ public final class PhantomLearning131Native
 		final var hashes = inspection.planner().generation().authorityHashes();
 		check(inspection.settings().maxMaterializedPhantoms() == scope.scenes().size() && scope.scenes().stream().allMatch(scene ->
 				scene.hashes().equals(hashes) && inspection.topology().findAnchor(scene.anchor()).isPresent()), "CONFIGURED_PLANNER_AUTHORITY_DRIFT");
+	}
+
+	private static Outcome observeTraining(Scope scope, Launch launch, Binding binding, PhantomLearning131Capture capture,
+		List<PhantomLearning131Capture.Settlement> settlements) throws Exception
+	{
+		final Instant readyUntil = earliest(launch.deadline().minusSeconds(scope.seconds() + scope.drainSeconds()), Instant.now().plusSeconds(45));
+		while (binding.bound.size() != scope.scenes().size() || binding.bound.values().stream().anyMatch(actor -> World.getInstance().getPlayer(actor.scene().actor()) != actor.player()))
+		{
+			final var requested = request(launch);
+			if (requested != null) { return new Outcome(requested, settlements.size()); }
+			check(Instant.now().isBefore(readyUntil) && binding.refusal.get() == null, "TRAIN_ROSTER_NOT_READY");
+			Thread.sleep(25);
+		}
+		final Instant observeUntil = earliest(Instant.now().plusSeconds(scope.seconds()), launch.deadline().minusSeconds(scope.drainSeconds()));
+		for (var slot : scope.training().episodes())
+		{
+			final var requested = request(launch);
+			if (requested != null) { return new Outcome(requested, settlements.size()); }
+			final var actor = binding.bound.get(slot.profile());
+			final var player = actor.player();
+			check(World.getInstance().getPlayer(actor.scene().actor()) == player && !player.isInParty()
+				&& !player.isAlikeDead() && PlayerNativeWork.observationEvidence(player) == actor.sensor(), "TRAIN_ACTOR_CHANGED");
+			stock(actor.scene(), actor.stock());
+			final Monster monster = (Monster) World.getInstance().findObject(actor.stock().objectId());
+			check(monster != null && !monster.isAlikeDead() && actor.stock().equals(monster.getNativeEvidenceTarget())
+				&& slot.plan().skills().stream().allMatch(reference ->
+				{
+					final String[] pair = reference.split(":");
+					final var learned = player.getKnownSkill(Integer.parseInt(pair[0]));
+					return learned != null && learned.getLevel() == Integer.parseInt(pair[1]) && learned.isDamage();
+				}), "TRAIN_EXACT_STOCK_AND_LEARNED_SKILLS");
+			final var before = actor.sensor().snapshot();
+			check(!before.overflow() && before.epoch() == actor.initial().epoch() && before.damageSequence() == 0 && before.killSequence() == 0
+				&& before.targetSequence() == 0 && before.rewardSequence() == 0, "TRAIN_NATIVE_WORK_BEFORE_CUT");
+			final long started = System.nanoTime();
+			final var episode = new PhantomLearning131Capture.Episode(new ActionExplorationV4(slot.plan()), started,
+				List.of(new PhantomLearning131Capture.Actor(slot.profile(), player.getObjectId(), before.epoch())),
+				Set.of(new PhantomLearning131Capture.Target(actor.stock().objectId(), actor.stock().spawnGeneration())));
+			final Instant cutoff = earliest(observeUntil, Instant.now().plusSeconds(slot.seconds()));
+			Frame finish = null;
+			String reason = "NATIVE_TIMEOUT";
+			try (var deaths = new TrainDeaths(player, monster, actor.stock()))
+			{
+				capture.open(episode);
+				binding.trainingActor = actor;
+				try
+				{
+					while (Instant.now().isBefore(cutoff))
+					{
+						final var control = request(launch);
+						if (control != null) { return new Outcome(control, settlements.size()); }
+						check(binding.refusal.get() == null && !deaths.foreign(), "TRAIN_FOREIGN_DEATH_OR_BINDING");
+						final Frame frame = trainFrame(actor);
+						final var facts = frame.receipts();
+						final var snap = frame.snapshot();
+						check(!snap.overflow() && snap.targetSequence() <= 1 && snap.killSequence() <= 1 && snap.rewardSequence() <= 1
+							&& (frame.selected() == null || actor.stock().equals(frame.selected())), "TRAIN_FOREIGN_TARGET_OR_SEQUENCE");
+						if (deaths.owned() && player.isAlikeDead())
+						{
+							check(facts.killSequence() == before.killSequence(), "TRAIN_MUTUAL_TERMINAL_UNKNOWN");
+							finish = frame;
+							reason = "NATIVE_ACTOR_DIED";
+							break;
+						}
+						check(PlayerNativeWork.observationEvidence(player) == actor.sensor(), "TRAIN_OWNER_RELEASE_WITHOUT_TERMINAL");
+						if (actor.stock().equals(facts.killTarget()) && actor.stock().equals(facts.rewardTarget()) && actor.stock().equals(facts.settledTarget())
+							&& facts.rewardSequence() > before.rewardSequence() && facts.settledRewardSequence() == facts.rewardSequence()
+							&& snap.damageSequence() > before.damageSequence() && snap.expGained() > 0 && snap.spGained() > 0
+							&& trainActorIdle(player))
+						{
+							finish = frame;
+							reason = "NATIVE_KILL";
+							break;
+						}
+						Thread.sleep(25);
+					}
+				}
+				finally
+				{
+					binding.trainingActor = null;
+					capture.closeChoices(episode);
+				}
+				if (finish == null)
+				{
+					final Instant safe = earliest(launch.deadline().minusSeconds(scope.drainSeconds()), Instant.now().plusSeconds(2));
+					while (!trainActorIdle(player) && Instant.now().isBefore(safe)) { Thread.sleep(25); }
+					finish = trainFrame(actor);
+					check(trainActorIdle(player) && !player.isAlikeDead() && !deaths.foreign() && !deaths.owned()
+						&& finish.receipts().killSequence() == before.killSequence() && finish.receipts().rewardSequence() == before.rewardSequence(),
+						"TRAIN_TIMEOUT_NOT_DRAINED");
+				}
+			}
+			binding.lastOwnedAward.put(slot.profile(), finish.snapshot());
+			final var events = capture.receipts(episode);
+			check(!events.isEmpty(), "TRAIN_NATIVE_PAID_CHOICE_ABSENT");
+			final var target = actor.stock();
+			final boolean died = reason.equals("NATIVE_ACTOR_DIED");
+			final List<TacticalEpisodeV3.Kill> kills = reason.equals("NATIVE_KILL")
+				? List.of(new TacticalEpisodeV3.Kill(target.objectId(), actor.scene().npc(), target.spawnGeneration(), target.instanceId(), player.getObjectId(), finish.receipts().killSequence()))
+				: List.of();
+			final var settled = new TacticalEpisodeV3(slot.plan().episode(), launch.nonce(), "SOLO", started, System.nanoTime(), reason,
+				List.of(new TacticalEpisodeV3.Actor(slot.profile(), player.getObjectId(), before.epoch(), player.getActiveClass(), player.getLevel(),
+					player.getCurrentHp(), player.getCurrentMp(), died, finish.snapshot().expGained(), finish.snapshot().spGained())),
+				kills, events.stream().map(TacticalReceiptV3::eventKey).toList(),
+				events.stream().filter(event -> event.attempt().selected().family() == LegalActionV3.Family.DAMAGE).mapToDouble(TacticalReceiptV3::actualHp).sum(),
+				events.stream().filter(event -> event.attempt().selected().family() == LegalActionV3.Family.HEAL).mapToDouble(TacticalReceiptV3::actualHp).sum(),
+				events.stream().mapToDouble(TacticalReceiptV3::actualMp).sum(), died ? 1 : 0);
+			settlements.add(capture.settle(episode, settled, launch.nonce()));
+		}
+		return new Outcome(Status.COMPLETED, settlements.size());
+	}
+
+	private static Frame trainFrame(Bound actor)
+	{
+		synchronized (actor.sensor())
+		{
+			return new Frame(actor.sensor().snapshot(), actor.sensor().targetReceipts(), actor.sensor().selectedTarget());
+		}
+	}
+
+	private static boolean trainActorIdle(Player player)
+	{
+		return !player.isCastingNow() && !player.isAttackingNow() && !player.isCastingSimultaneouslyNow() && player.getQueuedSkill() == null;
+	}
+
+	private static final class TrainDeaths implements AutoCloseable
+	{
+		private final Player actor;
+		private final Monster target;
+		private final ConsumerEventListener actorDeath;
+		private final ConsumerEventListener targetDeath;
+		private final AtomicReference<Boolean> exactActorDeath = new AtomicReference<>();
+
+		private TrainDeaths(Player actor, Monster target, Target generation)
+		{
+			this.actor = actor;
+			this.target = target;
+			actorDeath = new ConsumerEventListener(actor, EventType.ON_CREATURE_DEATH, (OnCreatureDeath event) ->
+			{
+				if (event.getTarget() == actor) { exactActorDeath.compareAndSet(null, event.getAttacker() == target && generation.equals(target.getNativeEvidenceTarget())); }
+			}, this);
+			targetDeath = new ConsumerEventListener(target, EventType.ON_CREATURE_DEATH, (OnCreatureDeath event) ->
+			{
+				if (event.getTarget() == target && generation.equals(target.getNativeEvidenceTarget())) { LearningCastEvidence.terminalDeath(target); }
+			}, this);
+			actor.addListener(actorDeath);
+			target.addListener(targetDeath);
+		}
+
+		boolean owned() { return Boolean.TRUE.equals(exactActorDeath.get()); }
+		boolean foreign() { return Boolean.FALSE.equals(exactActorDeath.get()); }
+
+		@Override public void close()
+		{
+			actor.removeListener(actorDeath);
+			target.removeListener(targetDeath);
+		}
+	}
+
+	private static void publishTraining(Scope scope, Launch launch, Status status, List<PhantomLearning131Capture.Settlement> settlements, Path seal) throws Exception
+	{
+		final var originals = Files.createDirectory(launch.root().resolve("episodes"));
+		final var training = scope.training();
+		final var rows = new StringBuilder(row("meta", "schema", "NATIVE_TRAIN_BOOT131_V1"))
+			.append(row("meta", "phase", "TRAIN")).append(row("meta", "status", status == Status.COMPLETED ? "DRAINED" : status.name()))
+			.append(row("meta", "bootId", launch.boot())).append(row("meta", "nonce", launch.nonce()))
+			.append(row("meta", "pid", ProcessHandle.current().pid())).append(row("meta", "processStarted", currentStart()))
+			.append(row("meta", "manifestSha", launch.manifestSha())).append(row("meta", "sourceCommit", scope.sourceCommit()))
+			.append(row("meta", "jarSha", scope.gameJarSha())).append(row("meta", "expectedHead", training.head()))
+			.append(row("meta", "learnerSha", training.model().sha256())).append(row("meta", "opponentSha", training.opponentSha()))
+			.append(row("meta", "cycle", training.cycle()));
+		for (var settlement : settlements)
+		{
+			final var original = PhantomLearning131Capture.publishTrain(originals, launch.boot(), settlement);
+			rows.append(row("episode", original.episodeId(), original.sealSha()));
+		}
+		writeNew(seal, rows.toString());
 	}
 
 	private static void verifyBeforeBoot(Scope scope) throws Exception
@@ -471,11 +727,14 @@ public final class PhantomLearning131Native
 		private final AtomicReference<String> refusal = new AtomicReference<>();
 		private final ConcurrentLinkedQueue<ResourceWrite> resources = new ConcurrentLinkedQueue<>();
 		private final AtomicInteger resourceRows = new AtomicInteger();
+		private final boolean training;
+		private volatile Bound trainingActor;
 		private volatile boolean closed;
 
 		private Binding(Scope scope, Launch launch)
 		{
 			this.launch = launch;
+			training = scope.training() != null;
 			for (Scene scene : scope.scenes()) { scenes.put(scene.profile(), scene); actors.put(scene.actor(), scene); }
 		}
 
@@ -542,6 +801,7 @@ public final class PhantomLearning131Native
 			if (actor == null || actor.player() != player || PlayerNativeWork.observationEvidence(player) != actor.sensor() || !matchesStock(scene, monster)
 				|| scene.point().distanceSquared2D(point(player)) > (long) MAX_DISTANCE * MAX_DISTANCE
 				|| scene.point().distanceSquared2D(point(monster)) > (long) MAX_DISTANCE * MAX_DISTANCE) { return false; }
+			if (training) { return actor == trainingActor && actor.stock().equals(monster.getNativeEvidenceTarget()); }
 			final Target selected = actor.sensor().selectedTarget();
 			return selected != null || actor.stock().equals(monster.getNativeEvidenceTarget());
 		}

@@ -384,6 +384,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Map<String, GroupRuntime> _groups = new ConcurrentHashMap<>();
 	private final Map<Long, ExternalActionLease> _tacticalActions = new ConcurrentHashMap<>();
 	private final Map<Long, TacticalCombatClaim> _tacticalCombat = new ConcurrentHashMap<>();
+	private final Map<Long, PendingPvpSupport> _partyDefenseSupport = new ConcurrentHashMap<>();
 	private final Map<String, ActivePartyRecall> _partyRecalls = new ConcurrentHashMap<>();
 	private volatile java.util.function.LongPredicate _logicalFarmAdmission = _ -> true;
 	private java.util.function.LongFunction<PhantomDomainRef> _farmJourneyExecutionOwner = _ -> null;
@@ -541,6 +542,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				else if (!releaseTacticalCombat(combat)) { return false; }
 			}
 			if (_tacticalActions.containsKey(profileId) || _tacticalCombat.containsKey(profileId)) { return false; }
+			final var support = _partyDefenseSupport.get(profileId);
+			if (support != null)
+			{
+				if (!deadlineBoundary) { return false; }
+				abandonPartyDefenseSupport(profileId, support);
+			}
 			final var row = _claims.get(profileId);
 			final var recall = row == null ? null : _partyRecalls.get(row.state().groupId());
 			if (recall != null && !releasePartyRecall(row.state().groupId(), recall, deadlineBoundary)) { return false; }
@@ -2036,6 +2043,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		_tacticalActions.values().forEach(ExternalActionLease::close);
 		_tacticalActions.clear();
 		_tacticalCombat.values().forEach(this::cancelTacticalCombat);
+		_partyDefenseSupport.forEach(this::abandonPartyDefenseSupport);
 		_tacticalReleases.clear();
 	}
 
@@ -2072,7 +2080,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		_partyRecalls.forEach((groupId, recall) -> releasePartyRecall(groupId, recall, true));
 		final PhantomPartyRouteCoordinator.Snapshot route = _routes.snapshot();
 		final DeliveryRegistration registration = _deliveryRegistration;
-		if ((_operationClaims.get() != 0) || (_persistenceClaims.get() != 0) || !_terminalEvents.isEmpty() || !_inbound.isEmpty() || !_tacticalReleases.isEmpty() || !_tacticalActions.isEmpty() || !_tacticalCombat.isEmpty() || !_partyRecalls.isEmpty() || ((registration != null) && (registration.pendingInvitations() != 0)) || (route.navigationClaims() != 0) || (route.movementClaims() != 0))
+		if ((_operationClaims.get() != 0) || (_persistenceClaims.get() != 0) || !_terminalEvents.isEmpty() || !_inbound.isEmpty() || !_tacticalReleases.isEmpty() || !_tacticalActions.isEmpty() || !_tacticalCombat.isEmpty() || !_partyDefenseSupport.isEmpty() || !_partyRecalls.isEmpty() || ((registration != null) && (registration.pendingInvitations() != 0)) || (route.navigationClaims() != 0) || (route.movementClaims() != 0))
 		{
 			return false;
 		}
@@ -2090,7 +2098,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	public Snapshot snapshot()
 	{
 		final PhantomPartyRouteCoordinator.Snapshot route = _routes.snapshot();
-		return new Snapshot(_state, _claims.size(), _groups.size(), _terminalEvents.size(), _inbound.size(), _operationClaims.get(), _persistenceClaims.get(), route.navigationClaims(), route.movementClaims(), _tacticalActions.size() + _tacticalCombat.size(), _operationBudget, _lastPulseExamined, _maximumPulseExamined, _socialEventsRecorded.get(), _socialEventFailures.get(), _metrics.snapshot());
+		return new Snapshot(_state, _claims.size(), _groups.size(), _terminalEvents.size(), _inbound.size(), _operationClaims.get(), _persistenceClaims.get(), route.navigationClaims(), route.movementClaims(), _tacticalActions.size() + _tacticalCombat.size() + _partyDefenseSupport.size(), _operationBudget, _lastPulseExamined, _maximumPulseExamined, _socialEventsRecorded.get(), _socialEventFailures.get(), _metrics.snapshot());
 	}
 
 	public Optional<StoredPartyState> claim(long profileId)
@@ -2319,6 +2327,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 					else { cancelTacticalCombat(active); }
 				}
 				if (graceful && _tacticalActions.containsKey(member.profileId())) { return false; }
+				final var support = _partyDefenseSupport.get(member.profileId());
+				if (support != null)
+				{
+					if (graceful) { return false; }
+					abandonPartyDefenseSupport(member.profileId(), support);
+				}
 			}
 			for (var member : members)
 			{
@@ -3411,6 +3425,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				}
 				continue;
 			}
+			if (Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.CLEANSE_MEMBER, DirectiveKind.RECHARGE_MEMBER).contains(directive.kind()) && _tactics.combatOwner() != null
+				&& _tactics.combatOwner().hasClaim(directive.actor().profileId()))
+			{
+				requestPartyDefenseSupport(directive, key, claim.state());
+				continue;
+			}
 			if (offense)
 			{
 				if ((actor == null) || actor.casting() || actor.attacking())
@@ -3457,6 +3477,42 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (_tactics.combatOwner().requestPartySupportYield(active.profileId(), active.generation(), active.targetObjectId(), active.operationKey(), request))
 		{
 			active.support().set(new PendingSupport(directive, request));
+		}
+	}
+
+	private void requestPartyDefenseSupport(TacticalDirective directive, String key, PartyState authority)
+	{
+		final long profile = directive.actor().profileId();
+		if (_partyDefenseSupport.containsKey(profile) || directive.targetMember().kind() != MemberKind.PHANTOM
+			|| !Set.of("SELF", "SINGLE_TARGET", "ALLY").contains(directive.targetScope())) { return; }
+		final long actorEpoch = _backend.materializationEpoch(directive.actor());
+		final long recipientEpoch = _backend.materializationEpoch(directive.targetMember());
+		if (actorEpoch <= 0 || recipientEpoch <= 0) { return; }
+		final var membership = supportToken(directive, authority);
+		final var request = new PhantomCombatService.ExternalActionRequest(profile, PhantomCombatService.ExternalActionKind.PARTY_SUPPORT, key, deadline(),
+			() -> membership.isCancelled() || _backend.materializationEpoch(directive.actor()) != actorEpoch
+				|| _backend.materializationEpoch(directive.targetMember()) != recipientEpoch);
+		final var combat = _tactics.combatOwner();
+		combat.requestPartyDefenseSupportYield(request).ifPresent(handoff ->
+		{
+			final var pending = new PendingPvpSupport(new PendingSupport(directive, request), handoff);
+			if (_partyDefenseSupport.putIfAbsent(profile, pending) == null)
+			{
+				if (_state == State.RUNNING) { _tacticalReleases.offer(profile); }
+				else { abandonPartyDefenseSupport(profile, pending); }
+			}
+			else
+			{
+				combat.abandonPartySupportHandoff(handoff.generation(), handoff.targetObjectId(), request);
+			}
+		});
+	}
+
+	private void abandonPartyDefenseSupport(long profile, PendingPvpSupport pending)
+	{
+		if (_partyDefenseSupport.remove(profile, pending))
+		{
+			_tactics.combatOwner().abandonPartySupportHandoff(pending.handoff().generation(), pending.handoff().targetObjectId(), pending.support().request());
 		}
 	}
 
@@ -3740,6 +3796,32 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 			return;
 		}
+		final var partyDefense = _partyDefenseSupport.get(profileId);
+		if (partyDefense != null)
+		{
+			final var owner = _tactics.combatOwner();
+			final var request = partyDefense.support().request();
+			final long generation = partyDefense.handoff().generation();
+			final int targetObjectId = partyDefense.handoff().targetObjectId();
+			if (_clock.getAsLong() >= request.deadlineLogicalNanos() || request.ownershipToken().isCancelled()
+				|| owner.find(profileId).filter(session -> session.generation() == generation && session.targetObjectId() == targetObjectId
+					&& (!session.result().terminal() || session.result() == PhantomCombatResult.YIELDED_TO_PARTY_SUPPORT)).isEmpty())
+			{
+				abandonPartyDefenseSupport(profileId, partyDefense);
+				return;
+			}
+			if (owner.partySupportHandoffReady(generation, targetObjectId, request))
+			{
+				dispatchReservedSupport(profileId, generation, targetObjectId, partyDefense.support());
+				if (!owner.partySupportHandoffReady(generation, targetObjectId, request))
+				{
+					_partyDefenseSupport.remove(profileId, partyDefense);
+					return;
+				}
+			}
+			_tacticalReleases.offer(profileId);
+			return;
+		}
 		final ExternalActionLease lease = _tacticalActions.get(profileId);
 		if (lease == null)
 		{
@@ -3763,26 +3845,32 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			return;
 		}
-		final var target = _backend.memberSnapshot(pending.directive().targetMember()).orElse(null);
-		final var current = _claims.get(claim.profileId());
-		if (!committedClaim(current) || target == null || pending.request().ownershipToken().isCancelled()
-			|| !_tactics.stillNeedsUrgentSupport(pending.directive(), target))
-		{
-			combat.abandonPartySupportHandoff(claim.generation(), claim.targetObjectId(), pending.request());
-			claim.support().compareAndSet(pending, null);
-			return;
-		}
-		_routes.cancelFollow(current.state().groupId(), current.state().groupGeneration(), claim.profileId());
-		final var acquired = _tactics.dispatchSupportHandoff(pending.directive(), pending.request(), claim.generation(), claim.targetObjectId(), holdsMovement(claim.profileId()));
-		acquired.ifPresent(lease ->
-		{
-			_tacticalActions.put(claim.profileId(), lease);
-			_tacticalReleases.offer(claim.profileId());
-		});
+		dispatchReservedSupport(claim.profileId(), claim.generation(), claim.targetObjectId(), pending);
 		if (!combat.partySupportHandoffReady(claim.generation(), claim.targetObjectId(), pending.request()))
 		{
 			claim.support().compareAndSet(pending, null);
 		}
+	}
+
+	private void dispatchReservedSupport(long profileId, long generation, int oldTargetObjectId, PendingSupport pending)
+	{
+		final var combat = _tactics.combatOwner();
+		final var target = _backend.memberSnapshot(pending.directive().targetMember()).orElse(null);
+		final var current = _claims.get(profileId);
+		if (!committedClaim(current) || target == null || pending.request().ownershipToken().isCancelled()
+			|| !_tactics.stillNeedsUrgentSupport(pending.directive(), target))
+		{
+			combat.abandonPartySupportHandoff(generation, oldTargetObjectId, pending.request());
+			return;
+		}
+		_routes.cancelFollow(current.state().groupId(), current.state().groupGeneration(), profileId);
+		final var acquired = _tactics.dispatchSupportHandoff(pending.directive(), pending.request(), generation, oldTargetObjectId, holdsMovement(profileId));
+		acquired.ifPresent(lease ->
+		{
+			_tacticalActions.put(profileId, lease);
+			if (_state == State.RUNNING) { _tacticalReleases.offer(profileId); }
+			else if (_tacticalActions.remove(profileId, lease)) { lease.close(); }
+		});
 	}
 
 	private StoredPartyState sanitizeAfterRestart(StoredPartyState stored)
@@ -4735,6 +4823,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	}
 
 	private record PendingSupport(TacticalDirective directive, PhantomCombatService.ExternalActionRequest request)
+	{
+	}
+
+	private record PendingPvpSupport(PendingSupport support, PhantomCombatService.PartySupportHandoff handoff)
 	{
 	}
 

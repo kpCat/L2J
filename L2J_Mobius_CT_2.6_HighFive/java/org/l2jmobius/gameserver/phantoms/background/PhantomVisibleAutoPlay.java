@@ -68,6 +68,16 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private final LongPredicate _permitsOrdinary;
 	private final LongPredicate _permitsNewRoots;
 	private final java.util.function.BiPredicate<Player, Creature> _targetScope;
+	private final SoloOffense _soloOffense;
+
+	/** Optional TEST131 policy over stock-ready candidates in the current visible Solo lifetime. */
+	public interface SoloOffense
+	{
+		boolean active(long profileId, Player player);
+		boolean permitsSkill(long profileId, Skill skill);
+		AutoPlayTaskManager.ScopedOffenseChoice choose(long profileId, long epoch, long goalId, long goalRevision, Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
+			java.util.List<Skill> ready, Skill baseline, java.util.function.BooleanSupplier current);
+	}
 	private final Map<Long, Session> _sessions = new ConcurrentHashMap<>();
 	private final LongSupplier _clock;
 	private volatile PhantomNavigationService _navigation;
@@ -92,6 +102,12 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots,
 		LongSupplier clock, java.util.function.BiPredicate<Player, Creature> targetScope)
 	{
+		this(materialization, decision, permitsOrdinary, permitsNewRoots, clock, targetScope, null);
+	}
+
+	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots,
+		LongSupplier clock, java.util.function.BiPredicate<Player, Creature> targetScope, SoloOffense soloOffense)
+	{
 		_materialization = Objects.requireNonNull(materialization, "materialization");
 		// This native retreat path needs no knowledge/catalog query and shares the existing actor lease.
 		_recoveryBackend = new L2jCombatBackend(_materialization, () -> null);
@@ -100,6 +116,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		_permitsNewRoots = Objects.requireNonNull(permitsNewRoots, "permitsNewRoots");
 		_clock = Objects.requireNonNull(clock);
 		_targetScope = Objects.requireNonNull(targetScope);
+		_soloOffense = soloOffense;
 	}
 
 	/** Let a canonical low-HP idle recover before current-resource farm admission, without creating a farm session. */
@@ -884,6 +901,43 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		@Override public boolean allowSummonAttack(Player player, org.l2jmobius.gameserver.model.actor.Summon summon)
 		{
 			return player == _player && org.l2jmobius.gameserver.phantoms.combat.PhantomNativePetRolePolicy.allowAttack(player, summon);
+		}
+
+		@Override public boolean usesScopedOffense(Player player)
+		{
+			return _soloOffense != null && player == _player && !player.isInParty() && _soloOffense.active(_profileId, player);
+		}
+
+		@Override public boolean permitsScopedOffenseSkill(Player player, Skill skill)
+		{
+			return skill != null && usesScopedOffense(player) && _soloOffense.permitsSkill(_profileId, skill);
+		}
+
+		@Override public AutoPlayTaskManager.ScopedOffenseChoice chooseScopedOffense(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
+			java.util.List<Skill> ready, Skill baseline)
+		{
+			final Session session = _sessions.get(_profileId);
+			final var owner = player.getNativeWorkOwner();
+			if (!usesScopedOffense(player) || session == null || session._policy != this || !session._commandGate.get() || session._yieldRequested || owner == null
+				|| ready.size() < 2 || ready.size() > 4 || !permitsScopedOffenseSkill(player, baseline) || ready.stream().anyMatch(skill -> !permitsScopedOffenseSkill(player, skill))
+				|| !preparedTarget(target)) { return null; }
+			final var generation = target.getNativeEvidenceTarget();
+			final java.util.function.BooleanSupplier current = () ->
+			{
+				final var engine = _decision.get();
+				final var goal = engine == null ? null : engine.find(_profileId).orElse(null);
+				return _sessions.get(_profileId) == session && session._current.get() && !session._yieldRequested && usesScopedOffense(player)
+					&& player.getNativeWorkOwner() == owner && owner.isCurrent() && owner.player() == player && owner.epoch() == session._epoch
+					&& goal != null && goal.goalId() == _goalId && goal.goalRevision() == _revision && goal.goalStatus() == PhantomGoalStatus.ACTIVE
+					&& _permitsOrdinary.test(_profileId) && _permitsNewRoots.test(_profileId) && _targetScope.test(player, target)
+					&& target.getInstanceId() == player.getInstanceId() && World.getInstance().findObject(target.getObjectId()) == target && generation.equals(target.getNativeEvidenceTarget());
+			};
+			if (!current.getAsBoolean()) { return null; }
+			final var choice = _soloOffense.choose(_profileId, session._epoch, _goalId, _revision, player, target, ready, baseline, current);
+			return choice == null ? null : new AutoPlayTaskManager.ScopedOffenseChoice(choice.skill(), cast ->
+			{
+				if (current.getAsBoolean() && permitsScopedOffenseSkill(player, choice.skill())) { choice.aroundCast().accept(cast); }
+			});
 		}
 
 		private boolean preparedTarget(Creature target)

@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4;
@@ -45,6 +46,8 @@ public final class PhantomLearning131FrozenChecks
 			System.out.println("LEARNING131_FROZEN_CONTRACT_GREEN TUNING=MODEL AUDIT=MODEL exploration=0 checkpointUnchanged=true");
 			checkNativeHealOffers(scratch, lineage.head(), model);
 			System.out.println("LEARNING131_V4_HEAL_OFFER_CONTRACT_PASS");
+			checkCaptureScope(model);
+			System.out.println("LEARNING131_EPISODE_SCOPE_OFFLINE_PASS");
 		}
 		finally
 		{
@@ -53,6 +56,39 @@ public final class PhantomLearning131FrozenChecks
 				for (Path file : files.toList()) { Files.delete(file); }
 			}
 			Files.delete(scratch);
+		}
+	}
+
+	private static void checkCaptureScope(ActionValueV4 model) throws IOException
+	{
+		final String flag = "phantom.learning.train";
+		final String previous = System.getProperty(flag);
+		try
+		{
+			System.clearProperty(flag);
+			rejects(() -> new PhantomLearning131Capture(SOURCE, model), "Episode capture without TEST opt-in");
+			System.setProperty(flag, "true");
+			final var capture = new PhantomLearning131Capture(SOURCE, model);
+			final var observed = observation();
+			final var planned = new ActionExplorationV4.Plan(2, "EPSILON_V2", 22, 2, .15, "TRAIN", TRAIN_EPISODE, SOURCE, model.sha256(), SKILLS);
+			final var experiment = new ActionExplorationV4(planned);
+			final var episode = new PhantomLearning131Capture.Episode(experiment, observed.capturedNanos(),
+				List.of(new PhantomLearning131Capture.Actor(1, 101, 1)), Set.of(new PhantomLearning131Capture.Target(102, 2)));
+			final var offered = List.of(offer(observed, 1000, 2), offer(observed, 7000, 2));
+			check(capture.selectExperiment(observed, offered) == null, "Capture selected without a bound episode");
+			capture.open(episode);
+			check(capture.selectExperiment(observed, offered) == experiment, "Exact active episode was not selected");
+			check(capture.selectExperiment(observed, List.of(offer(observed, 1000, 3), offer(observed, 7000, 3))) == null, "Recycled target generation borrowed the V4 scope");
+			final var foreign = new TacticalObservationV3(2, observed.capturedNanos(), 2, 101, 1, "", observed.entities());
+			check(capture.selectExperiment(foreign, offered) == null, "A different profile borrowed the episode");
+			rejects(() -> capture.tactical().actionValueTest(TacticalPolicyV3.Mode.ON, ActionValueV4.empty(), _ -> { }), "Live replacement of the fixed boot model");
+			capture.closeChoices(episode);
+			check(capture.selectExperiment(observed, offered) == null && capture.receipts(episode).isEmpty(), "Closed episode granted a new choice or fabricated a paid effect");
+		}
+		finally
+		{
+			if (previous == null) { System.clearProperty(flag); }
+			else { System.setProperty(flag, previous); }
 		}
 	}
 

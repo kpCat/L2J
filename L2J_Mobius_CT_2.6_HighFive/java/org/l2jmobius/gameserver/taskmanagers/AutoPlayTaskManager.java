@@ -75,10 +75,24 @@ public class AutoPlayTaskManager
 		/** Advisory ranking only; it cannot grant or deny target admission. */
 		default int targetSelectionLoad(Creature target) { return 0; }
 		default TargetDirective targetDirective(Player player) { return new TargetDirective(TargetDirective.Mode.STOCK, null); }
+		default boolean usesScopedOffense(Player player) { return false; }
+		default boolean permitsScopedOffenseSkill(Player player, Skill skill) { return false; }
+		default ScopedOffenseChoice chooseScopedOffense(Player player, Monster target, java.util.List<Skill> ready, Skill baseline) { return null; }
 		/** Runs only under the same admitted tick/command lease, before target replacement. */
 		default boolean collectBeforeTarget(Player player) { return false; }
 		default void stopObserved(String reason) { }
 	}
+
+	/** The caller revalidates the native skill and permits one synchronous stock submission. */
+	public record ScopedOffenseChoice(Skill skill, java.util.function.Consumer<Runnable> aroundCast)
+	{
+		public ScopedOffenseChoice
+		{
+			java.util.Objects.requireNonNull(skill);
+			java.util.Objects.requireNonNull(aroundCast);
+		}
+	}
+
 	public record TargetDirective(Mode mode, Creature target) { public enum Mode { STOCK, HOLD, USE_EXACT_TARGET } }
 	public enum TickStatus { ACQUIRED, PAUSED, REVOKED }
 	public record TickAdmission(TickStatus status, TickLease lease, String reason) { }

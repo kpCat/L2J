@@ -50,7 +50,7 @@ function Read-131Properties([string]$Path) {
     Assert-131 ((Get-Item -LiteralPath $Path).Length -le 64KB) 'PROPERTIES_SIZE'
     $result=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
     foreach($line in [IO.File]::ReadAllLines($Path,$utf131)){
-        Assert-131 ($line -cmatch '^([A-Za-z][A-Za-z0-9_.-]{0,63})=(.+)$') 'PROPERTY_LINE'
+        Assert-131 ($line -cmatch '^([A-Za-z][A-Za-z0-9_.-]{0,63}|episode\.[0-9a-f]{64}\.(?:sourceSha|policySha))=(.+)$') 'PROPERTY_LINE'
         Assert-131 (!$result.ContainsKey($Matches[1])) 'PROPERTY_DUPLICATE'
         $result.Add($Matches[1],$Matches[2])
     }
@@ -257,7 +257,8 @@ function Assert-131PortsFree {
 }
 
 function Get-131Boundary($Context) {
-    Assert-131 ($Context.Body.phase -ceq 'N01') 'NATIVE_ADAPTER_PHASE_UNAVAILABLE'
+    Assert-131 ($Context.Body.phase -cin @('N01','TRAIN')) 'NATIVE_ADAPTER_PHASE_UNAVAILABLE'
+    Assert-131 ($Context.Body.sqlLane -cmatch '^n01-setup-r[1-9][0-9]*$') 'NATIVE_SQL_SETUP_LANE'
     $now=[DateTime]::UtcNow
     Assert-131 ($now -lt $Context.Deadline -and ($Context.Deadline-$now).TotalSeconds -lt 28800) 'CAMPAIGN_DEADLINE'
     Assert-131Sha $Context.Manifest $Context.Sha
@@ -283,6 +284,8 @@ function Get-131Boundary($Context) {
     } else {
         Assert-131Sha (Get-131Path $Context 'scenes.tsv') $Context.Body.fixtureSha
         Assert-131Sha (Get-131Path $Context 'policy131.properties') $Context.Body.policySha
+        Assert-131TrainPlan $Context $executionPlan
+        Assert-131Sha (Join-Path $runtime 'game/config/Custom/PhantomPlayers.n01.ini') $executionPlan['enabledPhantomIniSha']
     }
     if($Context.Body.modelSha -cne 'NONE'){
         Assert-131Sha (Get-131Path $Context ('candidate-'+$Context.Body.modelSha+'.bin')) $Context.Body.modelSha
@@ -299,10 +302,8 @@ function Get-131Boundary($Context) {
     }
     $classRoot=Assert-131ClassTree $Context
     $cp+=@($classRoot)
-    if($Context.Body.phase -ceq 'N01'){
-        Assert-131Sha (Join-Path $classRoot ($entry131.Replace('.','\')+'.class')) $executionPlan['adapterClassSha']
-        Assert-131Sha (Join-Path $classRoot ($factory131.Replace('.','\')+'.class')) $executionPlan['factoryClassSha']
-    }
+    Assert-131Sha (Join-Path $classRoot ($entry131.Replace('.','\')+'.class')) $executionPlan['adapterClassSha']
+    Assert-131Sha (Join-Path $classRoot ($factory131.Replace('.','\')+'.class')) $executionPlan['factoryClassSha']
     $runtimeConfigs=@('game/config/Server.ini','game/config/Database.ini','game/config/Custom/PhantomPlayers.ini',
         'game/config/General.ini','game/config/Player.ini','login/config/Server.ini','game/log.cfg')
     Assert-131Fields $Context.Body.configShas $runtimeConfigs
@@ -330,13 +331,36 @@ function Get-131Boundary($Context) {
         Assert-131 ($component -cnotmatch '[";\r\n]' -and !$component.EndsWith('\')) 'JVM_PATH_QUOTING'
     }
     $proof=Get-131Sql $Context
-    if($Context.Body.phase -ceq 'N01'){
-        Assert-131Sha (Join-Path $proof.Root 'n01-scenes.tsv') $executionPlan['sceneSha']
-        Assert-131Sha (Join-Path $proof.Root 'n01-fixture.tsv') $executionPlan['fixtureSha']
-        Assert-131Sha (Join-Path $proof.Root 'n01-scene-scope.properties') $executionPlan['sceneScopeSha']
-    }
+    Assert-131Sha (Join-Path $proof.Root 'n01-scenes.tsv') $executionPlan['sceneSha']
+    Assert-131Sha (Join-Path $proof.Root 'n01-fixture.tsv') $executionPlan['fixtureSha']
+    Assert-131Sha (Join-Path $proof.Root 'n01-scene-scope.properties') $executionPlan['sceneScopeSha']
     Assert-131PortsFree
     return @{Java=$java;JavaSha=$javaSha;Classpath=($cp -join ';');Execution=$execution;AuthoritySha=$authoritySha;Sql=$proof;Game=(Join-Path $runtime 'game')}
+}
+
+function Assert-131TrainPlan($Context,$Execution) {
+    $body=$Context.Body
+    Assert-131 ($Execution['trainScenesSha'] -ceq $body.fixtureSha -and $Execution['policySha'] -ceq $body.policySha -and
+        $Execution['learnerSha'] -ceq $body.modelSha -and $Execution['expectedHead'] -cmatch '^[0-9a-f]{64}$' -and
+        $Execution['rollbackHead'] -ceq $Execution['expectedHead'] -and $Execution['rollbackModelSha'] -ceq $body.modelSha -and
+        $Execution['opponentSha'] -cmatch '^[0-9a-f]{64}$' -and $Execution['cycle'] -ceq [string]$body.cycle -and
+        $Execution['observeSeconds'] -ceq [string](Get-131SceneSeconds $body 0) -and $body.quota.maxEpisodes -le 4) 'TRAIN_POLICY_FIXTURE_DRIFT'
+    Assert-131Sha (Get-131Path $Context ('candidate-'+$Execution['opponentSha']+'.bin')) $Execution['opponentSha']
+    $schedule=Get-131Path $Context 'scenes.tsv'
+    Assert-G0PhysicalFile $schedule
+    Assert-131 ((Get-Item -LiteralPath $schedule).Length -le 4KB) 'TRAIN_SCENE_FILE_BOUND'
+    $rows=[IO.File]::ReadAllLines($schedule,$utf131)
+    Assert-131 ($rows.Count -eq $body.quota.maxEpisodes+1 -and $rows[0] -ceq (@('episodeId','profileId','seconds') -join [char]9)) 'TRAIN_SCENE_HEADER'
+    $profiles=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    for($index=0;$index -lt $body.quota.maxEpisodes;$index++){
+        $cell=$rows[$index+1].Split([char]9)
+        $scene=$body.scenes[$index]
+        Assert-131 ($cell.Count -eq 3 -and $cell[0] -ceq $scene.id -and $cell[0] -cmatch '^[0-9a-f]{64}$' -and
+            $cell[1] -cmatch '^[1-9][0-9]*$' -and $profiles.Add($cell[1]) -and $scene.participantCount -eq 1 -and
+            $scene.deadlineSeconds -in (5..180) -and $cell[2] -ceq [string]$scene.deadlineSeconds -and
+            $Execution['episode.'+$cell[0]+'.sourceSha'] -cmatch '^[0-9a-f]{64}$' -and
+            $Execution['episode.'+$cell[0]+'.policySha'] -cmatch '^[0-9a-f]{64}$') 'TRAIN_SCENE_SCOPE'
+    }
 }
 
 function Get-131State($Context) {
@@ -476,9 +500,11 @@ function Get-131Command($Context,$Boundary,$Boot) {
         'TUNING' {'--tuning'}
         'AUDIT' {'--audit'}
     }
-    return (@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g','-Djava.util.logging.config.file=log.cfg',
-        ('-Dphantom.learning131.nonce='+$Boot.Reservation.nonce),'-cp',('"'+$Boundary.Classpath+'"'),$entry131,$command,
-        ('"'+$Boundary.Execution+'"'),('"'+$Boot.Launch+'"')) -join ' ')
+    $options=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g','-Djava.util.logging.config.file=log.cfg',
+        ('-Dphantom.learning131.nonce='+$Boot.Reservation.nonce))
+    if($Context.Body.phase -ceq 'TRAIN'){$options+=@('-Dphantom.learning.train=true')}
+    $options+=@('-cp',('"'+$Boundary.Classpath+'"'),$entry131,$command,('"'+$Boundary.Execution+'"'),('"'+$Boot.Launch+'"'))
+    return ($options -join ' ')
 }
 
 function Get-131ExpectedCommand($Context,$Boot) {
@@ -560,16 +586,48 @@ function Get-131Ack($Context,$Boot,$Owner,[int]$ExitCode,[string]$Control='obser
     $sealName=if($Context.Body.phase -ceq 'N01'){'n01-drain.properties'}else{'complete131.tsv'}
     Assert-131Sha (Join-Path $Boot.Root $sealName) $ack['sealSha']
     if($Context.Body.phase -ceq 'N01'){Assert-131N01Seal $Context $Boot $ack}
+    if($Context.Body.phase -ceq 'TRAIN'){Assert-131TrainSeal $Context $Boot $ack}
     if($status -ceq 'UNKNOWN'){$completed=$Boot.Reservation.lastCompleted}
     if($status -ceq 'PAUSED' -and $Control -ceq 'stop'){$status='STOPPED'}
     return @{Status=$status;Completed=$completed;AckSha=$ackSha;SealSha=$ack['sealSha'];Control=$Control}
 }
 
 function Test-131NativeClaim($Boot) {
-    foreach($name in @('n01-java.claim','n01-binding.tsv','n01-native-cycles.tsv','n01-native-costs.tsv','n01-native-loot.tsv')){
+    foreach($name in @('train-java.claim','complete131.tsv','n01-java.claim','n01-binding.tsv','n01-native-cycles.tsv','n01-native-costs.tsv','n01-native-loot.tsv')){
         if(Test-Path -LiteralPath (Join-Path $Boot.Root $name)){return $true}
     }
     return $false
+}
+
+function Assert-131TrainSeal($Context,$Boot,$Ack) {
+    $path=Join-Path $Boot.Root 'complete131.tsv'
+    Assert-131 ((Get-Item -LiteralPath $path).Length -le 8KB) 'TRAIN_NATIVE_SEAL_BOUND'
+    $execution=Get-131Path $Context 'execution.properties'
+    Assert-131Sha $execution $Context.Body.executionSha
+    $plan=Read-131Properties $execution
+    $metadata=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+    $episodes=[Collections.Generic.List[string]]::new()
+    foreach($line in [IO.File]::ReadAllLines($path,$utf131)){
+        $cell=$line.Split([char]9)
+        Assert-131 ($cell.Count -eq 3) 'TRAIN_NATIVE_SEAL_FIELDS'
+        if($cell[0] -ceq 'meta'){
+            Assert-131 (!$metadata.ContainsKey($cell[1])) 'TRAIN_NATIVE_SEAL_DUPLICATE'
+            $metadata.Add($cell[1],$cell[2])
+        }else{
+            Assert-131 ($cell[0] -ceq 'episode' -and $episodes.Count -lt $Context.Body.quota.maxEpisodes -and
+                $cell[1] -ceq $Context.Body.scenes[$episodes.Count].id) 'TRAIN_NATIVE_EPISODE_ORDER'
+            $episodes.Add($cell[1])
+            Assert-131Sha (Join-Path $Boot.Root ('episodes/'+$cell[1]+'/seal131.tsv')) $cell[2]
+        }
+    }
+    $expectedStatus=if($Ack['status'] -ceq 'COMPLETED'){'DRAINED'}else{$Ack['status']}
+    Assert-131 ($metadata.Count -eq 14 -and $metadata['schema'] -ceq 'NATIVE_TRAIN_BOOT131_V1' -and $metadata['phase'] -ceq 'TRAIN' -and
+        $metadata['status'] -ceq $expectedStatus -and $metadata['bootId'] -ceq $Boot.Reservation.bootId -and $metadata['nonce'] -ceq $Ack['nonce'] -and
+        $metadata['pid'] -ceq $Ack['pid'] -and $metadata['processStarted'] -ceq $Ack['startedUtc'] -and $metadata['manifestSha'] -ceq $Context.Sha -and
+        $metadata['sourceCommit'] -ceq $Context.Body.sourceCommit -and $metadata['jarSha'] -ceq $Context.Body.gameJarSha -and
+        $metadata['expectedHead'] -ceq $plan['expectedHead'] -and $metadata['learnerSha'] -ceq $Context.Body.modelSha -and
+        $metadata['opponentSha'] -ceq $plan['opponentSha'] -and $metadata['cycle'] -ceq [string]$Context.Body.cycle -and
+        $episodes.Count -eq [int]$Ack['completed']) 'TRAIN_NATIVE_SEAL_DRIFT'
 }
 
 function Assert-131ClosedProof($Context,$Boot,$Close,[int]$LastCompleted) {
@@ -754,6 +812,9 @@ function Get-131Summary($Context,$State,[switch]$Detailed) {
         bootId=$bootId;lastRecordedPid=$processId;completed=$State.Completed;remaining=$Context.Body.quota.maxEpisodes-$State.Completed;boots=$State.Boots
         bootsRemaining=$Context.Body.quota.maxBoots-$State.Boots;resumable=(Test-131Resumable $Context $State)
         chargedNativeMillis=$State.Milliseconds;deadlineUtc=$Context.Deadline.ToString('o');reason=$reason}
+    if($Context.Body.phase -ceq 'TRAIN' -and $status -ceq 'PAUSED' -and !$summary.resumable){
+        $summary.resumeReason='NATIVE_PREFIX_REPLAY_UNAVAILABLE'
+    }
     if($Detailed){
         $summary.sourceCommit=$Context.Body.sourceCommit
         $summary.gameJarSha=$Context.Body.gameJarSha
@@ -769,7 +830,7 @@ function Get-131Summary($Context,$State,[switch]$Detailed) {
 
 function Test-131Resumable($Context,$State) {
     return $State.Status -ceq 'PAUSED' -and $State.Boots -lt $Context.Body.quota.maxBoots -and $State.Completed -lt $Context.Body.quota.maxEpisodes -and
-        ($Context.Body.phase -cne 'N01' -or ($State.Completed -eq 0 -and !(Test-131NativeClaim $State.Latest)))
+        ($Context.Body.phase -cnotin @('N01','TRAIN') -or ($State.Completed -eq 0 -and !(Test-131NativeClaim $State.Latest)))
 }
 
 function Get-131ReservedMillis($Boot) {

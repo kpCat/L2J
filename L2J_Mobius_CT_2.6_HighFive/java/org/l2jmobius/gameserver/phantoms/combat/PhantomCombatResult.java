@@ -18,7 +18,8 @@ public enum PhantomCombatResult
 	UNSUPPORTED_LOADOUT(true),
 	CANCELLED(true),
 	BACKEND_FAILURE(true),
-	REJECTED(true);
+	REJECTED(true),
+	YIELDED_TO_PARTY_SUPPORT(true);
 
 	private final boolean _terminal;
 

@@ -1913,6 +1913,86 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Party support fixture did not drain."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Combat fixture did not drain."); }
 			}
 		});
+		registry.add("131-party-defense-urgent-heal-requires-current-recipient-epoch", context ->
+		{
+			for (boolean replacedRecipient : List.of(false, true))
+			{
+				final var states = new MemoryPartyStore();
+				final var goals = new MemoryGoalStore();
+				final var backend = new MemoryPartyBackend();
+				backend._farmEnabled = true;
+				final var clock = new AtomicLong(1_000_000_000L);
+				final var worker = new java.util.concurrent.atomic.AtomicReference<Runnable>();
+				final var lease = new PartyActionLease();
+				final var combat = new PhantomCombatService(id -> id == 1 ? lease : null, new PhantomCombatCapabilityResolver(_ -> List.of()),
+					PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, (work, _) ->
+					{
+						worker.set(work);
+						return PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
+						{
+							@Override public boolean cancelIfNotStarted() { return worker.compareAndSet(work, null); }
+							@Override public PhantomCombatService.DispatchState state() { return PhantomCombatService.DispatchState.SCHEDULED; }
+						});
+					});
+				final var healer = backend.add(1, 101);
+				final var peer = backend.add(2, 102);
+				goals.put(1, goal(131101, PhantomPartyCoordinator.FORM_GOAL, null, 0));
+				goals.put(2, goal(131102, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "101"), 0));
+				final var heals = List.of(new MemberCapability("combat.heal", "heal", 450, 1001, 1, "SINGLE_TARGET", true, true, true, "ready", 4500, "test.progression.fixture"));
+				backend._capabilities.put(healer, heals);
+				backend.snapshot(healer, new MemberSnapshot(healer, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), heals, ZERO));
+				backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+				final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context),
+					new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+				backend.connect(coordinator);
+				combat.start();
+				coordinator.start();
+				try
+				{
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED,
+						coordinator.form(1, 131101, 0, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "task131.party-defense"), List.of()), "Fixture could not form the Party.");
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED,
+						coordinator.invite(1, peer, PartyDistributionType.FINDERS_KEEPERS), "Fixture could not invite the owned recipient.");
+					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+					PhantomAssertions.assertTrue(coordinator.committed(1) && coordinator.committed(2), "Fixture did not commit both current members.");
+					final var pvp = new org.l2jmobius.gameserver.phantoms.combat.PhantomPvpCombatRequest(1, 901,
+						org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.PARTY_DEFENSE, "A".repeat(64),
+						PhantomCombatMode.MELEE_PHYSICAL, false, true, 30, 30_000, () -> false);
+					final var admitted = combat.startPvpSession(pvp);
+					PhantomAssertions.assertTrue(admitted.accepted(), "Party defense must be the old native owner.");
+					lease.casting = true;
+					backend.snapshot(peer, member(2, 102, 40, 100, false, 0, List.of()));
+					coordinator.onPulse();
+					PhantomAssertions.assertEquals(0, lease.casts, "Urgent heal overlapped the old paid cast.");
+					java.util.Objects.requireNonNull(worker.getAndSet(null)).run();
+					PhantomAssertions.assertFalse(combat.find(1).orElseThrow().result().terminal(), "Old native cast did not get a drain boundary.");
+					if (replacedRecipient)
+					{
+						backend._nativeEpochs.put(2L, backend.materializationEpoch(peer) + 1);
+						backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+					}
+					lease.casting = false;
+					java.util.Objects.requireNonNull(worker.getAndSet(null)).run();
+					coordinator.onPulse();
+					PhantomAssertions.assertEquals(replacedRecipient ? 0 : 1, lease.casts, "The exact pending Party defense handoff did not respect recipient lifetime.");
+					PhantomAssertions.assertEquals(replacedRecipient ? 0 : 1, lease.scopedPvpSupportCasts, "The PvP handoff bypassed its scoped native support port.");
+					if (!replacedRecipient)
+					{
+						PhantomAssertions.assertEquals(102, lease.support.targetObjectId(), "The support owner lost its exact Party recipient.");
+						PhantomAssertions.assertTrue(lease.scopedPvpSupportAuthority.getAsBoolean(), "Unchanged native recipient lost effect authority.");
+						backend._nativeEpochs.put(2L, backend.materializationEpoch(peer) + 1);
+						PhantomAssertions.assertFalse(lease.scopedPvpSupportAuthority.getAsBoolean(), "A paid cast retained effect authority after the recipient's epoch changed.");
+					}
+				}
+				finally
+				{
+					coordinator.beginStop();
+					PhantomAssertions.assertTrue(coordinator.finishStop(), "Party support fixture did not drain.");
+					combat.beginStop();
+					PhantomAssertions.assertTrue(combat.finishStop(), "PvP combat fixture did not drain.");
+				}
+			}
+		});
 		registry.add("131-party-recall-requires-every-current-unavailable-walk", context ->
 		{
 			for (String caseKey : List.of("all_unavailable", "walk_issued", "walk_rejected", "lifetime_changed", "other_action_owner"))
@@ -4245,6 +4325,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private int objectId = 101;
 		@Override public boolean partyWalkSafe(int x, int y, int z, int instanceId) { return true; }
 		private int moves, casts, cancels;
+		private int scopedPvpSupportCasts;
+		private java.util.function.BooleanSupplier scopedPvpSupportAuthority;
 		private double hp = 100;
 		private ActionOutcome retreat = ActionOutcome.UNAVAILABLE;
 		private boolean moving, casting;
@@ -4266,6 +4348,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			return retreat;
 		}
 		@Override public TargetSnapshot targetSnapshot(int objectId) { return target != null && target.objectId() == objectId ? target : null; }
+		@Override public org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot pvpTargetSnapshot(int targetObjectId)
+		{
+			return targetObjectId == 901 ? new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot(901, 89, 0, 80, 4, 4, 10,
+				true, true, true, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false) : null;
+		}
+		@Override public boolean hasPvpShotReserve(PhantomCombatMode mode, int hits) { return true; }
 		@Override public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode) { return false; }
 		@Override public List<ThreatObservation> observedAttackers(int limit) { return List.of(); }
 		@Override public List<LootCandidate> lootCandidates(int limit, int distance) { return List.of(); }
@@ -4274,6 +4362,14 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override public ActionOutcome attack(int objectId) { return ActionOutcome.REJECTED; }
 		@Override public ActionOutcome cast(int objectId, SelectedSkill skill, PhantomCombatMode mode) { return ActionOutcome.REJECTED; }
 		@Override public ActionOutcome castSupport(PhantomPartySupportAction action) { support = action; casts++; casting = true; return ActionOutcome.ISSUED; }
+		@Override
+		public ActionOutcome castPartyDefenseSupport(PhantomPartySupportAction action, java.util.function.BooleanSupplier current)
+		{
+			if (!current.getAsBoolean()) { return ActionOutcome.REJECTED; }
+			scopedPvpSupportCasts++;
+			scopedPvpSupportAuthority = current;
+			return castSupport(action);
+		}
 		@Override public ActionOutcome moveTo(int x, int y, int z, int instanceId) { moves++; moving = true; return ActionOutcome.ISSUED; }
 		@Override public ActionOutcome pickUp(int objectId) { return ActionOutcome.REJECTED; }
 		@Override public void cancelOwnedAction(PhantomOwnedAction action) { }
