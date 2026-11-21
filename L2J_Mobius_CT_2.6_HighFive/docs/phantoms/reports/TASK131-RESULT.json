@@ -52,8 +52,8 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v19-reviewed.log",
-    "finalContractLog": "v19-PhantomLearning131EvaluationChecks.log",
+    "aggregateLog": "ant-combat-v20-final.log",
+    "finalContractLog": "ant-combat-v20-final.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -77,8 +77,10 @@
     "stockHealScriptCompileLog": "v18-stock-heal-javac.log",
     "stockHealScriptClassSha256": "22a5cc089b0695fb6788788c8f2052668d21889a2b441d7b09d34e590d533588",
     "auditFrozenDispatchContractLog": "v19-PhantomLearning131EvaluationChecks.log",
-    "auditEvaluatorCliLog": "v19-evaluator-cli-final.log",
-    "auditEvaluatorFingerprint": "e6530c2a55b52f759ae9e7f51356894b6954cc0dc6d761eb2f58202f9a90c2dc",
+    "auditEvaluatorCliLog": "v20-evaluator-cli-final.log",
+    "auditEvaluatorFingerprint": "d8b0701f8a8c38e4619e052194c39b9e717c0b9613b4901e696bf481079bf315",
+    "auditGroupScopeNegativeLog": "v20-group-pvp-red.log",
+    "auditCrossSideNegativeLog": "v20-paid-side-red.log",
     "nativeEvidenceRegressionLog": "v19-native-evidence-continuation022.log",
     "nativeEvidenceRegressionPassed": 15,
     "managedSweepRegressionLog": "v10-native-evidence-continuation022.log",
@@ -90,12 +92,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v18.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v19.json",
-    "exactPathCount": 9
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v19.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v20.json",
+    "exactPathCount": 7
   },
   "testReadiness": {
-    "iterationParent": "12747dcbdc1b5dd88251ff255ecc15b97b9c6e48",
+    "iterationParent": "06c9fe85fbd3fbcbb5dedad5800d13404374ba29",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -208,14 +210,14 @@
       "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
       "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "off-and-protected-v19.json",
+    "g0OffReceipt": "end-off-v20.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v19.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,end-off-v20.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -383,8 +385,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v19-evaluator-cli-final.log,v19-PhantomLearning131EvaluationChecks.log",
-      "reason": "Офлайн проверены рабочий CLI, отпечаток оценщика и независимый replay C/R, живой AUDIT, исходная политика S и остальные роли открыты"
+      "evidence": "ant-combat-v20-final.log,v20-paid-side-red.log,v20-evaluator-cli-final.log",
+      "reason": "Офлайн проверены стороны и эпохи Group PvP, отклонены события урона внутри состава, живой AUDIT, исходная политика S и остальные роли открыты"
     },
     "D9": {
       "phase": "P3–P5",

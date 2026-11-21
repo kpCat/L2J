@@ -200,6 +200,17 @@ public final class PhantomLearning131EvaluationChecks
 				"opponentSha", "c".repeat(64), "policySha", "d".repeat(64), "modelSha", "e".repeat(64), "startNanos", "1000");
 			final Path binding = Files.writeString(directory.resolve("binding131.tsv"), metadata + "actor\t42\t7\tLEFT\tDAMAGE\nactor\t102\t91\tRIGHT\tOPPONENT\n");
 			final String bindingSha = digest(binding);
+			final Path sameSide = Files.writeString(scratch.resolve("same-side.tsv"), metadata + "actor\t42\t7\tLEFT\tDAMAGE\nactor\t102\t91\tLEFT\tDAMAGE\n");
+			try
+			{
+				PhantomLearning131Evaluation.verifyClosedDamage(sameSide, episode, digest(sameSide), false, 1054, 1090,
+					events.stream().map(row -> row.split("\t", -1)).toList(), originals.stream().map(row -> row.split("\t", -1)).toList());
+				throw new AssertionError("Paid damage against the same side must fail before publication");
+			}
+			catch (IllegalArgumentException refused)
+			{
+				check(refused.getMessage().equals("EVAL131_DAMAGE_EFFECT_SIDE"), "A paid original cannot override the pinned sides");
+			}
 			try
 			{
 				PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, bindingSha, false, 1049, 1090, events, originals);
@@ -302,6 +313,10 @@ public final class PhantomLearning131EvaluationChecks
 		final var empty = PhantomLearning131AuditOriginals.decodeAuditRows(Collections.singletonList(emptyWindow), episode).items();
 		PhantomLearning131Evaluation.verifyPaymentProjection(List.of(), empty, roster, window);
 		rejectsItemLedger(List.of(), episode);
+		final int limit = PhantomLearning131AuditOriginals.MAX_ITEM_DEBITS;
+		check(PhantomLearning131AuditOriginals.itemWindow(1005, 1090, limit).endsWith("\t" + limit)
+			&& limit > 9 * 64, "A maximum-size group has room for a stock debit on each recorded damage cast");
+		refuse(() -> PhantomLearning131AuditOriginals.itemWindow(1005, 1090, limit + 1), "The expanded item ledger remains bounded");
 	}
 
 	private static void paidHealingRequiresItsNativeEffect()
@@ -571,7 +586,10 @@ public final class PhantomLearning131EvaluationChecks
 		checkSoloDamageBinding(plan.getFirst(), temporary);
 		checkDuelDamageBinding(plan.stream().filter(slot -> slot.block().stratum() == Stratum.DUEL_PVP).findFirst().orElseThrow(), temporary);
 		checkHealBinding(plan.stream().filter(slot -> slot.block().stratum() == Stratum.PARTY_PVE).findFirst().orElseThrow(), temporary);
-		checkHealBinding(plan.stream().filter(slot -> slot.block().stratum() == Stratum.GROUP_PVP).findFirst().orElseThrow(), temporary);
+		for (var slot : plan)
+		{
+			if (slot.block().stratum() == Stratum.GROUP_PVP && slot.position() == 0) { checkHealBinding(slot, temporary); }
+		}
 
 		final var lines = Files.readAllLines(protocol);
 		final int firstBlock = 5;
@@ -655,7 +673,7 @@ public final class PhantomLearning131EvaluationChecks
 		final Slot slot = scheduled.slot();
 		final Side opposing = slot.side() == Side.LEFT ? Side.RIGHT : Side.LEFT;
 		final var stratum = scheduled.block().stratum();
-		final Path path = temporary.resolve("heal-" + stratum + ".tsv");
+		final Path path = temporary.resolve("heal-" + scheduled.block().id() + ".tsv");
 		final String episode = "heal-" + stratum;
 		final var rows = new StringBuilder(meta("schema", "NATIVE_BINDING131_V1", "manifestSha", "a".repeat(64), "bootId", "00003",
 			"blockId", scheduled.block().id(), "episodeId", episode, "attempt", "0", "position", Integer.toString(scheduled.position()),
@@ -677,6 +695,18 @@ public final class PhantomLearning131EvaluationChecks
 		check(binding.episodeId().equals(episode) && binding.started() == 100 && binding.playerEpochs().get(42) == 71
 			&& binding.playerEpochs().containsKey(102) == groupPvp && binding.playerEpochs().size() == own + (groupPvp ? scheduled.opponentSize() : 0),
 			"Group healing binds the planned players and excludes NPC opponents");
+		if (groupPvp)
+		{
+			final var scored = binding.scoredPlayers();
+			final var epochs = binding.playerEpochs();
+			check(scored.size() == own && scored.contains(42) && !scored.contains(102), "The binding preserves both PvP sides");
+			check(PhantomLearning131AuditDamage.opposingOwners(epochs, scored, 42, 71, 102, 91)
+				&& PhantomLearning131AuditDamage.opposingOwners(epochs, scored, 103, 91, 42, 71), "Group damage is witnessed in both directions");
+			check(!PhantomLearning131AuditDamage.opposingOwners(epochs, scored, 102, 91, 103, 91)
+				&& !PhantomLearning131AuditDamage.opposingOwners(epochs, scored, 42, 70, 102, 91)
+				&& !PhantomLearning131AuditDamage.opposingOwners(epochs, scored, 42, 71, 500, 91),
+				"Group damage excludes the same side, stale owners, and outsiders");
+		}
 	}
 
 	private static void refuseSchedule(Path protocol, String sha, String reason) throws Exception

@@ -51,7 +51,8 @@ import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Stratum;
 public final class PhantomLearning131Evaluation
 {
 	private static final String REPORT = "TASK131_EVALUATION_REPORT_V2";
-	private static final int MAX_BYTES = 8 * 1024 * 1024;
+	static final int DOCUMENT_MAX_BYTES = 8 * 1024 * 1024;
+	static final int PAID_MAX_BYTES = 32 * 1024 * 1024;
 	private static final Set<String> OPPONENTS = Set.of("B0", "A1", "B1");
 	private static final Set<String> GROUP_SIZES = Set.of("1x2", "2x2", "3x5", "9x9");
 	private static final int BANK_SIZE = 32;
@@ -78,7 +79,7 @@ public final class PhantomLearning131Evaluation
 	}
 	record SoloDamageBinding(String episodeId, String sha, long started, long actorEpoch, long targetEpoch) { }
 	record DuelDamageBinding(String episodeId, String sha, long started, long scoredEpoch, long opponentEpoch) { }
-	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs) { }
+	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs, Set<Integer> scoredPlayers) { }
 	record ModelArmBinding(String episodeId, String sha, long started, String modelSha, Map<Integer, Long> scoredEpochs) { }
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, String modelProofSha, int attempt, int position, Block block) { }
@@ -373,6 +374,7 @@ public final class PhantomLearning131Evaluation
 				final boolean pvp = plan.stratum() == Stratum.DUEL_PVP || plan.stratum() == Stratum.GROUP_PVP;
 				final var auditRows = PhantomLearning131AuditOriginals.decodeAuditRows(paid.rows(), occurrence.id());
 				verifyNativeProjection(evidence.rows(), auditRows, epochs(binding.participants()), window, pvp);
+				verifyEffectSides(auditRows, binding.participants());
 				if (!modelOrderVerified && (binding.slot().arm() == Arm.C || binding.slot().arm() == Arm.R) && !occurrence.modelProofSha().equals("NONE"))
 				{
 					ActionContinuationV4.verifyAuditModelOrder(modelArchive(manifestPath), manifest.get("referenceHead"), manifest.get("candidateHead"),
@@ -498,7 +500,7 @@ public final class PhantomLearning131Evaluation
 	{
 		final Document events = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
 		require(events.sha().equals(eventsSha) && events.get("episodeId").equals(id) && events.get("bindingSha").equals(bindingSha), "RAW_EVENTS_PIN");
-		final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V5", "schema", "episodeId", "bindingSha");
+		final Document paid = document(directory.resolve("paid131.tsv"), PAID_MAX_BYTES, "NATIVE_PAID131_V5", "schema", "episodeId", "bindingSha");
 		require(paid.sha().equals(paidSha) && paid.get("episodeId").equals(id) && paid.get("bindingSha").equals(bindingSha), "PAID_ORIGINALS_PIN");
 		return new EpisodeDocuments(events, paid);
 	}
@@ -539,6 +541,15 @@ public final class PhantomLearning131Evaluation
 		require(!originals.damage().isEmpty() || !originals.heals().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
 		final var roster = participants(binding, Side.valueOf(binding.get("side")));
 		verifyNativeProjection(events, originals, epochs(roster), window, pvp);
+		verifyEffectSides(originals, roster);
+	}
+
+	private static void verifyEffectSides(AuditRows originals, Map<Integer, Participant> roster)
+	{
+		for (var damage : originals.damage().values())
+		{
+			require(roster.get(damage.actor()).side() != roster.get(damage.target()).side(), "DAMAGE_EFFECT_SIDE");
+		}
 		for (var heal : originals.heals().values())
 		{
 			final var cast = heal.original().cast();
@@ -824,11 +835,13 @@ public final class PhantomLearning131Evaluation
 		final long scored = roster.values().stream().filter(member -> member.side() == side).count();
 		require(scored == scheduled.block().scene().initialRosterSize() && roster.size() - scored == scheduled.opponentSize(), "HEAL_GROUP_ROSTER");
 		final var players = new HashMap<Integer, Long>();
+		final var scoredPlayers = new HashSet<Integer>();
 		roster.forEach((object, member) ->
 		{
+			if (member.side() == side) { scoredPlayers.add(object); }
 			if (stratum == Stratum.GROUP_PVP || member.side() == side) { players.put(object, member.epoch()); }
 		});
-		return new HealBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), Map.copyOf(players));
+		return new HealBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), Map.copyOf(players), Set.copyOf(scoredPlayers));
 	}
 
 	static ModelArmBinding modelArmBinding(ScheduledArm scheduled, Path path, String expectedSha) throws IOException
@@ -1265,14 +1278,20 @@ public final class PhantomLearning131Evaluation
 
 	private static Document document(Path path, String schema, String... keys) throws IOException
 	{
+		return document(path, DOCUMENT_MAX_BYTES, schema, keys);
+	}
+
+	private static Document document(Path path, int maximumBytes, String schema, String... keys) throws IOException
+	{
 		physical(path);
 		require(Files.isRegularFile(path), "NONREGULAR_ORIGINAL");
+		require(Files.size(path) <= maximumBytes, "ORIGINAL_SIZE");
 		final byte[] bytes;
 		try (var stream = Files.newInputStream(path))
 		{
-			bytes = stream.readNBytes(MAX_BYTES + 1);
+			bytes = stream.readNBytes(maximumBytes + 1);
 		}
-		require(bytes.length <= MAX_BYTES, "ORIGINAL_SIZE");
+		require(bytes.length <= maximumBytes, "ORIGINAL_SIZE");
 		final String text = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
 		require(text.endsWith("\n") && !text.contains("\u0000"), "ORIGINAL_ENCODING");
 		final var metadata = new HashMap<String, String>();

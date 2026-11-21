@@ -32,8 +32,9 @@ import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 /** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V5 episode document. */
 final class PhantomLearning131AuditOriginals
 {
-	private static final int MAX_ROWS = 1024;
-	private static final long MAX_ITEM_DEBITS = 512;
+	static final int MAX_ITEM_DEBITS = 2048;
+	// 9 x 64 casts with two rows each, up to 18 death/stock pairs, plus heal and item ledgers.
+	private static final int MAX_ROWS = 2 * 9 * 64 + 2 * 18 + 512 + MAX_ITEM_DEBITS + 1;
 	private static final double HEAL_WRITE_TOLERANCE = 1e-6;
 	private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
 	private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
