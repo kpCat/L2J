@@ -1925,12 +1925,30 @@ public final class PhantomCombatService
 
 	private void issueAction(PhantomCombatSession session, ActorSnapshot actor, TargetSnapshot target)
 	{
+		final int targetId = session._request.targetObjectId();
+		final boolean group = session._request.partyRoles() != null;
+		if (group && session._actorLease.preservePartyControl(targetId))
+		{
+			yieldToPartySupport(session, actor);
+			return;
+		}
 		if (actor.casting() || actor.attacking() || session._actorLease.nativeCastPending())
 		{
 			return;
 		}
+		final boolean canSpendMp = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent();
+		final Map<SelectedSkill, PhantomCombatActorLease.PartyAreaChoice> areaChoices = new java.util.LinkedHashMap<>();
+		final Map<SelectedSkill, Integer> areaCounts = new java.util.LinkedHashMap<>();
+		if (group && canSpendMp && now() >= session._partyAreaRetryAfter)
+		{
+			for (var choice : session._actorLease.partyAreaChoices(session._request, () -> partyAreaCurrent(session)))
+			{
+				areaChoices.put(choice.skill(), choice);
+				areaCounts.put(choice.skill(), choice.recipients());
+			}
+		}
 		final var selection = _capabilityResolver.resolvePveAction(actor, session._request.mode(), session._actorLease,
-			session._request.targetObjectId(), percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent(), _policy.maximumSelectedSkills());
+			targetId, canSpendMp, _policy.maximumSelectedSkills(), areaCounts);
 		if (selection.isPresent())
 		{
 			session._loadout = selection.orElseThrow().loadout();
@@ -1969,6 +1987,25 @@ public final class PhantomCombatService
 		{
 			selected = ready.getFirst();
 			session._nextSkill++;
+		}
+		final var area = areaChoices.get(selected);
+		if (area != null)
+		{
+			if (yieldToPartySupport(session, actor)) { return; }
+			final Runnable prepareShots = area.damage() && session._request.useShotsIfAvailable()
+				? () -> _metrics.shot(session._actorLease.activateShot(session._request.mode())) : null;
+			final var outcome = area.dispatch().apply(prepareShots);
+			if (outcome == ActionOutcome.ISSUED)
+			{
+				session._ownedAction = session._ownedAction.withSelectedSkill(area.skill());
+				_metrics.castIssued();
+			}
+			else
+			{
+				// A stock target list can include an unapproved enemy. Give ordinary attacks a new decision before reconsidering.
+				session._partyAreaRetryAfter = now() + TimeUnit.SECONDS.toNanos(1);
+			}
+			return;
 		}
 		if (session._request.mode() != PhantomCombatMode.MELEE_PHYSICAL)
 		{
@@ -2053,6 +2090,20 @@ public final class PhantomCombatService
 		{
 			issueNormalAttack(session);
 		}
+	}
+
+	private boolean partyAreaCurrent(PhantomCombatSession session)
+	{
+		synchronized (_monitor)
+		{
+			if (_state != ServiceState.RUNNING || _sessions.get(session._request.profileId()) != session
+				|| session._result.terminal() || session._phase != PhantomCombatPhase.FIGHTING)
+			{
+				return false;
+			}
+		}
+		return elapsed(now(), session._startedLogicalNanos) < TimeUnit.MILLISECONDS.toNanos(session._request.timeoutMillis())
+			&& !session._request.planOwnershipToken().isCancelled();
 	}
 
 	private void issueNormalAttack(PhantomCombatSession session)
@@ -2838,8 +2889,9 @@ public final class PhantomCombatService
 			{
 				return ActionOutcome.REJECTED;
 			}
+			final java.util.function.BooleanSupplier current = () -> active() && !expired(_owner.now());
 			final ActionOutcome outcome = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.withOwnerAuthority(generation(), operationKey(),
-				() -> active() && !expired(_owner.now()), () -> _actorLease.castSupport(action));
+				current, () -> _actorLease.castSupport(action, current));
 			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
 			{
 				_ownedAction = new ExternalOwnedAction(kind(), action.targetObjectId(), action.skill(), 0, 0, 0, 0);

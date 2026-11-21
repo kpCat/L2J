@@ -433,6 +433,10 @@ public class CreatureStatus
 			}
 			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.mpWritten(_creature, beforeMp, _currentMp, nativeRegeneration);
 			org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.mpWritten(_creature, beforeMp, _currentMp, nativeRegeneration);
+			if (org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.observesResourceWrites())
+			{
+				org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.castMpWritten(_creature, beforeMp, _currentMp, nativeRegeneration);
+			}
 			observeRegeneration(0, nativeRegeneration ? _currentMp - beforeMp : 0);
 		}
 		

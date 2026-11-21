@@ -218,7 +218,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	private static final long MINIMUM_SERVITOR_SKILL_ATTEMPT_NANOS = 3_000_000_000L;
 	private static final long RESUMMON_ATTEMPT_NANOS = 5_000_000_000L;
 	private static final ConditionPlayerCanSummon CAN_SUMMON_SERVITOR = new ConditionPlayerCanSummon(true);
-	private static final Set<String> PARTY_SUPPORT_CAPABILITIES = Set.of("combat.heal", "combat.recharge", "combat.resurrection", "combat.buff", "combat.song", "combat.dance");
+	private static final Set<String> PARTY_SUPPORT_CAPABILITIES = Set.of("combat.heal", "combat.cleanse", "combat.recharge", "combat.resurrection", "combat.buff", "combat.song", "combat.dance");
 	private static final Set<TargetType> PARTY_SUPPORT_TARGET_TYPES = Set.of(TargetType.ONE, TargetType.SELF, TargetType.PARTY, TargetType.PARTY_MEMBER, TargetType.PARTY_NOTME, TargetType.PARTY_OTHER, TargetType.TARGET_PARTY, TargetType.PC_BODY, TargetType.AURA_FRIENDLY, TargetType.AREA_FRIENDLY);
 	private final PhantomMaterializationService _materializationService;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
@@ -286,6 +286,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private long _spacingStartedNanos;
 		private int _spacingAttempts;
 		private PhantomLearnedEscape.Attempt _learnedReturn;
+		private PhantomAreaControl131.Attempt _partyAreaAttempt;
 		private boolean _learnedReturnAttempted;
 
 		private L2jActorLease(long profileId, ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
@@ -910,12 +911,104 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates)
 		{
+			return rankOffensiveSkills(targetObjectId, pvp, candidates, Map.of());
+		}
+
+		@Override
+		public List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates, Map<SelectedSkill, Integer> areaCounts)
+		{
 			if (candidates.size() < 2 || !executionValid() || !(World.getInstance().findObject(targetObjectId) instanceof Creature target)
 				|| target.isAlikeDead() || target.getInstanceId() != _player.getInstanceId())
 			{
 				return candidates;
 			}
-			return PhantomNativeCombatCapability.rankOffense(_player, target, pvp, candidates);
+			return PhantomNativeCombatCapability.rankOffense(_player, target, pvp, candidates, areaCounts);
+		}
+
+		@Override
+		public boolean preservePartyControl(int targetObjectId)
+		{
+			if (!executionValid() || !(World.getInstance().findObject(targetObjectId) instanceof Monster target)
+				|| !target.isSleeping())
+			{
+				return false;
+			}
+			final var party = _player.getParty();
+			if (party == null || target.getEffectList().getEffects().stream().noneMatch(info -> info.isInUse() && info.getSkill().isRemovedOnDamage()
+				&& info.getSkill().hasEffectType(EffectType.SLEEP) && info.getEffector() instanceof Player source && source.getParty() == party))
+			{
+				return false;
+			}
+			// Drop only renewal of this actor's attack intention. An earned hit or cast can finish under its own native owner.
+			if (_player.hasAI() && _player.getAI().getIntention() == Intention.ATTACK && _player.getAI().getAttackTarget() == target)
+			{
+				_player.getAI().setIntention(Intention.IDLE);
+			}
+			return true;
+		}
+
+		@Override
+		public List<PartyAreaChoice> partyAreaChoices(PhantomCombatRequest request, java.util.function.BooleanSupplier sessionCurrent)
+		{
+			final var party = _player.getParty();
+			if (request.partyRoles() == null || party == null || _player.isMoving() || _player.isTransformed()
+				|| _player.getSkills().size() > PhantomNativeCombatCapability.MAXIMUM_SKILLS || !executionValid()
+				|| !(World.getInstance().findObject(request.targetObjectId()) instanceof Monster primary))
+			{
+				return List.of();
+			}
+			final List<Player> roster = List.copyOf(party.getMembers());
+			final Set<Integer> memberIds = request.partyRoles().members();
+			if (roster.size() < 2 || roster.size() != memberIds.size() || roster.stream().anyMatch(member -> !memberIds.contains(member.getObjectId())))
+			{
+				return List.of();
+			}
+			final java.util.function.BooleanSupplier authority = () -> sessionCurrent.getAsBoolean() && executionValid()
+				&& _player.getParty() == party && party.getMembers().size() == roster.size() && party.getMembers().containsAll(roster);
+			final ActorSnapshot actor = actorSnapshot();
+			if (!authority.getAsBoolean() || !targetSnapshot(primary).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE)) { return List.of(); }
+			final var nearby = World.getInstance().getVisibleObjectsInRange(_player, Monster.class, MAXIMUM_ACQUISITION_DISTANCE);
+			final List<Monster> approved = java.util.stream.Stream.concat(java.util.stream.Stream.of(primary), nearby.stream()
+				.filter(monster -> monster != primary && protectsPartyFrom(monster, roster))
+				.filter(monster -> targetSnapshot(monster).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+				.sorted(Comparator.comparingInt(Monster::getObjectId)).limit(15)).toList();
+			if (approved.size() < 2) { return List.of(); }
+			final List<PartyAreaChoice> choices = new ArrayList<>();
+			for (Skill skill : _player.getAllSkills())
+			{
+				if (!PhantomAreaControl131.supportsArea(skill) || skill.isPvPOnly()
+					|| !(request.mode().magic() ? skill.isMagic() : skill.isPhysical()) || !nativePveSkillReady(_player, primary, skill))
+				{
+					continue;
+				}
+				final java.util.function.Predicate<Creature> lawful = recipient -> recipient instanceof Monster monster
+					&& targetSnapshot(monster).validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE)
+					&& (monster == primary || protectsPartyFrom(monster, roster))
+					&& (skill.isDamage() || !recipient.isAffectedBySkill(skill.getId()))
+					&& (!skill.hasEffectType(EffectType.SLEEP) || roster.stream().noneMatch(member -> member != _player
+						&& member.getTarget() == monster && (member.isAttackingNow() || member.isCastingNow())));
+				final int count = PhantomAreaControl131.estimateArea(_player, skill, primary, approved,
+					PhantomAreaControl131.AreaDomain.PVE, authority, lawful);
+				if (count >= 2)
+				{
+					final var selected = new SelectedSkill(skill.getId(), skill.getLevel());
+					choices.add(new PartyAreaChoice(selected, count, skill.isDamage(), atPublication ->
+					{
+						if (!authority.getAsBoolean() || !selectNormalCombatTarget(primary)) { return ActionOutcome.REJECTED; }
+						_partyAreaAttempt = PhantomAreaControl131.castArea(_player, skill, primary, approved,
+							PhantomAreaControl131.AreaDomain.PVE, false, authority, lawful, atPublication);
+						return _partyAreaAttempt == null ? ActionOutcome.UNAVAILABLE : ActionOutcome.ISSUED;
+					}));
+				}
+			}
+			return List.copyOf(choices);
+		}
+
+		private static boolean protectsPartyFrom(Monster monster, List<Player> roster)
+		{
+			final Creature victim = monster.getMostHated();
+			return victim instanceof Player && roster.contains(victim)
+				&& (monster.getTarget() == victim || monster.hasAI() && monster.getAI().getAttackTarget() == victim);
 		}
 
 		@Override public boolean pvpSkillReady(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
@@ -1892,6 +1985,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome castSupport(PhantomPartySupportAction action)
 		{
+			return castSupport(action, () -> false);
+		}
+
+		@Override
+		public ActionOutcome castSupport(PhantomPartySupportAction action, java.util.function.BooleanSupplier authority)
+		{
 			if ((action == null) || !PARTY_SUPPORT_CAPABILITIES.contains(action.capabilityKey()))
 			{
 				return ActionOutcome.REJECTED;
@@ -1899,7 +1998,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final PhantomProgressionCatalog catalog = _progressionCatalog.get();
 			final CapabilityRule rule = catalog == null ? null : catalog.capabilities(_player.getActiveClass()).stream().filter(candidate -> candidate.capabilityKey().equals(action.capabilityKey()) && candidate.variantKey().equals(action.variantKey()) && candidate.targetScope().name().equals(action.targetScope()) && (candidate.actionSkill().skillId() == action.skill().skillId()) && (candidate.actionSkill().skillLevel() <= action.skill().skillLevel())).findFirst().orElse(null);
 			final Skill skill = _player.getKnownSkill(action.skill().skillId());
-			final boolean nativeSupport = skill != null && action.variantKey().equals(PhantomSupportEffectAuthority.nativeVariant(skill)) && action.capabilityKey().equals(PhantomSupportEffectAuthority.nativeCapability(skill)) && action.targetScope().equals(PhantomSupportEffectAuthority.nativeScope(skill));
+			final boolean cleanse = "combat.cleanse".equals(action.capabilityKey());
+			final boolean nativeSupport = skill != null && action.variantKey().equals(PhantomSupportEffectAuthority.nativeVariant(skill))
+				&& (cleanse ? PhantomSupportEffectAuthority.supportsCapability(skill, "combat.cleanse") : action.capabilityKey().equals(PhantomSupportEffectAuthority.nativeCapability(skill)))
+				&& action.targetScope().equals(PhantomSupportEffectAuthority.nativeScope(skill));
 			if (rule == null && !nativeSupport)
 			{
 				return ActionOutcome.REJECTED;
@@ -1954,6 +2056,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
+			if (cleanse)
+			{
+				return castCleanse(action, target, skill, authority);
+			}
 			final SkillUseHolder current = _player.getCurrentSkill();
 			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == action.skill().skillId()) && (current.getSkillLevel() == action.skill().skillLevel()))
 			{
@@ -1965,6 +2071,27 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			// can replace a pending native task when an external lease is retried.
 			return org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.dispatch(_player, target, skill, this::executionValid,
 				() -> _player.useMagic(skill, false, action.stationary())) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
+		}
+
+		private ActionOutcome castCleanse(PhantomPartySupportAction action, Player target, Skill skill, java.util.function.BooleanSupplier authority)
+		{
+			final var party = _player.getParty();
+			final java.util.function.BooleanSupplier current = () -> authority.getAsBoolean() && executionValid() && _player.getParty() == party
+				&& (target == _player || party != null && target.getParty() == party);
+			if (action.audience() != PhantomPartySupportAction.Audience.PARTY || !current.getAsBoolean()
+				|| PhantomSupportEffectAuthority.cleanseUrgency(_player, target, skill) == 0)
+			{
+				return ActionOutcome.REJECTED;
+			}
+			if (_player.isCastingNow() || _player.isCastingSimultaneouslyNow() || _player.isAttackingNow()
+				|| _player.isMoving() || distance(_player, target) > _player.getMagicalAttackRange(skill))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			_player.setTarget(target);
+			return PhantomAreaControl131.castSingleSupport(_player, skill, target, current,
+				recipient -> recipient == target && PhantomSupportEffectAuthority.cleanseUrgency(_player, target, skill) > 0)
+				? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
 		}
 
 		@Override
@@ -2215,6 +2342,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
+			if (_partyAreaAttempt != null)
+			{
+				_partyAreaAttempt.cancel();
+				_partyAreaAttempt = null;
+			}
 			if (_learnedReturn != null && _learnedReturn.status() == PhantomLearnedEscape.Status.PENDING)
 			{
 				_learnedReturn.cancel();

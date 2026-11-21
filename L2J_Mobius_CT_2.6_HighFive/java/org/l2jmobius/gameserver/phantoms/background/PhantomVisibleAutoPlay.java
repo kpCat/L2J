@@ -67,6 +67,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private final Supplier<PhantomDecisionEngine> _decision;
 	private final LongPredicate _permitsOrdinary;
 	private final LongPredicate _permitsNewRoots;
+	private final java.util.function.BiPredicate<Player, Creature> _targetScope;
 	private final Map<Long, Session> _sessions = new ConcurrentHashMap<>();
 	private final LongSupplier _clock;
 	private volatile PhantomNavigationService _navigation;
@@ -85,6 +86,12 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots, LongSupplier clock)
 	{
+		this(materialization, decision, permitsOrdinary, permitsNewRoots, clock, (actor, target) -> true);
+	}
+
+	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots,
+		LongSupplier clock, java.util.function.BiPredicate<Player, Creature> targetScope)
+	{
 		_materialization = Objects.requireNonNull(materialization, "materialization");
 		// This native retreat path needs no knowledge/catalog query and shares the existing actor lease.
 		_recoveryBackend = new L2jCombatBackend(_materialization, () -> null);
@@ -92,6 +99,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		_permitsOrdinary = Objects.requireNonNull(permitsOrdinary, "permitsOrdinary");
 		_permitsNewRoots = Objects.requireNonNull(permitsNewRoots, "permitsNewRoots");
 		_clock = Objects.requireNonNull(clock);
+		_targetScope = Objects.requireNonNull(targetScope);
 	}
 
 	/** Let a canonical low-HP idle recover before current-resource farm admission, without creating a farm session. */
@@ -897,7 +905,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		public boolean permitsTarget(Creature target)
 		{
 			// Corpse eligibility belongs to native Sweep, including retained valuable spoil.
-			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId && (target.isAlikeDead() || PhantomEngagementPlanner.rewardingFarmTarget(_player, target)) || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) && (target.isAlikeDead() || PhantomEngagementPlanner.viable(_player, target)) && preparedTarget(target);
+			return _targetScope.test(_player, target) && target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId && (target.isAlikeDead() || PhantomEngagementPlanner.rewardingFarmTarget(_player, target)) || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) && (target.isAlikeDead() || PhantomEngagementPlanner.viable(_player, target)) && preparedTarget(target);
 		}
 	}
 

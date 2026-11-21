@@ -35,6 +35,7 @@ public final class PhantomCombatSession
 	double _contentBestDistance = Double.POSITIVE_INFINITY;
 	long _lootStartedLogicalNanos;
 	int _nextSkill;
+	long _partyAreaRetryAfter;
 	int _lootPickupsIssued;
 	int _lootAcquiredByActor;
 	int _lootAcquiredByParty;

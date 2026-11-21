@@ -241,6 +241,7 @@ public final class PhantomSystem
 
 	private final PhantomPlayersConfig.Settings _settings;
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
+	private java.util.function.BiPredicate<Player, org.l2jmobius.gameserver.model.actor.Creature> _testFarmTargetScope = (actor, target) -> true;
 	private StartupPartyRecovery _startupPartyRecovery;
 	public record StartupPartyRecovery(java.util.Set<Long> profiles, java.util.concurrent.CompletableFuture<Void> completion)
 	{
@@ -561,7 +562,7 @@ public final class PhantomSystem
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> localityPreparationCandidate(_populationManager, profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, backgroundPlanner, _backgroundService, _materializationService);
-				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime);
+				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime, _testFarmTargetScope);
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				final var supplyLifecycleBridge = new PhantomMaterializationLifecycleBridge();
@@ -2295,6 +2296,16 @@ public final class PhantomSystem
 	{
 		if (_configuredInstance != null) { return false; }
 		return startConfiguredCandidate(new PhantomSystem(Objects.requireNonNull(settings), true, Objects.requireNonNull(loadObserver), Objects.requireNonNull(metadataObserver)));
+	}
+
+	static synchronized boolean startConfiguredForTesting(PhantomPlayersConfig.Settings settings, java.util.function.Consumer<PlanningInspection> inspection,
+		PhantomMaterializationLifecyclePort loadObserver, java.util.function.BiPredicate<Player, org.l2jmobius.gameserver.model.actor.Creature> targetScope)
+	{
+		if (_configuredInstance != null) { return false; }
+		final var candidate = new PhantomSystem(Objects.requireNonNull(settings), true, Objects.requireNonNull(loadObserver));
+		candidate._planningInspection = Objects.requireNonNull(inspection);
+		candidate._testFarmTargetScope = Objects.requireNonNull(targetScope);
+		return startConfiguredCandidate(candidate);
 	}
 
 	private static boolean startConfiguredCandidate(PhantomSystem candidate)

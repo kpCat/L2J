@@ -601,6 +601,42 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		}
 	}
 
+	static void testPartyAreaOwner()
+	{
+		final Fixture fixture = fixture(1);
+		fixture.lease.areaSkill = new SelectedSkill(104, 2);
+		fixture.lease.learnedRanks.put(104, 2);
+		fixture.lease.shotOutcome = ShotOutcome.ACTIVATED;
+		final var request = new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, true, false, 30000,
+			fixture.token, PhantomCombatRequest.LearningScope.NONE, new PhantomCombatRequest.PartyRoles(Set.of(10, 11, 12), 1, 1, 1), () -> true);
+		try
+		{
+			PhantomAssertions.assertTrue(fixture.service.startContentSession(request, "party.tactic.area.contract").accepted(), "Party owner did not admit the primary.");
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(1, fixture.lease.areaAttempts, "The lawful learned area alternative did not reach the current owner.");
+			PhantomAssertions.assertEquals(0, fixture.lease.shotCalls, "Refused stock area list prepared paid shots.");
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(1, fixture.lease.areaAttempts, "Refused area did not yield its next decision to ordinary attacks.");
+			PhantomAssertions.assertEquals(1, fixture.lease.shotCalls, "Ordinary fallback did not retain its normal shot path.");
+			fixture.clock.set(2_000_000_000L);
+			fixture.lease.partyControl = true;
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(1, fixture.lease.areaAttempts, "Area attack was offered against preserved control.");
+			PhantomAssertions.assertEquals(1, fixture.lease.shotCalls, "Protected control still consumed an attack shot.");
+			fixture.lease.partyControl = false;
+			fixture.lease.areaOutcome = ActionOutcome.ISSUED;
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(2, fixture.lease.areaAttempts, "An ordinary owner could not reconsider the area after control ended.");
+			PhantomAssertions.assertTrue(fixture.lease.areaAuthority.getAsBoolean(), "An admitted cast lost its original owner at publication.");
+			fixture.cancelled.set(true);
+			PhantomAssertions.assertFalse(fixture.lease.areaAuthority.getAsBoolean(), "Revoking the party plan did not close the delayed area effect.");
+		}
+		finally
+		{
+			fixture.stop();
+		}
+	}
+
 	static void testRetreatDrainsNativeCast()
 	{
 		final var fixture = fixture(1);
@@ -1370,6 +1406,12 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private List<SelectedSkill> acquiredPveSkills = List.of();
 		private Runnable readinessObserver = () -> { };
 		private boolean pendingCast;
+		private SelectedSkill areaSkill;
+		private int areaAttempts;
+		private int shotCalls;
+		private boolean partyControl;
+		private ActionOutcome areaOutcome = ActionOutcome.UNAVAILABLE;
+		private java.util.function.BooleanSupplier areaAuthority = () -> false;
 		private final Map<Integer, Integer> learnedRanks = new HashMap<>();
 		private SelectedSkill lastCast;
 		private ActionOutcome spacingOutcome = ActionOutcome.UNAVAILABLE;
@@ -1377,6 +1419,21 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private int healingCalls;
 		private ActionOutcome retreatOutcome = ActionOutcome.REJECTED;
 		private java.util.function.BooleanSupplier returnAuthority = () -> false;
+
+		@Override
+		public List<PartyAreaChoice> partyAreaChoices(PhantomCombatRequest request, java.util.function.BooleanSupplier current)
+		{
+			return areaSkill == null ? List.of() : List.of(new PartyAreaChoice(areaSkill, 3, true, atPublication ->
+			{
+				areaAuthority = current;
+				areaAttempts++;
+				if (!current.getAsBoolean()) { return ActionOutcome.REJECTED; }
+				if (areaOutcome == ActionOutcome.ISSUED && atPublication != null) { atPublication.run(); }
+				return areaOutcome;
+			}));
+		}
+
+		@Override public boolean preservePartyControl(int targetId) { return partyControl; }
 
 		@Override public boolean useHealingPotion() { healingCalls++; return false; }
 		public ActionOutcome retreatFrom(int targetObjectId) { return retreatOutcome; }
@@ -1509,6 +1566,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		@Override
 		public ShotOutcome activateShot(PhantomCombatMode mode)
 		{
+			shotCalls++;
 			return shotOutcome;
 		}
 

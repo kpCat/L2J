@@ -32,13 +32,16 @@ import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.stats.Formulas;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomAreaControl131;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.DebuffRemoval;
 
 /**
  * Dispel By Category effect implementation.
  * @author DS, Adry_85, Naker
  */
-public class DispelByCategory extends AbstractEffect
+public class DispelByCategory extends AbstractEffect implements DebuffRemoval
 {
 	private final String _slot;
 	private final int _rate;
@@ -64,12 +67,38 @@ public class DispelByCategory extends AbstractEffect
 	{
 		return true;
 	}
+
+	@Override
+	public boolean supportsDebuffRemoval()
+	{
+		return "debuff".equals(_slot) && _rate > 0 && _max > 0 && !CancelReturnConfig.CANCEL_RETURN_ON;
+	}
+
+	@Override
+	public List<BuffInfo> possibleRemovals(Player recipient)
+	{
+		if (!supportsDebuffRemoval())
+		{
+			return java.util.Collections.emptyList();
+		}
+		return recipient.getEffectList().getDebuffs().stream()
+			.filter(info -> info.getSkill().isDebuff() && info.getSkill().canBeDispeled()).collect(java.util.stream.Collectors.toList());
+	}
 	
 	@Override
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
 		if ((effected == null) || effected.isDead() || effected.isRaid())
 		{
+			return;
+		}
+		if (PhantomAreaControl131.scopedSupportEffect(effector, effected, skill))
+		{
+			if (supportsDebuffRemoval())
+			{
+				Formulas.calcCancelStealEffects(effector, effected, skill, _slot, _rate, _max)
+					.forEach(effected.getEffectList()::removeDispelledDebuff);
+			}
 			return;
 		}
 		

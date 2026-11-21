@@ -292,6 +292,25 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	/** Contextual preference only. Readiness and native dispatch validate the action independently. */
 	default List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates) { return candidates; }
 
+	default List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates, Map<SelectedSkill, Integer> areaCounts)
+	{
+		return rankOffensiveSkills(targetObjectId, pvp, candidates);
+	}
+
+	record PartyAreaChoice(SelectedSkill skill, int recipients, boolean damage, java.util.function.Function<Runnable, ActionOutcome> dispatch)
+	{
+	}
+
+	default List<PartyAreaChoice> partyAreaChoices(PhantomCombatRequest request, java.util.function.BooleanSupplier current)
+	{
+		return List.of();
+	}
+
+	default boolean preservePartyControl(int targetObjectId)
+	{
+		return false;
+	}
+
 	default boolean pvpSkillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { return false; }
 	default boolean pvpSkillReady(int playerObjectId, int tacticalTargetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 	{
@@ -371,6 +390,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	default ActionOutcome castSupport(PhantomPartySupportAction action)
 	{
 		return ActionOutcome.REJECTED;
+	}
+
+	default ActionOutcome castSupport(PhantomPartySupportAction action, java.util.function.BooleanSupplier current)
+	{
+		return current.getAsBoolean() ? castSupport(action) : ActionOutcome.REJECTED;
 	}
 
 	default ActionOutcome moveTo(int x, int y, int z, int instanceId)

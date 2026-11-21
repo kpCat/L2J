@@ -312,6 +312,13 @@ public class CreatureAI extends AbstractAI
 		final int bowAttackEndTime = _actor.getBowAttackEndTime();
 		if (bowAttackEndTime > gameTime)
 		{
+			// Scoped requests cannot outlive their synchronous authority in CastTask.
+			if (_actor.isScopedNativeCastDispatch())
+			{
+				clientActionFailed();
+				_actor.setCastingNow(false);
+				return;
+			}
 			PlayerNativeWork.schedule(_actor, target == null ? List.of() : List.of(target), "cast-bow-reuse", PlayerNativeWork.Semantics.CANCELLABLE, new CastTask(_actor, skill, target), (bowAttackEndTime - gameTime) * GameTimeTaskManager.MILLIS_IN_TICK);
 		}
 		else
@@ -1039,6 +1046,10 @@ public class CreatureAI extends AbstractAI
 		
 		if (!_actor.isInsideRadius2D(target, offsetWithCollision))
 		{
+			if (getIntention() == Intention.CAST && _actor.isScopedNativeCastDispatch())
+			{
+				return true; // The owner must reselect after movement, using a fresh recipient scope.
+			}
 			// Caller should be Playable and thinkAttack/thinkCast/thinkInteract/thinkPickUp
 			if (isFollowing())
 			{

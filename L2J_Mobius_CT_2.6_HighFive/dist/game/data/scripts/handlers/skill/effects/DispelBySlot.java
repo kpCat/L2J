@@ -31,12 +31,15 @@ import org.l2jmobius.gameserver.model.skill.AbnormalType;
 import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomAreaControl131;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.DebuffRemoval;
 
 /**
  * Dispel By Slot effect implementation.
  * @author Gnacik, Zoey76, Adry_85
  */
-public class DispelBySlot extends AbstractEffect
+public class DispelBySlot extends AbstractEffect implements DebuffRemoval
 {
 	private final String _dispel;
 	private final Map<AbnormalType, Short> _dispelAbnormals;
@@ -72,12 +75,46 @@ public class DispelBySlot extends AbstractEffect
 	{
 		return true;
 	}
+
+	@Override
+	public boolean supportsDebuffRemoval()
+	{
+		return !_dispelAbnormals.isEmpty() && !_dispelAbnormals.containsKey(AbnormalType.TRANSFORM);
+	}
+
+	@Override
+	public java.util.List<BuffInfo> possibleRemovals(Player recipient)
+	{
+		final java.util.List<BuffInfo> candidates = new java.util.ArrayList<>();
+		if (!supportsDebuffRemoval())
+		{
+			return candidates;
+		}
+		for (Entry<AbnormalType, Short> entry : _dispelAbnormals.entrySet())
+		{
+			final BuffInfo current = recipient.getEffectList().getBuffInfoByAbnormalType(entry.getKey());
+			if (current != null && entry.getKey() == current.getSkill().getAbnormalType()
+				&& (entry.getValue() < 0 || entry.getValue() >= current.getSkill().getAbnormalLevel()))
+			{
+				candidates.add(current);
+			}
+		}
+		return candidates;
+	}
 	
 	@Override
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
 		if (_dispelAbnormals.isEmpty() || (effected == null) || effected.isRaid())
 		{
+			return;
+		}
+		if (PhantomAreaControl131.scopedSupportEffect(effector, effected, skill))
+		{
+			if (effected instanceof Player)
+			{
+				possibleRemovals((Player) effected).forEach(effected.getEffectList()::removeDispelledDebuff);
+			}
 			return;
 		}
 		

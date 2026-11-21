@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.skill.EffectScope;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomAreaControl131;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
@@ -59,7 +60,8 @@ public final class Task131ClassCoverage
 	}
 
 	private record Route(String select, String execute, String train) { }
-	private record Facts(EnumSet<Family> families, String effects, String support, boolean pveSingle, boolean pvpSingle, boolean plainDamage, boolean npcAggro) { }
+	private record Facts(EnumSet<Family> families, String effects, String support, boolean pveSingle, boolean pvpSingle, boolean plainDamage,
+		boolean npcAggro, boolean pveArea, boolean cleanse) { }
 	private record Member(SkillLearn learn, Skill skill, Facts facts, Set<String> weapons) { }
 
 	public static void main(String[] args) throws Exception
@@ -150,7 +152,7 @@ public final class Task131ClassCoverage
 					final Skill candidate = skills.getSkill(learn.getSkillId(), learn.getSkillLevel());
 					final Skill skill = candidate != null && candidate.getId() == learn.getSkillId() && candidate.getLevel() == learn.getSkillLevel() ? candidate : null;
 					final Set<String> declared = weapons.getOrDefault(learn.getSkillId(), Set.of());
-					final Facts facts = skill == null ? new Facts(EnumSet.of(Family.NO_EXACT_TEMPLATE), "", "", false, false, false, false) : facts(skill, declared);
+					final Facts facts = skill == null ? new Facts(EnumSet.of(Family.NO_EXACT_TEMPLATE), "", "", false, false, false, false, false, false) : facts(skill, declared);
 					final var member = new Member(learn, skill, facts, declared);
 					for (Family family : facts.families()) { byFamily.get(family).add(member); }
 					detail(writer, clazz, member);
@@ -199,7 +201,7 @@ public final class Task131ClassCoverage
 			}
 		}
 		effects.sort(String::compareTo);
-		if (skill.isPassive()) { return new Facts(EnumSet.of(Family.PASSIVE), String.join(",", effects), "", false, false, false, false); }
+		if (skill.isPassive()) { return new Facts(EnumSet.of(Family.PASSIVE), String.join(",", effects), "", false, false, false, false, false, false); }
 		final String support = PhantomSupportEffectAuthority.nativeCapability(skill);
 		final var mode = skill.isMagic() ? PhantomCombatMode.RANGED_MAGIC : PhantomCombatMode.MELEE_PHYSICAL;
 		final boolean pve = skill.getAffectRange() == 0 && PhantomCombatSkillSafety.supports(skill, mode, false)
@@ -252,7 +254,8 @@ public final class Task131ClassCoverage
 		else if (skill.getId() == 1255 && handlers.contains("Escape")) { families.add(Family.LEARNED_MASS_RETURN); }
 		else if (skill.getFlyType() != null || skill.hasEffectType(EffectType.TELEPORT, EffectType.TELEPORT_TO_TARGET)) { families.add(Family.OTHER_MOBILITY); }
 		if (families.isEmpty()) { families.add(Family.OTHER_ACTIVE); }
-		return new Facts(families, String.join(",", effects), support == null ? "" : support, pve, pvp, simple, aggro);
+		return new Facts(families, String.join(",", effects), support == null ? "" : support, pve, pvp, simple, aggro,
+			!skill.isPvPOnly() && PhantomAreaControl131.supportsArea(skill), PhantomSupportEffectAuthority.supportsCapability(skill, "combat.cleanse"));
 	}
 
 	private static Route route(Family family, Member member)
@@ -261,12 +264,11 @@ public final class Task131ClassCoverage
 		return switch (family)
 		{
 			case MELEE_OR_UNTYPED_PHYSICAL, RANGED_PHYSICAL, BOW_DECLARED, CROSSBOW_DECLARED, CASTER_DAMAGE, BLOW_MECHANIC, POSITIONAL_DAGGER, CHARGES_OR_SOULS, CONTROL, DEBUFF ->
-				facts.pveSingle() || facts.pvpSingle()
-					? new Route("STATIC_SINGLE_TARGET_" + (facts.pveSingle() ? "PVE" : "") + (facts.pveSingle() && facts.pvpSingle() ? "_" : "") + (facts.pvpSingle() ? "PVP" : ""),
-						"SOURCE_LEARNED_SINGLE_TARGET_WITH_NATIVE_GATES", facts.plainDamage() ? "SOURCE_V4_DAMAGE_EXPERIMENT_REQUIRES_FROZEN_ALLOWLIST_AND_RECEIPT" : "GAP_NO_MATCHING_TRAIN_ROUTE_PROVEN")
-					: gap();
+				facts.pveArea() ? partyArea() : singleTarget(facts);
+			case AOE_DAMAGE -> facts.pveArea() ? partyArea() : gap();
 			case NPC_AGGRO -> facts.npcAggro() ? new Route("STATIC_NPC_AGGRO", "SOURCE_NPC_AGGRO_NATIVE_GATES", "GAP_NO_TANK_TRAIN_ROUTE") : gap();
 			case HEAL -> support(facts, "combat.heal");
+			case CLEANSE -> facts.cleanse() ? new Route("SOURCE_PARTY_EXACT_CLEANSE", "SOURCE_GUARDED_STOCK_DEBUFF_REMOVAL", "GAP_NO_CLEANSE_TRAIN_ROUTE") : gap();
 			case RECHARGE -> support(facts, "combat.recharge");
 			case BUFF, SONG, DANCE -> support(facts, "combat.buff");
 			case RESURRECTION -> support(facts, "combat.resurrection");
@@ -279,10 +281,25 @@ public final class Task131ClassCoverage
 		};
 	}
 
+	private static Route singleTarget(Facts facts)
+	{
+		if (!facts.pveSingle() && !facts.pvpSingle()) { return gap(); }
+		final String mode = facts.pveSingle() && facts.pvpSingle() ? "PVE_PVP" : facts.pveSingle() ? "PVE" : "PVP";
+		return new Route("STATIC_SINGLE_TARGET_" + mode, "SOURCE_LEARNED_SINGLE_TARGET_WITH_NATIVE_GATES",
+			facts.plainDamage() ? "SOURCE_V4_DAMAGE_EXPERIMENT_REQUIRES_FROZEN_ALLOWLIST_AND_RECEIPT" : "GAP_NO_MATCHING_TRAIN_ROUTE_PROVEN");
+	}
+
+	private static Route partyArea()
+	{
+		return new Route("SOURCE_PARTY_PVE_AREA_WITH_EXACT_RECIPIENTS", "SOURCE_GUARDED_STOCK_AREA",
+			"GAP_NO_AREA_TRAIN_ROUTE");
+	}
+
 	private static Route support(Facts facts, String capability)
 	{
 		return capability.equals(facts.support())
-			? new Route("STATIC_PARTY_" + capability.substring(7).toUpperCase(java.util.Locale.ROOT), "SOURCE_PARTY_SUPPORT_WITH_TARGET_AND_OWNER_GATES", "GAP_NO_V4_SUPPORT_CHOICE_ROUTE")
+			? new Route("STATIC_PARTY_" + capability.substring(7).toUpperCase(java.util.Locale.ROOT), "SOURCE_PARTY_SUPPORT_WITH_TARGET_AND_OWNER_GATES",
+				"combat.heal".equals(capability) ? "SOURCE_V4_HEAL_EXPERIMENT_REQUIRES_FROZEN_ALLOWLIST_AND_RECEIPT" : "GAP_NO_V4_SUPPORT_CHOICE_ROUTE")
 			: gap();
 	}
 

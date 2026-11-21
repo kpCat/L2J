@@ -1389,11 +1389,25 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				final double mp = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
 				final boolean affordable = !player.isAlikeDead() && !player.isSkillDisabled(skill) && player.getCurrentMp() >= mp && player.checkDoCastConditions(skill);
 				final String support = PhantomSupportEffectAuthority.nativeCapability(skill);
-				if (support != null)
+				if (support != null && !"combat.cleanse".equals(support))
 				{
 					final String scope = PhantomSupportEffectAuthority.nativeScope(skill);
 					final boolean targetReady = targetObjectId <= 0 || target instanceof Player recipient && targetCompatible(player, recipient, scope) && skill.checkCondition(player, recipient, false);
 					final var capability = new MemberCapability(support, PhantomSupportEffectAuthority.nativeVariant(skill), 450, skill.getId(), skill.getLevel(), scope, true, true, affordable && targetReady, affordable && targetReady ? "ready" : "native.unavailable", 450, "native.learned_skill+effect+mp+reuse");
+					result.put(capability.identity(), capability);
+				}
+				if (PhantomSupportEffectAuthority.supportsCapability(skill, "combat.cleanse"))
+				{
+					final String scope = PhantomSupportEffectAuthority.nativeScope(skill);
+					final int urgency = target instanceof Player recipient && targetCompatible(player, recipient, scope)
+						? PhantomSupportEffectAuthority.cleanseUrgency(player, recipient, skill) : 0;
+					final boolean ready = affordable && urgency > 0 && target instanceof Player recipient
+						&& player.calculateDistance3D(recipient) <= player.getMagicalAttackRange(skill)
+						&& GeoEngine.getInstance().canSeeTarget(player, recipient) && skill.checkCondition(player, recipient, false)
+						&& (skill.getItemConsumeCount() <= 0 || player.getInventory().getInventoryItemCount(skill.getItemConsumeId(), -1) >= skill.getItemConsumeCount());
+					final var capability = new MemberCapability("combat.cleanse", PhantomSupportEffectAuthority.nativeVariant(skill), 450,
+						skill.getId(), skill.getLevel(), scope, true, true, ready, ready ? "ready" : "native.cleanse.unavailable",
+						450 * urgency, "native.learned_skill+matching_debuff+mp+reagent+reuse");
 					result.put(capability.identity(), capability);
 				}
 				if (armed && PhantomCombatSkillSafety.supportsNpcAggro(skill, player.isTransformed()))

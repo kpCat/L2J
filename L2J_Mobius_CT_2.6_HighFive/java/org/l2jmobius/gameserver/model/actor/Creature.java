@@ -137,6 +137,7 @@ import org.l2jmobius.gameserver.model.skill.enums.FlyType;
 import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomAreaControl131;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.model.stats.BaseStat;
@@ -296,6 +297,7 @@ public abstract class Creature extends WorldObject
 	protected Future<?> _skillCast2;
 	private volatile MagicUseTask _nativeMagicUseTask;
 	private volatile MagicUseTask _nativeMagicUseTask2;
+	private volatile PhantomAreaControl131.Attempt _scopedNativeCastDispatch;
 	
 	private final Map<Integer, RelationCache> _knownRelations = new ConcurrentHashMap<>();
 	
@@ -1720,6 +1722,24 @@ public abstract class Creature extends WorldObject
 	{
 		beginCast(skill, false);
 	}
+
+	/** Short synchronous reservation. The actual MagicUseTask holds the scope after publication. */
+	public final synchronized boolean bindScopedNativeCast(PhantomAreaControl131.Attempt attempt, Skill skill)
+	{
+		if (attempt == null || _scopedNativeCastDispatch != null || PhantomAreaControl131.pending(this, skill) != attempt) { return false; }
+		_scopedNativeCastDispatch = attempt;
+		return true;
+	}
+
+	public final synchronized void releaseScopedNativeCast(PhantomAreaControl131.Attempt attempt)
+	{
+		if (_scopedNativeCastDispatch == attempt) { _scopedNativeCastDispatch = null; }
+	}
+
+	public final boolean isScopedNativeCastDispatch()
+	{
+		return _scopedNativeCastDispatch != null;
+	}
 	
 	/** Pure query extracted from beginCast; uses the same native speed, shot and animation rules. */
 	public int calculateSkillCastTime(Skill skill)
@@ -1797,6 +1817,8 @@ public abstract class Creature extends WorldObject
 	
 	private void beginCast(Skill skill, boolean isSimultaneous)
 	{
+		final var dispatch = _scopedNativeCastDispatch;
+		if (dispatch != null && dispatch != PhantomAreaControl131.pending(this, skill)) { return; }
 		// Attackables cannot cast while moving.
 		if (isAttackable() && isMoving())
 		{
@@ -1913,8 +1935,13 @@ public abstract class Creature extends WorldObject
 	{
 		final boolean guardedEscape = org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.requiresAuthority(this, skill);
 		final var escape = guardedEscape ? org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.capture(this, skill, simultaneously) : null;
-		final List<WorldObject> nativeTargets = escape == null ? targets : escape.selectNativeTargets(targets);
-		if (guardedEscape && (escape == null || target != this || nativeTargets == null || nativeTargets.isEmpty()))
+		final var authorizedCast = PhantomAreaControl131.pending(this, skill);
+		final var dispatch = _scopedNativeCastDispatch;
+		if (dispatch != null && dispatch != authorizedCast) { return; }
+		final List<WorldObject> nativeTargets = escape != null ? escape.selectNativeTargets(targets)
+			: authorizedCast != null ? authorizedCast.selectNativeTargets(target, targets, simultaneously) : targets;
+		if ((guardedEscape && (escape == null || target != this || nativeTargets == null || nativeTargets.isEmpty()))
+			|| (authorizedCast != null && nativeTargets.isEmpty()))
 		{
 			if (simultaneously) { setCastingSimultaneouslyNow(false); }
 			else { setCastingNow(false); }
@@ -1924,13 +1951,14 @@ public abstract class Creature extends WorldObject
 		participants.add(target);
 		PlayerNativeWork.runOriginalCombat(this, participants, "cast-frontend", () ->
 		{
+			if (authorizedCast != null && !authorizedCast.currentTargets(nativeTargets)) { setCastingNow(false); return; }
 			if ((skill.isDamage() || skill.hasNegativeEffect()) && !PlayerNativeWork.prepareOffensiveShot(this, skill.isMagic())) { if (hasAI()) { getAI().setIntention(Intention.IDLE); } return; }
-			beginCastNative(skill, simultaneously, target, nativeTargets, escape);
+			beginCastNative(skill, simultaneously, target, nativeTargets, escape, authorizedCast);
 		});
 	}
 
 	private void beginCastNative(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets,
-		org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Attempt escape)
+		org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Attempt escape, PhantomAreaControl131.Attempt authorizedCast)
 	{
 		if (target == null)
 		{
@@ -2006,7 +2034,7 @@ public abstract class Creature extends WorldObject
 			return;
 		}
 		
-		if (escape != null && !escape.mayPublish(targets))
+		if ((escape != null && !escape.mayPublish(targets)) || (authorizedCast != null && !authorizedCast.currentTargets(targets)))
 		{
 			setCastingNow(false);
 			return;
@@ -2185,8 +2213,9 @@ public abstract class Creature extends WorldObject
 			skill.applyEffectScope(EffectScope.START, new BuffInfo(this, target, skill), true, false);
 		}
 		
-		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously, escape);
+		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously, escape, authorizedCast);
 		if (simultaneously) { _nativeMagicUseTask2 = mut; } else { _nativeMagicUseTask = mut; }
+		if (authorizedCast != null) { authorizedCast.published(); }
 		
 		// launch the magic in skillTime milliseconds
 		if (skillTime > 0)
@@ -5998,6 +6027,11 @@ public abstract class Creature extends WorldObject
 			return;
 		}
 		
+		if (mut.authorizedCast() != null && !mut.authorizedCast().currentTargets(mut.getTargets()))
+		{
+			abortCast();
+			return;
+		}
 		mut.setPhase(2);
 		if (mut.getSkillTime() == 0)
 		{
@@ -6016,6 +6050,12 @@ public abstract class Creature extends WorldObject
 		final Skill skill = mut.getSkill();
 		final List<WorldObject> targets = mut.getTargets();
 		if ((skill == null) || (targets == null))
+		{
+			abortCast();
+			return;
+		}
+		final var authorizedCast = mut.authorizedCast();
+		if (authorizedCast != null && !authorizedCast.currentTargets(targets))
 		{
 			abortCast();
 			return;
@@ -6071,7 +6111,15 @@ public abstract class Creature extends WorldObject
 				}
 				
 				final double before = escape == null ? 0 : _status.getCurrentMp();
-				if (mut.learningEvidence() == null) { _status.reduceMp(mpConsume); }
+				if (PlayerNativeEvidence.observesResourceWrites())
+				{
+					PlayerNativeEvidence.observeOffensiveCastDebit(this, mut, () ->
+					{
+						if (mut.learningEvidence() == null) { _status.reduceMp(mpConsume); }
+						else { mut.learningEvidence().mpDebit(() -> _status.reduceMp(mpConsume)); }
+					});
+				}
+				else if (mut.learningEvidence() == null) { _status.reduceMp(mpConsume); }
 				else { mut.learningEvidence().mpDebit(() -> _status.reduceMp(mpConsume)); }
 				if (escape != null) { escape.hitMp(mpConsume, before, _status.getCurrentMp()); }
 				su.addAttribute(StatusUpdate.CUR_MP, (int) _status.getCurrentMp());
@@ -6122,6 +6170,10 @@ public abstract class Creature extends WorldObject
 			if (escape != null)
 			{
 				escape.impact(() -> callSkill(skill, targets));
+			}
+			else if (authorizedCast != null)
+			{
+				authorizedCast.impact(() -> callSkill(skill, targets));
 			}
 			else if (learning == null)
 			{
@@ -6294,6 +6346,7 @@ public abstract class Creature extends WorldObject
 			PlayerNativeWork.runCombat(this, frozenTargets, "cast-skill-effects", () ->
 			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.effects(healLearning, this, skill, frozenTargets, () ->
 			{
+				if (!PhantomAreaControl131.permitsImpact(this, skill, frozenTargets)) { return; }
 				if (learning == null && !org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.observingEffects())
 				{
 					callSkillNative(skill, frozenTargets);

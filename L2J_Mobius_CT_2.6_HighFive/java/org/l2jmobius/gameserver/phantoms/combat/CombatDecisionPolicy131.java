@@ -14,8 +14,13 @@ public final class CombatDecisionPolicy131
 	}
 
 	public record Offense(SelectedSkill skill, boolean damage, boolean stopsCast, boolean effectActive, int nativePriority,
-		int range, int castMillis, int magicLevel, double power, double mpCost)
+		int range, int castMillis, int magicLevel, double power, double mpCost, int recipients)
 	{
+		public Offense(SelectedSkill skill, boolean damage, boolean stopsCast, boolean effectActive, int nativePriority,
+			int range, int castMillis, int magicLevel, double power, double mpCost)
+		{
+			this(skill, damage, stopsCast, effectActive, nativePriority, range, castMillis, magicLevel, power, mpCost, 1);
+		}
 	}
 
 	private CombatDecisionPolicy131()
@@ -30,6 +35,7 @@ public final class CombatDecisionPolicy131
 			.thenComparing(action -> !inRange(context, action))
 			.thenComparingInt(action -> finishTarget ? action.castMillis() : 0)
 			.thenComparingDouble(action -> conserveMp ? action.mpCost() : 0)
+			.thenComparing(Comparator.comparingInt(Offense::recipients).reversed())
 			.thenComparing(Comparator.comparingInt(Offense::nativePriority).reversed())
 			.thenComparing(Comparator.comparingInt(Offense::magicLevel).reversed())
 			.thenComparing(Comparator.comparingDouble(Offense::power).reversed())
@@ -43,6 +49,10 @@ public final class CombatDecisionPolicy131
 		if (!action.effectActive() && action.stopsCast() && context.targetCasting() && inRange(context, action))
 		{
 			return 0;
+		}
+		if (action.recipients() > 1 && !action.damage() && action.stopsCast() && !action.effectActive())
+		{
+			return 1;
 		}
 		if (!finishTarget && context.pvp() && !action.effectActive() && action.nativePriority() >= 300 && inRange(context, action))
 		{

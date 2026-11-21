@@ -22,6 +22,8 @@ public final class PhantomCombat131Checks
 		System.out.println("TASK131_D9_RETREAT_DRAIN_PASS");
 		testSharedOffensePreference();
 		System.out.println("TASK131_D1_CONTEXTUAL_OFFENSE_PASS");
+		PhantomCombatCoreSuite.testPartyAreaOwner();
+		System.out.println("TASK131_D3_PARTY_AREA_OWNER_PASS");
 	}
 
 	private static void testSharedOffensePreference()
@@ -40,5 +42,9 @@ public final class PhantomCombat131Checks
 		PhantomAssertions.assertEquals(strike, CombatDecisionPolicy131.rankOffense(occludedCast, List.of(interrupt, strike)).getFirst(), "A hidden target is not an available interruption.");
 		PhantomAssertions.assertEquals(strike, CombatDecisionPolicy131.rankOffense(hostileCast, List.of(activeControl, strike)).getFirst(), "Already active control must not be treated as a new interruption.");
 		PhantomAssertions.assertEquals(strike, CombatDecisionPolicy131.rankOffense(pvpFinisher, List.of(strike, interrupt)).getFirst(), "A low-health opponent should be finished rather than controlled again.");
+		final var area = new Offense(new SelectedSkill(68, 2), true, false, false, 200, 500, 1100, 70, 80, 40, 3);
+		PhantomAssertions.assertEquals(area, CombatDecisionPolicy131.rankOffense(ordinary, List.of(strike, area)).getFirst(), "Coverage of the admitted group of enemies did not affect the common chooser.");
+		final var lowMp = new OffenseContext(false, false, true, 0.8, 0.30, 300);
+		PhantomAssertions.assertEquals(strike, CombatDecisionPolicy131.rankOffense(lowMp, List.of(strike, area)).getFirst(), "Area coverage permanently displaced resource conservation.");
 	}
 }

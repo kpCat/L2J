@@ -52,27 +52,27 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "aggregate-v3.log",
+    "aggregateLog": "aggregate-v4-reviewed.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
     "comparison": "OFFLINE_READER_AND_NEGATIVE_CONTROLS",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 164,
-    "contractGroupsPassed": 10,
+    "regressionTestsPassed": 165,
+    "contractGroupsPassed": 11,
     "jarExitCode": 0,
-    "jarSha256": "a77eae7794b3c1f843120aae922b32a93e0ca7a674b269d981a261d8aa5752b4",
-    "jarLog": "jar-v3.log"
+    "jarSha256": "cb376493118b4b7852c15031d09c2478f1407434be209885ffdb4b429b1e2359",
+    "jarLog": "jar-v4-reviewed.log"
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v2.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v3.json"
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v3.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v4.json"
   },
   "testReadiness": {
-    "iterationParent": "e669c63eab35779c0a5d1728f762cd8be1797a2a",
+    "iterationParent": "81442d736cd785afce17230d7a255407fef4b7e7",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -126,9 +126,25 @@
       "sameBytesOnRepeat": true,
       "report": ".phantom-local/logs/TASK131/build/class-coverage/TASK131-CLASS-COVERAGE.tsv",
       "reportSha256": "d737ceab61776b30568448405d25e7cdbbaa30f20ea1c12a1c8f99e98974221a",
-      "builtJarReport": ".phantom-local/logs/TASK131/build/class-coverage/TASK131-CLASS-COVERAGE-v3.tsv",
-      "builtJarReportSha256": "aee6f11b04039dc616bf8a296c6cb9a946f8a9f7b8964c347261a07ef1b5a34b",
+      "builtJarReport": ".phantom-local/logs/TASK131/build/class-coverage/TASK131-CLASS-COVERAGE-v4.tsv",
+      "builtJarReportSha256": "dea42a6e1a027bc76e4b827d47811762c7ea45ff9eacfd55aa7208c59be5c950",
       "runtimeEvidence": "NOT_RUN"
+    },
+    "n01Adapter": {
+      "entryPoint": "org.l2jmobius.tests.phantoms.PhantomLearning131Native",
+      "sourceSha256": "d58689ebc6cae048cf584066733799a6251e44901a00fc00fecc34eb72a83141",
+      "nativeEvidenceContinuityTestsPassed": 14,
+      "incompleteR4Preflight": "REJECTED_INCOMPLETE_SCENE_SET",
+      "changedFixturePreflight": "REJECTED_PIN_MISMATCH",
+      "nativeExecution": "NOT_RUN",
+      "pauseResumeAfterPaidProgress": "NOT_RUN"
+    },
+    "campaignController": {
+      "script": "tools/phantom-runtime/training/TrainingCombat131.ps1",
+      "controlContract": "PASS",
+      "controlContractLog": "controller-v4-reviewed.log",
+      "nativeLaunch": "NOT_RUN",
+      "trainTuningAuditAdapter": "PENDING"
     },
     "nativeCombatLaunchAuthorized": false
   },
@@ -155,7 +171,7 @@
       "phase": "P2–P3",
       "status": "UNKNOWN",
       "evidence": "D2,D3,D4,N04,N05",
-      "reason": "DB-free ownership проверен, native роли и tactical frame без доказательств"
+      "reason": "Party PvE получил CLEANSE и AREA/AURA с точной областью, фактические исходы и tactical frame открыты"
     },
     "G4": {
       "phase": "P2–P3",
@@ -185,7 +201,7 @@
       "phase": "P4–P5",
       "status": "UNKNOWN",
       "evidence": "D7,D9,N13,N15",
-      "reason": "Офлайн cold и replay проверены, реального управления кампанией нет"
+      "reason": "CLI проверен офлайн, живые Pause/Resume/Stop и переходы фаз остаются открытыми"
     },
     "G9": {
       "phase": "P2–P6",
@@ -215,7 +231,7 @@
       "phase": "P1–P3",
       "status": "UNKNOWN",
       "evidence": "D2,D3,D4,N02–N05,N08,N09",
-      "reason": "Выбор готового навыка и окна поддержки, отсутствуют обязательные native AoE/CC и прочие доказательства"
+      "reason": "Guarded Cleanse и AoE PvE подключены, достаточный PvP peel и живые эффекты остаются открытыми"
     },
     "R3": {
       "phase": "P2–P3",
@@ -251,7 +267,7 @@
       "phase": "P4–P5",
       "status": "UNKNOWN",
       "evidence": "D7,D9,N15",
-      "reason": "Подготовка/commit/replay checkpoint офлайн, отсутствует управление GS и кампания"
+      "reason": "Добавлены управление квотами и native N01 entrypoint, запуск фаз и durable restart не проверены"
     },
     "R9": {
       "phase": "P2–P6",
@@ -274,8 +290,8 @@
     "D3": {
       "phase": "P2",
       "status": "UNKNOWN",
-      "evidence": "aggregate-v2.log",
-      "reason": "Чужой актёрный запрос и устаревшее поколение отклонены, Party Recall проверяет точных участников, прочие negative controls открыты"
+      "evidence": "party-actions-v4-contracts.log,build/area-control/green.log",
+      "reason": "DB-free проверки нового AoE и штатного списка целей, race расходов и живые PvP negatives открыты"
     },
     "D4": {
       "phase": "P1–P2",
@@ -310,8 +326,8 @@
     "D9": {
       "phase": "P3–P5",
       "status": "UNKNOWN",
-      "evidence": "aggregate-v2.log",
-      "reason": "Drain и отзыв отложенного Return проверены офлайн, управление нативной кампанией и стойкость игрового результата открыты"
+      "evidence": "TRAINING131_CONTROL_CHECKS_PASS",
+      "reason": "Офлайн удержание квоты и неизменяемый статус проверены, устойчивость живой кампании открыта"
     },
     "D10": {
       "phase": "P6",

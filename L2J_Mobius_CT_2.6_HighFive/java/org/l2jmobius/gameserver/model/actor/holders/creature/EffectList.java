@@ -689,9 +689,14 @@ public class EffectList
 
 	private boolean stopCommittedEffect(boolean broadcast, SkillFinishType type, BuffInfo info, Queue<BuffInfo> buffs)
 	{
+		return stopCommittedEffect(broadcast, type, info, buffs, info.expiresByIdentity());
+	}
+
+	private boolean stopCommittedEffect(boolean broadcast, SkillFinishType type, BuffInfo info, Queue<BuffInfo> buffs, boolean exact)
+	{
 		
 		// Removes the buff from the given effect list.
-		if (!buffs.remove(info) && info.expiresByIdentity())
+		if (!buffs.remove(info) && exact)
 		{
 			return false;
 		}
@@ -704,7 +709,7 @@ public class EffectList
 		{
 			_hiddenBuffs.decrementAndGet();
 		}
-		else if ((info.getMirrorSource() != null) || info.expiresByIdentity())
+		else if ((info.getMirrorSource() != null) || exact)
 		{
 			_stackedEffects.remove(info.getSkill().getAbnormalType(), info);
 		}
@@ -1546,6 +1551,28 @@ public class EffectList
 			return;
 		}
 		info.runNative("EFFECT_LIST_REMOVE", () -> removeNative(type, info));
+	}
+
+	/** A scoped cleanse consumes the exact harmful effect instance, even if the slot was refreshed. */
+	public void removeDispelledDebuff(BuffInfo info)
+	{
+		if (info == null || info.getEffected() != _owner || !info.getSkill().isDebuff() || !info.getSkill().canBeDispeled())
+		{
+			return;
+		}
+		info.runNative("EFFECT_LIST_DEBUFF_REMOVE", () ->
+		{
+			synchronized (stackingLock())
+			{
+				if (!stopCommittedEffect(true, SkillFinishType.REMOVED, info, getEffectList(info.getSkill()), true))
+				{
+					return;
+				}
+				PersonalSummonerBuffService.ownerBuffRemoved(info);
+			}
+			synchronizeResumedOwnerBuff(info);
+			updateEffectList(true);
+		});
 	}
 
 	private void removeNative(SkillFinishType type, BuffInfo info)

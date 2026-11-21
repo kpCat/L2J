@@ -107,6 +107,10 @@ public final class PhantomPartyTactics
 					{
 						addSupport(candidates, DirectiveKind.HEAL_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.heal", "member.hp.low", (pressured ? 9000 : 8000) + (healThreshold - targetSnapshot.hpPercent()));
 					}
+					if (_backend != null)
+					{
+						addSupport(candidates, DirectiveKind.CLEANSE_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.cleanse", "member.debuff.removable", 7600);
+					}
 					if (targetSnapshot.mpPercent() <= 35)
 					{
 						addSupport(candidates, DirectiveKind.RECHARGE_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.recharge", "member.mp.low", 7000 + (35 - targetSnapshot.mpPercent()));
@@ -217,7 +221,7 @@ public final class PhantomPartyTactics
 		}
 		final boolean support = switch (directive.kind())
 		{
-			case HEAL_MEMBER, RECHARGE_MEMBER, RESURRECT_MEMBER, PARTY_SUPPORT -> true;
+			case HEAL_MEMBER, CLEANSE_MEMBER, RECHARGE_MEMBER, RESURRECT_MEMBER, PARTY_SUPPORT -> true;
 			default -> false;
 		};
 		final ExternalActionKind kind = support ? ExternalActionKind.PARTY_SUPPORT : ExternalActionKind.PARTY_TACTIC;
@@ -253,11 +257,14 @@ public final class PhantomPartyTactics
 		}
 	}
 
-	static boolean stillNeedsUrgentSupport(TacticalDirective directive, MemberSnapshot target)
+	boolean stillNeedsUrgentSupport(TacticalDirective directive, MemberSnapshot target)
 	{
 		return switch (directive.kind())
 		{
 			case HEAL_MEMBER -> !target.dead() && target.hpPercent() <= healThreshold(target);
+			case CLEANSE_MEMBER -> _backend != null && !target.dead() && _backend.capabilities(directive.actor(), target.ref().characterObjectId())
+				.stream().anyMatch(value -> value.capabilityKey().equals(directive.capabilityKey()) && value.variantKey().equals(directive.variantKey())
+					&& value.actionSkillId() == directive.actionSkillId() && value.actionSkillLevel() == directive.actionSkillLevel() && value.readyNow());
 			case RECHARGE_MEMBER -> !target.dead() && target.mpPercent() <= 35;
 			case RESURRECT_MEMBER -> target.dead();
 			default -> false;
@@ -291,7 +298,8 @@ public final class PhantomPartyTactics
 		if (capability != null)
 		{
 			// Capability score chooses the current skill, while member urgency chooses its target.
-			output.add(new TacticalDirective(kind, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason, priority));
+			final int supportPriority = kind == DirectiveKind.CLEANSE_MEMBER && capability.contextualScore() >= 900 ? 8900 : priority;
+			output.add(new TacticalDirective(kind, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason, supportPriority));
 		}
 	}
 

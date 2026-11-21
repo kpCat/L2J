@@ -105,23 +105,30 @@ public final class PhantomNativeCombatCapability
 
 	static List<SelectedSkill> rankOffense(Player actor, Creature target, boolean pvp, List<SelectedSkill> candidates)
 	{
+		return rankOffense(actor, target, pvp, candidates, java.util.Map.of());
+	}
+
+	static List<SelectedSkill> rankOffense(Player actor, Creature target, boolean pvp, List<SelectedSkill> candidates,
+		java.util.Map<SelectedSkill, Integer> areaCounts)
+	{
 		if (candidates.size() < 2) { return candidates; }
 		final var geo = GeoEngine.getInstance();
 		final boolean canSee = geo.hasGeo(actor.getX(), actor.getY()) && geo.hasGeo(target.getX(), target.getY()) && geo.canSeeTarget(actor, target);
 		final var context = new OffenseContext(pvp, target.isCastingNow(), canSee,
 			target.getCurrentHp() / Math.max(1, target.getMaxHp()), actor.getCurrentMp() / Math.max(1, actor.getMaxMp()), actor.calculateDistance3D(target));
-		final var facts = candidates.stream().map(choice -> offenseFact(actor, target, pvp, choice)).filter(java.util.Objects::nonNull).toList();
+		final var facts = candidates.stream().map(choice -> offenseFact(actor, target, pvp, choice, areaCounts.getOrDefault(choice, 1)))
+			.filter(java.util.Objects::nonNull).toList();
 		return CombatDecisionPolicy131.rankOffense(context, facts).stream().map(Offense::skill).toList();
 	}
 
-	private static Offense offenseFact(Player actor, Creature target, boolean pvp, SelectedSkill choice)
+	private static Offense offenseFact(Player actor, Creature target, boolean pvp, SelectedSkill choice, int recipients)
 	{
 		final Skill skill = actor.getKnownSkill(choice.skillId());
 		if (skill == null || skill.getLevel() != choice.skillLevel()) { return null; }
 		final boolean stopsCast = skill.hasEffectType(EffectType.STUN, EffectType.PARALYZE, EffectType.SLEEP, EffectType.MUTE);
 		return new Offense(choice, skill.isDamage(), stopsCast, target.isAffectedBySkill(skill.getId()), PhantomPvpSkillSafety.priority(skill),
 			Math.max(0, skill.getCastRange()), skill.getHitTime(), skill.getMagicLevel(), skill.getPower(pvp, !pvp),
-			actor.getStat().getMpInitialConsume(skill) + actor.getStat().getMpConsume(skill));
+			actor.getStat().getMpInitialConsume(skill) + actor.getStat().getMpConsume(skill), recipients);
 	}
 
 	public static boolean magicShots(Player player)

@@ -24,6 +24,7 @@ import java.util.function.BooleanSupplier;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomAreaControl131;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 
@@ -42,6 +43,7 @@ public class MagicUseTask implements Runnable
 	private final boolean _simultaneously;
 	private final boolean _nativeLifetimeOwned;
 	private final PhantomLearnedEscape.Attempt _escape;
+	private final PhantomAreaControl131.Attempt _authorizedCast;
 	private final LearningCastEvidence _learning;
 	private final org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3 _healLearning;
 	
@@ -52,6 +54,12 @@ public class MagicUseTask implements Runnable
 
 	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous, PhantomLearnedEscape.Attempt escape)
 	{
+		this(creature, targets, s, hit, simultaneous, escape, null);
+	}
+
+	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous, PhantomLearnedEscape.Attempt escape,
+		PhantomAreaControl131.Attempt authorizedCast)
+	{
 		_creature = creature;
 		_targets = targets;
 		_skill = s;
@@ -60,6 +68,7 @@ public class MagicUseTask implements Runnable
 		_skillTime = hit;
 		_simultaneously = simultaneous;
 		_escape = escape;
+		_authorizedCast = authorizedCast;
 		_nativeLifetimeOwned = managed(creature) || ((targets != null) && targets.stream().anyMatch(MagicUseTask::managed));
 		_learning = LearningCastEvidence.capture(creature, s, targets, simultaneous);
 		_healLearning = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.capture(creature, s, targets, simultaneous);
@@ -67,6 +76,7 @@ public class MagicUseTask implements Runnable
 
 	public LearningCastEvidence learningEvidence() { return _learning; }
 	public PhantomLearnedEscape.Attempt learnedEscape() { return _escape; }
+	public PhantomAreaControl131.Attempt authorizedCast() { return _authorizedCast; }
 	/** Passive observation only; cancellation still belongs to Creature/native lifetime. */
 	public void learningCancelled()
 	{

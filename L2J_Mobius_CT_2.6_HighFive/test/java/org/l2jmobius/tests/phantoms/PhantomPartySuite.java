@@ -2250,6 +2250,25 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(available.actionSkillId(), farm.actionSkillId(), "An unavailable Heal blocked the exact farm recipient's legal fallback.");
 			PhantomAssertions.assertEquals(victim.ref(), farm.targetMember(), "Fallback changed the intended Heal recipient.");
 		});
+		registry.add("131-party-cleanse-requires-a-ready-need-on-the-exact-ally", _ ->
+		{
+			final var backend = new MemoryPartyBackend();
+			final var target = member(1, 101, 100, 100, false, 0, List.of());
+			final var cleric = member(2, 102, 100, 100, false, 0, List.of());
+			final var cleanse = cap("combat.cleanse", "native.skill.1409", 900, 1409);
+			backend._capabilities.put(cleric.ref(), List.of(cleanse));
+			final var party = List.of(target.ref(), cleric.ref());
+			final var snapshots = Map.of(target.ref(), target, cleric.ref(), cleric);
+			final var tactics = new PhantomPartyTactics(null, backend);
+			final var chosen = tactics.plan(cleric.ref(), party, snapshots, directive -> target.ref().equals(directive.targetMember()));
+			PhantomAssertions.assertTrue(chosen.stream().anyMatch(directive -> directive.kind().name().equals("CLEANSE_MEMBER")
+				&& directive.actor().equals(cleric.ref()) && directive.targetObjectId() == target.ref().characterObjectId()
+				&& directive.actionSkillId() == 1409), "An exact removable debuff must make a learned Cleanse useful at full HP.");
+			backend._capabilities.put(cleric.ref(), List.of(new MemberCapability(cleanse.capabilityKey(), cleanse.variantKey(), cleanse.rank(),
+				cleanse.actionSkillId(), cleanse.actionSkillLevel(), cleanse.targetScope(), true, true, false, "no.matching.debuff", 0, "test")));
+			PhantomAssertions.assertFalse(tactics.plan(cleric.ref(), party, snapshots).stream().anyMatch(directive -> directive.kind().name().equals("CLEANSE_MEMBER")),
+				"An unknown or vanished effect cannot retain Cleanse admission.");
+		});
 		registry.add("learning003-urgent-heal-native-duration-calm-stock", _ ->
 		{
 			final var backend = new MemoryPartyBackend();

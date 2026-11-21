@@ -9426,6 +9426,12 @@ public class Player extends Playable
 		// If a skill is currently being used, queue this one if this is not the same
 		if (isCastingNow())
 		{
+			// An authorized Phantom cast may only use its current recipient scope synchronously.
+			if (isScopedNativeCastDispatch())
+			{
+				sendPacket(ActionFailed.STATIC_PACKET);
+				return false;
+			}
 			// Check if new skill different from current skill in progress
 			if ((_currentSkill != null) && (skill.getId() == _currentSkill.getSkillId()))
 			{

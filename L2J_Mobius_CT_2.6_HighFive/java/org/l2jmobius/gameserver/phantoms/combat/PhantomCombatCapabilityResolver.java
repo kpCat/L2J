@@ -6,6 +6,7 @@ package org.l2jmobius.gameserver.phantoms.combat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -118,11 +119,14 @@ public final class PhantomCombatCapabilityResolver
 			skill -> lease.supportsSkill(skill, mode), lease.supportsNormalAttack(mode), maximumSkills);
 	}
 
-	Optional<SkillSelection> resolvePveAction(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int targetObjectId, boolean canSpendMp, int maximumSkills)
+	Optional<SkillSelection> resolvePveAction(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int targetObjectId,
+		boolean canSpendMp, int maximumSkills, Map<SelectedSkill, Integer> areaCounts)
 	{
-		return resolveSkills(actor.classId(), mode, lease::knownSkillLevel, () -> lease.learnedPveSkills(mode), skill -> lease.supportsSkill(skill, mode),
-			canSpendMp ? skill -> lease.skillReady(targetObjectId, skill, mode) : null,
-			skills -> lease.rankOffensiveSkills(targetObjectId, false, skills), lease.supportsNormalAttack(mode), maximumSkills);
+		return resolveSkills(actor.classId(), mode, lease::knownSkillLevel,
+			() -> Stream.concat(lease.learnedPveSkills(mode).stream(), areaCounts.keySet().stream()).toList(),
+			skill -> areaCounts.containsKey(skill) || lease.supportsSkill(skill, mode),
+			canSpendMp ? skill -> areaCounts.containsKey(skill) || lease.skillReady(targetObjectId, skill, mode) : null,
+			skills -> lease.rankOffensiveSkills(targetObjectId, false, skills, areaCounts), lease.supportsNormalAttack(mode), maximumSkills);
 	}
 
 	private Optional<SkillSelection> resolveSkills(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,

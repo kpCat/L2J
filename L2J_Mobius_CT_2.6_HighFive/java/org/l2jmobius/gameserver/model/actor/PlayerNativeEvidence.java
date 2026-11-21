@@ -4,6 +4,11 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask;
 
 /** Optional scalar observation. Calls belong after successful native writers, never attempts or aggro. */
 public final class PlayerNativeEvidence
@@ -32,6 +37,75 @@ public final class PlayerNativeEvidence
 	public static final long MAX_PHASE_NANOS = TimeUnit.SECONDS.toNanos(120);
 	private static final ThreadLocal<RewardFrame> REWARD_CONTEXT = new ThreadLocal<>();
 	private static final ThreadLocal<PickupFrame> PICKUP_CONTEXT = new ThreadLocal<>();
+	private static final AtomicReference<ResourceObservation> RESOURCE_OBSERVER = new AtomicReference<>();
+	private static final ThreadLocal<CastDebitContext> CAST_DEBIT = new ThreadLocal<>();
+
+	public sealed interface ResourceWrite permits ItemDebit, CastMpDebit
+	{
+		int actorObjectId();
+		long actorEpoch();
+	}
+	public record ItemDebit(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after, Target selectedTarget) implements ResourceWrite { }
+	public record CastMpDebit(int actorObjectId, long actorEpoch, int skillId, int skillLevel, Target target, double before, double after) implements ResourceWrite { }
+	private record CastDebitContext(ResourceObservation observer, Player actor, PlayerNativeWork.Owner owner, MagicUseTask task, Target target) { }
+
+	/** One explicit TEST observer. The callback only receives committed scalar writes and must return without blocking. */
+	public static ResourceObservation observeResourceWrites(Consumer<ResourceWrite> observation)
+	{
+		if (!System.getProperty("phantom.learning131.nonce", "").matches("[0-9a-f]{32}")) { throw new IllegalStateException("Missing scoped native resource observation claim."); }
+		final var observer = new ResourceObservation(java.util.Objects.requireNonNull(observation));
+		if (!RESOURCE_OBSERVER.compareAndSet(null, observer)) { throw new IllegalStateException("Native resource observer already installed."); }
+		return observer;
+	}
+
+	public static boolean observesResourceWrites() { return RESOURCE_OBSERVER.get() != null; }
+
+	public static final class ResourceObservation implements AutoCloseable
+	{
+		private final Consumer<ResourceWrite> _observation;
+		private final AtomicReference<String> _failure = new AtomicReference<>();
+
+		private ResourceObservation(Consumer<ResourceWrite> observation) { _observation = observation; }
+		public String failure() { return _failure.get(); }
+		private void accept(ResourceWrite write)
+		{
+			if (RESOURCE_OBSERVER.get() != this || failure() != null) { return; }
+			try { _observation.accept(write); }
+			catch (RuntimeException | Error failure) { _failure.compareAndSet(null, failure.getClass().getName()); }
+		}
+		@Override public void close() { RESOURCE_OBSERVER.compareAndSet(this, null); }
+	}
+
+	/** Only the stock hit-consumption call opens this context; general MP writers cannot attribute a cast. */
+	public static void observeOffensiveCastDebit(Creature actor, MagicUseTask task, Runnable debit)
+	{
+		final var observer = RESOURCE_OBSERVER.get();
+		final Player player = actor.asPlayer();
+		final var owner = player == null ? null : player.getNativeWorkOwner();
+		final var selected = task.getTargets();
+		final var skill = task.getSkill();
+		if (observer == null || CAST_DEBIT.get() != null || owner == null || owner.player() != player || !owner.isCurrent()
+			|| owner.evidence() == null || !owner.evidence().matches(player.getObjectId(), owner.epoch()) || !actor.isCurrentNativeMagicUseTask(task)
+			|| task.getPhase() != 2 || skill == null || !skill.isDamage() || player.getKnownSkill(skill.getId()) != skill
+			|| selected == null || selected.size() != 1 || !(selected.getFirst() instanceof Monster target) || player.getTarget() != target || target.getInstanceId() != player.getInstanceId())
+		{
+			debit.run();
+			return;
+		}
+		CAST_DEBIT.set(new CastDebitContext(observer, player, owner, task, target.getNativeEvidenceTarget()));
+		try { debit.run(); }
+		finally { CAST_DEBIT.remove(); }
+	}
+
+	/** Called by the actual MP writer under its existing lock. */
+	public static void castMpWritten(Creature actor, double before, double after, boolean regeneration)
+	{
+		final var context = CAST_DEBIT.get();
+		if (context == null || regeneration || context.actor() != actor || context.actor().getNativeWorkOwner() != context.owner() || !context.owner().isCurrent()
+			|| !valid(context.target()) || !Double.isFinite(before) || !Double.isFinite(after) || before <= after || after < 0) { return; }
+		final var skill = context.task().getSkill();
+		context.observer().accept(new CastMpDebit(actor.getObjectId(), context.owner().epoch(), skill.getId(), skill.getLevel(), context.target(), before, after));
+	}
 	// TEST-only observer of existing successful writers; it never selects or changes a recipient.
 	private static volatile java.util.function.BiConsumer<String, long[]> _pickupObserver;
 	private static volatile String _pickupObserverFailure = "";
@@ -63,8 +137,12 @@ public final class PlayerNativeEvidence
 	/** Called under the item's native count lock, after a successful owned decrement. */
 	public void consumed(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after)
 	{
+		final var resources = RESOURCE_OBSERVER.get();
 		final var observer = _pickupObserver;
-		if (observer == null || !matches(actorObjectId, actorEpoch) || itemObjectId <= 0 || itemId <= 0 || before <= after || after < 0) { return; }
+		if (resources == null && observer == null) { return; }
+		if (!matches(actorObjectId, actorEpoch) || itemObjectId <= 0 || itemId <= 0 || before <= after || after < 0) { return; }
+		if (resources != null) { resources.accept(new ItemDebit(actorObjectId, actorEpoch, itemObjectId, itemId, before, after, selectedTarget())); }
+		if (observer == null) { return; }
 		try { observer.accept("CONSUME", new long[] { _objectId, itemObjectId, itemId, before, _objectId, before - after, after, _epoch }); }
 		catch (Throwable unavailable) { _pickupObserverFailure = unavailable.getClass().getName(); }
 	}
@@ -475,6 +553,8 @@ public final class PlayerNativeEvidence
 	{
 		return new TargetReceipts(_rewardSequence, _lastRewardTarget, _killSequence, _lastKillTarget, _lastSettledRewardSequence, _lastSettledTarget);
 	}
+
+	public synchronized Target selectedTarget() { return _selected; }
 
 	public synchronized Snapshot snapshot(long sampleNanos)
 	{

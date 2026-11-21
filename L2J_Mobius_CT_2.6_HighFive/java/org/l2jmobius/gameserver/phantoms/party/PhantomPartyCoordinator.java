@@ -3348,7 +3348,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				continue;
 			}
 			final CompanionCommand command = claim.state().command();
-			if ((command != null) && (command.mode() != CompanionMode.FOLLOW) && ((command.mode() == CompanionMode.PENDING_HOLD) || !Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PARTY_SUPPORT).contains(directive.kind())))
+			if ((command != null) && (command.mode() != CompanionMode.FOLLOW) && ((command.mode() == CompanionMode.PENDING_HOLD) || !Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.CLEANSE_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PARTY_SUPPORT).contains(directive.kind())))
 			{
 				continue;
 			}
@@ -3391,7 +3391,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				dispatchTacticalCombat(directive, key, claim.state());
 				continue;
 			}
-			if (Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()))
+			if (Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.CLEANSE_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()))
 			{
 				_routes.cancelFollow(claim.state().groupId(), claim.state().groupGeneration(), directive.actor().profileId());
 			}
@@ -3433,8 +3433,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			final StoredPartyState current = _claims.get(directive.actor().profileId());
 			if (PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace()) && !currentFarmIntent(authority)) { return true; }
-			if ((_state != State.RUNNING) || !committedClaim(current) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration())
-				|| (current.state().membershipRevision() != authority.membershipRevision()) || !current.state().leader().equals(authority.leader()) || !_backend.currentMember(directive.actor().profileId()).filter(directive.actor()::equals).isPresent())
+			if ((_state != State.RUNNING) || !committedClaim(current) || !authority.matchesLearningAuthority(current.state())
+				|| !_backend.currentMember(directive.actor().profileId()).filter(directive.actor()::equals).isPresent())
 			{
 				return true;
 			}
@@ -3469,7 +3469,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			final StoredPartyState current = _claims.get(profileId);
 			final var observed = _backend.observe(directive.actor()).orElse(null);
-			if ((_state != State.RUNNING) || !committedClaim(current) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || commandStopsCombat(profileId)
+			if ((_state != State.RUNNING) || !committedClaim(current) || !authority.matchesLearningAuthority(current.state()) || commandStopsCombat(profileId)
 				|| observed == null || !observed.leader().equals(authority.leader()) || !sameRoster(roster(authority), observed.members())) { return true; }
 			if (!farm) { return false; }
 			if (!currentFarmReady(authority, observed)) { return true; }
@@ -3493,11 +3493,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		try
 		{
 			final boolean learning = farm && combat.learningActive(PhantomCombatRequest.LearningScope.PARTY);
-			final var roles = learning ? new PhantomCombatRequest.PartyRoles(
+			final var roles = new PhantomCombatRequest.PartyRoles(
 				authority.phantomMembers().stream().map(MemberRef::characterObjectId).collect(java.util.stream.Collectors.toUnmodifiableSet()),
 				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("frontline.guardian")).count(),
 				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("support.healer")).count(),
-				(int) authority.assignments().stream().filter(role -> role.roleKey().startsWith("damage.")).count()) : null;
+				(int) authority.assignments().stream().filter(role -> role.roleKey().startsWith("damage.")).count());
 			final var request = new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token,
 				learning ? PhantomCombatRequest.LearningScope.PARTY : PhantomCombatRequest.LearningScope.NONE, roles, () ->
 			{
@@ -3565,7 +3565,6 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var current = _claims.get(walk.member().profileId());
 		final var authority = walk.authority();
 		return committedClaim(current) && authority.matchesLearningAuthority(current.state())
-			&& authority.membershipRevision() == current.state().membershipRevision()
 			&& !holdsMovement(walk.member().profileId()) && _backend.materializationEpoch(walk.member()) == walk.epoch();
 	}
 
@@ -3729,7 +3728,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var target = _backend.memberSnapshot(pending.directive().targetMember()).orElse(null);
 		final var current = _claims.get(claim.profileId());
 		if (!committedClaim(current) || target == null || pending.request().ownershipToken().isCancelled()
-			|| !PhantomPartyTactics.stillNeedsUrgentSupport(pending.directive(), target))
+			|| !_tactics.stillNeedsUrgentSupport(pending.directive(), target))
 		{
 			return;
 		}
