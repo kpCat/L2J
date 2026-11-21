@@ -97,6 +97,7 @@ public final class PhantomLearning131FrozenChecks
 
 	private static void checkCommittedReplay(Path root, String originalHead) throws Exception
 	{
+		final String originalModel = ActionContinuationV4.load(root).model().sha256();
 		final String nativeSha = "1".repeat(64);
 		final var firstSamples = historySamples("8".repeat(64), 1, 257);
 		final var first = ActionContinuationV4.prepareBatch(root, originalHead, firstSamples, nativeSha);
@@ -120,6 +121,11 @@ public final class PhantomLearning131FrozenChecks
 		final List<Path> paths = files(root);
 		ActionExplorationV4.frozenCommitted(firstPlan, root, first.head()).verifyFrozenLog(List.of(ActionExplorationV4.Decision.restore(decision.bytes())));
 		ActionContinuationV4.verifyCommittedBatchOrigin(root, originalHead, first.head(), firstSamples, nativeSha);
+		ActionContinuationV4.verifyAuditModelOrder(root, first.head(), successor.head(), first.model().sha256(), successor.model().sha256());
+		rejects(() -> ActionContinuationV4.verifyAuditModelOrder(root, successor.head(), first.head(), successor.model().sha256(), first.model().sha256()),
+			"Candidate and reference checkpoints were swapped");
+		rejects(() -> ActionContinuationV4.verifyAuditModelOrder(root, originalHead, successor.head(), originalModel,
+			successor.model().sha256()), "Imported bootstrap is not the first committed TRAIN result");
 		rejects(() -> ActionExplorationV4.frozen(firstPlan, root, first.head()), "Historical checkpoint through the live route");
 		rejects(() -> ActionContinuationV4.verifyCurrentBatchOrigin(root, originalHead, first.head(), firstSamples, nativeSha), "Historical batch through the current route");
 		final var internalPlan = plan("AUDIT", EVAL_EPISODE, internal.model().sha256());
@@ -375,7 +381,7 @@ public final class PhantomLearning131FrozenChecks
 	}
 
 	/** Synthetic checkpoint fixture with a positive skill-id weight; no FIT or native evidence. */
-	private static ActionValueV4 checkpoint() throws IOException
+	static ActionValueV4 checkpoint() throws IOException
 	{
 		final var buffer = new ByteArrayOutputStream();
 		try (var out = new DataOutputStream(buffer))

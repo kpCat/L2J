@@ -6,12 +6,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4.Intent;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
@@ -56,6 +61,7 @@ public final class PhantomLearning131EvaluationChecks
 		paidPvpCpOriginalRoundTrip();
 		paidItemsRequireNativeLedger();
 		paidHealingRequiresItsNativeEffect();
+		frozenAuditPolicyRequiresCommittedAction();
 		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
 	}
@@ -473,7 +479,7 @@ public final class PhantomLearning131EvaluationChecks
 			final String manifestSha = digest(manifest);
 			final var boot = Files.createDirectories(evidence.resolve("boots/boot-1")).resolve("complete131.tsv");
 			final String started = "2026-11-21T00:00:00Z";
-			Files.writeString(boot, meta("schema", "NATIVE_BOOT131_V1", "bank", "bank-1", "manifestSha", manifestSha, "bootId", "boot-1",
+			Files.writeString(boot, meta("schema", "NATIVE_BOOT131_V2", "bank", "bank-1", "manifestSha", manifestSha, "bootId", "boot-1",
 				"pid", "131", "processStarted", started, "sourceSha", "a".repeat(40), "jarSha", "b".repeat(64), "configSha", "c".repeat(64), "policySha", "d".repeat(64)));
 			Files.writeString(manifest.resolveSibling(manifest.getFileName() + ".origins.tsv"), meta("schema", "AUDIT_ORIGINS131_V1", "manifestSha", manifestSha)
 				+ "boot\tboot-1\t131\t" + started + "\t" + "f".repeat(64) + "\n");
@@ -489,6 +495,68 @@ public final class PhantomLearning131EvaluationChecks
 				{
 					Files.delete(path);
 				}
+			}
+		}
+	}
+
+	private static void frozenAuditPolicyRequiresCommittedAction() throws Exception
+	{
+		final Path reports = Path.of(System.getProperty("phantom.test.reports", ".")).toRealPath();
+		final var root = Files.createTempDirectory(reports, "task131-audit-model-");
+		try
+		{
+			final String episode = "7".repeat(64), scene = "8".repeat(64);
+			final var model = PhantomLearning131FrozenChecks.checkpoint();
+			final var state = ActionContinuationV4.initialize(root, model);
+			final long started = System.nanoTime();
+			final var self = new TacticalObservationV3.Entity(TacticalObservationV3.Role.SELF, 42, 7, 0, 0, Map.of(), List.of(), List.of(), List.of(), List.of());
+			final var enemy = new TacticalObservationV3.Entity(TacticalObservationV3.Role.ENEMY, 102, 91, 0, 0, Map.of(), List.of(), List.of(), List.of(), List.of());
+			final var observed = new TacticalObservationV3(1, started, 1, 42, 7, "", List.of(self, enemy));
+			final var stock = new LegalActionV3(LegalActionV3.Family.DAMAGE, "Combat", 1, 42, 7, 1, 102, 91, "", 1000, 1, 4, 500, 300, false, true);
+			final var other = new LegalActionV3(LegalActionV3.Family.DAMAGE, "Combat", 1, 42, 7, 1, 102, 91, "", 7000, 1, 4, 500, 300, false, true);
+			final var plan = new ActionExplorationV4.Plan(2, "MODEL_V2", 0, 0, 0, "AUDIT", episode, scene, model.sha256(), List.of("1000:1", "7000:1"));
+			final var owner = new SourceOwner(1, "Combat/1/1/1");
+			final var replay = ActionExplorationV4.frozenCommitted(plan, root, state.head());
+			final var decision = replay.choose(observed, List.of(stock, other), stock, true, Long.MAX_VALUE);
+			final long dispatch = decision.capturedNanos() + 1;
+			final var intent = new Intent(decision, owner, dispatch);
+			final var encoder = Base64.getUrlEncoder().withoutPadding();
+			final String[] choice = {"decision", encoder.encodeToString(decision.bytes())};
+			final String[] dispatched = {"intent", encoder.encodeToString(intent.bytes())};
+			final var trace = new NativeCastTrace("9".repeat(64), 42, 7, 102, 91, 0, decision.selected().skillId(), 1, 1000, 1, dispatch,
+				dispatch + 1, dispatch + 2, TacticalObservationV3.hash(observed.bytes()));
+			final String operation = PhantomLearning131AuditDamage.operationId(episode, owner);
+			final var window = new EpisodeWindow(started, dispatch + 20 - started, dispatch + 30 - started);
+			final var rows = List.of(choice, dispatched);
+			PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), rows, Map.of(operation, trace), window);
+			try
+			{
+				PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), Collections.singletonList(choice),
+					Map.of(operation, trace), window);
+				throw new AssertionError("A replayed choice without native dispatch cannot explain a paid effect");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_MODEL_NATIVE_DISPATCH"), "paid action needs its exact intent"); }
+			final var otherTrace = new NativeCastTrace(trace.eventKey(), 42, 7, 102, 91, 0, decision.selected().equals(stock) ? other.skillId() : stock.skillId(),
+				1, 1000, 1, dispatch, dispatch + 1, dispatch + 2, trace.observationSha());
+			try
+			{
+				PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), rows, Map.of(operation, otherTrace), window);
+				throw new AssertionError("An unrelated skill cannot use the model's decision receipt");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_MODEL_NATIVE_DISPATCH"), "paid skill must match replay"); }
+			try
+			{
+				PhantomLearning131Evaluation.verifyFrozenDispatch(root, "f".repeat(64), episode, scene, model.sha256(), rows, Map.of(operation, trace), window);
+				throw new AssertionError("A cold but uncommitted archive cannot impersonate the pinned checkpoint");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().contains("committed ancestor"), "checkpoint must be in committed lineage"); }
+			check(ActionContinuationV4.load(root).head().equals(state.head()), "AUDIT verification is read-only");
+		}
+		finally
+		{
+			try (var paths = Files.walk(root))
+			{
+				for (var path : paths.sorted(Comparator.reverseOrder()).toList()) { Files.delete(path); }
 			}
 		}
 	}
@@ -653,9 +721,10 @@ public final class PhantomLearning131EvaluationChecks
 		final var splits = manifest.resolveSibling(manifest.getFileName() + ".splits.tsv");
 		Files.writeString(splits, meta("schema", "AUDIT_SPLITS131_V1", "bank", "bank-1", "protocolSha", digest(protocol))
 			+ "source\tTRAIN\t" + "a".repeat(64) + "\t" + "1".repeat(64) + "\nsource\tTUNING\t" + "b".repeat(64) + "\t" + "2".repeat(64) + "\n");
-		Files.writeString(manifest, meta("schema", "FROZEN_EVALUATION131_V1", "bank", "bank-1", "protocolSha", digest(protocol), "splitSha", digest(splits),
+		Files.writeString(manifest, meta("schema", "FROZEN_EVALUATION131_V2", "bank", "bank-1", "protocolSha", digest(protocol), "splitSha", digest(splits),
 			"sourceSha", "a".repeat(40), "jarSha", "b".repeat(64), "configSha", "c".repeat(64), "policySha", "d".repeat(64), "evaluatorSha", TEST_EVALUATOR_SHA,
-			"modelSchema", "a".repeat(64), "candidateSha", "3".repeat(64), "referenceSha", "4".repeat(64), "opponent.B0", "5".repeat(64),
+			"modelSchema", ActionValueV4.SCHEMA, "candidateSha", "3".repeat(64), "candidateHead", "7".repeat(64), "referenceSha", "4".repeat(64), "referenceHead", "8".repeat(64),
+			"opponent.B0", "5".repeat(64),
 			"opponent.A1", "4".repeat(64), "opponent.B1", "6".repeat(64), "trainStartedAt", "2026-11-20T06:00:00Z", "referenceAt", "2026-11-20T12:00:00Z",
 			"selectedAt", "2026-11-20T18:00:00Z", "lockedAt", "2026-11-20T23:00:00Z"));
 	}

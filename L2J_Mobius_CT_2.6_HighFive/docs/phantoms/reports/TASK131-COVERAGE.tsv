@@ -1,5 +1,5 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024,off-and-protected-v18.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
+G0	P0	UNKNOWN	S024,off-and-protected-v19.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
 G1	P1	UNKNOWN	TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14	Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
 G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE, AREA/AURA и ограниченное окно смерти или дефицита MP, живые эффекты и tactical frame открыты
@@ -24,10 +24,10 @@ D1	P1	UNKNOWN	offense-v3-checks.log,pvp-v3-red.log,pvp-v3-green.log	Готовн
 D2	P2	UNKNOWN	ant-combat-v7-reviewed.log	Офлайн проверены единственный PvP-владелец и отзыв срочной поддержки до и после передачи, TEST открыт
 D3	P2	UNKNOWN	party-actions-v4-contracts.log,build/area-control/green.log	DB-free проверки нового AoE и штатного списка целей, race расходов и живые PvP negatives открыты
 D4	P1–P2	UNKNOWN	aggregate-v2.log	Обычный PvE и Party используют фактически изученные навыки, native WAIT_GROUP_DAMAGE остаётся открытым
-D5	P4	UNKNOWN	ant-combat-v13-reviewed.log,v10-PhantomLearning131FitChecks.log	Офлайн проверены frozen replay и раздельные PvP HP CP MP, допуск физических навыков использует native условия, живые фазы открыты
+D5	P4	UNKNOWN	ant-combat-v19-reviewed.log,v19-PhantomLearning131EvaluationChecks.log	Офлайн проверены порядок коммитов C/R, replay закреплённой модели и точная связь выбранного действия с нативным допуском, живые фазы открыты
 D6	P4	UNKNOWN	v18-PhantomLearning131EvaluationChecks.log,v18-native-evidence-continuation022.log	Офлайн подтверждены точный HP, MP, перелечение и нативные стадии HEAL, живые квитанции и остальные роли открыты
 D7	P4	PASS	aggregate-v5-reviewed.log	Офлайн 257, rollover, полный эпизод, prepared receipts, абсолютные времена, cold load и replay
-D8	P4	UNKNOWN	ant-combat-v18-reviewed.log,v18-PhantomLearning131EvaluationChecks.log	Офлайн проверено сопоставление урона, лечения и списаний с их оригиналами, живой AUDIT и остальные роли открыты
+D8	P4	UNKNOWN	v19-evaluator-cli-final.log,v19-PhantomLearning131EvaluationChecks.log	Офлайн проверены рабочий CLI, отпечаток оценщика и независимый replay C/R, живой AUDIT, исходная политика S и остальные роли открыты
 D9	P3–P5	UNKNOWN	TRAINING131_CONTROL_CHECKS_PASS	Офлайн удержание квоты и неизменяемый статус проверены, устойчивость живой кампании открыта
 D10	P6	NOT_RUN	NONE	Native workload и structural fixture не выполнены
 N01	P3	NOT_RUN	n01-setup-r4/n01-scenes.tsv	Три площадки SETUP с респавном, боевые циклы и награды ещё не измерены

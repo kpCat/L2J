@@ -1,10 +1,12 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.tests.phantoms;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4;
@@ -32,6 +35,7 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
+import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.ScheduledArm;
 
 /** Records the existing native cast/apply receipts for one active TASK131 episode at a time. */
 final class PhantomLearning131Capture
@@ -249,6 +253,53 @@ final class PhantomLearning131Capture
 		else { ActionExplorationV4.validateLog(decisions); }
 		require(current.compareAndSet(episode, null), "EPISODE_REPLACED_BEFORE_SEAL");
 		return new Settlement(plan, settled, receipts, intents, decisions);
+	}
+
+	/** Seal the C/R decision and dispatch originals after this arm's native players have drained. */
+	String publishAuditPolicy(Episode episode, ScheduledArm scheduled, Path bindingFile, String bindingSha, String head,
+		Map<Integer, Player> drained, String nonce) throws IOException
+	{
+		require(nonce != null && nonce.matches("[a-f0-9]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
+			&& head.matches("[a-f0-9]{64}"), "OWNED_FROZEN_POLICY");
+		PhantomLearning131Native.taskRoot(bindingFile);
+		PhantomLearning131Native.physical(bindingFile, true);
+		final var binding = PhantomLearning131Evaluation.modelArmBinding(scheduled, bindingFile, bindingSha);
+		final Path directory = bindingFile.getParent();
+		require(bindingFile.getFileName().toString().equals("binding131.tsv") && directory.getFileName().toString().equals(binding.episodeId())
+			&& directory.getParent().getFileName().toString().equals("episodes"), "FROZEN_POLICY_OUTPUT");
+		final var plan = episode.experiment.plan();
+		require(plan.split().equals("AUDIT") && plan.episode().equals(binding.episodeId()) && plan.sourceSha().equals(scheduled.fixtureSha())
+			&& plan.modelSha().equals(binding.modelSha()) && episode.started == binding.started() && drained.keySet().equals(binding.scoredEpochs().keySet())
+			&& episode.roster.size() == drained.size(), "FROZEN_POLICY_SCOPE");
+		for (Actor actor : episode.roster.values())
+		{
+			final Player player = drained.get(actor.objectId());
+			final var owner = player == null ? null : player.getNativeWorkOwner();
+			require(player != null && player.getObjectId() == actor.objectId() && binding.scoredEpochs().get(actor.objectId()) == actor.epoch()
+				&& (owner == null || !owner.isCurrent() && owner.epoch() == actor.epoch()) && PlayerNativeWork.observationEvidence(player) == null
+				&& World.getInstance().findObject(actor.objectId()) == null, "FROZEN_POLICY_OWNER_NOT_DRAINED");
+		}
+		final List<ActionExperimentReceiptV4.Intent> intents;
+		synchronized (episode)
+		{
+			require(!episode.accepting && !episode.sealed && !episode.fault && current.get() == episode, "FROZEN_POLICY_DRAIN");
+			episode.sealed = true;
+			intents = List.copyOf(episode.intents.values());
+		}
+		final var decisions = episode.experiment.decisions();
+		episode.experiment.verifyFrozenLog(decisions);
+		final var encoder = Base64.getUrlEncoder().withoutPadding();
+		final var proof = new StringBuilder(row("meta", "schema", "NATIVE_FROZEN_POLICY131_V1"))
+			.append(row("meta", "episodeId", binding.episodeId())).append(row("meta", "bindingSha", binding.sha()))
+			.append(row("meta", "arm", scheduled.slot().arm())).append(row("meta", "modelHead", head));
+		decisions.forEach(decision -> proof.append(row("decision", encoder.encodeToString(decision.bytes()))));
+		intents.stream().sorted(Comparator.comparingLong(intent -> intent.decision().cursor()))
+			.forEach(intent -> proof.append(row("intent", encoder.encodeToString(intent.bytes()))));
+		final byte[] bytes = proof.toString().getBytes(StandardCharsets.US_ASCII);
+		require(bytes.length <= 8 * 1024 * 1024, "FROZEN_POLICY_LOG_BOUND");
+		ActionExperimentReceiptV4.publish(directory.resolve("policy131.tsv"), bytes);
+		require(current.compareAndSet(episode, null), "EPISODE_REPLACED_BEFORE_SEAL");
+		return hash(bytes);
 	}
 
 	/** The boot publishes frozen originals after canonical runtime drain and STORE. */

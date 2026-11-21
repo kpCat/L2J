@@ -195,6 +195,25 @@ public final class ActionContinuationV4
 		return committedState(root, target, readHead(root));
 	}
 
+	/** AUDIT reference is the first published TRAIN batch. A candidate must descend from it with further TRAIN updates. */
+	public static void verifyAuditModelOrder(Path root, String referenceHead, String candidateHead, String referenceModel, String candidateModel) throws IOException
+	{
+		final String tip = readHead(root);
+		final State reference = committedState(root, referenceHead, tip);
+		final State candidate = committedState(root, candidateHead, tip);
+		require(reference.model().sha256().equals(referenceModel) && candidate.model().sha256().equals(candidateModel)
+			&& !referenceModel.equals(candidateModel) && candidate.sequence() > reference.sequence()
+			&& candidate.globalUpdates() > reference.globalUpdates(), "AUDIT reference/candidate order or model pin");
+		final var chain = lineage(root, tip);
+		int first = 1;
+		while (first < chain.size() && chain.get(first).getValue().trainBatchSha().isEmpty()) { first++; }
+		require(first < chain.size(), "missing first committed AUDIT TRAIN batch");
+		final String batch = chain.get(first).getValue().trainBatchSha();
+		while (first + 1 < chain.size() && chain.get(first + 1).getValue().trainBatchSha().equals(batch)) { first++; }
+		require(chain.get(first).getKey().equals(referenceHead) && !seal(root, candidateHead).trainBatchSha().isEmpty(), "AUDIT requires published TRAIN batch heads");
+		require(readHead(root).equals(tip), "AUDIT lineage HEAD changed");
+	}
+
 	private static State committedState(Path root, String target, String current) throws IOException
 	{
 		digest(target);
