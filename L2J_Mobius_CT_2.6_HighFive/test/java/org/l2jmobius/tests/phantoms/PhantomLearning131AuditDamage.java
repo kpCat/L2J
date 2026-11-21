@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
@@ -68,7 +69,7 @@ import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Stratum;
 final class PhantomLearning131AuditDamage implements AutoCloseable
 {
 	private static final int MAX_CASTS = 64;
-	private static final int MAX_HEAL_WRITES = 512;
+	private static final int MAX_SUPPORT_WRITES = 512;
 	private static final AtomicReference<PhantomLearning131AuditDamage> ACTIVE = new AtomicReference<>();
 	private static final AtomicReference<PvpCapture> ACTIVE_PVP = new AtomicReference<>();
 	private static final AtomicReference<GroupHealCapture> ACTIVE_GROUP = new AtomicReference<>();
@@ -234,7 +235,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		boolean drained() { return drainedOwner(player, owner); }
 	}
 
-	/** Passive HEAL and item writer capture for the exact bound group. Combat and leases stay with their native owners. */
+	/** Passive support and item capture for the exact bound group. Combat and leases stay with their native owners. */
 	static final class GroupHealCapture implements AutoCloseable
 	{
 		private final HealBinding _binding;
@@ -244,6 +245,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private final PvpCapture _pvpDamage;
 		private final ItemCapture _items = new ItemCapture();
 		private final ConcurrentLinkedQueue<NativeHealReceipt> _heals = new ConcurrentLinkedQueue<>();
+		private final ConcurrentLinkedQueue<NativeRechargeReceipt> _recharges = new ConcurrentLinkedQueue<>();
 		private final AtomicInteger _queued = new AtomicInteger();
 		private final AtomicReference<String> _failure = new AtomicReference<>();
 		private AutoCloseable _observer;
@@ -273,35 +275,41 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private void install()
 		{
 			_items.open(() -> ACTIVE_GROUP.get() == this);
-			_observer = HealEvidenceV3.observeNativeAudit(this::nativeHeal, reason -> _failure.compareAndSet(null, reason));
+			_observer = HealEvidenceV3.observeNativeAudit(this::nativeHeal, this::nativeRecharge, reason -> _failure.compareAndSet(null, reason));
 			if (_pvpDamage != null) { _pvpDamage.claim(); }
 		}
 
 		private void nativeHeal(NativeHealReceipt receipt)
 		{
 			if (_closed || ACTIVE_GROUP.get() != this || _failure.get() != null) { return; }
-			try { recordHeal(receipt); }
+			try { if (reserveSupport(receipt.cast(), receipt.observation().capturedNanos())) { _heals.add(receipt); } }
 			catch (RuntimeException unavailable) { _failure.compareAndSet(null, "NATIVE_HEAL_OBSERVER_FAILED"); }
 		}
 
-		private void recordHeal(NativeHealReceipt receipt)
+		private void nativeRecharge(NativeRechargeReceipt receipt)
 		{
-			final var cast = receipt.cast();
+			if (_closed || ACTIVE_GROUP.get() != this || _failure.get() != null) { return; }
+			try { if (reserveSupport(receipt.cast(), receipt.observation().capturedNanos())) { _recharges.add(receipt); } }
+			catch (RuntimeException unavailable) { _failure.compareAndSet(null, "NATIVE_RECHARGE_OBSERVER_FAILED"); }
+		}
+
+		private boolean reserveSupport(NativeCastTrace cast, long capturedNanos)
+		{
 			final var actor = _players.get(cast.actorObjectId());
 			final var target = _players.get(cast.targetObjectId());
-			if (actor == null || target == null || cast.instanceId() != _instance || receipt.observation().capturedNanos() < _binding.started()
+			if (actor == null || target == null || cast.instanceId() != _instance || capturedNanos < _binding.started()
 				|| !actor.current(_instance, cast.actorEpoch()) || !target.current(_instance, cast.targetEpoch())
 				|| _binding.scoredPlayers().contains(cast.actorObjectId()) != _binding.scoredPlayers().contains(cast.targetObjectId()))
 			{
-				_failure.compareAndSet(null, "FOREIGN_NATIVE_HEAL");
-				return;
+				_failure.compareAndSet(null, "FOREIGN_NATIVE_SUPPORT");
+				return false;
 			}
-			if (_queued.getAndUpdate(count -> Math.min(count + 1, MAX_HEAL_WRITES)) >= MAX_HEAL_WRITES)
+			if (_queued.getAndUpdate(count -> Math.min(count + 1, MAX_SUPPORT_WRITES)) >= MAX_SUPPORT_WRITES)
 			{
-				_failure.compareAndSet(null, "NATIVE_HEAL_RECEIPT_CAP");
-				return;
+				_failure.compareAndSet(null, "NATIVE_SUPPORT_RECEIPT_CAP");
+				return false;
 			}
-			_heals.add(receipt);
+			return true;
 		}
 
 		String sealAfterDrain(TacticalEpisodeV3.NativeDrain drain, long combatEnd, List<String> otherEvents, List<String> otherOriginals) throws Exception
@@ -341,6 +349,12 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				{
 					events.addAll(PhantomLearning131AuditOriginals.healEvents(_binding.episodeId(), heal));
 					originals.add(PhantomLearning131AuditOriginals.healRow(heal));
+				});
+			_recharges.stream().sorted(Comparator.comparingLong((NativeRechargeReceipt recharge) -> recharge.cast().decisionNanos())
+				.thenComparing(recharge -> recharge.cast().eventKey())).forEach(recharge ->
+				{
+					events.addAll(PhantomLearning131AuditOriginals.rechargeEvents(_binding.episodeId(), recharge));
+					originals.add(PhantomLearning131AuditOriginals.rechargeRow(recharge));
 				});
 			_items.addRows(_binding.episodeId(), events, originals);
 			return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), _pvpDamage != null, combatEnd, settled, events, originals);
@@ -1016,7 +1030,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		final var window = PhantomLearning131Evaluation.verifyClosedDamage(binding, episodeId, bindingSha, pvp, combatEnd, settled, events, paid);
 		final String identity = meta("episodeId", episodeId) + meta("bindingSha", bindingSha);
 		final byte[] evidence = (meta("schema", "NATIVE_EVENTS131_V1") + identity + rows(events)).getBytes(StandardCharsets.UTF_8);
-		final byte[] originals = (meta("schema", "NATIVE_PAID131_V5") + identity + rows(paid)).getBytes(StandardCharsets.UTF_8);
+		final byte[] originals = (meta("schema", PhantomLearning131Evaluation.PAID_SCHEMA) + identity + rows(paid)).getBytes(StandardCharsets.UTF_8);
 		require(evidence.length <= PhantomLearning131Evaluation.DOCUMENT_MAX_BYTES && originals.length <= PhantomLearning131Evaluation.PAID_MAX_BYTES,
 			"EPISODE_ORIGINAL_SIZE");
 		final String eventsSha = TacticalObservationV3.hash(evidence), paidSha = TacticalObservationV3.hash(originals);
@@ -1042,7 +1056,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			case "ADMITTED" -> 1;
 			case "EXECUTED" -> 2;
 			case "PAY" -> 3;
-			case "DAMAGE", "HEAL" -> 4;
+			case "DAMAGE", "HEAL", "MP_TRANSFER" -> 4;
 			case "DEATH" -> 5;
 			case "KILL_CREDIT" -> 6;
 			default -> throw new IllegalArgumentException("TASK131_NATIVE_AUDIT_DAMAGE_KIND");

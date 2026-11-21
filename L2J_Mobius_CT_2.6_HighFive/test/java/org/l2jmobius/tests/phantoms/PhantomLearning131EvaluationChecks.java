@@ -20,6 +20,7 @@ import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
@@ -61,6 +62,7 @@ public final class PhantomLearning131EvaluationChecks
 		paidPvpCpOriginalRoundTrip();
 		paidItemsRequireNativeLedger();
 		paidHealingRequiresItsNativeEffect();
+		paidRechargeRequiresItsNativeEffect();
 		frozenAuditPolicyRequiresCommittedAction();
 		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
@@ -266,7 +268,7 @@ public final class PhantomLearning131EvaluationChecks
 				check(digest(seal).equals(sealed), "a repeated publication preserves the original seal");
 			}
 			final Path paid = directory.resolve("paid131.tsv");
-			Files.writeString(paid, Files.readString(paid).replace("meta\tschema\tNATIVE_PAID131_V5", "meta\tschema\tNATIVE_PAID131_V4"));
+			Files.writeString(paid, Files.readString(paid).replace("meta\tschema\t" + PhantomLearning131Evaluation.PAID_SCHEMA, "meta\tschema\tNATIVE_PAID131_V5"));
 			try
 			{
 				PhantomLearning131Evaluation.verifySealedDamage(binding, episode, sealed, false);
@@ -353,6 +355,35 @@ public final class PhantomLearning131EvaluationChecks
 			clampedOriginals, roster, window, false);
 		check(clampedOriginals.heals().get(key).effective().signum() == 0
 			&& clampedOriginals.heals().get(key).overheal().compareTo(new BigDecimal("200")) == 0, "a fully clamped paid heal must earn no useful HP");
+	}
+
+	private static void paidRechargeRequiresItsNativeEffect()
+	{
+		final String episode = "6".repeat(64), key = "5".repeat(64);
+		final var self = new TacticalObservationV3.Entity(TacticalObservationV3.Role.SELF, 42, 7, 0, 0, Map.of(), List.of(), List.of(),
+			List.of(new TacticalObservationV3.Ability(1013, 4, 10, 4, 500, 0, 300, true)), List.of());
+		final var ally = new TacticalObservationV3.Entity(TacticalObservationV3.Role.ALLY, 103, 92, 0, 0,
+			Map.of(TacticalObservationV3.Field.MAX_MP, TacticalObservationV3.Fact.known(500)), List.of(), List.of(), List.of(), List.of());
+		final var observation = new TacticalObservationV3(1, 1000, 1, 42, 7, "42:42@7,103@92", List.of(self, ally));
+		final var trace = new NativeCastTrace(key, 42, 7, 103, 92, 3, 1013, 4, 1013, 4, 1002, 1006, 1010, TacticalObservationV3.hash(observation.bytes()));
+		final var owner = new SourceOwner(12, "support-12");
+		final String[] items = PhantomLearning131AuditOriginals.itemWindow(1000, 1068, 0).split("\t", -1);
+		final var roster = Map.of(42, 7L, 103, 92L);
+		final var window = new EpisodeWindow(1000, 50, 70);
+		final var receipt = new NativeRechargeReceipt(trace, observation, owner, 1020, 1016, 1003, 1011, 220, 300, 30);
+		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(List.of(items, PhantomLearning131AuditOriginals.rechargeRow(receipt).split("\t", -1)), episode);
+		final var events = PhantomLearning131AuditOriginals.rechargeEvents(episode, receipt).stream().map(row -> row.split("\t", -1)).toList();
+		PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster, window, false);
+		check(originals.recharges().get(key).effective().compareTo(new BigDecimal("80")) == 0
+			&& originals.recharges().get(key).original().paidMp() == 30, "Ally MP gain and caster MP debit are different paid facts");
+		rejectsHealProjection(changedField(events, 3, 7, "81"), originals, roster, window);
+		rejectsHealProjection(changedField(events, 3, 5, "42"), originals, roster, window);
+		rejectsHealProjection(events, originals, roster, new EpisodeWindow(1000, 15, 70));
+		final var noWrite = new NativeRechargeReceipt(trace, observation, owner, 1020, 0, 1003, 1011, 0, 0, 30);
+		final var zero = PhantomLearning131AuditOriginals.decodeAuditRows(List.of(items, PhantomLearning131AuditOriginals.rechargeRow(noWrite).split("\t", -1)), episode);
+		PhantomLearning131Evaluation.verifyNativeProjection(PhantomLearning131AuditOriginals.rechargeEvents(episode, noWrite).stream().map(row -> row.split("\t", -1)).toList(),
+			zero, roster, window, false);
+		check(zero.recharges().get(key).effective().signum() == 0, "A paid handler without a pool write earns zero MP transfer");
 	}
 
 	private static void rejectsHealProjection(List<String[]> events, PhantomLearning131AuditOriginals.AuditRows originals, Map<Integer, Long> roster, EpisodeWindow window)

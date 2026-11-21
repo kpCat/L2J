@@ -15,6 +15,7 @@ import java.util.Map;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
@@ -29,7 +30,7 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 
-/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V5 episode document. */
+/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V6 episode document. */
 final class PhantomLearning131AuditOriginals
 {
 	static final int MAX_ITEM_DEBITS = 2048;
@@ -85,7 +86,11 @@ final class PhantomLearning131AuditOriginals
 	}
 
 	record HealFact(NativeHealReceipt original, String operationId, BigDecimal effective, BigDecimal overheal) { }
-	record AuditRows(Map<String, Fact> damage, ItemLedger items, Map<String, HealFact> heals) { }
+	record RechargeFact(NativeRechargeReceipt original, String operationId, BigDecimal effective)
+	{
+		long effectNanos() { return original.targetWriteNanos() == 0 ? original.handlerFinishedNanos() : original.targetWriteNanos(); }
+	}
+	record AuditRows(Map<String, Fact> damage, ItemLedger items, Map<String, HealFact> heals, Map<String, RechargeFact> recharges) { }
 
 	private PhantomLearning131AuditOriginals() { }
 
@@ -95,6 +100,7 @@ final class PhantomLearning131AuditOriginals
 		final var damage = new ArrayList<String[]>();
 		final var items = new ArrayList<String[]>();
 		final var heals = new ArrayList<String[]>();
+		final var recharges = new ArrayList<String[]>();
 		String[] window = null;
 		for (String[] cells : rows)
 		{
@@ -108,6 +114,7 @@ final class PhantomLearning131AuditOriginals
 				}
 				case "item" -> items.add(cells);
 				case "heal" -> heals.add(cells);
+				case "recharge" -> recharges.add(cells);
 				default -> damage.add(cells);
 			}
 		}
@@ -144,7 +151,15 @@ final class PhantomLearning131AuditOriginals
 			require(keys.add(key) && operations.add(heal.operationId()), "REUSED_PAID_IDENTITY");
 			healFacts.put(key, heal);
 		}
-		return new AuditRows(damageFacts, new ItemLedger(opened, closed, count, byKey), Map.copyOf(healFacts));
+		final var rechargeFacts = new HashMap<String, RechargeFact>();
+		for (String[] cells : recharges)
+		{
+			final RechargeFact recharge = rechargeFact(episodeId, readRecharge(cells));
+			final String key = recharge.original().cast().eventKey();
+			require(keys.add(key) && operations.add(recharge.operationId()), "REUSED_PAID_IDENTITY");
+			rechargeFacts.put(key, recharge);
+		}
+		return new AuditRows(damageFacts, new ItemLedger(opened, closed, count, byKey), Map.copyOf(healFacts), Map.copyOf(rechargeFacts));
 	}
 
 	static Map<String, Fact> decode(List<String[]> rows, String episodeId)
@@ -333,6 +348,59 @@ final class PhantomLearning131AuditOriginals
 			&& Math.abs((original.afterHp() - original.beforeHp()) - original.requestedHp()) <= HEAL_WRITE_TOLERANCE, "HEAL_NATIVE_HP_WRITE");
 	}
 
+	static String rechargeRow(NativeRechargeReceipt original)
+	{
+		checkRecharge(original);
+		return castRow("recharge", original.cast()) + "\t" + row(ENCODER.encodeToString(original.observation().bytes()), original.owner().generation(),
+			ENCODER.encodeToString(original.owner().operationKey().getBytes(StandardCharsets.UTF_8)), original.handlerFinishedNanos(), original.targetWriteNanos(),
+			original.mpStartedNanos(), original.mpFinishedNanos(), original.beforeMp(), original.afterMp(), original.paidMp());
+	}
+
+	private static NativeRechargeReceipt readRecharge(String[] cells)
+	{
+		require(cells.length == 25, "RECHARGE_ROW_SHAPE");
+		final byte[] observationBytes = bytes(cells[15], 524288);
+		final var observation = TacticalObservationV3.restore(observationBytes);
+		final byte[] ownerBytes = bytes(cells[17], 512);
+		final var owner = new SourceOwner(positive(cells[16]), new String(ownerBytes, StandardCharsets.UTF_8));
+		require(Arrays.equals(observationBytes, observation.bytes()) && Arrays.equals(ownerBytes, owner.operationKey().getBytes(StandardCharsets.UTF_8)),
+			"RECHARGE_NATIVE_ENCODING");
+		return new NativeRechargeReceipt(readCast(cells, eventKey(cells[1])), observation, owner, positive(cells[18]), nonnegative(cells[19]),
+			positive(cells[20]), positive(cells[21]), scalar(cells[22]), scalar(cells[23]), scalar(cells[24]));
+	}
+
+	static List<String> rechargeEvents(String episodeId, NativeRechargeReceipt original)
+	{
+		final RechargeFact fact = rechargeFact(episodeId, original);
+		final NativeCastTrace cast = original.cast();
+		final var events = new ArrayList<>(castEvents(cast, fact.operationId(), "SUPPORT"));
+		events.add(row("event", cast.eventKey(), fact.effectNanos(), "MP_TRANSFER", cast.actorObjectId(), cast.targetObjectId(), fact.operationId(),
+			fact.effective().toPlainString()));
+		return List.copyOf(events);
+	}
+
+	private static RechargeFact rechargeFact(String episodeId, NativeRechargeReceipt original)
+	{
+		require(episodeId.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,95}"), "EPISODE_ID");
+		checkRecharge(original);
+		final var effective = quantizeHp(original.afterMp() - original.beforeMp());
+		require((original.targetWriteNanos() == 0 || effective.signum() > 0) && wireHpBounded(effective), "RECHARGE_WIRE_PRECISION");
+		return new RechargeFact(original, operationId(episodeId, original.owner()), effective);
+	}
+
+	private static void checkRecharge(NativeRechargeReceipt original)
+	{
+		final var cast = original.cast();
+		final var observation = original.observation();
+		final var ally = observation.entity(cast.targetObjectId());
+		final long effect = original.targetWriteNanos() == 0 ? original.handlerFinishedNanos() : original.targetWriteNanos();
+		require(traceMatches(cast, cast.eventKey(), cast.instanceId(), observation, ally.objectId(), ally.epoch(), cast.skillId(), cast.skillLevel(), effect)
+			&& cast.baselineSkillId() == cast.skillId() && cast.baselineSkillLevel() == cast.skillLevel()
+			&& learned(observation, cast.skillId(), cast.skillLevel()), "RECHARGE_CAST_OR_BASELINE");
+		final var maxMp = ally.fact(Field.MAX_MP);
+		require(maxMp.known() && maxMp.value() > 0 && original.afterMp() <= maxMp.value() + HEAL_WRITE_TOLERANCE, "RECHARGE_NATIVE_MP_WRITE");
+	}
+
 	static String castRow(NativeCastTrace trace)
 	{
 		return castRow("cast", trace);
@@ -365,7 +433,7 @@ final class PhantomLearning131AuditOriginals
 
 	static List<String> castEvents(NativeCastTrace trace, String operationId, String role)
 	{
-		require(role.equals("DAMAGE") || role.equals("OPPONENT") || role.equals("HEAL"), "CAST_ROLE");
+		require(role.equals("DAMAGE") || role.equals("OPPONENT") || role.equals("HEAL") || role.equals("SUPPORT"), "CAST_ROLE");
 		final String operation = eventKey(operationId);
 		final int actor = trace.actorObjectId(), target = trace.targetObjectId();
 		final String chosen = skillToken(trace.skillId(), trace.skillLevel());

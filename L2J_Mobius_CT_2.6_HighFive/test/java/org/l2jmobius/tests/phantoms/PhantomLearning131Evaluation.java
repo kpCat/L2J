@@ -36,6 +36,7 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.AuditRows;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.Fact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.HealFact;
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.RechargeFact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.ItemLedger;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.BlockPlan;
@@ -53,6 +54,7 @@ public final class PhantomLearning131Evaluation
 	private static final String REPORT = "TASK131_EVALUATION_REPORT_V2";
 	static final int DOCUMENT_MAX_BYTES = 8 * 1024 * 1024;
 	static final int PAID_MAX_BYTES = 32 * 1024 * 1024;
+	static final String PAID_SCHEMA = "NATIVE_PAID131_V6";
 	private static final Set<String> OPPONENTS = Set.of("B0", "A1", "B1");
 	private static final Set<String> GROUP_SIZES = Set.of("1x2", "2x2", "3x5", "9x9");
 	private static final int BANK_SIZE = 32;
@@ -500,7 +502,7 @@ public final class PhantomLearning131Evaluation
 	{
 		final Document events = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
 		require(events.sha().equals(eventsSha) && events.get("episodeId").equals(id) && events.get("bindingSha").equals(bindingSha), "RAW_EVENTS_PIN");
-		final Document paid = document(directory.resolve("paid131.tsv"), PAID_MAX_BYTES, "NATIVE_PAID131_V5", "schema", "episodeId", "bindingSha");
+		final Document paid = document(directory.resolve("paid131.tsv"), PAID_MAX_BYTES, PAID_SCHEMA, "schema", "episodeId", "bindingSha");
 		require(paid.sha().equals(paidSha) && paid.get("episodeId").equals(id) && paid.get("bindingSha").equals(bindingSha), "PAID_ORIGINALS_PIN");
 		return new EpisodeDocuments(events, paid);
 	}
@@ -538,7 +540,7 @@ public final class PhantomLearning131Evaluation
 		List<String[]> events, List<String[]> paid)
 	{
 		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(paid, episodeId);
-		require(!originals.damage().isEmpty() || !originals.heals().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
+		require(!originals.damage().isEmpty() || !originals.heals().isEmpty() || !originals.recharges().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
 		final var roster = participants(binding, Side.valueOf(binding.get("side")));
 		verifyNativeProjection(events, originals, epochs(roster), window, pvp);
 		verifyEffectSides(originals, roster);
@@ -555,6 +557,11 @@ public final class PhantomLearning131Evaluation
 			final var cast = heal.original().cast();
 			require(roster.get(cast.actorObjectId()).side() == roster.get(cast.targetObjectId()).side(), "HEAL_EFFECT_SIDE");
 		}
+		for (var recharge : originals.recharges().values())
+		{
+			final var cast = recharge.original().cast();
+			require(roster.get(cast.actorObjectId()).side() == roster.get(cast.targetObjectId()).side(), "RECHARGE_EFFECT_SIDE");
+		}
 	}
 
 	/** A raw event may affect a bank result only when this schema can prove its native origin. */
@@ -562,21 +569,25 @@ public final class PhantomLearning131Evaluation
 	{
 		final var damage = new HashSet<String>();
 		final var healing = new HashSet<String>();
+		final var recharging = new HashSet<String>();
 		originals.damage().values().forEach(fact -> damage.add(fact.operationId()));
 		originals.heals().values().forEach(fact -> healing.add(fact.operationId()));
+		originals.recharges().values().forEach(fact -> recharging.add(fact.operationId()));
 		for (String[] row : events)
 		{
 			require(row.length >= 7 && (switch (row[3])
 			{
 				case "PAY" -> true;
-				case "DECISION", "ADMITTED", "EXECUTED" -> damage.contains(row[6]) || healing.contains(row[6]);
+				case "DECISION", "ADMITTED", "EXECUTED" -> damage.contains(row[6]) || healing.contains(row[6]) || recharging.contains(row[6]);
 				case "DAMAGE", "DEATH", "KILL_CREDIT" -> damage.contains(row[6]);
 				case "HEAL" -> healing.contains(row[6]);
+				case "MP_TRANSFER" -> recharging.contains(row[6]);
 				default -> false;
 			}), "UNPROVEN_NATIVE_EVENT");
 		}
 		verifyPaidProjection(events, originals.damage(), epochs, window, pvp);
 		verifyHealProjection(events, originals.heals(), epochs, window);
+		verifyRechargeProjection(events, originals.recharges(), epochs, window);
 		verifyPaymentProjection(events, originals.items(), epochs, window);
 	}
 
@@ -610,7 +621,7 @@ public final class PhantomLearning131Evaluation
 			}
 			else
 			{
-				final int stage = verifyPaidCastStage(event, cast, fact.operationId(), true);
+				final int stage = verifyPaidCastStage(event, cast, fact.operationId(), "HEAL");
 				require(stages.getOrDefault(event[6], 0) == stage - 1, "HEAL_CAST_STAGE_ORDER");
 				stages.put(event[6], stage);
 			}
@@ -622,6 +633,42 @@ public final class PhantomLearning131Evaluation
 	{
 		final var original = fact.original();
 		return original.hpWriteNanos() > 0 ? original.hpWriteNanos() : original.offeredNanos();
+	}
+
+	private static void verifyRechargeProjection(List<String[]> events, Map<String, RechargeFact> originals, Map<Integer, Long> roster, EpisodeWindow window)
+	{
+		final var operations = new HashMap<String, RechargeFact>();
+		final var stages = new HashMap<String, Integer>();
+		for (var fact : originals.values())
+		{
+			final var original = fact.original();
+			final var cast = original.cast();
+			require(operations.putIfAbsent(fact.operationId(), fact) == null && roster.getOrDefault(cast.actorObjectId(), 0L) == cast.actorEpoch()
+				&& roster.getOrDefault(cast.targetObjectId(), 0L) == cast.targetEpoch(), "RECHARGE_PARTICIPANT_EPOCH");
+			require(original.observation().capturedNanos() >= window.started() && fact.effectNanos() <= window.combatEnd()
+				&& original.handlerFinishedNanos() <= window.settledEnd() && original.mpFinishedNanos() <= window.settledEnd(), "RECHARGE_NATIVE_WINDOW");
+		}
+		final var used = new HashSet<String>();
+		for (String[] event : events)
+		{
+			final var fact = operations.get(event[6]);
+			if (fact == null) { continue; }
+			final var cast = fact.original().cast();
+			if (event[3].equals("MP_TRANSFER"))
+			{
+				length(event, 8);
+				require(stages.getOrDefault(event[6], 0) == 3 && event[1].equals(cast.eventKey()) && object(event[4]) == cast.actorObjectId()
+					&& object(event[5]) == cast.targetObjectId() && positive(event[2]) == fact.effectNanos()
+					&& decimal(event[7], true).compareTo(fact.effective()) == 0 && used.add(event[1]), "TRANSFER_WITHOUT_MATCHING_PAID_ORIGINAL");
+			}
+			else
+			{
+				final int stage = verifyPaidCastStage(event, cast, fact.operationId(), "SUPPORT");
+				require(stages.getOrDefault(event[6], 0) == stage - 1, "RECHARGE_CAST_STAGE_ORDER");
+				stages.put(event[6], stage);
+			}
+		}
+		require(used.size() == originals.size(), "INCOMPLETE_RECHARGE_PROJECTION");
 	}
 
 	private static Map<Integer, Long> epochs(Map<Integer, Participant> roster)
@@ -690,7 +737,7 @@ public final class PhantomLearning131Evaluation
 					final var fact = paidOperations.get(event[6]);
 					if (fact != null)
 					{
-						final int stage = verifyPaidCastStage(event, fact.trace(), fact.operationId(), false);
+						final int stage = verifyPaidCastStage(event, fact.trace(), fact.operationId(), null);
 						require(castStages.getOrDefault(event[6], 0) == stage - 1, "PAID_CAST_STAGE_ORDER");
 						castStages.put(event[6], stage);
 					}
@@ -724,7 +771,7 @@ public final class PhantomLearning131Evaluation
 		require(usedDamage.size() == originals.size() && deaths.isEmpty() && credits.isEmpty(), "INCOMPLETE_PAID_PROJECTION");
 	}
 
-	private static int verifyPaidCastStage(String[] event, NativeCastTrace trace, String operationId, boolean heal)
+	private static int verifyPaidCastStage(String[] event, NativeCastTrace trace, String operationId, String supportRole)
 	{
 		final String kind = event[3];
 		final String skill = PhantomLearning131AuditOriginals.skillToken(trace.skillId(), trace.skillLevel());
@@ -735,7 +782,7 @@ public final class PhantomLearning131Evaluation
 		{
 			case "DECISION":
 				length(event, 10);
-				require(positive(event[2]) == trace.decisionNanos() && (heal ? event[7].equals("HEAL") : event[7].equals("DAMAGE") || event[7].equals("OPPONENT"))
+				require(positive(event[2]) == trace.decisionNanos() && (supportRole == null ? event[7].equals("DAMAGE") || event[7].equals("OPPONENT") : event[7].equals(supportRole))
 					&& event[8].equals(skill) && event[9].equals(PhantomLearning131AuditOriginals.skillToken(trace.baselineSkillId(), trace.baselineSkillLevel())),
 					"PAID_CAST_DECISION");
 				return 1;
@@ -1007,11 +1054,11 @@ public final class PhantomLearning131Evaluation
 				case "MP_TRANSFER" ->
 				{
 					length(row, 8);
-					final BigDecimal mp = decimal(row[7], false);
+					final BigDecimal mp = decimal(row[7], true);
 					require(friendly == friendlyTarget && source != target, "MP_TRANSFER_EFFECT");
 					if (friendly) { _mpTransfer = _mpTransfer.add(mp); }
-					else { _opponentEffects++; }
-					return friendly && role == Role.SUPPORT;
+					else if (mp.signum() > 0) { _opponentEffects++; }
+					return friendly && role == Role.SUPPORT && mp.signum() > 0;
 				}
 				case "AGGRO", "BUFF" ->
 				{

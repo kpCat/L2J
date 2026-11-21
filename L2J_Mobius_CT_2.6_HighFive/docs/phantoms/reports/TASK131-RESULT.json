@@ -52,8 +52,8 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v20-final.log",
-    "finalContractLog": "ant-combat-v20-final.log",
+    "aggregateLog": "ant-combat-v21-final.log",
+    "finalContractLog": "ant-combat-v21-final.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -63,9 +63,9 @@
     "regressionTestsPassed": 171,
     "contractGroupsPassed": 17,
     "jarExitCode": 0,
-    "jarSha256": "d7e433f84cd0ee4d9581894476a0b0ce5e437412b12d392f7d127c5a1cd36e18",
-    "loginJarSha256": "c8010adf1080a4bf4e1368a4d1a7ee611e92be9fa3ff50d041545ad610d24f0f",
-    "jarLog": "jar-v19-reviewed.log",
+    "jarSha256": "224fc50b0ec486f94ffed09cc9b1134657bb641c847192741a2f696b6fa2372f",
+    "loginJarSha256": "1c2ea191cd590155816b35c6b50e41faa67b816f8a4c04699536380853393a1c",
+    "jarLog": "jar-v21-final.log",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
@@ -77,11 +77,12 @@
     "stockHealScriptCompileLog": "v18-stock-heal-javac.log",
     "stockHealScriptClassSha256": "22a5cc089b0695fb6788788c8f2052668d21889a2b441d7b09d34e590d533588",
     "auditFrozenDispatchContractLog": "v19-PhantomLearning131EvaluationChecks.log",
-    "auditEvaluatorCliLog": "v20-evaluator-cli-final.log",
-    "auditEvaluatorFingerprint": "d8b0701f8a8c38e4619e052194c39b9e717c0b9613b4901e696bf481079bf315",
+    "auditEvaluatorCliLog": "v21-evaluator-cli-final.log",
+    "auditRechargeNegativeLog": "v21-recharge-red.log",
+    "auditEvaluatorFingerprint": "b6a4506976a4b8303506d802ccfb347d342252e4e2d8fe157b1fcac9ced54782",
     "auditGroupScopeNegativeLog": "v20-group-pvp-red.log",
     "auditCrossSideNegativeLog": "v20-paid-side-red.log",
-    "nativeEvidenceRegressionLog": "v19-native-evidence-continuation022.log",
+    "nativeEvidenceRegressionLog": "v21-native-evidence-continuation022.log",
     "nativeEvidenceRegressionPassed": 15,
     "managedSweepRegressionLog": "v10-native-evidence-continuation022.log",
     "supplyChecksLog": "v9-PhantomSupply074Checks.log",
@@ -92,12 +93,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v19.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v20.json",
-    "exactPathCount": 7
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v20.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v21.json",
+    "exactPathCount": 9
   },
   "testReadiness": {
-    "iterationParent": "06c9fe85fbd3fbcbb5dedad5800d13404374ba29",
+    "iterationParent": "de0470dcc9d84f1e6ec6ebabfd40f0d306860a24",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -210,14 +211,14 @@
       "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
       "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "end-off-v20.json",
+    "g0OffReceipt": "end-off-v21.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,end-off-v20.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,end-off-v21.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -373,8 +374,8 @@
     "D6": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v18-PhantomLearning131EvaluationChecks.log,v18-native-evidence-continuation022.log",
-      "reason": "Офлайн подтверждены точный HP, MP, перелечение и нативные стадии HEAL, живые квитанции и остальные роли открыты"
+      "evidence": "ant-combat-v21-final.log,v21-recharge-red.log,v21-native-evidence-continuation022.log",
+      "reason": "Офлайн проверены раздельный учёт расхода кастера и прироста MP союзника, нулевой исход Recharge и отрицательные контроли, живые квитанции и обучение поддержки открыты"
     },
     "D7": {
       "phase": "P4",
@@ -385,8 +386,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "ant-combat-v20-final.log,v20-paid-side-red.log,v20-evaluator-cli-final.log",
-      "reason": "Офлайн проверены стороны и эпохи Group PvP, отклонены события урона внутри состава, живой AUDIT, исходная политика S и остальные роли открыты"
+      "evidence": "ant-combat-v21-final.log,v21-evaluator-cli-final.log,v20-paid-side-red.log",
+      "reason": "Офлайн сверяются оплаченные DAMAGE, HEAL, MP_TRANSFER и расходы предметов, полный живой AUDIT, политика S и остальные роли открыты"
     },
     "D9": {
       "phase": "P3–P5",

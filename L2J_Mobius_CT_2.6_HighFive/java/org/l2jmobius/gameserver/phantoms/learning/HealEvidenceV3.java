@@ -14,6 +14,7 @@ import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
+import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.skill.Skill;
 
@@ -31,8 +32,11 @@ public final class HealEvidenceV3
 		public Attempt
 		{
 			offered = List.copyOf(offered);
-			if (offered.isEmpty() || offered.size() > 16 || !offered.contains(selected) || !offered.contains(baseline) || !selected.trainable() || selected.family() != LegalActionV3.Family.HEAL || sink == null || failureSink == null)
-			{ throw new IllegalArgumentException("HEAL attempt must bind offered lawful actions"); }
+			final boolean heal = selected.family() == LegalActionV3.Family.HEAL && selected.trainable();
+			final boolean recharge = selected.family() == LegalActionV3.Family.RECHARGE && selected.lawful() && offered.size() == 1
+				&& selected.equals(baseline) && nativeIntent == null;
+			if (offered.isEmpty() || offered.size() > 16 || !offered.contains(selected) || !offered.contains(baseline) || !(heal || recharge) || sink == null || failureSink == null)
+			{ throw new IllegalArgumentException("Support attempt must bind offered lawful actions"); }
 			for (var action : offered) { action.features(observation); if (action.generation() != observation.decisionId()) { throw new IllegalArgumentException("Stale action generation"); } }
 		}
 	}
@@ -76,24 +80,56 @@ public final class HealEvidenceV3
 		}
 	}
 
+	/** The exact stock Recharge handler result and caster debit, including a paid result with no MP write. */
+	public record NativeRechargeReceipt(LearningCastEvidence.NativeCastTrace cast, TacticalObservationV3 observation, SourceOwner owner,
+		long handlerFinishedNanos, long targetWriteNanos, long mpStartedNanos, long mpFinishedNanos, double beforeMp, double afterMp, double paidMp)
+	{
+		public NativeRechargeReceipt
+		{
+			if (cast == null || observation == null || owner == null || cast.actorObjectId() != observation.actorObjectId()
+				|| cast.actorEpoch() != observation.actorEpoch() || cast.actorObjectId() == cast.targetObjectId()
+				|| cast.decisionNanos() < observation.capturedNanos() || handlerFinishedNanos < cast.executedNanos()
+				|| mpStartedNanos < cast.decisionNanos() || mpFinishedNanos < mpStartedNanos || !Double.isFinite(paidMp) || paidMp <= 0)
+			{ throw new IllegalArgumentException("Invalid native Recharge receipt"); }
+			final var ally = observation.entity(cast.targetObjectId());
+			if (ally == null || ally.role() != TacticalObservationV3.Role.ALLY || ally.epoch() != cast.targetEpoch() || observation.partyIdentity().isBlank())
+			{ throw new IllegalArgumentException("Native Recharge party observation mismatch"); }
+			final boolean exact = targetWriteNanos == 0 ? beforeMp == 0 && afterMp == 0
+				: targetWriteNanos >= cast.executedNanos() && targetWriteNanos <= handlerFinishedNanos
+					&& Double.isFinite(beforeMp) && Double.isFinite(afterMp) && beforeMp >= 0 && afterMp > beforeMp;
+			if (!exact) { throw new IllegalArgumentException("Native Recharge MP write mismatch"); }
+		}
+	}
+
 	private static final boolean TRAIN = Boolean.getBoolean("phantom.learning.train");
 	private static final ThreadLocal<Attempt> REQUEST = new ThreadLocal<>();
 	private static final ThreadLocal<HealEvidenceV3> DISPATCH = new ThreadLocal<>(), HIT = new ThreadLocal<>(), EFFECT = new ThreadLocal<>();
-	private static final ThreadLocal<HealEvidenceV3> HP_EFFECT = new ThreadLocal<>();
+	private static final ThreadLocal<HealEvidenceV3> TARGET_EFFECT = new ThreadLocal<>();
 	private record Authority(SourceOwner identity, BooleanSupplier current) { }
 	private static final ThreadLocal<Authority> OWNER = new ThreadLocal<>();
 	private static final AtomicReference<AuditObserver> AUDIT = new AtomicReference<>();
-	private record AuditObserver(Consumer<NativeHealReceipt> heals, Consumer<String> failures) implements AutoCloseable
+	private record AuditObserver(Consumer<NativeHealReceipt> heals, Consumer<NativeRechargeReceipt> recharges, Consumer<String> failures) implements AutoCloseable
 	{
 		@Override public void close() { AUDIT.compareAndSet(this, null); }
 	}
 
 	public static AutoCloseable observeNativeAudit(Consumer<NativeHealReceipt> heals, Consumer<String> failures)
 	{
+		return observeNativeAudit(heals, null, failures);
+	}
+
+	public static AutoCloseable observeNativeAudit(Consumer<NativeHealReceipt> heals, Consumer<NativeRechargeReceipt> recharges, Consumer<String> failures)
+	{
 		if (!TRAIN) { throw new IllegalStateException("Training opt-in required"); }
-		final var observer = new AuditObserver(Objects.requireNonNull(heals), Objects.requireNonNull(failures));
+		final var observer = new AuditObserver(Objects.requireNonNull(heals), recharges, Objects.requireNonNull(failures));
 		if (!AUDIT.compareAndSet(null, observer)) { throw new IllegalStateException("Native Heal AUDIT observer already installed"); }
 		return observer;
+	}
+
+	static Consumer<String> rechargeObserverFailure()
+	{
+		final var observer = TRAIN ? AUDIT.get() : null;
+		return observer != null && observer.recharges() != null ? reason -> reportAuditFailure(observer, reason) : null;
 	}
 
 	public static final LongAdder ACCEPTED = new LongAdder(), REJECTED = new LongAdder();
@@ -112,6 +148,8 @@ public final class HealEvidenceV3
 	private long _hpStart,_hpEnd,_mpStart,_mpEnd;
 	private long _admittedNanos, _executedNanos, _offeredNanos, _hpWriteNanos;
 	private double _offeredHp, _requestedHp;
+	private long _rechargeFinishedNanos, _rechargeWriteNanos;
+	private double _beforeRechargeMp, _afterRechargeMp;
 	private HealEvidenceV3(Attempt attempt, Player actor, Player target, Skill skill, BooleanSupplier authority)
 	{
 		_attempt = attempt; _actor = actor; _target = target; _skill = skill; _authority = authority;
@@ -134,10 +172,16 @@ public final class HealEvidenceV3
 	public static boolean dispatch(Player actor, Player target, Skill skill, BooleanSupplier authority, java.util.function.BooleanSupplier nativeCast)
 	{
 		final Attempt attempt = REQUEST.get();
+		final var rechargeFailure = attempt != null && attempt.selected().family() == LegalActionV3.Family.RECHARGE ? rechargeObserverFailure() : null;
 		if (!TRAIN || attempt == null || attempt.selected().actorObjectId() != actor.getObjectId() || attempt.selected().targetObjectId() != target.getObjectId()
-			|| attempt.selected().skillId() != skill.getId() || attempt.selected().skillLevel() != skill.getLevel()) { return nativeCast.getAsBoolean(); }
+			|| attempt.selected().skillId() != skill.getId() || attempt.selected().skillLevel() != skill.getLevel()) { return castWithoutRechargeEvidence(nativeCast, rechargeFailure); }
 		final HealEvidenceV3 ticket = new HealEvidenceV3(attempt, actor, target, skill, authority);
-		if (System.nanoTime() - attempt.observation().capturedNanos() > 1_000_000_000L || !ticket.current()) { REJECTED.increment(); ticket.failure("STALE_AT_DISPATCH",false); return false; }
+		if (ticket.recharge() && (actor == target || rechargeFailure == null || !ticket.auditArmed())) { return castWithoutRechargeEvidence(nativeCast, rechargeFailure); }
+		if (System.nanoTime() - attempt.observation().capturedNanos() > 1_000_000_000L || !ticket.current())
+		{
+			if (ticket.recharge()) { return castWithoutRechargeEvidence(nativeCast, rechargeFailure); }
+			REJECTED.increment(); ticket.failure("STALE_AT_DISPATCH",false); return false;
+		}
 		if (attempt.nativeIntent() != null)
 		{
 			try { attempt.nativeIntent().accept(ticket._actionOwner.identity(), ticket._created); }
@@ -147,6 +191,15 @@ public final class HealEvidenceV3
 		try { final boolean issued = nativeCast.getAsBoolean(); ticket.issued(issued); return issued; }
 		catch (RuntimeException | Error unavailable) { ticket.cancelled(); throw unavailable; }
 		finally { restore(DISPATCH, previous); }
+	}
+
+	private boolean recharge() { return _attempt.selected().family() == LegalActionV3.Family.RECHARGE; }
+
+	private static boolean castWithoutRechargeEvidence(BooleanSupplier nativeCast, Consumer<String> failure)
+	{
+		final boolean issued = nativeCast.getAsBoolean();
+		if (issued && failure != null) { failure.accept("NATIVE_RECHARGE_ADMISSION_UNPROVEN"); }
+		return issued;
 	}
 	public static HealEvidenceV3 capture(Creature actor, Skill skill, List<WorldObject> targets, boolean simultaneous)
 	{
@@ -167,8 +220,8 @@ public final class HealEvidenceV3
 	{
 		if (ticket == null)
 		{
-			final var outer = EFFECT.get(); final var outerHp = HP_EFFECT.get(); EFFECT.remove(); HP_EFFECT.remove();
-			try { nativeEffects.run(); } finally { restore(EFFECT, outer); restore(HP_EFFECT, outerHp); }
+			final var outer = EFFECT.get(); final var outerTarget = TARGET_EFFECT.get(); EFFECT.remove(); TARGET_EFFECT.remove();
+			try { nativeEffects.run(); } finally { restore(EFFECT, outer); restore(TARGET_EFFECT, outerTarget); }
 			return;
 		}
 		boolean valid;
@@ -178,21 +231,37 @@ public final class HealEvidenceV3
 			ticket._effects = true; if (!valid) { ticket._invalid = true; }
 			if (valid && ticket.auditArmed()) { ticket._executedNanos = System.nanoTime(); }
 		}
-		final HealEvidenceV3 old = EFFECT.get(), oldHp = HP_EFFECT.get(); restore(EFFECT, valid ? ticket : null); HP_EFFECT.remove();
+		final HealEvidenceV3 old = EFFECT.get(), oldTarget = TARGET_EFFECT.get(); restore(EFFECT, valid ? ticket : null); TARGET_EFFECT.remove();
 		try { nativeEffects.run(); ticket.finished(valid); }
-		finally { restore(EFFECT, old); restore(HP_EFFECT, oldHp); }
+		finally { restore(EFFECT, old); restore(TARGET_EFFECT, oldTarget); }
 	}
 	/** Called inside the existing status monitor, after the actual successful HP assignment. */
 	public static boolean observingEffects() { return EFFECT.get() != null; }
-	/** Only the selected skill's exact instant HEAL handler can attribute a status write. Nested skills clear this scope. */
-	public static void nativeEffect(Creature actor, Creature target, Skill skill, org.l2jmobius.gameserver.model.effects.EffectType type, Runnable nativeEffect)
+	/** Only the selected skill's exact instant support handler can attribute a status write. */
+	public static void nativeEffect(Creature actor, Creature target, Skill skill, EffectType type, Runnable nativeEffect)
 	{
-		final var ticket = EFFECT.get(); final var previous = HP_EFFECT.get();
+		final var ticket = EFFECT.get(); final var previous = TARGET_EFFECT.get();
+		final boolean recharge = ticket != null && ticket.recharge();
 		final boolean exact = ticket != null && actor == ticket._actor && target == ticket._target && skill == ticket._skill
-			&& type == org.l2jmobius.gameserver.model.effects.EffectType.HEAL;
-		restore(HP_EFFECT, exact ? ticket : null);
-		try { if(exact&&ticket._hpStart==0){ticket._hpStart=System.nanoTime();}nativeEffect.run(); }
-		finally { if(exact){ticket._hpEnd=System.nanoTime();}restore(HP_EFFECT, previous); }
+			&& (recharge ? type == EffectType.MANAHEAL_BY_LEVEL || type == EffectType.MANAHEAL_PERCENT : type == EffectType.HEAL);
+		restore(TARGET_EFFECT, exact ? ticket : null);
+		try
+		{
+			if (exact && !recharge && ticket._hpStart == 0) { ticket._hpStart = System.nanoTime(); }
+			nativeEffect.run();
+			if (exact && recharge) { ticket.rechargeFinished(); }
+		}
+		finally
+		{
+			if (exact && !recharge) { ticket._hpEnd = System.nanoTime(); }
+			restore(TARGET_EFFECT, previous);
+		}
+	}
+
+	private synchronized void rechargeFinished()
+	{
+		if (_rechargeFinishedNanos != 0 || _published) { _auditInexact = true; }
+		_rechargeFinishedNanos = System.nanoTime();
 	}
 	public static void failedEffect() { final var ticket = EFFECT.get(); if (ticket != null) { synchronized (ticket) { ticket._invalid = true; } } }
 
@@ -200,8 +269,8 @@ public final class HealEvidenceV3
 	public static void nativeOffer(Creature effector, Creature recipient, Skill skill, double offered, double requested)
 	{
 		if (!TRAIN || AUDIT.get() == null) { return; }
-		final var ticket = HP_EFFECT.get();
-		if (ticket == null || ticket != EFFECT.get() || !ticket.auditArmed() || effector != ticket._actor || recipient != ticket._target || skill != ticket._skill) { return; }
+		final var ticket = TARGET_EFFECT.get();
+		if (ticket == null || ticket != EFFECT.get() || ticket.recharge() || !ticket.auditArmed() || effector != ticket._actor || recipient != ticket._target || skill != ticket._skill) { return; }
 		synchronized (ticket)
 		{
 			if (ticket._published) { return; }
@@ -218,8 +287,8 @@ public final class HealEvidenceV3
 
 	public static void hpWritten(Creature recipient, double before, double after, boolean regeneration)
 	{
-		final HealEvidenceV3 ticket = HP_EFFECT.get();
-		if (ticket == null || regeneration || recipient != ticket._target) { return; }
+		final HealEvidenceV3 ticket = TARGET_EFFECT.get();
+		if (ticket == null || regeneration || ticket.recharge() || recipient != ticket._target) { return; }
 		final boolean positive = Double.isFinite(before) && Double.isFinite(after) && after > before;
 		if (!positive && !ticket.auditArmed()) { return; }
 		synchronized (ticket)
@@ -239,8 +308,27 @@ public final class HealEvidenceV3
 	public static void mpWritten(Creature actor, double before, double after, boolean regeneration)
 	{
 		HealEvidenceV3 ticket = DISPATCH.get(); if (ticket == null) { ticket = HIT.get(); } if (ticket == null) { ticket = EFFECT.get(); }
-		if (ticket == null || regeneration || actor != ticket._actor || !Double.isFinite(before) || !Double.isFinite(after) || before <= after) { return; }
+		if (ticket == null || regeneration) { return; }
+		if (ticket.recharge() && actor == ticket._target && TARGET_EFFECT.get() == ticket)
+		{
+			ticket.rechargeWritten(before, after);
+			return;
+		}
+		if (actor != ticket._actor || !Double.isFinite(before) || !Double.isFinite(after) || before <= after) { return; }
 		synchronized (ticket) { if (ticket.current() && !ticket._published) { ticket._mp += before - after;final long stamp=System.nanoTime();if(ticket._mpStart==0){ticket._mpStart=stamp;}ticket._mpEnd=stamp; } else { ticket._invalid = true; } }
+	}
+
+	private synchronized void rechargeWritten(double before, double after)
+	{
+		if (_published || _rechargeWriteNanos != 0 || !Double.isFinite(before) || !Double.isFinite(after) || before < 0 || after < before)
+		{
+			_auditInexact = true;
+			return;
+		}
+		if (after == before) { return; }
+		_beforeRechargeMp = before;
+		_afterRechargeMp = after;
+		_rechargeWriteNanos = System.nanoTime();
 	}
 	private boolean current()
 	{
@@ -263,6 +351,7 @@ public final class HealEvidenceV3
 			publish = claimPublication();
 		}
 		if (missingTask) { failure("NO_NATIVE_TASK", false); }
+		if (issued && missingTask && recharge()) { reportAuditFailure(_auditObserver, "NATIVE_RECHARGE_TASK_UNPROVEN"); }
 		if (publish) { publish(); }
 	}
 
@@ -274,7 +363,7 @@ public final class HealEvidenceV3
 			_finished = valid;
 			publish = claimPublication();
 		}
-		if (!valid) { auditFailure("NATIVE_HEAL_EFFECT_UNPROVEN"); }
+		if (!valid) { auditFailure(recharge() ? "NATIVE_RECHARGE_EFFECT_UNPROVEN" : "NATIVE_HEAL_EFFECT_UNPROVEN"); }
 		if (publish) { publish(); }
 	}
 
@@ -288,6 +377,11 @@ public final class HealEvidenceV3
 
 	private void publish()
 	{
+		if (recharge())
+		{
+			publishRecharge();
+			return;
+		}
 		if (_hp <= 0 || _mp <= 0 || !current())
 		{
 			if (_hp <= 0 && _mp > 0 && _offeredNanos != 0 && _requestedHp == 0 && !_auditInexact && auditArmed() && current())
@@ -317,6 +411,31 @@ public final class HealEvidenceV3
 
 	private boolean auditArmed() { return _auditObserver != null && _auditObserver == AUDIT.get(); }
 
+	private LearningCastEvidence.NativeCastTrace nativeCastTrace(String key)
+	{
+		final var baseline = _attempt.baseline();
+		return new LearningCastEvidence.NativeCastTrace(key, _actor.getObjectId(), _owner.epoch(), _target.getObjectId(), _targetOwner.epoch(),
+			_actor.getInstanceId(), _skill.getId(), _skill.getLevel(), baseline.skillId(), baseline.skillLevel(), _created, _admittedNanos,
+			_executedNanos, TacticalObservationV3.hash(_attempt.observation().bytes()));
+	}
+
+	private void publishRecharge()
+	{
+		if (!auditArmed() || _auditObserver.recharges() == null) { return; }
+		if (_auditInexact || _rechargeFinishedNanos == 0 || _mp <= 0 || !current())
+		{
+			reportAuditFailure(_auditObserver, "NATIVE_RECHARGE_CAST_UNPROVEN");
+			return;
+		}
+		try
+		{
+			final var receipt = new NativeRechargeReceipt(nativeCastTrace(eventKey()), _attempt.observation(), _actionOwner.identity(),
+				_rechargeFinishedNanos, _rechargeWriteNanos, _mpStart, _mpEnd, _beforeRechargeMp, _afterRechargeMp, _mp);
+			if (auditArmed()) { _auditObserver.recharges().accept(receipt); }
+		}
+		catch (RuntimeException | Error unavailable) { auditFailure("NATIVE_RECHARGE_RECEIPT_UNAVAILABLE"); }
+	}
+
 	private void publishNativeAudit(String key)
 	{
 		if (!auditArmed() || _actor == _target) { return; }
@@ -326,12 +445,9 @@ public final class HealEvidenceV3
 			return;
 		}
 		final var observation = _attempt.observation();
-		final var baseline = _attempt.baseline();
 		try
 		{
-			final var cast = new LearningCastEvidence.NativeCastTrace(key, _actor.getObjectId(), _owner.epoch(), _target.getObjectId(), _targetOwner.epoch(),
-				_actor.getInstanceId(), _skill.getId(), _skill.getLevel(), baseline.skillId(), baseline.skillLevel(), _created, _admittedNanos,
-				_executedNanos, TacticalObservationV3.hash(observation.bytes()));
+			final var cast = nativeCastTrace(key);
 			final var receipt = new NativeHealReceipt(cast, observation, _actionOwner.identity(), _offeredNanos, _hpWriteNanos, _mpStart, _mpEnd,
 				_hp > 0 ? _beforeHp : 0, _hp > 0 ? _afterHp : 0, _offeredHp, _requestedHp, _mp);
 			if (auditArmed()) { _auditObserver.heals().accept(receipt); }
@@ -342,7 +458,13 @@ public final class HealEvidenceV3
 	private void auditFailure(String reason)
 	{
 		if (!auditArmed() || _actor == _target || _mp <= 0) { return; }
-		try { _auditObserver.failures().accept(reason); }
+		reportAuditFailure(_auditObserver, reason);
+	}
+
+	private static void reportAuditFailure(AuditObserver observer, String reason)
+	{
+		if (observer == null || observer != AUDIT.get()) { return; }
+		try { observer.failures().accept(reason); }
 		catch (RuntimeException | Error unavailable) { /* Optional AUDIT diagnostics never affect the native action. */ }
 	}
 
@@ -353,11 +475,13 @@ public final class HealEvidenceV3
 			if (_published) { return; }
 			_published = true;
 		}
+		if (recharge()) { auditFailure("NATIVE_RECHARGE_CANCELLED_AFTER_MP"); }
 		failure("CAST_CANCELLED", false);
 	}
 
 	private void failure(String reason, boolean completed)
 	{
+		if (recharge()) { return; }
 		final double hp, mp;
 		synchronized (this)
 		{

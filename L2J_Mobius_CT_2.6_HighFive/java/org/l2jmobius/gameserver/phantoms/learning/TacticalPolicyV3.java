@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.*;
@@ -314,7 +315,7 @@ public final class TacticalPolicyV3
 				final var offered = new ArrayList<LegalActionV3>();
 				for (var directive : choices)
 				{
-					final var action = legal(actor, directive, observation, generation);
+					final var action = legal(actor, directive, observation, generation, LegalActionV3.Family.HEAL);
 					if (action == null) { offered.clear(); break; }
 					offered.add(action);
 				}
@@ -417,25 +418,50 @@ public final class TacticalPolicyV3
 		}
 		return "UNSAFE_PREDICATE";
 	}
-	private LegalActionV3 legal(Player actor, TacticalDirective directive, TacticalObservationV3 observation, long generation)
+	private LegalActionV3 legal(Player actor, TacticalDirective directive, TacticalObservationV3 observation, long generation, LegalActionV3.Family family)
 	{
 		if (!(World.getInstance().findObject(directive.targetObjectId()) instanceof Player target) || target.getParty() != actor.getParty() || target.isAlikeDead() || target.getNativeWorkOwner() == null || !target.getNativeWorkOwner().isCurrent()) { reason("STALE_OWNER_OR_TARGET",directive.actor().profileId(),directive.targetObjectId());return null; }
 		final var skill = actor.getKnownSkill(directive.actionSkillId()); final var entity = observation.entity(target.getObjectId());
-		if (skill == null || entity == null || skill.getLevel() != directive.actionSkillLevel() || !PhantomSupportEffectAuthority.supportsCapability(skill, "combat.heal") || skill.getAffectRange() > 0
-			|| skill.isChanneling() || skill.isSimultaneousCast() || skill.getFlyType() != null || actor.isSkillDisabled(skill) || !actor.checkDoCastConditions(skill) || !skill.checkCondition(actor, target, false)
+		final String capability = family == LegalActionV3.Family.HEAL ? "combat.heal" : "combat.recharge";
+		if (skill == null || entity == null || skill.getLevel() != directive.actionSkillLevel() || !PhantomSupportEffectAuthority.supportsCapability(skill, capability) || skill.getAffectRange() > 0
+			|| skill.isChanneling() || skill.isSimultaneousCast() || skill.getFlyType() != null
+			|| family == LegalActionV3.Family.HEAL && (actor.isSkillDisabled(skill) || !actor.checkDoCastConditions(skill) || !skill.checkCondition(actor, target, false))
 			|| actor.calculateDistance3D(target) > actor.getMagicalAttackRange(skill) || !entity.fact(Field.LOS).known() || entity.fact(Field.LOS).value() != 1) { reason(skill==null?"MISSING_SKILL":entity==null?"STALE_SNAPSHOT":!entity.fact(Field.LOS).known()||entity.fact(Field.LOS).value()!=1?"MISSING_LOS":"SKILL_NOT_READY_OR_LEGAL",directive.actor().profileId(),directive.targetObjectId());return null; }
 		final double cost = actor.getStat().getMpConsume(skill) + actor.getStat().getMpInitialConsume(skill);
 		if (cost <= 0 || actor.getCurrentMp() < cost) { return null; }
-		return new LegalActionV3(LegalActionV3.Family.HEAL, "PartyTactics", directive.actor().profileId(), actor.getObjectId(), TacticalSnapshotV3.epoch(actor), generation,
+		return new LegalActionV3(family, "PartyTactics", directive.actor().profileId(), actor.getObjectId(), TacticalSnapshotV3.epoch(actor), generation,
 			target.getObjectId(), TacticalSnapshotV3.epoch(target), observation.partyIdentity(), skill.getId(), skill.getLevel(), cost, skill.getHitTime(), Math.max(0, actor.getMagicalAttackRange(skill)), false, true);
 	}
 	public <T> T dispatch(TacticalDirective directive, java.util.function.Supplier<T> nativeAction)
 	{
-		final var attempt = _pending.remove(directive.actor().profileId());
-		if (attempt == null || attempt.selected().targetObjectId() != directive.targetObjectId() || attempt.selected().skillId() != directive.actionSkillId()) { return nativeAction.get(); }
+		final var pending = _pending.remove(directive.actor().profileId());
+		final boolean recharge = directive.kind() == DirectiveKind.RECHARGE_MEMBER && directive.actor().characterObjectId() != directive.targetObjectId();
+		final var missing = recharge ? HealEvidenceV3.rechargeObserverFailure() : null;
+		final var attempt = missing == null ? pending : rechargeObservation(directive);
+		if (attempt == null || attempt.selected().targetObjectId() != directive.targetObjectId() || attempt.selected().skillId() != directive.actionSkillId())
+		{
+			final T outcome = nativeAction.get();
+			if (missing != null && outcome == ActionOutcome.ISSUED) { missing.accept("NATIVE_RECHARGE_OBSERVATION_UNPROVEN"); }
+			return outcome;
+		}
 		final long start = System.nanoTime();
 		try { return HealEvidenceV3.withAttempt(attempt, nativeAction); }
 		finally { _dispatchTime.add(System.nanoTime() - start); }
+	}
+
+	private HealEvidenceV3.Attempt rechargeObservation(TacticalDirective directive)
+	{
+		if (!"combat.recharge".equals(directive.capabilityKey())) { return null; }
+		try
+		{
+			if (!(World.getInstance().findObject(directive.actor().characterObjectId()) instanceof Player actor)
+				|| actor.getParty() == null) { return null; }
+			final long generation = _generation.incrementAndGet();
+			final var observation = TacticalSnapshotV3.collect(actor, directive.actor().profileId(), generation, _maximumEntities);
+			final var action = legal(actor, directive, observation, generation, LegalActionV3.Family.RECHARGE);
+			return action == null ? null : new HealEvidenceV3.Attempt(observation, List.of(action), action, action, _version, _ -> { });
+		}
+		catch (RuntimeException unavailable) { return null; }
 	}
 	private static long allocated()
 	{
