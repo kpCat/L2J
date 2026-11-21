@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -336,6 +337,77 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 			{
 				if (original == null) { System.clearProperty("phantom.learning.train"); }
 				else { System.setProperty("phantom.learning.train", original); }
+			}
+		});
+		registry.add("131-pvp-learner-and-opponent-hold-separate-policies", _ ->
+		{
+			final String priorTrain = System.getProperty("phantom.learning.train");
+			final String priorNonce = System.getProperty("phantom.learning131.nonce");
+			try
+			{
+				System.setProperty("phantom.learning.train", "true");
+				System.setProperty("phantom.learning131.nonce", "1".repeat(32));
+				final String manifest = "3".repeat(64);
+				final var stock = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, ignored -> { });
+				stock.actionControlAudit131(AuditControl.STOCK_PVP, (observation, offered) -> null, ignored -> { },
+					(profile, object, target) -> profile == 1 && object == 10 && target == 100
+						? new StockAuditAuthority(new Object(), () -> true) : null);
+				final var heuristic = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, ignored -> { });
+				heuristic.actionControlAudit131(AuditControl.HEURISTIC, (observation, offered) -> null, ignored -> { }, null);
+				final var learner = LearningPolicy.ownedEpisodes131(stock, manifest);
+				final var opponent = LearningPolicy.ownedEpisodes131(heuristic, manifest);
+				final var roster = new java.util.HashMap<>(Map.of(1L, learner, 2L, opponent));
+				final var dispatcher = new ManualDispatcher();
+				final var mode = PhantomCombatMode.RANGED_MAGIC;
+				final var skills = List.of(new SelectedSkill(801, 2), new SelectedSkill(802, 2));
+				final var bodies = Map.of(1L, new FakeLease(100), 2L, new FakeLease(100), 3L, new FakeLease(100));
+				bodies.values().forEach(lease -> lease.additionalSkills = skills);
+				bodies.get(2L).actor = actor(11, 100, 100);
+				bodies.get(3L).actor = actor(12, 100, 100);
+				bodies.get(1L).archivedSkills = List.of(new StockPvpSkill(skills.get(1), true, 200, 0, true),
+					new StockPvpSkill(skills.getFirst(), true, 200, 50, true));
+				final var resolver = new PhantomCombatCapabilityResolver(id -> List.of(new CapabilityEvidence(mode.capabilityKey(), 900, List.of())));
+				final var service = new PhantomCombatService(bodies::get, resolver, PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), () -> 1L, dispatcher);
+				try
+				{
+					service.installLearning(opponent);
+					PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> service.installPvpLearning131("4".repeat(64), roster),
+						"An actor cannot borrow a policy from another campaign.");
+					System.setProperty("phantom.learning131.nonce", "2".repeat(32));
+					PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> service.installPvpLearning131(manifest, roster),
+						"The same manifest cannot make a policy from a different boot eligible.");
+					System.setProperty("phantom.learning131.nonce", "1".repeat(32));
+					service.installPvpLearning131(manifest, roster);
+					roster.clear();
+					service.start();
+					for (long profile : List.of(1L, 2L, 3L))
+					{
+						PhantomAssertions.assertTrue(service.startPvpSession(new PhantomPvpCombatRequest(profile, 100, Source.ACTUAL_ATTACK, HASH,
+							mode, false, false, 30, 30_000, () -> false)).accepted(), "The ordinary reactive authority should still admit this policy fixture.");
+					}
+					for (int pulse = 0; pulse < 3; pulse++) { dispatcher.runNext(); }
+					PhantomAssertions.assertTrue(bodies.get(1L).preparedWith == learner && bodies.get(2L).preparedWith == opponent
+						&& bodies.get(3L).preparedWith == null, "The combat owner misrouted or leaked a pinned PvP policy.");
+					PhantomAssertions.assertEquals(skills.getLast(), bodies.get(1L).lastPvpSkill, "The exact learner should use its archived order.");
+					PhantomAssertions.assertEquals(skills.getFirst(), bodies.get(2L).lastPvpSkill, "The opponent must retain the ordinary ordered cast.");
+					PhantomAssertions.assertThrows(IllegalStateException.class, () -> service.installPvpLearning131(manifest, Map.of(1L, opponent)),
+						"A running combat owner must not swap a pinned opponent.");
+					PhantomAssertions.assertThrows(IllegalStateException.class, () -> opponent.tactical(TacticalPolicyV3.OFF),
+						"The installed policy object must not swap its tactical implementation.");
+				}
+				finally
+				{
+					service.beginStop();
+					if (dispatcher.next != null) { dispatcher.cancelNext(); }
+					PhantomAssertions.assertTrue(service.finishStop(), "PvP profile policy fixture did not drain.");
+				}
+			}
+			finally
+			{
+				if (priorTrain == null) { System.clearProperty("phantom.learning.train"); }
+				else { System.setProperty("phantom.learning.train", priorTrain); }
+				if (priorNonce == null) { System.clearProperty("phantom.learning131.nonce"); }
+				else { System.setProperty("phantom.learning131.nonce", priorNonce); }
 			}
 		});
 		registry.add("03-target-safety-rejection-propagates", _ ->
@@ -699,7 +771,12 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 	private static ActorSnapshot actor(double hp, double cp)
 	{
-		return new ActorSnapshot(10, 88, 0, hp, 100, 100, 100, cp, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
+		return actor(10, hp, cp);
+	}
+
+	private static ActorSnapshot actor(int objectId, double hp, double cp)
+	{
+		return new ActorSnapshot(objectId, 88, 0, hp, 100, 100, 100, cp, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
 	}
 
 	private static PvpTargetSnapshot target(boolean sameParty, boolean peaceRestricted, boolean dead)
@@ -758,6 +835,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 	private static final class FakeLease implements PhantomCombatActorLease
 	{
 		private ActorSnapshot actor;
+		private LearningPolicy preparedWith;
 		private List<StockPvpSkill> archivedSkills = List.of();
 		private Runnable archivedRead = () -> { };
 		private int learnedRank = 1;
@@ -848,6 +926,15 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		{
 			archivedRead.run();
 			return archivedSkills;
+		}
+
+		@Override
+		public LearningPolicy.Attempt preparePvpLearning(LearningPolicy learning, PhantomPvpCombatRequest request, int tacticalTargetObjectId,
+			List<SelectedSkill> ready, long generation,
+			org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSelection archived)
+		{
+			preparedWith = learning;
+			return null;
 		}
 
 		@Override

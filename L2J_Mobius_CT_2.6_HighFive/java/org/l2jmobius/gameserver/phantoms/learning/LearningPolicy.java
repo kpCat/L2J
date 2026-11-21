@@ -65,6 +65,13 @@ public final class LearningPolicy
 
 	public boolean ownedPvpEpisodes() { return active(LearningScope.PVP); }
 
+	/** Match the in-memory owner created for this exact campaign, before any native lease is issued. */
+	public boolean ownsPvpCampaign131(String manifestSha, String bootNonce)
+	{
+		return manifestSha != null && manifestSha.equals(_evaluationIdentity) && bootNonce != null && bootNonce.equals(_episodeBootNonce131)
+			&& _writer == null && _tactical.ownsPvp131();
+	}
+
 	public StockAuditAuthority bindStockPveAudit131(PhantomCombatRequest request, int actorId)
 	{
 		return request.learningScope() == LearningScope.SOLO || request.learningScope() == LearningScope.PARTY
@@ -111,6 +118,7 @@ public final class LearningPolicy
 	private final long _seed;
 	private final LearningStore.Writer _writer;
 	private String _evaluationIdentity;
+	private String _episodeBootNonce131;
 	private final BooleanSupplier _catalogCurrent;
 	private final LongAdder _evaluated = new LongAdder();
 	private final LongAdder _preferredDifferent = new LongAdder();
@@ -121,9 +129,10 @@ public final class LearningPolicy
 	private final Witness _partyWitness;
 	private volatile Observer _observer;
 	private volatile TacticalPolicyV3 _tactical = TacticalPolicyV3.OFF;
-	public void tactical(TacticalPolicyV3 policy)
+	public synchronized void tactical(TacticalPolicyV3 policy)
 	{
 		if (this == OFF) { if (policy.mode() != TacticalPolicyV3.Mode.OFF) { throw new IllegalStateException("V3 requires owned collecting Combat policy"); } return; }
+		if (_tactical.hasEpisodes131()) { throw new IllegalStateException("TASK131 combat policy is already bound"); }
 		_tactical = java.util.Objects.requireNonNull(policy);
 	}
 	public Decision choose(List<Candidate> candidates, SelectedSkill baseline, long sequence, PhantomCombatRequest request, int actorObjectId)
@@ -321,6 +330,7 @@ public final class LearningPolicy
 		final var policy = new LearningPolicy(Mode.SHADOW, 0, null, 4, 0, null, () -> !SkillData.getInstance().catalogReloaded());
 		policy.tactical(tactical);
 		policy._evaluationIdentity = identity;
+		policy._episodeBootNonce131 = System.getProperty("phantom.learning131.nonce");
 		return policy;
 	}
 

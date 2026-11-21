@@ -244,14 +244,20 @@ public final class PhantomSystem
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
 	private java.util.function.BiPredicate<Player, org.l2jmobius.gameserver.model.actor.Creature> _testFarmTargetScope = (actor, target) -> true;
 	private TestLearning131 _testLearning131;
-	record TestLearning131(LearningPolicy damage, TacticalPolicyV3 support, PhantomVisibleAutoPlay.SoloOffense soloOffense, java.util.Set<Long> admittedProfiles)
+	record TestLearning131(LearningPolicy damage, TacticalPolicyV3 support, PhantomVisibleAutoPlay.SoloOffense soloOffense,
+		java.util.Set<Long> admittedProfiles, String pvpManifestSha, Map<Long, LearningPolicy> pvpPolicies)
 	{
 		TestLearning131
 		{
 			admittedProfiles = java.util.Set.copyOf(admittedProfiles);
+			pvpPolicies = Map.copyOf(pvpPolicies);
 			if (admittedProfiles.isEmpty() || admittedProfiles.size() > 18 || admittedProfiles.stream().anyMatch(profile -> profile <= 0))
 			{
 				throw new IllegalArgumentException("TASK131 requires an exact nonempty TEST roster");
+			}
+			if (pvpPolicies.isEmpty() != (pvpManifestSha == null) || !admittedProfiles.containsAll(pvpPolicies.keySet()))
+			{
+				throw new IllegalArgumentException("TASK131 PvP policy must belong to the admitted TEST roster and manifest");
 			}
 		}
 	}
@@ -501,6 +507,10 @@ public final class PhantomSystem
 				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, _gameKnowledgeService::query, () -> _progressionService.findCatalog().orElse(null));
 				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
 				_combatService.installLearning(_testLearning131 == null ? LearningPolicy.configured(ServerConfig.DATAPACK_ROOT.toPath()) : _testLearning131.damage());
+				if (_testLearning131 != null && !_testLearning131.pvpPolicies().isEmpty())
+				{
+					_combatService.installPvpLearning131(_testLearning131.pvpManifestSha(), _testLearning131.pvpPolicies());
+				}
 				_combatService.start();
 				final File economyPolicyFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/economy/high-five-economy-v1.xml");
 				final PhantomEconomyPolicy economyPolicy = PhantomEconomyPolicy.load(economyPolicyFile.toPath());

@@ -1,5 +1,5 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024,end-off-v29.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
+G0	P0	UNKNOWN	S024,end-off-v30.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
 G1	P1	UNKNOWN	TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14	Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
 G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE, AREA/AURA и ограниченное окно смерти или дефицита MP, живые эффекты и tactical frame открыты
@@ -16,7 +16,7 @@ R2	P1–P3	UNKNOWN	D2,D3,D4,N02–N05,N08,N09	Поддержка PARTY_DEFENSE �
 R3	P2–P3	NOT_RUN	N06–N09,N11	Размеры составов и законный массовый отход не проверены
 R4	P2–P3	UNKNOWN	N04,N08,N10	Эскалация переиспользована, native PvP/PK safety negatives не выполнены
 R5	P3	NOT_RUN	N01,N03,N12,N13	Награды, расходы, снабжение и restart не проверены на новой версии
-R6	P4–P5	NOT_RUN	D5,D6,D7,N15	Solo TRAIN связан со штатным кастом и sealed FIT, живые бой, обучение и A→B→A не выполнены
+R6	P4–P5	NOT_RUN	D5,D6,D7,N15,v30-scoped-pvp-focused-final.log	Офлайн проверены Solo TRAIN и раздельные PvP-политики по профилям, живые бой, обучение и A→B→A не выполнены
 R7	P5	NOT_RUN	D8,Q	Математика офлайн, sealed native evaluation не выполнена
 R8	P4–P5	UNKNOWN	D7,D9,N15	Офлайн проверено восстановление префикса Solo TRAIN, живые Resume и TUNING/AUDIT открыты
 R9	P2–P6	UNKNOWN	D10,N14,N16	Проверены отдельные пути композиции, native wiring профилирование не проверено

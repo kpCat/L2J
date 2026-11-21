@@ -254,6 +254,7 @@ public final class PhantomCombatService
 	private boolean _stopFailureRecorded;
 	private boolean _stopRequested;
 	private LearningPolicy _learning = LearningPolicy.OFF;
+	private Map<Long, LearningPolicy> _pvpLearning131 = Map.of();
 
 	public boolean learningActive(PhantomCombatRequest.LearningScope scope)
 	{
@@ -271,6 +272,35 @@ public final class PhantomCombatService
 			}
 			_learning = Objects.requireNonNull(learning);
 		}
+	}
+
+	/** TEST-only routing of one or two fixed policies across the exact PvP cohort. */
+	public void installPvpLearning131(String manifestSha, Map<Long, LearningPolicy> policies)
+	{
+		synchronized (_monitor)
+		{
+			if (_state == ServiceState.RUNNING || _stopRequested || !_pvpLearning131.isEmpty())
+			{
+				throw new IllegalStateException("PvP policy scope can only be installed once before combat starts");
+			}
+			final var pinned = Map.copyOf(policies);
+			final String bootNonce = System.getProperty("phantom.learning131.nonce", "");
+			if (!Boolean.getBoolean("phantom.learning.train") || !bootNonce.matches("[a-f0-9]{32}")
+				|| manifestSha == null || !manifestSha.matches("[a-f0-9]{64}") || pinned.isEmpty() || pinned.size() > 18
+				|| pinned.keySet().stream().anyMatch(profile -> profile <= 0) || pinned.values().stream().distinct().count() > 2
+				|| pinned.values().stream().anyMatch(policy -> !policy.ownsPvpCampaign131(manifestSha, bootNonce)))
+			{
+				throw new IllegalArgumentException("TASK131 PvP learning requires a fixed owned campaign and participant policies");
+			}
+			_pvpLearning131 = pinned;
+		}
+	}
+
+	private LearningPolicy pvpLearning(PhantomPvpCombatRequest request)
+	{
+		if (_pvpLearning131.isEmpty()) { return _learning; }
+		return request.source().proactive() || request.forceUse() ? LearningPolicy.OFF
+			: _pvpLearning131.getOrDefault(request.profileId(), LearningPolicy.OFF);
 	}
 
 	public PhantomCombatService(PhantomCombatBackend backend, PhantomCombatCapabilityResolver capabilityResolver, PhantomCombatPolicy policy)
@@ -465,7 +495,7 @@ public final class PhantomCombatService
 					final boolean playerCombat = (pvpRequest != null) || ((siegeRequest != null) && (siegeRequest.targetKind() == org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind.PLAYER));
 					if (pvpRequest != null)
 					{
-						stockAudit = _learning.bindStockPvpAudit131(pvpRequest, actor.objectId());
+						stockAudit = pvpLearning(pvpRequest).bindStockPvpAudit131(pvpRequest, actor.objectId());
 					}
 					else if (raidRequest == null && siegeRequest == null && !retreatOnly)
 					{
@@ -1343,10 +1373,11 @@ public final class PhantomCombatService
 				}
 				return false;
 			}
-			if (!_learning.stop())
+			if (!_learning.stop() || _pvpLearning131.values().stream().distinct().filter(policy -> policy != _learning).anyMatch(policy -> !policy.stop()))
 			{
 				return false;
 			}
+			_pvpLearning131 = Map.of();
 			_state = ServiceState.STOPPED;
 			return true;
 		}
@@ -1977,8 +2008,9 @@ public final class PhantomCombatService
 		final ActionOutcome spacing = session._actorLease.maintainPvpPosition(ownerObjectId, skills.stream().findFirst().orElse(null), session._request.mode());
 		if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
 		if (ready.isEmpty() && !session._loadout.normalAttackFallback()) { return; }
-		final var learned = ready.size() >= 2 && _learning.ownedPvpEpisodes()
-			? session._actorLease.preparePvpLearning(_learning, session._pvpRequest, tacticalTargetObjectId, ready, session._generation, selection.stockPvp()) : null;
+		final var policy = pvpLearning(session._pvpRequest);
+		final var learned = ready.size() >= 2 && policy.ownedPvpEpisodes()
+			? session._actorLease.preparePvpLearning(policy, session._pvpRequest, tacticalTargetObjectId, ready, session._generation, selection.stockPvp()) : null;
 		if (learned != null && (!ready.contains(learned.candidate().skill()) || !learned.candidate().exact().getAsBoolean())) { return; }
 		final var shot = session._actorLease.activateShot(session._request.mode());
 		_metrics.shot(shot);
