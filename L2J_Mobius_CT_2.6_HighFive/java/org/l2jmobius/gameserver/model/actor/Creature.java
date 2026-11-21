@@ -2689,6 +2689,8 @@ public abstract class Creature extends WorldObject
 			CaptchaManager.getInstance().updateCounter(killer, this);
 		}
 		
+		final long deathStamp;
+		final long corpseGeneration;
 		// killing is only possible one time
 		synchronized (this)
 		{
@@ -2700,6 +2702,8 @@ public abstract class Creature extends WorldObject
 			// now reset currentHp to zero
 			setCurrentHp(0);
 			setDead(true);
+			deathStamp = org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.nativeDeathStamp(this, killer);
+			corpseGeneration = deathStamp > 0 && this instanceof Player player ? player.nativeCorpseGeneration() : 0;
 		}
 		
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_CREATURE_DEATH, this))
@@ -2715,6 +2719,7 @@ public abstract class Creature extends WorldObject
 				return false;
 			}
 		}
+		org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.nativeDeathCommitted(this, killer, deathStamp, corpseGeneration);
 		
 		// Calculate rewards for main damage dealer.
 		final Creature mainDamageDealer = isMonster() ? asMonster().getMainDamageDealer() : null;

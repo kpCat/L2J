@@ -5,8 +5,11 @@ package org.l2jmobius.gameserver.phantoms.learning;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.model.World;
@@ -28,6 +31,7 @@ public final class LearningCastEvidence
 	private static final ThreadLocal<LearningCastEvidence> EFFECT = new ThreadLocal<>();
 	private static final ThreadLocal<LearningCastEvidence> DAMAGE = new ThreadLocal<>();
 	private static final ThreadLocal<LearningCastEvidence> MP = new ThreadLocal<>();
+	private static final AtomicReference<TerminalObserver> TERMINALS = new AtomicReference<>();
 	private static final class RunIdentity
 	{
 		private static final String SALT = UUID.randomUUID().toString();
@@ -41,6 +45,38 @@ public final class LearningCastEvidence
 			{ throw new IllegalArgumentException("Invalid PvP pool write"); }
 		}
 		public double delta() { return before - after; }
+	}
+
+	/** Additive terminal witness for one exact paid native action. Zero credit fields mean no exact stock credit. */
+	public record NativeTerminal(String eventKey, int actorObjectId, long actorEpoch, int targetObjectId, long targetEpoch, int instanceId,
+		long corpseGeneration, long deathNanos, long killCreditNanos, long killSequence, long damageNanos)
+	{
+		public NativeTerminal
+		{
+			if (eventKey == null || !eventKey.matches("[a-f0-9]{64}") || actorObjectId <= 0 || targetObjectId <= 0 || actorObjectId == targetObjectId
+				|| actorEpoch <= 0 || targetEpoch <= 0 || instanceId < 0 || corpseGeneration < 0 || damageNanos <= 0 || deathNanos < damageNanos
+				|| killSequence < 0 || (killSequence == 0 ? killCreditNanos != 0 : corpseGeneration != 0 || killCreditNanos < deathNanos))
+			{ throw new IllegalArgumentException("Invalid native terminal evidence"); }
+		}
+	}
+
+	/** Explicit owned TEST collector. Paid observers and existing receipt formats do not depend on it. */
+	public static AutoCloseable observeNativeTerminals(Consumer<NativeTerminal> sink)
+	{
+		if (!TRAIN) { throw new IllegalStateException("Training opt-in required"); }
+		final var observer = new TerminalObserver(Objects.requireNonNull(sink));
+		if (!TERMINALS.compareAndSet(null, observer)) { throw new IllegalStateException("Native terminal observer already installed"); }
+		return observer;
+	}
+
+	private record TerminalObserver(Consumer<NativeTerminal> sink) implements AutoCloseable
+	{
+		private void publish(NativeTerminal receipt)
+		{
+			if (TERMINALS.get() == this) { sink.accept(receipt); }
+		}
+
+		@Override public void close() { TERMINALS.compareAndSet(this, null); }
 	}
 
 	/** Exact paid PvP effect. A pool without a native debit is absent. */
@@ -79,6 +115,7 @@ public final class LearningCastEvidence
 	private final PlayerNativeWork.Owner _pvpOwner;
 	private final String _pvpOpponentParty;
 	private final BooleanSupplier _leaseValid;
+	private final TerminalObserver _terminalObserver;
 	private final long _created = System.nanoTime();
 	private final double _maxHp;
 	private boolean _bound;
@@ -95,6 +132,7 @@ public final class LearningCastEvidence
 	private double _mp, _beforeHp = Double.NaN, _afterHp;
 	private PvpPoolWrite _pvpHp;
 	private PvpPoolWrite _pvpCp;
+	private long _nativeDamageNanos, _nativeDeathNanos, _nativeCorpseGeneration, _nativeKillCreditNanos, _nativeKillSequence;
 	private String _captureRejection = "no-native-task";
 
 	private LearningCastEvidence(LearningPolicy.Attempt attempt, Player actor, Creature target, Skill skill, BooleanSupplier leaseValid)
@@ -111,6 +149,7 @@ public final class LearningCastEvidence
 		_pvpOwner = target instanceof Player opponent ? opponent.getNativeWorkOwner() : null;
 		_pvpOpponentParty = target instanceof Player opponent ? pvpPartyIdentity(opponent) : null;
 		_leaseValid = leaseValid;
+		_terminalObserver = attempt.tactical() == null ? null : TERMINALS.get();
 		_maxHp = target.getMaxHp();
 	}
 
@@ -315,6 +354,67 @@ public final class LearningCastEvidence
 	public static void terminalDeath(Creature target)
 	{final var ticket=DAMAGE.get();if(ticket!=null&&ticket==EFFECT.get()&&target==ticket._target){ticket._lethal=true;}}
 
+	/** Called immediately after the stock dead-state write, under the Creature monitor. */
+	public static long nativeDeathStamp(Creature target, Creature killer)
+	{
+		final var ticket = terminalTicket(target, killer);
+		return ticket != null && ticket.exactLethalDamage() ? System.nanoTime() : 0;
+	}
+
+	private boolean exactLethalDamage()
+	{
+		return _pvpOwner == null ? _nativeDamageNanos > 0 && _afterHp < 0.5 : _pvpHp != null && _pvpHp.after() < 0.5;
+	}
+
+	/** Only the non-vetoed death can become a terminal witness for the paid cast. */
+	public static void nativeDeathCommitted(Creature target, Creature killer, long stamp, long corpseGeneration)
+	{
+		if (stamp <= 0) { return; }
+		final var ticket = terminalTicket(target, killer);
+		if (ticket == null || ticket._nativeDeathNanos != 0 || !target.isDead() || !ticket.terminalLifetimeCurrent()) { return; }
+		if (ticket._pvpOwner == null ? ticket._spawn == null || corpseGeneration != 0
+			: corpseGeneration <= 0 || ((Player) target).nativeCorpseGeneration() != corpseGeneration) { return; }
+		ticket._nativeDeathNanos = stamp;
+		ticket._nativeCorpseGeneration = corpseGeneration;
+	}
+
+	/** Compare the exact stock writer's receipts while it owns the sensor monitor. */
+	public static void creditNativeKill(Creature victim, Player killer, PlayerNativeEvidence evidence, PlayerNativeEvidence.Target target)
+	{
+		final var ticket = terminalTicket(victim, killer);
+		if (ticket == null || ticket._nativeDeathNanos <= 0 || ticket._nativeKillSequence != 0 || evidence != ticket._nativeEvidence
+			|| !target.equals(ticket._spawn) || !ticket.terminalLifetimeCurrent())
+		{
+			evidence.killedIfDamaged(target);
+			return;
+		}
+		synchronized (evidence)
+		{
+			final long before = evidence.targetReceipts().killSequence();
+			evidence.killedIfDamaged(target);
+			final var after = evidence.targetReceipts();
+			if (after.killSequence() > before && after.killSequence() - before == 1 && target.equals(after.killTarget()))
+			{
+				ticket._nativeKillCreditNanos = System.nanoTime();
+				ticket._nativeKillSequence = after.killSequence();
+			}
+		}
+	}
+
+	private static LearningCastEvidence terminalTicket(Creature target, Creature killer)
+	{
+		if (!TRAIN || TERMINALS.get() == null) { return null; }
+		final var ticket = DAMAGE.get();
+		return ticket != null && ticket == EFFECT.get() && target == ticket._target && killer == ticket._actor && !ticket._published
+			&& ticket._terminalObserver != null && ticket._terminalObserver == TERMINALS.get() ? ticket : null;
+	}
+
+	private boolean terminalLifetimeCurrent()
+	{
+		try { return lifetimeRejection() == null; }
+		catch (RuntimeException unavailable) { return false; }
+	}
+
 	public static void actualDamage(Player attacker, PlayerNativeWork.Owner owner, PlayerNativeEvidence.Target target, double hp)
 	{ actualDamage(attacker, owner, target, hp, Double.NaN, Double.NaN); }
 	public static void actualDamage(Player attacker, PlayerNativeWork.Owner owner, PlayerNativeEvidence.Target target, double hp, double before, double after)
@@ -323,6 +423,7 @@ public final class LearningCastEvidence
 		final LearningCastEvidence ticket = DAMAGE.get();
 		if (ticket != null && ticket == EFFECT.get() && attacker == ticket._actor && owner == ticket._owner && target.equals(ticket._spawn) && hp > 0 && Double.isFinite(hp))
 		{
+			if (ticket._terminalObserver != null && Double.isFinite(before) && Double.isFinite(after)) { ticket._nativeDamageNanos = System.nanoTime(); }
 			ticket._damage += hp;
 			if (Double.isNaN(ticket._beforeHp)) { ticket._beforeHp = before; }
 			ticket._afterHp = after;
@@ -444,11 +545,15 @@ public final class LearningCastEvidence
 				}
 				else
 				{
-					_attempt.policy().observePvpPaid(new PvpReceipt(eventKey, tactical, _pvpHp, _pvpCp, _mp, _mpStart, _mpEnd, elapsed, _actor.getInstanceId(), _lethal, owner));
+					final var paid = new PvpReceipt(eventKey, tactical, _pvpHp, _pvpCp, _mp, _mpStart, _mpEnd, elapsed, _actor.getInstanceId(), _lethal, owner);
+					publishNativeTerminal(eventKey);
+					_attempt.policy().observePvpPaid(paid);
 					if (_pvpHp == null) { return; }
 				}
-				_attempt.policy().recordTactical(new TacticalReceiptV3(eventKey, tactical, _beforeHp, _afterHp, _damage, _mp, elapsed,
-					TacticalReceiptV3.reward(_damage, _maxHp, _mp, elapsed), owner));
+				final var paid = new TacticalReceiptV3(eventKey, tactical, _beforeHp, _afterHp, _damage, _mp, elapsed,
+					TacticalReceiptV3.reward(_damage, _maxHp, _mp, elapsed), owner);
+				if (_pvpOwner == null) { publishNativeTerminal(eventKey); }
+				_attempt.policy().recordTactical(paid);
 				return;
 			}
 			final boolean enqueued = _attempt.policy().record(evidence);
@@ -465,6 +570,24 @@ public final class LearningCastEvidence
 			failure("RECEIPT_REJECTED",true);
 		}
 	}
+
+	private void publishNativeTerminal(String eventKey)
+	{
+		if (_terminalObserver == null || _terminalObserver != TERMINALS.get() || _nativeDeathNanos <= 0) { return; }
+		final boolean pvp = _pvpOwner != null;
+		final long targetEpoch = pvp ? _pvpOwner.epoch() : _spawn.spawnGeneration();
+		final long damageNanos = pvp ? _pvpHp == null ? 0 : Math.max(_pvpHp.lastWrite(), _pvpCp == null ? 0 : _pvpCp.lastWrite()) : _nativeDamageNanos;
+		final var tactical = _attempt.tactical();
+		if (damageNanos <= 0 || damageNanos > _nativeDeathNanos || !pvp && (damageNanos < _hpStart || damageNanos > _hpEnd)
+			|| tactical.selected().targetObjectId() != _target.getObjectId() || tactical.selected().targetEpoch() != targetEpoch) { return; }
+		try
+		{
+			_terminalObserver.publish(new NativeTerminal(eventKey, _actor.getObjectId(), _epoch, _target.getObjectId(), targetEpoch, _actor.getInstanceId(),
+				_nativeCorpseGeneration, _nativeDeathNanos, _nativeKillCreditNanos, _nativeKillSequence, damageNanos));
+		}
+		catch (RuntimeException | Error unavailable) { /* The optional witness cannot affect the existing paid callbacks. */ }
+	}
+
 	public synchronized void cancelled() { if (_attempt.tactical() != null && !_published) { failure("CAST_CANCELLED",false); _published = true; } }
 	private synchronized void failure(String reason, boolean completed)
 	{

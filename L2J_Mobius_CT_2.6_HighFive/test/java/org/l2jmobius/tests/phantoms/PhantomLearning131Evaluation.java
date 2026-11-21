@@ -39,7 +39,7 @@ import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Stratum;
 /** Read-only AUDIT verifier. Its trust roots are the locally frozen manifest and independently captured launch origins. */
 public final class PhantomLearning131Evaluation
 {
-	private static final String REPORT = "TASK131_EVALUATION_REPORT_V1";
+	private static final String REPORT = "TASK131_EVALUATION_REPORT_V2";
 	private static final int MAX_BYTES = 8 * 1024 * 1024;
 	private static final Set<String> OPPONENTS = Set.of("B0", "A1", "B1");
 	private static final Set<String> GROUP_SIZES = Set.of("1x2", "2x2", "3x5", "9x9");
@@ -71,7 +71,26 @@ public final class PhantomLearning131Evaluation
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
 	private record Binding(Document document, Slot slot, long started, Map<Integer, Participant> participants) { }
-	private record Evaluation(Episode episode, long elapsed, String boot, Raw raw) { }
+	private record Evaluation(Episode episode, EpisodeWindow window, String boot, Raw raw) { }
+	record EpisodeWindow(long started, long combatElapsed, long settledElapsed)
+	{
+		EpisodeWindow
+		{
+			require(started > 0 && combatElapsed > 0 && settledElapsed >= combatElapsed, "NATIVE_EPISODE_CLOCKS");
+			Math.addExact(started, settledElapsed);
+		}
+
+		long combatEnd() { return started + combatElapsed; }
+		long settledEnd() { return started + settledElapsed; }
+
+		long offset(String kind, long stamp)
+		{
+			final long offset = Math.subtractExact(stamp, started);
+			require(offset >= 0 && offset <= settledElapsed, "OUTSIDE_NATIVE_SETTLEMENT");
+			require(offset <= combatElapsed || kind.equals("KILL_CREDIT") || kind.equals("CC_END"), "OUTSIDE_NATIVE_COMBAT");
+			return offset;
+		}
+	}
 	private record ProcessIdentity(long pid, Instant started) { }
 	private record ActorEpoch(int object, long epoch) { }
 	private record Action(int source, int target, Role role, String selected, int stage) { }
@@ -312,8 +331,8 @@ public final class PhantomLearning131Evaluation
 				final boolean retry = ordered.size() == 8 && index < 4;
 				require(occurrence.attempt() == index / 4 && occurrence.position() == index % 4, "EPISODE_ORDER_OR_DUPLICATE_SLOT");
 				final Path directory = originals.resolve("episodes").resolve(occurrence.id());
-				final Document seal = document(directory.resolve("complete131.tsv"), "NATIVE_EPISODE131_V2", "schema", "bindingSha", "eventsSha",
-					"paidOriginalsSha", "status", "elapsedNanos");
+				final Document seal = document(directory.resolve("complete131.tsv"), "NATIVE_EPISODE131_V3", "schema", "bindingSha", "eventsSha",
+					"paidOriginalsSha", "status", "combatElapsedNanos", "settledElapsedNanos");
 				require(seal.sha().equals(occurrence.sealSha()), "EPISODE_SEAL_PIN");
 				final Binding binding = bind(directory, manifest, occurrence, seal);
 				require(occurrence.bootOrder() >= previousBoot && (occurrence.bootOrder() != previousBoot || binding.started() >= previousEnd), "EXECUTED_BLOCK_ORDER");
@@ -321,12 +340,13 @@ public final class PhantomLearning131Evaluation
 				previousEnd = binding.started();
 				final Document evidence = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
 				require(evidence.sha().equals(seal.get("eventsSha")) && evidence.get("episodeId").equals(occurrence.id()) && evidence.get("bindingSha").equals(binding.document().sha()), "RAW_EVENTS_PIN");
-				final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V1", "schema", "episodeId", "bindingSha");
+				final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V2", "schema", "episodeId", "bindingSha");
 				require(paid.sha().equals(seal.get("paidOriginalsSha")) && paid.get("episodeId").equals(occurrence.id())
 					&& paid.get("bindingSha").equals(binding.document().sha()), "PAID_ORIGINALS_PIN");
 				if (retry)
 				{
-					require(seal.get("status").equals("PRE_ACTION_INFRA_RETRY") && seal.get("elapsedNanos").equals("0")
+					require(seal.get("status").equals("PRE_ACTION_INFRA_RETRY") && seal.get("combatElapsedNanos").equals("0")
+						&& seal.get("settledElapsedNanos").equals("0")
 						&& evidence.rows().isEmpty() && paid.rows().isEmpty(), "RETRY_AFTER_ACTIVITY");
 					continue;
 				}
@@ -336,19 +356,18 @@ public final class PhantomLearning131Evaluation
 					final String priorBlock = actorBlocks.putIfAbsent(actor.getKey(), plan.id());
 					require((priorBlock == null || priorBlock.equals(plan.id())) && actorEpochs.add(new ActorEpoch(actor.getKey(), actor.getValue().epoch())), "REUSED_ACTOR_COHORT_OR_EPOCH");
 				}
-				final long elapsed = positive(seal.get("elapsedNanos"));
-				previousEnd = Math.addExact(binding.started(), elapsed);
+				final var window = new EpisodeWindow(binding.started(), positive(seal.get("combatElapsedNanos")), positive(seal.get("settledElapsedNanos")));
+				previousEnd = window.settledEnd();
 				final var epochs = new HashMap<Integer, Long>();
 				binding.participants().forEach((object, member) -> epochs.put(object, member.epoch()));
 				final boolean pvp = plan.stratum() == Stratum.DUEL_PVP || plan.stratum() == Stratum.GROUP_PVP;
-				verifyPaidProjection(evidence.rows(), PhantomLearning131AuditOriginals.decode(paid.rows(), occurrence.id()), epochs,
-					binding.started(), previousEnd, pvp);
-				final var raw = new Raw(binding, occurrence.block(), audit.prices());
+				verifyPaidProjection(evidence.rows(), PhantomLearning131AuditOriginals.decode(paid.rows(), occurrence.id()), epochs, window, pvp);
+				final var raw = new Raw(binding, occurrence.block(), audit.prices(), window);
 				for (String[] event : evidence.rows())
 				{
 					raw.accept(event, eventKeys);
 				}
-				rows.add(new Evaluation(raw.finish(occurrence, elapsed), elapsed, occurrence.boot(), raw));
+				rows.add(new Evaluation(raw.finish(occurrence), window, occurrence.boot(), raw));
 			}
 		}
 		return report(audit, origins.sha(), plans, rows);
@@ -356,19 +375,23 @@ public final class PhantomLearning131Evaluation
 
 	/** Reconstruct the scored damage and deaths from separately sealed paid originals. */
 	static void verifyPaidProjection(List<String[]> events, Map<String, Fact> originals, Map<Integer, Long> roster,
-		long cut, long end, boolean pvp)
+		EpisodeWindow window, boolean pvp)
 	{
 		final var executions = new HashMap<String, String[]>();
 		final var deaths = new HashMap<String, Fact>();
+		final var credits = new HashMap<String, Fact>();
 		final var usedDamage = new HashSet<String>();
+		final var usedDeaths = new HashSet<String>();
 		final var recipients = new HashSet<Subject>();
 		for (var fact : originals.values())
 		{
 			require(roster.getOrDefault(fact.actor(), 0L) == fact.actorEpoch() && roster.getOrDefault(fact.target(), 0L) == fact.targetEpoch(),
 				"PAID_PARTICIPANT_EPOCH");
-			require(fact.pvp() == pvp && fact.capturedNanos() >= cut && fact.lastNativeWriteNanos() <= end
-				&& fact.lethalNanos() <= end, "PAID_ORIGIN_OR_NATIVE_WINDOW");
+			require(fact.pvp() == pvp && fact.capturedNanos() >= window.started() && fact.atNanos() <= window.combatEnd()
+				&& fact.lethalNanos() <= window.combatEnd() && fact.lastNativeWriteNanos() <= window.settledEnd()
+				&& fact.lastWitnessNanos() <= window.settledEnd() && fact.killCreditNanos() <= window.settledEnd(), "PAID_ORIGIN_OR_NATIVE_WINDOW");
 			if (fact.lethalNanos() > 0) { require(deaths.putIfAbsent(fact.lethalKey(), fact) == null, "DUPLICATE_LETHAL_ORIGINAL"); }
+			if (fact.killCreditNanos() > 0) { require(credits.putIfAbsent(fact.killCreditKey(), fact) == null, "DUPLICATE_KILL_CREDIT_ORIGINAL"); }
 		}
 		for (String[] event : events)
 		{
@@ -398,10 +421,18 @@ public final class PhantomLearning131Evaluation
 					final var lethal = deaths.remove(event[1]);
 					require(lethal != null && samePaidEndpoints(event, lethal) && usedDamage.contains(lethal.eventKey())
 						&& positive(event[2]) == lethal.lethalNanos(), "DEATH_WITHOUT_MATCHING_PAID_ORIGINAL");
+					usedDeaths.add(event[1]);
+				}
+				case "KILL_CREDIT" ->
+				{
+					length(event, 7);
+					final var credit = credits.remove(event[1]);
+					require(credit != null && samePaidEndpoints(event, credit) && usedDeaths.contains(credit.lethalKey())
+						&& positive(event[2]) == credit.killCreditNanos(), "KILL_CREDIT_WITHOUT_MATCHING_PAID_ORIGINAL");
 				}
 			}
 		}
-		require(usedDamage.size() == originals.size() && deaths.isEmpty(), "INCOMPLETE_PAID_PROJECTION");
+		require(usedDamage.size() == originals.size() && deaths.isEmpty() && credits.isEmpty(), "INCOMPLETE_PAID_PROJECTION");
 	}
 
 	private static boolean samePaidEndpoints(String[] event, Fact fact)
@@ -504,9 +535,9 @@ public final class PhantomLearning131Evaluation
 		private final Set<Subject> _damageEvents = new HashSet<>();
 		private final Set<ItemPayment> _payments = new HashSet<>();
 		private final Set<String> _unknownActions = new HashSet<>();
-		private final Set<Integer> _deaths = new HashSet<>();
+		private final Map<Integer, Long> _deaths = new HashMap<>();
 		private final Set<Integer> _creditedMobs = new HashSet<>();
-		private final Set<Integer> _escaped = new HashSet<>();
+		private final Map<Integer, Long> _escaped = new HashMap<>();
 		private final Map<Role, Set<String>> _samples = new EnumMap<>(Role.class);
 		private final Map<Role, Integer> _unknown = new EnumMap<>(Role.class);
 		private BigDecimal _paid = BigDecimal.ZERO;
@@ -527,20 +558,23 @@ public final class PhantomLearning131Evaluation
 		private int _executed;
 		private int _opponentExecuted;
 		private int _opponentEffects;
+		private final EpisodeWindow _window;
 
-		Raw(Binding binding, Block block, Map<Integer, BigDecimal> prices)
+		Raw(Binding binding, Block block, Map<Integer, BigDecimal> prices, EpisodeWindow window)
 		{
 			_binding = binding;
 			_block = block;
 			_prices = prices;
+			_window = window;
 		}
 
 		private void accept(String[] row, Set<String> eventKeys)
 		{
 			require(row.length >= 7 && row[0].equals("event") && eventKeys.add(digest(row[1])), "DUPLICATE_OR_INVALID_EVENT");
-			final long offset = Math.subtractExact(Long.parseLong(row[2]), _binding.started());
+			final long offset = _window.offset(row[3], Long.parseLong(row[2]));
 			require(offset >= _lastEvent, "NATIVE_TIME_ORDER");
-			_controlNanos = Math.addExact(_controlNanos, Math.multiplyExact(offset - _lastEvent, _scoredControl.size()));
+			final long controlElapsed = Math.min(offset, _window.combatElapsed()) - Math.min(_lastEvent, _window.combatElapsed());
+			_controlNanos = Math.addExact(_controlNanos, Math.multiplyExact(controlElapsed, _scoredControl.size()));
 			_lastEvent = offset;
 			final int source = object(row[4]);
 			final int target = object(row[5]);
@@ -662,12 +696,12 @@ public final class PhantomLearning131Evaluation
 							{
 								_scoredControl.compute(target, (_, count) -> count == 1 ? null : count - 1);
 								if (row[3].equals("CC_BROKEN")) { _brokenControl++; }
-								if (offset > active.started() && _actions.get(active.operation()).role() == Role.CONTROL)
+								if (Math.min(offset, _window.combatElapsed()) > active.started() && _actions.get(active.operation()).role() == Role.CONTROL)
 								{
 									_samples.computeIfAbsent(Role.CONTROL, _ -> new HashSet<>()).add(active.operation());
 								}
 							}
-							else if (offset > active.started()) { _opponentEffects++; }
+							else if (Math.min(offset, _window.combatElapsed()) > active.started()) { _opponentEffects++; }
 							return false;
 						}
 						case "INTERRUPT" -> { if (friendly) { _interrupts++; } else { _opponentEffects++; } }
@@ -686,19 +720,20 @@ public final class PhantomLearning131Evaluation
 				case "DEATH" ->
 				{
 					length(row, 7);
-					require(friendly != friendlyTarget && _damageEvents.contains(new Subject(operation, target)) && !_escaped.contains(target) && _deaths.add(target), "DUPLICATE_OR_ILLEGAL_DEATH");
+					require(friendly != friendlyTarget && _damageEvents.contains(new Subject(operation, target)) && !_escaped.containsKey(target)
+						&& _deaths.putIfAbsent(target, offset) == null, "DUPLICATE_OR_ILLEGAL_DEATH");
 				}
 				case "KILL_CREDIT" ->
 				{
 					length(row, 7);
-					require(_block.plan().scene().objective() == Objective.PVE_KILLS && friendly && !friendlyTarget && _deaths.contains(target) && _creditedMobs.add(target), "NATIVE_KILL_CREDIT");
-					if (_creditedMobs.size() == _block.plan().scene().requiredProgress()) { _objectiveAt = offset; }
+					require(_block.plan().scene().objective() == Objective.PVE_KILLS && friendly && !friendlyTarget && _deaths.containsKey(target)
+						&& _creditedMobs.add(target), "NATIVE_KILL_CREDIT");
 				}
 				case "ESCAPE_ARRIVAL" ->
 				{
 					length(row, 7);
-					require(friendly == friendlyTarget && !_deaths.contains(target) && _escaped.add(target), "NATIVE_ESCAPE_ARRIVAL");
-					if (friendly && _block.plan().scene().objective() == Objective.ESCAPE && scoredCount(_escaped) == _block.plan().scene().requiredProgress()) { _objectiveAt = offset; }
+					require(friendly == friendlyTarget && !_deaths.containsKey(target) && _escaped.putIfAbsent(target, offset) == null, "NATIVE_ESCAPE_ARRIVAL");
+					if (friendly && _block.plan().scene().objective() == Objective.ESCAPE && scoredCount(_escaped.keySet()) == _block.plan().scene().requiredProgress()) { _objectiveAt = offset; }
 				}
 				default -> throw new IllegalArgumentException("EVAL131_UNSUPPORTED_NATIVE_EVENT");
 			}
@@ -717,13 +752,13 @@ public final class PhantomLearning131Evaluation
 			return Math.toIntExact(actors.stream().filter(this::scored).count());
 		}
 
-		private Episode finish(Occurrence occurrence, long elapsed)
+		private Episode finish(Occurrence occurrence)
 		{
-			require(_lastEvent <= elapsed && _control.isEmpty() && _paid.compareTo(_block.budget()) <= 0, "DRAIN_TIME_CONTROL_OR_BUDGET");
+			require(_control.isEmpty() && _paid.compareTo(_block.budget()) <= 0, "DRAIN_CONTROL_OR_BUDGET");
 			if (_executed == 0) { throw new Incomplete("NO_NATIVE_EXECUTION"); }
 			final Scene scene = _block.plan().scene();
-			final int deaths = scoredCount(_deaths);
-			final int escaped = scoredCount(_escaped);
+			final int deaths = scoredCount(_deaths.keySet());
+			final int escaped = scoredCount(_escaped.keySet());
 			final boolean ownOut = deaths + escaped == scene.initialRosterSize();
 			final boolean opponentOut = _deaths.size() - deaths + _escaped.size() - escaped == _block.opponentSize();
 			final int progress = switch (scene.objective())
@@ -738,8 +773,24 @@ public final class PhantomLearning131Evaluation
 				case PVP_WIN -> ownOut && opponentOut ? Outcome.DRAW : ownOut ? Outcome.LOSS : opponentOut ? Outcome.WIN : Outcome.TIMEOUT;
 				case ESCAPE -> progress == scene.requiredProgress() ? Outcome.ESCAPED : ownOut ? Outcome.LOSS : opponentOut ? Outcome.WIN : Outcome.TIMEOUT;
 			};
+			final long elapsed = _window.combatElapsed();
 			require(outcome == Outcome.TIMEOUT ? elapsed >= _block.deadline() : elapsed <= _block.deadline(), "TERMINAL_DEADLINE");
-			return new Episode(_block.plan().id(), occurrence.id(), occurrence.position(), _binding.slot(), outcome, progress, deaths, _paid.doubleValue(), _objectiveAt >= 0 ? _objectiveAt : elapsed);
+			final long objectiveElapsed = objectiveElapsed(scene, outcome);
+			return new Episode(_block.plan().id(), occurrence.id(), occurrence.position(), _binding.slot(), outcome, progress, deaths, _paid.doubleValue(), objectiveElapsed);
+		}
+
+		private long objectiveElapsed(Scene scene, Outcome outcome)
+		{
+			if (outcome == Outcome.WIN && scene.objective() == Objective.PVE_KILLS)
+			{
+				return _creditedMobs.stream().mapToLong(_deaths::get).sorted().skip(scene.requiredProgress() - 1L).findFirst().orElseThrow();
+			}
+			if (outcome == Outcome.WIN && scene.objective() == Objective.PVP_WIN)
+			{
+				return java.util.stream.Stream.concat(_deaths.entrySet().stream(), _escaped.entrySet().stream())
+					.filter(entry -> !scored(entry.getKey())).mapToLong(Map.Entry::getValue).max().orElseThrow();
+			}
+			return _objectiveAt >= 0 ? _objectiveAt : _window.combatElapsed();
 		}
 	}
 
@@ -817,7 +868,7 @@ public final class PhantomLearning131Evaluation
 			}
 		}
 		result.add(row("columns", "episode", "block", "episodeId", "boot", "arenaSlot", "arm", "side", "outcome", "progress", "deaths", "paidValue",
-			"objectiveElapsedNanos", "terminalElapsedNanos", "damageHP", "damageCP", "receivedHP", "receivedCP", "effectiveHeal", "overheal", "mpTransfer",
+			"objectiveElapsedNanos", "terminalElapsedNanos", "settledElapsedNanos", "damageHP", "damageCP", "receivedHP", "receivedCP", "effectiveHeal", "overheal", "mpTransfer",
 			"controlTargetNanos", "interrupts", "brokenCC", "aggroEffects", "buffEffects", "ownExecuted", "opponentExecuted", "opponentEffects", "score"));
 		result.add(row("columns", "role", "episodeId", "role", "samples", "unknown"));
 		for (Evaluation evaluation : evaluations)
@@ -826,7 +877,7 @@ public final class PhantomLearning131Evaluation
 			final Raw raw = evaluation.raw();
 			final Scene scene = audit.blocks().get(episode.blockId()).plan().scene();
 			result.add(row("episode", episode.blockId(), episode.episodeId(), evaluation.boot(), episode.position(), episode.slot().arm(), episode.slot().side(),
-				episode.outcome(), episode.objectiveProgress(), episode.nativeDeaths(), raw._paid.toPlainString(), (long) episode.elapsed(), evaluation.elapsed(),
+				episode.outcome(), episode.objectiveProgress(), episode.nativeDeaths(), raw._paid.toPlainString(), (long) episode.elapsed(), evaluation.window().combatElapsed(), evaluation.window().settledElapsed(),
 				raw._damageHp.toPlainString(), raw._damageCp.toPlainString(), raw._receivedHp.toPlainString(), raw._receivedCp.toPlainString(), raw._heal.toPlainString(),
 				raw._overheal.toPlainString(), raw._mpTransfer.toPlainString(), raw._controlNanos, raw._interrupts, raw._brokenControl, raw._aggro, raw._buffs,
 				raw._executed, raw._opponentExecuted, raw._opponentEffects, TrainingEvaluation131.score(scene, episode)));

@@ -27,6 +27,8 @@ import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerPvPKill;
 import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpReceipt;
@@ -57,15 +59,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	/** Captured paid damage totals, stock deaths and any death rows with exact action attribution. */
 	record DuelEvidence(List<PaidPvpDamage> paidDamage, DuelDamageTotals damageTotals, List<DuelDeath> nativeDeaths,
 		Optional<Outcome> nativeDeathOutcome, boolean allDeathsLinked, List<String> eventRows, List<String> originalRows) { }
-	private record DuelEvent(long observedNanos, String row) { }
-
-	static long joinedDeathNanos(DuelDeath stock, DuelDeath paid, long damageNanos)
-	{
-		require(stock.killer() == paid.killer() && stock.victim() == paid.victim() && stock.victimEpoch() == paid.victimEpoch()
-			&& stock.corpseGeneration() > 0 && stock.corpseGeneration() == paid.corpseGeneration()
-			&& stock.observedNanos() >= damageNanos && paid.observedNanos() >= damageNanos, "UNBOUND_NATIVE_DEATH");
-		return Math.max(stock.observedNanos(), paid.observedNanos());
-	}
+	private record DuelEvent(long nanos, String row) { }
 
 	/** The original preserves separate nullable pools and exact MP. The row projects only DAMAGE. */
 	static final class PaidPvpDamage
@@ -130,10 +124,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private final Map<TacticalReceiptV3.Attempt, Long> _issued = new IdentityHashMap<>();
 		private final Map<String, PaidPvpDamage> _paid = new HashMap<>();
 		private final Map<Integer, DuelDeath> _stockDeaths = new HashMap<>();
-		private final Map<Integer, DuelDeath> _paidDeaths = new HashMap<>();
+		private final Map<String, NativeTerminal> _terminals = new HashMap<>();
 		private final HashSet<String> _operations = new HashSet<>();
 		private final ConsumerEventListener _scoredDeathListener;
 		private final ConsumerEventListener _opponentDeathListener;
+		private AutoCloseable _terminalObserver;
 		private boolean _draining;
 		private boolean _closed;
 		private boolean _invalid;
@@ -192,6 +187,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 
 		private void install()
 		{
+			_terminalObserver = LearningCastEvidence.observeNativeTerminals(this::nativeTerminal);
 			_scored.player().addListener(_scoredDeathListener);
 			_opponent.player().addListener(_opponentDeathListener);
 			_delegates.forEach((policy, delegate) -> policy.observer(new LearningPolicy.Observer()
@@ -235,24 +231,30 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				&& action.targetEpoch() == victim.epoch();
 		}
 
-		private void paidPvp(PvpReceipt receipt)
+		private synchronized void paidPvp(PvpReceipt receipt)
 		{
-			final var action = receipt.attempt().selected();
-			final DuelParticipant victim = action.targetObjectId() == _scored.player().getObjectId() ? _scored : _opponent;
-			final long corpse = receipt.lethal() ? victim.player().nativeCorpseGeneration() : 0;
-			final long now = System.nanoTime();
-			synchronized (this)
+			if (_closed || _invalid) { return; }
+			final Long generation = _issued.remove(receipt.attempt());
+			final var original = new PaidPvpDamage(_binding.episodeId(), _binding.sha(), receipt);
+			if (generation == null || generation.longValue() != receipt.owner().generation() || !bothCurrent() || receipt.instanceId() != _instance
+				|| _paid.size() >= MAX_CASTS || !_operations.add(original.operationId()) || _paid.putIfAbsent(receipt.eventKey(), original) != null)
 			{
-				if (_closed || _invalid) { return; }
-				final Long generation = _issued.remove(receipt.attempt());
-				final var original = new PaidPvpDamage(_binding.episodeId(), _binding.sha(), receipt);
-				if (generation == null || generation.longValue() != receipt.owner().generation() || !bothCurrent() || receipt.instanceId() != _instance
-					|| _paid.size() >= MAX_CASTS || !_operations.add(original.operationId()) || _paid.putIfAbsent(receipt.eventKey(), original) != null
-					|| (receipt.lethal() && (corpse <= 0 || _paidDeaths.putIfAbsent(action.targetObjectId(),
-						new DuelDeath(action.actorObjectId(), action.targetObjectId(), victim.epoch(), corpse, now)) != null)))
-				{
-					_invalid = true;
-				}
+				_invalid = true;
+			}
+		}
+
+		private synchronized void nativeTerminal(NativeTerminal terminal)
+		{
+			if (_closed || _invalid) { return; }
+			final boolean scored = terminal.actorObjectId() == _scored.player().getObjectId();
+			final DuelParticipant source = scored ? _scored : _opponent, victim = scored ? _opponent : _scored;
+			if (!bothCurrent() || terminal.actorObjectId() != source.player().getObjectId() || terminal.actorEpoch() != source.epoch()
+				|| terminal.targetObjectId() != victim.player().getObjectId() || terminal.targetEpoch() != victim.epoch()
+				|| terminal.instanceId() != _instance || terminal.corpseGeneration() <= 0 || terminal.killCreditNanos() != 0
+				|| terminal.killSequence() != 0 || terminal.damageNanos() < _binding.started()
+				|| _terminals.size() >= MAX_CASTS || _terminals.putIfAbsent(terminal.eventKey(), terminal) != null)
+			{
+				_invalid = true;
 			}
 		}
 
@@ -296,21 +298,21 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				originalRows.add(original.originalRow());
 				if (original.original().lethal())
 				{
-					final int victim = original.original().attempt().selected().targetObjectId();
-					final DuelDeath stock = _stockDeaths.get(victim);
-					if (stock != null)
-					{
-						final DuelDeath paidDeath = _paidDeaths.get(victim);
-						final long stamp = joinedDeathNanos(stock, paidDeath, original.damageNanos());
-						require(stamp <= settled, "NATIVE_WRITE_OUTSIDE_DUEL_WINDOW");
-						final String eventKey = PhantomLearning131AuditOriginals.deathKey(original.original().eventKey(), stock.corpseGeneration());
-						events.add(new DuelEvent(stamp, String.join("\t", "event", eventKey, Long.toString(stamp), "DEATH",
-							Integer.toString(stock.killer()), Integer.toString(stock.victim()), original.operationId())));
-						originalRows.add(PhantomLearning131AuditOriginals.deathRow(original.original().eventKey(), stock, paidDeath));
-						linkedDeaths++;
-					}
+					final String key = original.original().eventKey();
+					final var action = original.original().attempt().selected();
+					final NativeTerminal terminal = _terminals.get(key);
+					final DuelDeath stock = _stockDeaths.get(action.targetObjectId());
+					require(terminal != null && terminal.actorObjectId() == action.actorObjectId() && terminal.targetObjectId() == action.targetObjectId()
+						&& terminal.damageNanos() == original.damageNanos() && terminal.deathNanos() >= terminal.damageNanos()
+						&& PhantomLearning131AuditOriginals.matchesStock(terminal, stock) && stock.observedNanos() <= settled,
+						"NATIVE_DUEL_TERMINAL_NOT_JOINED");
+					events.add(new DuelEvent(terminal.deathNanos(), deathEvent(terminal, original.operationId(), terminal.corpseGeneration())));
+					originalRows.add(PhantomLearning131AuditOriginals.terminalRow(terminal));
+					originalRows.add(PhantomLearning131AuditOriginals.stockRow(key, stock));
+					linkedDeaths++;
 				}
 			}
+			require(linkedDeaths == _terminals.size(), "NATIVE_DUEL_ORPHAN_TERMINAL");
 			final int scoredId = _scored.player().getObjectId();
 			final var dealt = paid.stream().filter(damage -> damage.original().attempt().selected().actorObjectId() == scoredId).toList();
 			final var received = paid.stream().filter(damage -> damage.original().attempt().selected().targetObjectId() == scoredId).toList();
@@ -318,8 +320,8 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				total(received, PvpReceipt::hp), total(received, PvpReceipt::cp));
 			final Optional<Outcome> outcome = deaths.isEmpty() ? Optional.empty()
 				: Optional.of(deaths.size() == 2 ? Outcome.DRAW : _stockDeaths.containsKey(scoredId) ? Outcome.LOSS : Outcome.WIN);
-			return new DuelEvidence(paid, totals, deaths, outcome, linkedDeaths == deaths.size() && linkedDeaths == _paidDeaths.size(),
-				events.stream().sorted(Comparator.comparingLong(DuelEvent::observedNanos)).map(DuelEvent::row).toList(), List.copyOf(originalRows));
+			return new DuelEvidence(paid, totals, deaths, outcome, linkedDeaths == deaths.size(),
+				events.stream().sorted(Comparator.comparingLong(DuelEvent::nanos)).map(DuelEvent::row).toList(), List.copyOf(originalRows));
 		}
 
 		private static BigDecimal total(List<PaidPvpDamage> damage, Function<PvpReceipt, PvpPoolWrite> pool)
@@ -336,7 +338,8 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				_scored.player().removeListener(_scoredDeathListener);
 				_opponent.player().removeListener(_opponentDeathListener);
 				_delegates.forEach(LearningPolicy::observer);
-				ACTIVE_DUEL.compareAndSet(this, null);
+				try { closeTerminalObserver(_terminalObserver); }
+				finally { ACTIVE_DUEL.compareAndSet(this, null); }
 			}
 		}
 	}
@@ -346,12 +349,14 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private final String _episodeId;
 		private final String _bindingSha;
 		private final TimedAction _original;
+		private final NativeTerminal _terminal;
 
-		private PaidDamage(String episodeId, String bindingSha, TimedAction original)
+		private PaidDamage(String episodeId, String bindingSha, TimedAction original, NativeTerminal terminal)
 		{
 			_episodeId = episodeId;
 			_bindingSha = bindingSha;
 			_original = original;
+			_terminal = terminal;
 		}
 
 		String episodeId() { return _episodeId; }
@@ -359,6 +364,22 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		TimedAction original() { return _original; }
 		String operationId() { return PhantomLearning131AuditDamage.operationId(_episodeId, _original.row().receipt().owner()); }
 		String originalRow() { return PhantomLearning131AuditOriginals.pveRow(_original); }
+		long damageNanos() { return _terminal == null ? _original.hpFinishedNanos() : _terminal.damageNanos(); }
+
+		List<String> originalRows()
+		{
+			return _terminal == null ? List.of(originalRow()) : List.of(originalRow(), PhantomLearning131AuditOriginals.terminalRow(_terminal));
+		}
+
+		List<String> eventRows()
+		{
+			if (_terminal == null) { return List.of(eventRow()); }
+			final String death = deathEvent(_terminal, operationId(), _terminal.targetEpoch());
+			if (_terminal.killSequence() == 0) { return List.of(eventRow(), death); }
+			final String credit = terminalEvent(_terminal, operationId(), "KILL_CREDIT", _terminal.killCreditNanos(),
+				PhantomLearning131AuditOriginals.killCreditKey(_terminal.eventKey(), _terminal.killSequence()));
+			return List.of(eventRow(), death, credit);
+		}
 
 		/** A fragment only. A complete AUDIT needs separately observed decision, admission and execution rows. */
 		String eventRow()
@@ -367,7 +388,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			final var action = receipt.attempt().selected();
 			final String hp = PhantomLearning131AuditOriginals.wireDamage(receipt.actualHp()).toPlainString();
 			// The native target in this slice is a Monster. CP damage is inapplicable.
-			return String.join("\t", "event", receipt.eventKey(), Long.toString(_original.hpFinishedNanos()), "DAMAGE",
+			return String.join("\t", "event", receipt.eventKey(), Long.toString(damageNanos()), "DAMAGE",
 				Integer.toString(action.actorObjectId()), Integer.toString(action.targetObjectId()), operationId(), hp, "0");
 		}
 	}
@@ -382,6 +403,8 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	private final Consumer<TacticalReceiptV3> _existingPaidObserver;
 	private final Map<String, NativeTiming> _timings = new HashMap<>();
 	private final Map<String, TacticalReceiptV3> _receipts = new HashMap<>();
+	private final Map<String, NativeTerminal> _terminals = new HashMap<>();
+	private AutoCloseable _terminalObserver;
 	private boolean _draining;
 	private boolean _closed;
 	private boolean _invalid;
@@ -436,13 +459,22 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		final var sealed = PhantomLearning131Evaluation.soloDamageBinding(planned, binding, bindingSha, actor.getObjectId(), target.getObjectId());
 		final var capture = new PhantomLearning131AuditDamage(sealed, profileId, actor, target, ownedPolicy, existingPaidObserver);
 		require(ACTIVE.compareAndSet(null, capture), "NATIVE_TIMING_OBSERVER_BUSY");
-		TerminalRewardReceiptV1.nativeTimingObserver(capture::nativeTiming);
-		ownedPolicy.damageObserver(receipt ->
+		try
 		{
-			capture.paidDamage(receipt);
-			existingPaidObserver.accept(receipt);
-		});
-		return capture;
+			capture._terminalObserver = LearningCastEvidence.observeNativeTerminals(capture::nativeTerminal);
+			TerminalRewardReceiptV1.nativeTimingObserver(capture::nativeTiming);
+			ownedPolicy.damageObserver(receipt ->
+			{
+				capture.paidDamage(receipt);
+				existingPaidObserver.accept(receipt);
+			});
+			return capture;
+		}
+		catch (RuntimeException failure)
+		{
+			capture.close();
+			throw failure;
+		}
 	}
 
 	private static void requireOwnedBoot(String nonce)
@@ -455,6 +487,19 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	{
 		if (_closed || _invalid) { return; }
 		if (_timings.size() >= MAX_CASTS || _timings.putIfAbsent(timing.eventKey(), timing) != null) { _invalid = true; }
+	}
+
+	private synchronized void nativeTerminal(NativeTerminal terminal)
+	{
+		if (_closed || _invalid) { return; }
+		if (_actor.getNativeWorkOwner() != _owner || !_owner.isCurrent() || terminal.actorObjectId() != _actor.getObjectId()
+			|| terminal.actorEpoch() != _binding.actorEpoch() || terminal.targetObjectId() != _target.getObjectId()
+			|| terminal.targetEpoch() != _spawn.spawnGeneration() || terminal.instanceId() != _spawn.instanceId() || terminal.corpseGeneration() != 0
+			|| terminal.damageNanos() < _binding.started() || _terminals.size() >= MAX_CASTS
+			|| _terminals.putIfAbsent(terminal.eventKey(), terminal) != null)
+		{
+			_invalid = true;
+		}
 	}
 
 	private synchronized void paidDamage(TacticalReceiptV3 receipt)
@@ -494,6 +539,8 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		require(!_closed && !_invalid && !_receipts.isEmpty() && _timings.keySet().equals(_receipts.keySet()), "UNPAIRED_OR_INCOMPLETE_NATIVE_CAST");
 		final var originals = new ArrayList<PaidDamage>();
 		final var operations = new HashSet<String>();
+		final var credits = new HashSet<Long>();
+		int joined = 0;
 		for (var receipt : _receipts.values())
 		{
 			final NativeTiming timing = _timings.get(receipt.eventKey());
@@ -502,11 +549,22 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			require(timing.instanceId() == _spawn.instanceId() && timing.hpStart() >= receipt.attempt().observation().capturedNanos()
 				&& timing.mpStart() >= receipt.attempt().observation().capturedNanos() && timing.hpEnd() <= settledNanos && timing.mpEnd() <= settledNanos,
 				"NATIVE_WRITE_OUTSIDE_ACTION_WINDOW");
-			final var captured = new PaidDamage(_binding.episodeId(), _binding.sha(), actual);
+			final NativeTerminal terminal = _terminals.get(receipt.eventKey());
+			require(!actual.linkedLethalWrite() || terminal != null, "NATIVE_SOLO_TERMINAL_NOT_JOINED");
+			if (terminal != null)
+			{
+				require(receipt.afterHp() < 0.5 && terminal.damageNanos() >= timing.hpStart() && terminal.damageNanos() <= terminal.deathNanos()
+					&& terminal.deathNanos() <= timing.hpEnd() && terminal.killCreditNanos() <= settledNanos
+					&& (terminal.killSequence() == 0 ? terminal.killCreditNanos() == 0 : terminal.killCreditNanos() >= terminal.deathNanos()
+						&& credits.add(terminal.killSequence())), "NATIVE_SOLO_TERMINAL_CLOCK_OR_CREDIT");
+				joined++;
+			}
+			final var captured = new PaidDamage(_binding.episodeId(), _binding.sha(), actual, terminal);
 			require(operations.add(captured.operationId()), "NATIVE_OPERATION_REUSED");
 			originals.add(captured);
 		}
-		return originals.stream().sorted(Comparator.comparingLong((PaidDamage damage) -> damage.original().hpFinishedNanos())
+		require(joined == _terminals.size(), "NATIVE_SOLO_ORPHAN_TERMINAL");
+		return originals.stream().sorted(Comparator.comparingLong(PaidDamage::damageNanos)
 			.thenComparing(damage -> damage.original().row().eventKey())).toList();
 	}
 
@@ -516,6 +574,18 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			.getBytes(StandardCharsets.UTF_8));
 	}
 
+	private static String deathEvent(NativeTerminal terminal, String operationId, long generation)
+	{
+		return terminalEvent(terminal, operationId, "DEATH", terminal.deathNanos(),
+			PhantomLearning131AuditOriginals.deathKey(terminal.eventKey(), generation));
+	}
+
+	private static String terminalEvent(NativeTerminal terminal, String operationId, String kind, long nanos, String eventKey)
+	{
+		return String.join("\t", "event", eventKey, Long.toString(nanos), kind, Integer.toString(terminal.actorObjectId()),
+			Integer.toString(terminal.targetObjectId()), operationId);
+	}
+
 	@Override public synchronized void close()
 	{
 		_closed = true;
@@ -523,8 +593,16 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		{
 			_policy.damageObserver(_existingPaidObserver);
 			TerminalRewardReceiptV1.nativeTimingObserver(_ -> { });
-			ACTIVE.compareAndSet(this, null);
+			try { closeTerminalObserver(_terminalObserver); }
+			finally { ACTIVE.compareAndSet(this, null); }
 		}
+	}
+
+	private static void closeTerminalObserver(AutoCloseable observer)
+	{
+		if (observer == null) { return; }
+		try { observer.close(); }
+		catch (Exception failure) { throw new IllegalStateException("AUDIT_DAMAGE131_TERMINAL_OBSERVER_CLOSE", failure); }
 	}
 
 	private static void require(boolean condition, String reason)

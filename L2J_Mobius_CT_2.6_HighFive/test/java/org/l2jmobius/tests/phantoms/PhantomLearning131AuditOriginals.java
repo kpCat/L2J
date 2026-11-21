@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
@@ -22,7 +23,7 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 
-/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V1 episode document. */
+/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V2 episode document. */
 final class PhantomLearning131AuditOriginals
 {
 	private static final int MAX_ROWS = 1024;
@@ -31,57 +32,82 @@ final class PhantomLearning131AuditOriginals
 
 	record Fact(String eventKey, String operationId, int actor, long actorEpoch, int target, long targetEpoch, int skillId,
 		int skillLevel, long atNanos, BigDecimal hp, BigDecimal cp, long lethalNanos, String lethalKey,
-		boolean pvp, long capturedNanos, long lastNativeWriteNanos)
+		boolean pvp, long capturedNanos, long lastNativeWriteNanos, long killCreditNanos, String killCreditKey, long lastWitnessNanos)
 	{
-		Fact withDeath(long nanos, String key)
+		Fact(String eventKey, String operationId, int actor, long actorEpoch, int target, long targetEpoch, int skillId,
+			int skillLevel, long atNanos, BigDecimal hp, BigDecimal cp, long lethalNanos, String lethalKey,
+			boolean pvp, long capturedNanos, long lastNativeWriteNanos)
 		{
-			return new Fact(eventKey, operationId, actor, actorEpoch, target, targetEpoch, skillId, skillLevel, atNanos, hp, cp, nanos, key,
-				pvp, capturedNanos, lastNativeWriteNanos);
+			this(eventKey, operationId, actor, actorEpoch, target, targetEpoch, skillId, skillLevel, atNanos, hp, cp, lethalNanos, lethalKey,
+				pvp, capturedNanos, lastNativeWriteNanos, 0, "", lethalNanos);
+		}
+
+		Fact withTerminal(NativeTerminal terminal, long lastWitness)
+		{
+			return new Fact(eventKey, operationId, actor, actorEpoch, target, targetEpoch, skillId, skillLevel, terminal.damageNanos(), hp, cp,
+				terminal.deathNanos(), deathKey(eventKey, pvp ? terminal.corpseGeneration() : targetEpoch), pvp, capturedNanos,
+				lastNativeWriteNanos, terminal.killCreditNanos(), terminal.killSequence() == 0 ? "" : PhantomLearning131AuditOriginals.killCreditKey(eventKey, terminal.killSequence()),
+				lastWitness);
 		}
 	}
 
-	private record Paid(Fact fact, boolean requiresStockDeath) { }
+	private record Paid(Fact fact, int instanceId, long firstHpWrite, boolean lethal, double afterHp) { }
+	private record KillCredit(int actor, long epoch, long sequence) { }
 
 	private PhantomLearning131AuditOriginals() { }
 
 	static Map<String, Fact> decode(List<String[]> rows, String episodeId)
 	{
 		require(episodeId.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,95}") && rows.size() <= MAX_ROWS, "EPISODE_OR_ROW_LIMIT");
-		final var facts = new HashMap<String, Fact>();
+		final var paid = new HashMap<String, Paid>();
 		final var operations = new HashSet<String>();
-		final var requiredDeaths = new HashSet<String>();
-		final var deaths = new HashMap<String, String[]>();
+		final var terminals = new HashMap<String, NativeTerminal>();
+		final var stock = new HashMap<String, DuelDeath>();
 		for (String[] row : rows)
 		{
 			require(row.length >= 2, "ROW_SHAPE");
 			final String key = eventKey(row[1]);
-			if (row[0].equals("death"))
+			if (row[0].equals("terminal"))
 			{
-				require(row.length == 12 && deaths.putIfAbsent(key, row) == null, "DEATH_ROW_OR_DUPLICATE");
+				require(row.length == 12 && terminals.putIfAbsent(key, readTerminal(row, key)) == null, "TERMINAL_ROW_OR_DUPLICATE");
 				continue;
 			}
-			final Paid paid = switch (row[0])
+			if (row[0].equals("stock"))
+			{
+				require(row.length == 7 && stock.putIfAbsent(key, readStock(row)) == null, "STOCK_ROW_OR_DUPLICATE");
+				continue;
+			}
+			final Paid original = switch (row[0])
 			{
 				case "pve" -> readPve(row, key, episodeId);
 				case "pvp" -> readPvp(row, key, episodeId);
 				default -> throw new IllegalArgumentException("AUDIT_ORIGINAL131_ROW_KIND");
 			};
-			require(facts.putIfAbsent(key, paid.fact()) == null && operations.add(paid.fact().operationId()), "DUPLICATE_PAID_ORIGINAL");
-			if (paid.requiresStockDeath()) { requiredDeaths.add(key); }
+			require(paid.putIfAbsent(key, original) == null && operations.add(original.fact().operationId()), "DUPLICATE_PAID_ORIGINAL");
 		}
-		for (var entry : deaths.entrySet())
+		final var facts = new HashMap<String, Fact>();
+		final var credits = new HashSet<KillCredit>();
+		for (var entry : paid.entrySet())
 		{
 			final String key = entry.getKey();
-			require(requiredDeaths.remove(key), "DEATH_WITHOUT_LETHAL_PVP_ORIGINAL");
-			final Fact fact = facts.get(key);
-			final DuelDeath stock = death(entry.getValue(), 2), paid = death(entry.getValue(), 7);
-			require(stock.killer() == fact.actor() && stock.victim() == fact.target() && stock.victimEpoch() == fact.targetEpoch(), "DEATH_RECIPIENT");
-			final long observed;
-			try { observed = PhantomLearning131AuditDamage.joinedDeathNanos(stock, paid, fact.atNanos()); }
-			catch (IllegalStateException mismatch) { throw new IllegalArgumentException("AUDIT_ORIGINAL131_DEATH_JOIN", mismatch); }
-			facts.put(key, fact.withDeath(observed, deathKey(key, stock.corpseGeneration())));
+			final Paid original = entry.getValue();
+			final NativeTerminal terminal = terminals.remove(key);
+			// Native NPC terminals are additive to the historical TimedAction flag.
+			require((!original.lethal() || terminal != null) && (terminal == null || !original.fact().pvp() || original.lethal()),
+				"LETHAL_ORIGINAL_TERMINAL_JOIN");
+			if (terminal == null)
+			{
+				facts.put(key, original.fact());
+				continue;
+			}
+			final Fact joined = join(original, terminal, stock.remove(key));
+			if (terminal.killSequence() > 0)
+			{
+				require(credits.add(new KillCredit(joined.actor(), joined.actorEpoch(), terminal.killSequence())), "DUPLICATE_KILL_CREDIT");
+			}
+			facts.put(key, joined);
 		}
-		require(requiredDeaths.isEmpty(), "LETHAL_PVP_ORIGINAL_WITHOUT_DEATH");
+		require(terminals.isEmpty() && stock.isEmpty(), "UNMATCHED_TERMINAL_OR_STOCK");
 		return Map.copyOf(facts);
 	}
 
@@ -108,12 +134,13 @@ final class PhantomLearning131AuditOriginals
 		final var target = observation.entity(action.targetObjectId());
 		require(action.family() == LegalActionV3.Family.DAMAGE && action.actorObjectId() != action.targetObjectId()
 			&& target != null && target.role() == Role.ENEMY && target.fact(Field.NPC_ID).known() && target.fact(Field.NPC_ID).value() > 0
+			&& (!original.linkedLethalWrite() || receipt.afterHp() < 0.5)
 			&& original.hpStartedNanos() >= observation.capturedNanos() && original.mpStartedNanos() >= observation.capturedNanos(),
 			"PVE_NATIVE_SCOPE");
-		require(!original.linkedLethalWrite(), "LETHAL_PVE_ORIGINAL_WITHOUT_DEATH");
 		return new Paid(new Fact(key, operationId(episodeId, receipt.owner()), action.actorObjectId(), action.actorEpoch(), action.targetObjectId(),
 			action.targetEpoch(), action.skillId(), action.skillLevel(), original.hpFinishedNanos(), wireDamage(receipt.actualHp()), BigDecimal.ZERO, 0, "",
-			false, observation.capturedNanos(), Math.max(original.hpFinishedNanos(), original.mpFinishedNanos())), false);
+			false, observation.capturedNanos(), Math.max(original.hpFinishedNanos(), original.mpFinishedNanos())),
+			original.instanceId(), original.hpStartedNanos(), original.linkedLethalWrite(), receipt.afterHp());
 	}
 
 	/** A canonical observation and selected native rank, owner, MP debit, and two nullable exact pool writes. */
@@ -144,7 +171,7 @@ final class PhantomLearning131AuditOriginals
 		final var owner = new SourceOwner(positive(row[7]), ownerKey);
 		require(Arrays.equals(ownerBytes, ownerKey.getBytes(StandardCharsets.UTF_8))
 			&& ownerKey.equals("Combat/" + observation.profileId() + "/" + owner.generation() + "/" + observation.decisionId()), "PVP_NATIVE_OWNER");
-		nonnegativeInt(row[9]); // Instance remains in the original; the episode binding owns the scored roster.
+		final int instance = nonnegativeInt(row[9]);
 		positive(row[10]); // Native elapsed cast clock.
 		final long mpStart = positive(row[12]), mpEnd = positive(row[13]);
 		require(scalar(row[11]) > 0 && mpStart >= observation.capturedNanos() && mpEnd >= mpStart, "PVP_NATIVE_MP");
@@ -155,7 +182,8 @@ final class PhantomLearning131AuditOriginals
 			&& poolMatches(cp, target, Field.MAX_CP, observation.capturedNanos()), "PVP_NATIVE_POOL");
 		final long damageNanos = Math.max(last(hp), last(cp));
 		return new Paid(new Fact(key, operationId(episodeId, owner), observation.actorObjectId(), observation.actorEpoch(), targetId, targetEpoch,
-			skill, rank, damageNanos, delta(hp), delta(cp), 0, "", true, observation.capturedNanos(), Math.max(damageNanos, mpEnd)), lethal);
+			skill, rank, damageNanos, delta(hp), delta(cp), 0, "", true, observation.capturedNanos(), Math.max(damageNanos, mpEnd)),
+			instance, hp == null ? 0 : hp.firstWrite(), lethal, hp == null ? 0 : hp.after());
 	}
 
 	private static String pool(PvpPoolWrite write)
@@ -182,21 +210,61 @@ final class PhantomLearning131AuditOriginals
 	private static BigDecimal delta(PvpPoolWrite write) { return write == null ? BigDecimal.ZERO : wireDamage(write.delta()); }
 	private static long last(PvpPoolWrite write) { return write == null ? 0 : write.lastWrite(); }
 
-	/** Independent stock and paid post-commit witnesses. Either one alone is insufficient for a DEATH row. */
-	static String deathRow(String eventKey, DuelDeath stock, DuelDeath paid)
+	private static Fact join(Paid original, NativeTerminal terminal, DuelDeath stock)
 	{
-		return row("death", eventKey, stock.killer(), stock.victim(), stock.victimEpoch(), stock.corpseGeneration(), stock.observedNanos(),
-			paid.killer(), paid.victim(), paid.victimEpoch(), paid.corpseGeneration(), paid.observedNanos());
+		final Fact fact = original.fact();
+		require(terminal.actorObjectId() == fact.actor() && terminal.actorEpoch() == fact.actorEpoch() && terminal.targetObjectId() == fact.target()
+			&& terminal.targetEpoch() == fact.targetEpoch() && terminal.instanceId() == original.instanceId(), "TERMINAL_RECIPIENT_OR_INSTANCE");
+		require(terminal.damageNanos() <= terminal.deathNanos(), "TERMINAL_BEFORE_NATIVE_DAMAGE");
+		if (fact.pvp())
+		{
+			require(terminal.damageNanos() == fact.atNanos() && terminal.corpseGeneration() > 0 && terminal.killCreditNanos() == 0
+				&& terminal.killSequence() == 0 && matchesStock(terminal, stock), "PVP_TERMINAL_OR_STOCK");
+			return fact.withTerminal(terminal, stock.observedNanos());
+		}
+		require(stock == null && terminal.corpseGeneration() == 0 && original.afterHp() < 0.5 && terminal.damageNanos() >= original.firstHpWrite()
+			&& terminal.deathNanos() <= fact.atNanos() && (terminal.killSequence() == 0
+				? terminal.killCreditNanos() == 0 : terminal.killCreditNanos() >= terminal.deathNanos()), "PVE_TERMINAL_OR_KILL_CREDIT");
+		return fact.withTerminal(terminal, Math.max(terminal.deathNanos(), terminal.killCreditNanos()));
 	}
 
-	private static DuelDeath death(String[] row, int column)
+	static boolean matchesStock(NativeTerminal terminal, DuelDeath stock)
 	{
-		return new DuelDeath(object(row[column]), object(row[column + 1]), positive(row[column + 2]), positive(row[column + 3]), positive(row[column + 4]));
+		return stock != null && stock.killer() == terminal.actorObjectId() && stock.victim() == terminal.targetObjectId()
+			&& stock.victimEpoch() == terminal.targetEpoch() && stock.corpseGeneration() == terminal.corpseGeneration()
+			&& stock.observedNanos() >= terminal.deathNanos();
+	}
+
+	static String terminalRow(NativeTerminal terminal)
+	{
+		return row("terminal", terminal.eventKey(), terminal.actorObjectId(), terminal.actorEpoch(), terminal.targetObjectId(), terminal.targetEpoch(),
+			terminal.instanceId(), terminal.corpseGeneration(), terminal.deathNanos(), terminal.killCreditNanos(), terminal.killSequence(), terminal.damageNanos());
+	}
+
+	private static NativeTerminal readTerminal(String[] row, String key)
+	{
+		return new NativeTerminal(key, object(row[2]), positive(row[3]), object(row[4]), positive(row[5]), nonnegativeInt(row[6]),
+			nonnegative(row[7]), positive(row[8]), nonnegative(row[9]), nonnegative(row[10]), positive(row[11]));
+	}
+
+	static String stockRow(String eventKey, DuelDeath stock)
+	{
+		return row("stock", eventKey, stock.killer(), stock.victim(), stock.victimEpoch(), stock.corpseGeneration(), stock.observedNanos());
+	}
+
+	private static DuelDeath readStock(String[] row)
+	{
+		return new DuelDeath(object(row[2]), object(row[3]), positive(row[4]), positive(row[5]), positive(row[6]));
 	}
 
 	static String deathKey(String eventKey, long corpseGeneration)
 	{
 		return TacticalObservationV3.hash(("TASK131_AUDIT_NATIVE_DEATH_V1\n" + eventKey + "\n" + corpseGeneration).getBytes(StandardCharsets.UTF_8));
+	}
+
+	static String killCreditKey(String eventKey, long sequence)
+	{
+		return TacticalObservationV3.hash(("TASK131_AUDIT_NATIVE_KILL_CREDIT_V1\n" + eventKey + "\n" + sequence).getBytes(StandardCharsets.UTF_8));
 	}
 
 	static BigDecimal wireDamage(double delta)
@@ -235,6 +303,13 @@ final class PhantomLearning131AuditOriginals
 	}
 
 	private static int object(String text) { return Math.toIntExact(positive(text)); }
+
+	private static long nonnegative(String text)
+	{
+		final long value = Long.parseLong(text);
+		require(value >= 0 && Long.toString(value).equals(text), "NONNEGATIVE_ID_OR_TIME");
+		return value;
+	}
 
 	private static int nonnegativeInt(String text)
 	{
