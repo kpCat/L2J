@@ -53,6 +53,8 @@ import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.enums.creature.InstanceType;
 import org.l2jmobius.gameserver.model.events.EventDispatcher;
 import org.l2jmobius.gameserver.model.events.EventType;
@@ -437,6 +439,36 @@ public class Item extends WorldObject
 		}
 		finally { _dbLock.unlock(); }
 	}
+
+	/** The full-stack destruction path uses the same count lock as partial native debits. */
+	public void clearCountForDestruction(ItemProcessType process, Player actor)
+	{
+		if (actor == null || !PlayerNativeEvidence.observesResourceWrites())
+		{
+			setCount(0);
+			return;
+		}
+
+		_dbLock.lock();
+		try
+		{
+			final long before = _count;
+			setCount(0);
+			final var owner = before > 0 && _count == 0 ? currentDebitOwner(actor) : null;
+			if (owner != null)
+			{
+				owner.evidence().itemDestroyed(actor.getObjectId(), owner.epoch(), getObjectId(), _itemId, before, process, _loc);
+			}
+		}
+		finally { _dbLock.unlock(); }
+	}
+
+	private PlayerNativeWork.Owner currentDebitOwner(Player actor)
+	{
+		if (actor == null || _ownerId != actor.getObjectId()) { return null; }
+		final var owner = actor.getNativeWorkOwner();
+		return owner != null && owner.player() == actor && owner.isCurrent() && PlayerNativeWork.current(owner) != null && owner.evidence() != null ? owner : null;
+	}
 	
 	/**
 	 * @return Returns the count.
@@ -624,13 +656,12 @@ public class Item extends WorldObject
 
 			// The existing opt-in native observer needs the actual serialized count change,
 			// including ItemProcessType.NONE used by stock soulshot handlers.
-			if (count < 0 && creator != null && _ownerId == creator.getObjectId())
+			if (count < 0)
 			{
-				final var nativeOwner = creator.getNativeWorkOwner();
-				if (nativeOwner != null && nativeOwner.player() == creator && nativeOwner.isCurrent()
-					&& org.l2jmobius.gameserver.model.actor.PlayerNativeWork.current(nativeOwner) != null && nativeOwner.evidence() != null)
+				final var nativeOwner = currentDebitOwner(creator);
+				if (nativeOwner != null)
 				{
-					nativeOwner.evidence().consumed(creator.getObjectId(), nativeOwner.epoch(), getObjectId(), _itemId, old, _count);
+					nativeOwner.evidence().consumed(creator.getObjectId(), nativeOwner.epoch(), getObjectId(), _itemId, old, _count, process, _loc);
 				}
 			}
 

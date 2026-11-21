@@ -52,8 +52,8 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v15-reviewed.log",
-    "finalContractLog": "ant-contract-v16-reviewed.log",
+    "aggregateLog": "ant-combat-v17-reviewed.log",
+    "finalContractLog": "v17-PhantomLearning131EvaluationChecks.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -63,16 +63,17 @@
     "regressionTestsPassed": 171,
     "contractGroupsPassed": 17,
     "jarExitCode": 0,
-    "jarSha256": "eb09e30f587e55f72ac59c651ea8785369472d33a2c02166c49f546af876045e",
-    "loginJarSha256": "1ac09c0121ac9e29f6887b2fb650d2e2ecddfc5dac9ac0ef0ae387251e5c6496",
-    "jarLog": "jar-v16-reviewed.log",
+    "jarSha256": "e436415ce31e0eaf7e8d34b215286e1698d4f016bed3a9e537266f557a6ab025",
+    "loginJarSha256": "89e3cca7034af8604ea2f82b395cf13fa58f2afa1b0ae2409709d58aa561ad0e",
+    "jarLog": "jar-v17-reviewed.log",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
-    "auditScheduleLog": "v15-PhantomLearning131EvaluationChecks.log",
+    "auditScheduleLog": "v17-PhantomLearning131EvaluationChecks.log",
     "auditCastStageNegativeControlLog": "v15-old-evaluator-negative-control.log",
     "auditDamageSealLog": "v16-audit-seal-focused.log",
-    "nativeEvidenceRegressionLog": "v15-native-evidence-continuation022.log",
+    "auditItemDebitContractLog": "v17-PhantomLearning131EvaluationChecks.log",
+    "nativeEvidenceRegressionLog": "v17-native-evidence-continuation022.log",
     "nativeEvidenceRegressionPassed": 15,
     "managedSweepRegressionLog": "v10-native-evidence-continuation022.log",
     "supplyChecksLog": "v9-PhantomSupply074Checks.log",
@@ -83,12 +84,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v15.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v16.json",
-    "exactPathCount": 7
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v16.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v17.json",
+    "exactPathCount": 10
   },
   "testReadiness": {
-    "iterationParent": "34f82d39fb593a79fe2ea508bdee96c41fdb991d",
+    "iterationParent": "2ea594fa5e4c612672d2efd2b0bd5e85c29415fe",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -163,7 +164,7 @@
       "nativeLaunch": "NOT_RUN",
       "trainAdapter": "SOLO_PVE_SOURCES_AND_DB_FREE_CONTRACTS",
       "tuningAdapter": "SOLO_FROZEN_MODEL_SOURCES_AND_DB_FREE_REPLAY_NATIVE_NOT_RUN",
-      "auditAdapter": "FROZEN_SCHEDULE_AND_PAID_DAMAGE_DRAIN_SEAL_DB_FREE_NATIVE_BANK_RUNNER_PENDING",
+      "auditAdapter": "FROZEN_SCHEDULE_PAID_DAMAGE_AND_ITEM_ORIGINALS_DB_FREE_NATIVE_BANK_RUNNER_PENDING",
       "pvpDamageLearning": "SCOPED_NATIVE_CAST_CONDITION_AND_COLLISION_RANGE_WITH_TYPED_HP_CP_MP_NATIVE_NOT_RUN",
       "resumeAfterNativeClaim": "OFFLINE_PREFIX_AND_STORE_CONTRACT_PASS_NATIVE_NOT_RUN",
       "fitIngress": "OFFLINE_NEGATIVE_CONTROLS_PASS",
@@ -201,14 +202,14 @@
       "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
       "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "off-and-protected-v16.json",
+    "g0OffReceipt": "off-and-protected-v17.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v16.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v17.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -376,8 +377,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "ant-contract-v16-reviewed.log,v16-audit-seal-focused.log",
-      "reason": "Офлайн проверены запись после drain и независимое чтение файлов оплаченного урона, живой AUDIT, расходы предметов и остальные роли открыты"
+      "evidence": "ant-combat-v17-reviewed.log,v17-PhantomLearning131EvaluationChecks.log",
+      "reason": "Офлайн проверена сверка урона и фактических списаний с исходными квитанциями, живой AUDIT и остальные роли открыты"
     },
     "D9": {
       "phase": "P3–P5",

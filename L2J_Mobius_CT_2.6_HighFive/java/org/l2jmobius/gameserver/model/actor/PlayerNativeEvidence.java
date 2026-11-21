@@ -9,6 +9,8 @@ import java.util.function.Consumer;
 
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask;
+import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 
 /** Optional scalar observation. Calls belong after successful native writers, never attempts or aggro. */
 public final class PlayerNativeEvidence
@@ -45,7 +47,8 @@ public final class PlayerNativeEvidence
 		int actorObjectId();
 		long actorEpoch();
 	}
-	public record ItemDebit(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after, Target selectedTarget) implements ResourceWrite { }
+	public record ItemDebit(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after, Target selectedTarget,
+		ItemProcessType process, long sequence, long observedNanos) implements ResourceWrite { }
 	public record CastMpDebit(int actorObjectId, long actorEpoch, int skillId, int skillLevel, Target target, double before, double after) implements ResourceWrite { }
 	private record CastDebitContext(ResourceObservation observer, Player actor, PlayerNativeWork.Owner owner, MagicUseTask task, Target target) { }
 
@@ -62,18 +65,68 @@ public final class PlayerNativeEvidence
 
 	public static final class ResourceObservation implements AutoCloseable
 	{
+		private record ItemWindow(long writes, long closedNanos) { }
+
 		private final Consumer<ResourceWrite> _observation;
 		private final AtomicReference<String> _failure = new AtomicReference<>();
+		private final AtomicReference<ItemWindow> _items = new AtomicReference<>(new ItemWindow(0, 0));
+		private final long _openedNanos = timestamp();
 
 		private ResourceObservation(Consumer<ResourceWrite> observation) { _observation = observation; }
 		public String failure() { return _failure.get(); }
+		public long itemWrites() { return _items.get().writes(); }
+		public long openedNanos() { return _openedNanos; }
+		public long closedNanos() { return _items.get().closedNanos(); }
+
+		private void itemDebited(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after,
+			Target selectedTarget, ItemProcessType process)
+		{
+			for (;;)
+			{
+				final ItemWindow previous = _items.get();
+				if (previous.closedNanos() != 0) { return; }
+				if (previous.writes() == Long.MAX_VALUE)
+				{
+					_failure.compareAndSet(null, "ITEM_DEBIT_SEQUENCE_OVERFLOW");
+					return;
+				}
+				final long sequence = previous.writes() + 1;
+				final long observedNanos = timestamp();
+				// The closure sees reservations even if their callbacks have yet to return.
+				if (_items.compareAndSet(previous, new ItemWindow(sequence, 0)))
+				{
+					accept(new ItemDebit(actorObjectId, actorEpoch, itemObjectId, itemId, before, after, selectedTarget, process, sequence, observedNanos));
+					return;
+				}
+			}
+		}
+
 		private void accept(ResourceWrite write)
 		{
-			if (RESOURCE_OBSERVER.get() != this || failure() != null) { return; }
+			if (RESOURCE_OBSERVER.get() != this || closedNanos() != 0 || failure() != null) { return; }
 			try { _observation.accept(write); }
 			catch (RuntimeException | Error failure) { _failure.compareAndSet(null, failure.getClass().getName()); }
 		}
-		@Override public void close() { RESOURCE_OBSERVER.compareAndSet(this, null); }
+
+		@Override public void close()
+		{
+			for (;;)
+			{
+				final ItemWindow previous = _items.get();
+				if (previous.closedNanos() != 0 || _items.compareAndSet(previous, new ItemWindow(previous.writes(), timestamp())))
+				{
+					RESOURCE_OBSERVER.compareAndSet(this, null);
+					return;
+				}
+			}
+		}
+
+		private static long timestamp()
+		{
+			long nanos;
+			do { nanos = System.nanoTime(); } while (nanos == 0);
+			return nanos;
+		}
 	}
 
 	/** Only the stock hit-consumption call opens this context; general MP writers cannot attribute a cast. */
@@ -134,18 +187,40 @@ public final class PlayerNativeEvidence
 		try { observer.accept("HEAL", new long[] { actorObjectId, actorEpoch, targetObjectId, targetEpoch, skillId, skillLevel, Double.doubleToRawLongBits(beforeHp), Double.doubleToRawLongBits(afterHp), Double.doubleToRawLongBits(casterMp), reuseMillis }); }
 		catch (Throwable unavailable) { _healObserverFailure = unavailable.getClass().getName(); }
 	}
-	/** Called under the item's native count lock, after a successful owned decrement. */
+	/** Historical consumption observer without a scoped inventory classification. */
 	public void consumed(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after)
 	{
-		final var resources = RESOURCE_OBSERVER.get();
+		consumed(actorObjectId, actorEpoch, itemObjectId, itemId, before, after, null, null);
+	}
+
+	/** Called under the item's native count lock, after a successful owned decrement. */
+	public void consumed(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after, ItemProcessType process, ItemLocation location)
+	{
+		final var resources = personalInventory(location) ? RESOURCE_OBSERVER.get() : null;
 		final var observer = _pickupObserver;
 		if (resources == null && observer == null) { return; }
 		if (!matches(actorObjectId, actorEpoch) || itemObjectId <= 0 || itemId <= 0 || before <= after || after < 0) { return; }
-		if (resources != null) { resources.accept(new ItemDebit(actorObjectId, actorEpoch, itemObjectId, itemId, before, after, selectedTarget())); }
+		if (resources != null) { resources.itemDebited(actorObjectId, actorEpoch, itemObjectId, itemId, before, after, _selected, process); }
 		if (observer == null) { return; }
 		try { observer.accept("CONSUME", new long[] { _objectId, itemObjectId, itemId, before, _objectId, before - after, after, _epoch }); }
 		catch (Throwable unavailable) { _pickupObserverFailure = unavailable.getClass().getName(); }
 	}
+
+	/** Complete stack destruction is part of the scoped resource ledger only. */
+	public void itemDestroyed(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, ItemProcessType process, ItemLocation location)
+	{
+		final var resources = personalInventory(location) ? RESOURCE_OBSERVER.get() : null;
+		if (resources != null && matches(actorObjectId, actorEpoch) && itemObjectId > 0 && itemId > 0 && before > 0)
+		{
+			resources.itemDebited(actorObjectId, actorEpoch, itemObjectId, itemId, before, 0, _selected, process);
+		}
+	}
+
+	private static boolean personalInventory(ItemLocation location)
+	{
+		return location == ItemLocation.INVENTORY || location == ItemLocation.PAPERDOLL;
+	}
+
 	public record PickupReceipt(int sourceObjectId, int itemId, long count, long actorCount, long sequence, boolean nativeConsumed) { }
 	private final Map<Integer, PickupReceipt> _pickups = new LinkedHashMap<>();
 	private long _pickupSequence;
@@ -237,7 +312,7 @@ public final class PlayerNativeEvidence
 	private final int _objectId;
 	private final long _epoch;
 	private final Map<Target, TargetState> _targets = new LinkedHashMap<>();
-	private Target _selected;
+	private volatile Target _selected;
 	private boolean _overflow;
 	private UnprovenReason _firstUnprovenReason = UnprovenReason.NONE;
 	private long _firstUnprovenNanos;

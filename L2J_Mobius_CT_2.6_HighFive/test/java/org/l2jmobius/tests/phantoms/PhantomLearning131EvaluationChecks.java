@@ -12,6 +12,8 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
@@ -51,6 +53,7 @@ public final class PhantomLearning131EvaluationChecks
 		paidProjectionRejectsSubstitution();
 		paidPveOriginalRoundTrip();
 		paidPvpCpOriginalRoundTrip();
+		paidItemsRequireNativeLedger();
 		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
 	}
@@ -170,8 +173,11 @@ public final class PhantomLearning131EvaluationChecks
 		final var events = paidEvents(npc, damage, death, credit);
 		PhantomLearning131Evaluation.verifyPaidProjection(events, Map.of(event, npc),
 			Map.of(42, 7L, 102, 91L), new EpisodeWindow(1000, 54, 90), false);
-		closedDamageSeal(episode, events.stream().map(row -> String.join("\t", row)).toList(),
-			List.of(String.join("\t", fatalRow), String.join("\t", terminal), String.join("\t", cast)));
+		final var item = new ItemDebit(42, 7, 601, 1463, 5, 3, null, ItemProcessType.NONE, 1, 1001);
+		final var eventRows = new ArrayList<>(events.stream().map(row -> String.join("\t", row)).toList());
+		eventRows.add(PhantomLearning131AuditOriginals.paymentRow(episode, item));
+		closedDamageSeal(episode, eventRows, List.of(String.join("\t", fatalRow), String.join("\t", terminal), String.join("\t", cast),
+			PhantomLearning131AuditOriginals.itemWindow(1000, 1089, 1), PhantomLearning131AuditOriginals.itemRow(episode, item)));
 	}
 
 	private static void closedDamageSeal(String episode, List<String> events, List<String> originals) throws Exception
@@ -206,7 +212,23 @@ public final class PhantomLearning131EvaluationChecks
 			}
 			catch (IllegalArgumentException refused)
 			{
-				check(refused.getMessage().equals("EVAL131_UNBOUND_CLOSED_DAMAGE_EVENT"), "only operations with paid originals may be sealed here");
+				check(refused.getMessage().equals("EVAL131_UNPROVEN_NATIVE_EVENT"), "only operations with paid originals may be sealed here");
+			}
+			final var unsupported = new ArrayList<>(events.stream().map(row -> row.split("\t", -1)).toList());
+			final String[] unprovedHeal = unsupported.get(3).clone();
+			unprovedHeal[1] = "f".repeat(64);
+			unprovedHeal[3] = "HEAL";
+			unprovedHeal[5] = unprovedHeal[4];
+			unsupported.add(unprovedHeal);
+			final var bundle = PhantomLearning131AuditOriginals.decodeAuditRows(originals.stream().map(row -> row.split("\t", -1)).toList(), episode);
+			try
+			{
+				PhantomLearning131Evaluation.verifyNativeProjection(unsupported, bundle, Map.of(42, 7L, 102, 91L), new EpisodeWindow(1000, 54, 90), false);
+				throw new AssertionError("An event-only heal must never contribute to a bank result");
+			}
+			catch (IllegalArgumentException refused)
+			{
+				check(refused.getMessage().equals("EVAL131_UNPROVEN_NATIVE_EVENT"), "all scored effects require a typed native source");
 			}
 			final Path seal = directory.resolve("complete131.tsv");
 			check(Files.notExists(seal) && Files.notExists(directory.resolve("events131.tsv")), "a refused episode never writes originals or a seal");
@@ -225,7 +247,7 @@ public final class PhantomLearning131EvaluationChecks
 				check(digest(seal).equals(sealed), "a repeated publication preserves the original seal");
 			}
 			final Path paid = directory.resolve("paid131.tsv");
-			Files.writeString(paid, Files.readString(paid).replace("meta\tschema\tNATIVE_PAID131_V3", "meta\tschema\tNATIVE_PAID131_V2"));
+			Files.writeString(paid, Files.readString(paid).replace("meta\tschema\tNATIVE_PAID131_V4", "meta\tschema\tNATIVE_PAID131_V3"));
 			try
 			{
 				PhantomLearning131Evaluation.verifySealedDamage(binding, episode, sealed, false);
@@ -243,6 +265,49 @@ public final class PhantomLearning131EvaluationChecks
 				for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) { Files.delete(path); }
 			}
 		}
+	}
+
+	private static void paidItemsRequireNativeLedger()
+	{
+		final String episode = "9".repeat(64);
+		final var first = new ItemDebit(42, 7, 601, 1463, 20, 18, null, ItemProcessType.NONE, 1, 1010);
+		final var second = new ItemDebit(42, 7, 601, 1463, 18, 0, null, null, 2, 1040);
+		final String[] header = PhantomLearning131AuditOriginals.itemWindow(1005, 1090, 2).split("\t", -1);
+		final String[] original1 = PhantomLearning131AuditOriginals.itemRow(episode, first).split("\t", -1);
+		final String[] original2 = PhantomLearning131AuditOriginals.itemRow(episode, second).split("\t", -1);
+		final var ledger = PhantomLearning131AuditOriginals.decodeAuditRows(List.of(header, original1, original2), episode).items();
+		final var events = List.of(PhantomLearning131AuditOriginals.paymentRow(episode, first).split("\t", -1),
+			PhantomLearning131AuditOriginals.paymentRow(episode, second).split("\t", -1));
+		final var window = new EpisodeWindow(1000, 60, 100);
+		final var roster = Map.of(42, 7L);
+		PhantomLearning131Evaluation.verifyPaymentProjection(events, ledger, roster, window);
+		check(ledger.debits().get(events.getFirst()[1]).before() - ledger.debits().get(events.getFirst()[1]).after() == 2
+			&& ledger.debits().get(events.getLast()[1]).after() == 0, "partial consumption and final stack removal retain their quantities without a cast");
+		rejectsPayments(changedField(events, 0, 8, "1"), ledger, roster, window);
+		rejectsPayments(events.subList(0, 1), ledger, roster, window);
+		rejectsPayments(events, ledger, Map.of(42, 8L), window);
+		rejectsPayments(events, ledger, roster, new EpisodeWindow(1000, 38, 100));
+		rejectsItemLedger(List.of(header, original2), episode);
+		final var refilled = new ItemDebit(42, 7, 601, 1463, 19, 0, null, null, 2, 1040);
+		rejectsItemLedger(List.of(header, original1, PhantomLearning131AuditOriginals.itemRow(episode, refilled).split("\t", -1)), episode);
+		final var emptyWindow = PhantomLearning131AuditOriginals.itemWindow(1005, 1090, 0).split("\t", -1);
+		final var empty = PhantomLearning131AuditOriginals.decodeAuditRows(Collections.singletonList(emptyWindow), episode).items();
+		PhantomLearning131Evaluation.verifyPaymentProjection(List.of(), empty, roster, window);
+		rejectsItemLedger(List.of(), episode);
+	}
+
+	private static void rejectsItemLedger(List<String[]> rows, String episode)
+	{
+		try { PhantomLearning131AuditOriginals.decodeAuditRows(rows, episode); }
+		catch (IllegalArgumentException refused) { return; }
+		throw new AssertionError("A missing, incomplete or discontinuous item observation entered the evaluator");
+	}
+
+	private static void rejectsPayments(List<String[]> events, PhantomLearning131AuditOriginals.ItemLedger ledger, Map<Integer, Long> roster, EpisodeWindow window)
+	{
+		try { PhantomLearning131Evaluation.verifyPaymentProjection(events, ledger, roster, window); }
+		catch (IllegalArgumentException refused) { return; }
+		throw new AssertionError("An incomplete or substituted item payment entered the evaluator");
 	}
 
 	private static void rejectsPaidOriginals(List<String[]> rows, String episodeId)

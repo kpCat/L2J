@@ -168,7 +168,7 @@ public class ItemManager
 		synchronized (item)
 		{
 			final long old = item.getCount();
-			item.setCount(0);
+			item.clearCountForDestruction(process, actor);
 			item.setOwnerId(0);
 			item.setItemLocation(ItemLocation.VOID);
 			item.setLastChange(Item.REMOVED);

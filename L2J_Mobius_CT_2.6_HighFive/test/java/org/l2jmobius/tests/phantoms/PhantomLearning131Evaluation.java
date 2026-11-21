@@ -25,7 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.AuditRows;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.Fact;
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.ItemLedger;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.BlockPlan;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Episode;
@@ -98,7 +100,6 @@ public final class PhantomLearning131Evaluation
 	private record Control(int target, String effect) { }
 	private record ActiveControl(long started, String operation, boolean scored) { }
 	private record Subject(String operation, int target) { }
-	private record ItemPayment(String operation, int item) { }
 
 	private PhantomLearning131Evaluation() { }
 
@@ -355,7 +356,8 @@ public final class PhantomLearning131Evaluation
 				final var window = new EpisodeWindow(binding.started(), positive(seal.get("combatElapsedNanos")), positive(seal.get("settledElapsedNanos")));
 				previousEnd = window.settledEnd();
 				final boolean pvp = plan.stratum() == Stratum.DUEL_PVP || plan.stratum() == Stratum.GROUP_PVP;
-				verifyPaidProjection(evidence.rows(), PhantomLearning131AuditOriginals.decode(paid.rows(), occurrence.id()), epochs(binding.participants()), window, pvp);
+				final var auditRows = PhantomLearning131AuditOriginals.decodeAuditRows(paid.rows(), occurrence.id());
+				verifyNativeProjection(evidence.rows(), auditRows, epochs(binding.participants()), window, pvp);
 				final var raw = new Raw(binding, occurrence.block(), audit.prices(), window);
 				for (String[] event : evidence.rows())
 				{
@@ -379,7 +381,7 @@ public final class PhantomLearning131Evaluation
 	{
 		final Document events = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
 		require(events.sha().equals(eventsSha) && events.get("episodeId").equals(id) && events.get("bindingSha").equals(bindingSha), "RAW_EVENTS_PIN");
-		final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V3", "schema", "episodeId", "bindingSha");
+		final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V4", "schema", "episodeId", "bindingSha");
 		require(paid.sha().equals(paidSha) && paid.get("episodeId").equals(id) && paid.get("bindingSha").equals(bindingSha), "PAID_ORIGINALS_PIN");
 		return new EpisodeDocuments(events, paid);
 	}
@@ -416,12 +418,27 @@ public final class PhantomLearning131Evaluation
 	private static void verifyClosedDamage(Document binding, String episodeId, boolean pvp, EpisodeWindow window,
 		List<String[]> events, List<String[]> paid)
 	{
-		final var originals = PhantomLearning131AuditOriginals.decode(paid, episodeId);
-		require(!originals.isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
+		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(paid, episodeId);
+		require(!originals.damage().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
+		verifyNativeProjection(events, originals, epochs(participants(binding, Side.valueOf(binding.get("side")))), window, pvp);
+	}
+
+	/** A raw event may affect a bank result only when this schema can prove its native origin. */
+	static void verifyNativeProjection(List<String[]> events, AuditRows originals, Map<Integer, Long> epochs, EpisodeWindow window, boolean pvp)
+	{
 		final var operations = new HashSet<String>();
-		originals.values().forEach(fact -> operations.add(fact.operationId()));
-		require(events.stream().allMatch(row -> row.length >= 7 && operations.contains(row[6])), "UNBOUND_CLOSED_DAMAGE_EVENT");
-		verifyPaidProjection(events, originals, epochs(participants(binding, Side.valueOf(binding.get("side")))), window, pvp);
+		originals.damage().values().forEach(fact -> operations.add(fact.operationId()));
+		for (String[] row : events)
+		{
+			require(row.length >= 7 && (switch (row[3])
+			{
+				case "PAY" -> true;
+				case "DECISION", "ADMITTED", "EXECUTED", "DAMAGE", "DEATH", "KILL_CREDIT" -> operations.contains(row[6]);
+				default -> false;
+			}), "UNPROVEN_NATIVE_EVENT");
+		}
+		verifyPaidProjection(events, originals.damage(), epochs, window, pvp);
+		verifyPaymentProjection(events, originals.items(), epochs, window);
 	}
 
 	private static Map<Integer, Long> epochs(Map<Integer, Participant> roster)
@@ -429,6 +446,30 @@ public final class PhantomLearning131Evaluation
 		final var epochs = new HashMap<Integer, Long>();
 		roster.forEach((object, member) -> epochs.put(object, member.epoch()));
 		return epochs;
+	}
+
+	/** A priced item write remains a cost even when no later cast or attack succeeded. */
+	static void verifyPaymentProjection(List<String[]> events, ItemLedger ledger, Map<Integer, Long> roster, EpisodeWindow window)
+	{
+		require(ledger.openedNanos() >= window.started() && ledger.openedNanos() <= window.combatEnd()
+			&& ledger.closedNanos() >= window.combatEnd() && ledger.closedNanos() <= window.settledEnd(), "ITEM_OBSERVATION_WINDOW");
+		final var used = new HashSet<String>();
+		for (String[] row : events)
+		{
+			require(row.length >= 7 && row[0].equals("event") && positive(row[2]) >= ledger.openedNanos(), "EVENT_BEFORE_ITEM_OBSERVATION");
+			if (!row[3].equals("PAY"))
+			{
+				require(!ledger.debits().containsKey(row[6]), "ITEM_OPERATION_REUSED");
+				continue;
+			}
+			length(row, 9);
+			final var debit = ledger.debits().get(row[1]);
+			require(debit != null && row[6].equals(row[1]) && object(row[4]) == debit.actorObjectId() && row[5].equals(row[4])
+				&& roster.getOrDefault(debit.actorObjectId(), 0L) == debit.actorEpoch() && object(row[7]) == debit.itemId()
+				&& positive(row[2]) == debit.observedNanos() && debit.observedNanos() <= window.combatEnd()
+				&& positive(row[8]) == debit.before() - debit.after() && used.add(row[1]), "ITEM_DEBIT_PROJECTION");
+		}
+		require(used.size() == ledger.count(), "INCOMPLETE_ITEM_DEBIT_PROJECTION");
 	}
 
 	/** Reconstruct native cast stages, damage and deaths from separately sealed paid originals. */
@@ -626,7 +667,6 @@ public final class PhantomLearning131Evaluation
 		private final Map<Control, ActiveControl> _control = new HashMap<>();
 		private final Map<Integer, Integer> _scoredControl = new HashMap<>();
 		private final Set<Subject> _damageEvents = new HashSet<>();
-		private final Set<ItemPayment> _payments = new HashSet<>();
 		private final Set<String> _unknownActions = new HashSet<>();
 		private final Map<Integer, Long> _deaths = new HashMap<>();
 		private final Set<Integer> _creditedMobs = new HashSet<>();
@@ -705,6 +745,13 @@ public final class PhantomLearning131Evaluation
 					if (friendly) { _unknown.merge(role, 1, Integer::sum); }
 				}
 				case "VIOLATION" -> throw new IllegalArgumentException("EVAL131_NATIVE_SAFETY_VIOLATION");
+				case "PAY" ->
+				{
+					length(row, 9);
+					final BigDecimal price = _prices.get(object(row[7]));
+					require(price != null && source == target, "PAID_RESOURCE_PRICE");
+					if (friendly) { _paid = _paid.add(price.multiply(BigDecimal.valueOf(positive(row[8])))); }
+				}
 				default ->
 				{
 					require(action != null && action.stage() == 2 && action.source() == source, "EFFECT_WITHOUT_EXECUTION");
@@ -800,15 +847,6 @@ public final class PhantomLearning131Evaluation
 						case "INTERRUPT" -> { if (friendly) { _interrupts++; } else { _opponentEffects++; } }
 					}
 					return friendly && role == Role.CONTROL;
-				}
-				case "PAY" ->
-				{
-					length(row, 9);
-					final int item = object(row[7]);
-					final BigDecimal price = _prices.get(item);
-					require(price != null && source == target && _payments.add(new ItemPayment(operation, item)), "PAID_RESOURCE_PIN_OR_DUPLICATE");
-					final BigDecimal value = price.multiply(BigDecimal.valueOf(positive(row[8])));
-					if (friendly) { _paid = _paid.add(value); }
 				}
 				case "DEATH" ->
 				{

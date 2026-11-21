@@ -18,13 +18,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ResourceObservation;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.events.EventType;
@@ -56,6 +61,7 @@ import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Outcome;
 final class PhantomLearning131AuditDamage implements AutoCloseable
 {
 	private static final int MAX_CASTS = 64;
+	private static final int MAX_ITEM_WRITES = 512;
 	private static final AtomicReference<PhantomLearning131AuditDamage> ACTIVE = new AtomicReference<>();
 	private static final AtomicReference<PvpCapture> ACTIVE_DUEL = new AtomicReference<>();
 
@@ -65,6 +71,47 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	record DuelEvidence(List<PaidPvpDamage> paidDamage, DuelDamageTotals damageTotals, List<DuelDeath> nativeDeaths,
 		Optional<Outcome> nativeDeathOutcome, boolean allDeathsLinked, List<String> eventRows, List<String> originalRows) { }
 	private record DuelEvent(long nanos, String row) { }
+
+	private static final class ItemCapture implements AutoCloseable
+	{
+		private final ConcurrentLinkedQueue<ItemDebit> _items = new ConcurrentLinkedQueue<>();
+		private final AtomicInteger _queued = new AtomicInteger();
+		private ResourceObservation _observer;
+		private boolean _closed;
+
+		void open(BooleanSupplier current)
+		{
+			_observer = PlayerNativeEvidence.observeResourceWrites(write ->
+			{
+				if (write instanceof ItemDebit item && current.getAsBoolean()
+					&& _queued.getAndUpdate(count -> Math.min(count + 1, MAX_ITEM_WRITES)) < MAX_ITEM_WRITES)
+				{
+					_items.add(item);
+				}
+			});
+		}
+
+		@Override public synchronized void close()
+		{
+			if (_observer != null && !_closed)
+			{
+				_observer.close();
+				_closed = true;
+			}
+		}
+
+		void addRows(String episodeId, List<String> events, List<String> originals)
+		{
+			require(_closed && _observer.failure() == null, "NATIVE_ITEM_OBSERVER_FAILED");
+			// Publish the actual writer count, including writes the bounded callback couldn't queue.
+			originals.add(PhantomLearning131AuditOriginals.itemWindow(_observer.openedNanos(), _observer.closedNanos(), _observer.itemWrites()));
+			_items.stream().sorted(Comparator.comparingLong(ItemDebit::sequence)).forEach(item ->
+			{
+				originals.add(PhantomLearning131AuditOriginals.itemRow(episodeId, item));
+				events.add(PhantomLearning131AuditOriginals.paymentRow(episodeId, item));
+			});
+		}
+	}
 
 	/** The original preserves separate nullable pools, exact MP and the native cast stages. */
 	static final class PaidPvpDamage
@@ -164,6 +211,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private final HashSet<String> _operations = new HashSet<>();
 		private final ConsumerEventListener _scoredDeathListener;
 		private final ConsumerEventListener _opponentDeathListener;
+		private final ItemCapture _items = new ItemCapture();
 		private AutoCloseable _auditObserver;
 		private boolean _draining;
 		private boolean _closed;
@@ -224,6 +272,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 
 		private void install()
 		{
+			_items.open(() -> ACTIVE_DUEL.get() == this);
 			_auditObserver = LearningCastEvidence.observeNativeAudit(this::nativeTrace, this::nativeTerminal);
 			_scored.player().addListener(_scoredDeathListener);
 			_opponent.player().addListener(_opponentDeathListener);
@@ -321,11 +370,15 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			{
 				drain.finish();
 				require(_scored.drained() && _opponent.drained(), "NATIVE_DUEL_NOT_DRAINED");
+				_items.close();
 				final long settled = System.nanoTime();
 				final DuelEvidence evidence = finished(settled);
 				require(evidence.allDeathsLinked() && !evidence.paidDamage().isEmpty(), "INVALID_OR_EMPTY_NATIVE_DUEL");
+				final var events = new ArrayList<>(evidence.eventRows());
+				final var originals = new ArrayList<>(evidence.originalRows());
+				_items.addRows(_binding.episodeId(), events, originals);
 				return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), true, combatEnd, settled,
-					evidence.eventRows(), evidence.originalRows());
+					events, originals);
 			}
 			finally { close(); }
 		}
@@ -391,6 +444,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			_closed = true;
 			if (ACTIVE_DUEL.get() == this)
 			{
+				_items.close();
 				_scored.player().removeListener(_scoredDeathListener);
 				_opponent.player().removeListener(_opponentDeathListener);
 				_delegates.forEach(LearningPolicy::observer);
@@ -471,6 +525,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	private final Map<String, TacticalReceiptV3> _receipts = new HashMap<>();
 	private final Map<String, NativeCastTrace> _traces = new HashMap<>();
 	private final Map<String, NativeTerminal> _terminals = new HashMap<>();
+	private final ItemCapture _items = new ItemCapture();
 	private AutoCloseable _auditObserver;
 	private boolean _draining;
 	private boolean _closed;
@@ -531,6 +586,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		require(ACTIVE.compareAndSet(null, capture), "NATIVE_TIMING_OBSERVER_BUSY");
 		try
 		{
+			capture._items.open(() -> ACTIVE.get() == capture);
 			capture._auditObserver = LearningCastEvidence.observeNativeAudit(capture::nativeTrace, capture::nativeTerminal);
 			TerminalRewardReceiptV1.nativeTimingObserver(capture::nativeTiming);
 			ownedPolicy.damageObserver(receipt ->
@@ -611,11 +667,17 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			drain.finish();
 			require(!_owner.isCurrent() && PlayerNativeWork.observationEvidence(_actor) == null
 				&& World.getInstance().findObject(_actor.getObjectId()) == null, "NATIVE_ACTOR_NOT_DRAINED");
+			_items.close();
 			final long settled = System.nanoTime();
-			final var originals = finished(settled);
-			return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), false, combatEnd, settled,
-				originals.stream().flatMap(damage -> damage.eventRows().stream()).toList(),
-				originals.stream().flatMap(damage -> damage.originalRows().stream()).toList());
+			final var events = new ArrayList<String>();
+			final var originals = new ArrayList<String>();
+			for (var damage : finished(settled))
+			{
+				events.addAll(damage.eventRows());
+				originals.addAll(damage.originalRows());
+			}
+			_items.addRows(_binding.episodeId(), events, originals);
+			return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), false, combatEnd, settled, events, originals);
 		}
 		finally { close(); }
 	}
@@ -691,7 +753,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		final var window = PhantomLearning131Evaluation.verifyClosedDamage(binding, episodeId, bindingSha, pvp, combatEnd, settled, events, paid);
 		final String identity = meta("episodeId", episodeId) + meta("bindingSha", bindingSha);
 		final String evidence = meta("schema", "NATIVE_EVENTS131_V1") + identity + rows(events);
-		final String originals = meta("schema", "NATIVE_PAID131_V3") + identity + rows(paid);
+		final String originals = meta("schema", "NATIVE_PAID131_V4") + identity + rows(paid);
 		final String eventsSha = contentSha(evidence), paidSha = contentSha(originals);
 		final String seal = meta("schema", "NATIVE_EPISODE131_V3") + meta("bindingSha", bindingSha) + meta("eventsSha", eventsSha)
 			+ meta("paidOriginalsSha", paidSha) + meta("status", "DRAINED")
@@ -714,9 +776,10 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			case "DECISION" -> 0;
 			case "ADMITTED" -> 1;
 			case "EXECUTED" -> 2;
-			case "DAMAGE" -> 3;
-			case "DEATH" -> 4;
-			case "KILL_CREDIT" -> 5;
+			case "PAY" -> 3;
+			case "DAMAGE" -> 4;
+			case "DEATH" -> 5;
+			case "KILL_CREDIT" -> 6;
 			default -> throw new IllegalArgumentException("TASK131_NATIVE_AUDIT_DAMAGE_KIND");
 		};
 	}
@@ -759,6 +822,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		_closed = true;
 		if (ACTIVE.get() == this)
 		{
+			_items.close();
 			_policy.damageObserver(_existingPaidObserver);
 			TerminalRewardReceiptV1.nativeTimingObserver(_ -> { });
 			try { closeAuditObserver(_auditObserver); }

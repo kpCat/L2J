@@ -4,6 +4,7 @@ package org.l2jmobius.tests.phantoms;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
@@ -11,6 +12,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
@@ -25,10 +28,11 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 
-/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V3 episode document. */
+/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V4 episode document. */
 final class PhantomLearning131AuditOriginals
 {
 	private static final int MAX_ROWS = 1024;
+	private static final long MAX_ITEM_DEBITS = 512;
 	private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
 	private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
 
@@ -72,7 +76,55 @@ final class PhantomLearning131AuditOriginals
 		TacticalObservationV3 observation, int baselineId, int baselineRank) { }
 	private record KillCredit(int actor, long epoch, long sequence) { }
 
+	record ItemLedger(long openedNanos, long closedNanos, long count, Map<String, ItemDebit> debits)
+	{
+		ItemLedger { debits = Map.copyOf(debits); }
+	}
+
+	record AuditRows(Map<String, Fact> damage, ItemLedger items) { }
+
 	private PhantomLearning131AuditOriginals() { }
+
+	static AuditRows decodeAuditRows(List<String[]> rows, String episodeId)
+	{
+		require(episodeId.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,95}") && rows.size() <= MAX_ROWS, "EPISODE_OR_ROW_LIMIT");
+		final var damage = new ArrayList<String[]>();
+		final var items = new ArrayList<String[]>();
+		String[] window = null;
+		for (String[] cells : rows)
+		{
+			require(cells.length >= 2, "ROW_SHAPE");
+			switch (cells[0])
+			{
+				case "item-window" ->
+				{
+					require(window == null && cells.length == 4, "ITEM_WINDOW_SHAPE_OR_DUPLICATE");
+					window = cells;
+				}
+				case "item" -> items.add(cells);
+				default -> damage.add(cells);
+			}
+		}
+		require(window != null, "ITEM_WINDOW_MISSING");
+		final long opened = positive(window[1]), closed = positive(window[2]), count = nonnegative(window[3]);
+		checkItemWindow(opened, closed, count);
+		require(count == items.size(), "ITEM_WINDOW_COUNT");
+		final var byKey = new HashMap<String, ItemDebit>();
+		final var stacks = new HashMap<Integer, ItemDebit>();
+		for (String[] cells : items)
+		{
+			final ItemDebit debit = readItem(cells);
+			final String key = itemKey(episodeId, itemPayload(debit));
+			require(key.equals(cells[1]) && debit.sequence() == byKey.size() + 1L
+				&& debit.observedNanos() >= opened && debit.observedNanos() <= closed, "ITEM_KEY_SEQUENCE_OR_CLOCK");
+			final ItemDebit previous = stacks.put(debit.itemObjectId(), debit);
+			require(previous == null || previous.actorObjectId() == debit.actorObjectId() && previous.actorEpoch() == debit.actorEpoch()
+				&& previous.itemId() == debit.itemId() && previous.after() == debit.before() && previous.observedNanos() <= debit.observedNanos(),
+				"ITEM_STACK_CONTINUITY");
+			require(byKey.putIfAbsent(key, debit) == null, "ITEM_DUPLICATE");
+		}
+		return new AuditRows(decode(damage, episodeId), new ItemLedger(opened, closed, count, byKey));
+	}
 
 	static Map<String, Fact> decode(List<String[]> rows, String episodeId)
 	{
@@ -139,6 +191,55 @@ final class PhantomLearning131AuditOriginals
 		}
 		require(traces.isEmpty() && terminals.isEmpty() && stock.isEmpty(), "UNMATCHED_CAST_TERMINAL_OR_STOCK");
 		return Map.copyOf(facts);
+	}
+
+	static String itemWindow(long opened, long closed, long count)
+	{
+		checkItemWindow(opened, closed, count);
+		return row("item-window", opened, closed, count);
+	}
+
+	private static void checkItemWindow(long opened, long closed, long count)
+	{
+		require(opened > 0 && closed >= opened && count >= 0 && count <= MAX_ITEM_DEBITS, "ITEM_WINDOW_BOUNDS");
+	}
+
+	static String itemRow(String episodeId, ItemDebit debit)
+	{
+		final String payload = itemPayload(debit);
+		return row("item", itemKey(episodeId, payload)) + "\t" + payload;
+	}
+
+	static String paymentRow(String episodeId, ItemDebit debit)
+	{
+		final String key = itemKey(episodeId, itemPayload(debit));
+		return row("event", key, debit.observedNanos(), "PAY", debit.actorObjectId(), debit.actorObjectId(), key, debit.itemId(), debit.before() - debit.after());
+	}
+
+	private static String itemKey(String episodeId, String payload)
+	{
+		require(episodeId.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,95}"), "EPISODE_ID");
+		return TacticalObservationV3.hash(("TASK131_AUDIT_NATIVE_ITEM_DEBIT_V1\n" + episodeId + "\n" + payload).getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static String itemPayload(ItemDebit debit)
+	{
+		require(debit.sequence() > 0 && debit.sequence() <= MAX_ITEM_DEBITS && debit.actorObjectId() > 0 && debit.actorEpoch() > 0
+			&& debit.itemObjectId() > 0 && debit.itemId() > 0 && debit.after() >= 0 && debit.before() > debit.after() && debit.observedNanos() > 0,
+			"ITEM_NATIVE_DEBIT");
+		final ItemProcessType process = debit.process();
+		require(process == null || process == ItemProcessType.NONE, "ITEM_PROCESS");
+		return row(debit.sequence(), debit.actorObjectId(), debit.actorEpoch(), debit.itemObjectId(), debit.itemId(),
+			process == null ? "-" : process.name(), debit.before(), debit.after(), debit.observedNanos());
+	}
+
+	private static ItemDebit readItem(String[] cells)
+	{
+		require(cells.length == 11, "ITEM_ROW_SHAPE");
+		final String process = cells[7];
+		require(process.equals("-") || process.equals("NONE"), "ITEM_PROCESS");
+		return new ItemDebit(object(cells[3]), positive(cells[4]), object(cells[5]), object(cells[6]), positive(cells[8]), nonnegative(cells[9]),
+			null, process.equals("-") ? null : ItemProcessType.NONE, positive(cells[2]), positive(cells[10]));
 	}
 
 	static String castRow(NativeCastTrace trace)
