@@ -6,9 +6,14 @@ package org.l2jmobius.gameserver.phantoms.combat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
@@ -35,6 +40,7 @@ public final class PhantomLearnedEscape
 	private static final int MAX_PARTY = 9;
 	private static final ThreadLocal<Attempt> DISPATCH = new ThreadLocal<>();
 	private static final ThreadLocal<Attempt> IMPACT = new ThreadLocal<>();
+	private static final AtomicReference<AuditObserver> AUDIT = new AtomicReference<>();
 
 	private PhantomLearnedEscape()
 	{
@@ -42,7 +48,7 @@ public final class PhantomLearnedEscape
 
 	public enum Status { PENDING, ARRIVED, INTERRUPTED }
 
-	public record Arrival(int objectId, long epoch, PhantomNavigationPoint before, PhantomNavigationPoint after)
+	public record Arrival(int objectId, long epoch, PhantomNavigationPoint before, PhantomNavigationPoint after, long arrivedNanos)
 	{
 	}
 
@@ -58,6 +64,27 @@ public final class PhantomLearnedEscape
 		{
 			arrivals = List.copyOf(arrivals);
 		}
+	}
+
+	public record AuditReceipt(Receipt cast, int instanceId, Map<Integer, Long> approvedRecipients)
+	{
+		public AuditReceipt { approvedRecipients = Map.copyOf(approvedRecipients); }
+	}
+
+	private record AuditObserver(Consumer<AuditReceipt> arrived, Consumer<String> failed) implements AutoCloseable
+	{
+		@Override public void close() { AUDIT.compareAndSet(this, null); }
+	}
+
+	public static AutoCloseable observeNativeAudit(Consumer<AuditReceipt> arrived, Consumer<String> failed)
+	{
+		if (!System.getProperty("phantom.learning131.nonce", "").matches("[0-9a-f]{32}"))
+		{
+			throw new IllegalStateException("Missing scoped escape observation claim.");
+		}
+		final var observer = new AuditObserver(Objects.requireNonNull(arrived), Objects.requireNonNull(failed));
+		if (!AUDIT.compareAndSet(null, observer)) { throw new IllegalStateException("Native escape observer already installed."); }
+		return observer;
 	}
 
 	private record Recipient(Player player, PlayerNativeWork.Owner owner, long epoch, int instanceId)
@@ -254,6 +281,7 @@ public final class PhantomLearnedEscape
 		private final BooleanSupplier _authority;
 		private final Set<Player> _effects = Collections.newSetFromMap(new IdentityHashMap<>());
 		private final List<Arrival> _arrivals = new ArrayList<>();
+		private final AuditObserver _audit = AUDIT.get();
 		private volatile SkillUseHolder _holder;
 		private volatile boolean _published;
 		private volatile boolean _cancelRequested;
@@ -367,10 +395,18 @@ public final class PhantomLearnedEscape
 			}
 		}
 
-		public synchronized void endHit()
+		public void endHit()
 		{
-			_resolving = false;
-			finish(!_cancelRequested && _arrivals.size() == _recipients.size() ? Status.ARRIVED : Status.INTERRUPTED);
+			final Receipt receipt;
+			synchronized (this)
+			{
+				_resolving = false;
+				receipt = finish(!_cancelRequested && _arrivals.size() == _recipients.size() ? Status.ARRIVED : Status.INTERRUPTED);
+			}
+			if (_audit != null && _audit == AUDIT.get() && receipt != null && !receipt.arrivals().isEmpty())
+			{
+				publishArrivals(receipt);
+			}
 		}
 
 		private void applyRecipient(Creature target, Runnable nativeEffect)
@@ -396,7 +432,7 @@ public final class PhantomLearnedEscape
 				final var after = PhantomNativeTravelActions.point(player);
 				if (recipient.current() && !player.isTeleporting() && after.instanceId() == 0 && !before.equals(after))
 				{
-					_arrivals.add(new Arrival(player.getObjectId(), recipient.epoch(), before, after));
+					_arrivals.add(new Arrival(player.getObjectId(), recipient.epoch(), before, after, System.nanoTime()));
 				}
 			}
 			finally
@@ -461,12 +497,29 @@ public final class PhantomLearnedEscape
 			}
 		}
 
-		private synchronized void finish(Status status)
+		private Receipt finish(Status status)
 		{
-			if (_receipt == null)
+			if (_receipt != null) { return null; }
+			_receipt = new Receipt(_skill.getId(), _skill.getLevel(), _caster.player().getObjectId(), _caster.epoch(),
+				_nativeCastMillis, _startedNanos, System.nanoTime(), _initialMp, _hitMp, _arrivals, status);
+			return _receipt;
+		}
+
+		private void publishArrivals(Receipt receipt)
+		{
+			try
 			{
-				_receipt = new Receipt(_skill.getId(), _skill.getLevel(), _caster.player().getObjectId(), _caster.epoch(),
-					_nativeCastMillis, _startedNanos, System.nanoTime(), _initialMp, _hitMp, _arrivals, status);
+				final var approved = new LinkedHashMap<Integer, Long>();
+				for (Recipient recipient : _recipients)
+				{
+					approved.put(recipient.player().getObjectId(), recipient.epoch());
+				}
+				_audit.arrived().accept(new AuditReceipt(receipt, _caster.instanceId(), approved));
+			}
+			catch (RuntimeException | Error failure)
+			{
+				try { _audit.failed().accept("NATIVE_ESCAPE_OBSERVER_FAILED"); }
+				catch (RuntimeException | Error ignored) { }
 			}
 		}
 	}

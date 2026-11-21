@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +18,11 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroCast;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroSwitch;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Arrival;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.AuditReceipt;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.MpDebit;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Receipt;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Status;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
@@ -31,15 +37,17 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Role;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3.Attempt;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 
-/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V7 episode document. */
+/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V8 episode document. */
 final class PhantomLearning131AuditOriginals
 {
 	static final int MAX_ITEM_DEBITS = 2048;
 	static final int MAX_AGGRO_CASTS = 512;
-	// 9 x 64 damage casts, up to 18 death/stock pairs, plus support, aggro and item ledgers.
-	private static final int MAX_ROWS = 2 * 9 * 64 + 2 * 18 + 512 + MAX_AGGRO_CASTS + MAX_ITEM_DEBITS + 1;
+	static final int MAX_ESCAPE_CASTS = 18;
+	// 9 x 64 damage casts, up to 18 death/stock pairs, plus support, aggro, escape and item ledgers.
+	private static final int MAX_ROWS = 2 * 9 * 64 + 2 * 18 + 512 + MAX_AGGRO_CASTS + MAX_ESCAPE_CASTS + MAX_ITEM_DEBITS + 1;
 	private static final double HEAL_WRITE_TOLERANCE = 1e-6;
 	private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
 	private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
@@ -95,9 +103,10 @@ final class PhantomLearning131AuditOriginals
 		long effectNanos() { return original.targetWriteNanos() == 0 ? original.handlerFinishedNanos() : original.targetWriteNanos(); }
 	}
 	record AggroFact(NpcAggroCast cast, Map<String, NpcAggroSwitch> effects) { }
-	private record AggroCastClock(int actor, long epoch, long nanos) { }
+	record EscapeFact(AuditReceipt original, Map<String, String> events) { }
+	private record CastClock(int actor, long epoch, long nanos) { }
 	record AuditRows(Map<String, Fact> damage, ItemLedger items, Map<String, HealFact> heals, Map<String, RechargeFact> recharges,
-		Map<String, AggroFact> aggro) { }
+		Map<String, AggroFact> aggro, Map<String, EscapeFact> escapes) { }
 
 	private PhantomLearning131AuditOriginals() { }
 
@@ -109,6 +118,7 @@ final class PhantomLearning131AuditOriginals
 		final var heals = new ArrayList<String[]>();
 		final var recharges = new ArrayList<String[]>();
 		final var aggro = new ArrayList<String[]>();
+		final var escapes = new ArrayList<String[]>();
 		String[] window = null;
 		for (String[] cells : rows)
 		{
@@ -124,6 +134,7 @@ final class PhantomLearning131AuditOriginals
 				case "heal" -> heals.add(cells);
 				case "recharge" -> recharges.add(cells);
 				case "aggro" -> aggro.add(cells);
+				case "escape" -> escapes.add(cells);
 				default -> damage.add(cells);
 			}
 		}
@@ -169,16 +180,16 @@ final class PhantomLearning131AuditOriginals
 			rechargeFacts.put(key, recharge);
 		}
 		final var aggroFacts = new HashMap<String, AggroFact>();
-		final var aggroHits = new HashSet<AggroCastClock>();
-		final var aggroDebits = new HashSet<AggroCastClock>();
+		final var aggroHits = new HashSet<CastClock>();
+		final var aggroDebits = new HashSet<CastClock>();
 		require(aggro.size() <= MAX_AGGRO_CASTS, "AGGRO_CAST_CAP");
 		for (String[] cells : aggro)
 		{
 			final var cast = readAggro(cells);
 			final String operation = eventKey(cells[1]);
 			require(aggroRow(episodeId, cast).equals(String.join("\t", cells)) && operations.add(operation)
-				&& aggroHits.add(new AggroCastClock(cast.actor(), cast.epoch(), cast.hitStartedNanos()))
-				&& aggroDebits.add(new AggroCastClock(cast.actor(), cast.epoch(), cast.paidNanos())), "AGGRO_CAST_IDENTITY");
+				&& aggroHits.add(new CastClock(cast.actor(), cast.epoch(), cast.hitStartedNanos()))
+				&& aggroDebits.add(new CastClock(cast.actor(), cast.epoch(), cast.paidNanos())), "AGGRO_CAST_IDENTITY");
 			final var effects = new HashMap<String, NpcAggroSwitch>();
 			for (var change : cast.switches())
 			{
@@ -188,7 +199,28 @@ final class PhantomLearning131AuditOriginals
 			}
 			aggroFacts.put(operation, new AggroFact(cast, Map.copyOf(effects)));
 		}
-		return new AuditRows(damageFacts, new ItemLedger(opened, closed, count, byKey), Map.copyOf(healFacts), Map.copyOf(rechargeFacts), Map.copyOf(aggroFacts));
+		final var escapeFacts = new HashMap<String, EscapeFact>();
+		final var escapeStarts = new HashSet<CastClock>();
+		final var escapeArrivals = new HashSet<Integer>();
+		require(escapes.size() <= MAX_ESCAPE_CASTS, "ESCAPE_CAST_CAP");
+		for (String[] cells : escapes)
+		{
+			final var original = readEscape(cells);
+			final var cast = original.cast();
+			final String operation = eventKey(cells[1]);
+			require(escapeRow(episodeId, original).equals(String.join("\t", cells)) && operations.add(operation)
+				&& escapeStarts.add(new CastClock(cast.casterObjectId(), cast.casterEpoch(), cast.startedNanos())), "ESCAPE_CAST_IDENTITY");
+			final var events = new HashMap<String, String>();
+			for (var arrival : cast.arrivals())
+			{
+				final String key = escapeEffectKey(operation, arrival);
+				require(escapeArrivals.add(arrival.objectId()) && keys.add(key), "REUSED_ESCAPE_ARRIVAL");
+				events.put(key, escapeEvent(operation, key, cast, arrival));
+			}
+			escapeFacts.put(operation, new EscapeFact(original, Map.copyOf(events)));
+		}
+		return new AuditRows(damageFacts, new ItemLedger(opened, closed, count, byKey), Map.copyOf(healFacts), Map.copyOf(rechargeFacts),
+			Map.copyOf(aggroFacts), Map.copyOf(escapeFacts));
 	}
 
 	static Map<String, Fact> decode(List<String[]> rows, String episodeId)
@@ -476,6 +508,107 @@ final class PhantomLearning131AuditOriginals
 		}
 		return new NpcAggroCast(object(row[2]), positive(row[3]), instance, object(row[5]), object(row[6]), positive(row[7]), positive(row[8]),
 			scalar(row[9]), scalar(row[10]), switches);
+	}
+
+	static String escapeRow(String episodeId, AuditReceipt original)
+	{
+		final String payload = escapePayload(original);
+		return row("escape", escapeOperation(episodeId, payload)) + '\t' + payload;
+	}
+
+	static List<String> escapeEvents(String episodeId, AuditReceipt original)
+	{
+		final var cast = original.cast();
+		final String operation = escapeOperation(episodeId, escapePayload(original));
+		return cast.arrivals().stream().map(arrival -> escapeEvent(operation, escapeEffectKey(operation, arrival), cast, arrival)).toList();
+	}
+
+	private static String escapeEvent(String operation, String key, Receipt cast, Arrival arrival)
+	{
+		return row("event", key, arrival.arrivedNanos(), "ESCAPE_ARRIVAL", cast.casterObjectId(), arrival.objectId(), operation);
+	}
+
+	private static String escapeOperation(String episodeId, String payload)
+	{
+		return TacticalObservationV3.hash(("TASK131_ESCAPE_CAST_V1\n" + episodeId + '\n' + payload).getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static String escapeEffectKey(String operation, Arrival arrival)
+	{
+		return TacticalObservationV3.hash(("TASK131_ESCAPE_ARRIVAL_V1\n" + operation + '\n' + arrival.objectId() + ':' + arrival.epoch()).getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static String escapePayload(AuditReceipt original)
+	{
+		final var cast = original.cast();
+		final var approved = original.approvedRecipients();
+		require((cast.skillId() == 1050 && approved.size() == 1 || cast.skillId() == 1255 && approved.size() >= 2 && approved.size() <= 9)
+			&& cast.level() >= 1 && cast.level() <= 2 && original.instanceId() >= 0 && cast.casterObjectId() > 0 && cast.casterEpoch() > 0
+			&& approved.getOrDefault(cast.casterObjectId(), 0L) == cast.casterEpoch() && cast.nativeCastMillis() > 0
+			&& cast.startedNanos() > 0 && cast.completedNanos() > cast.startedNanos()
+			&& !cast.arrivals().isEmpty() && (cast.status() == Status.INTERRUPTED || cast.status() == Status.ARRIVED && cast.arrivals().size() == approved.size()),
+			"ESCAPE_CAST");
+		final var recipients = new HashSet<Integer>();
+		final var payload = new StringBuilder(row(cast.skillId(), cast.level(), cast.casterObjectId(), cast.casterEpoch(), original.instanceId(),
+			cast.nativeCastMillis(), cast.startedNanos(), cast.completedNanos(), cast.status(), mpDebit(cast.initialMp()), mpDebit(cast.hitMp()), approved.size()));
+		approved.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry ->
+		{
+			require(entry.getKey() > 0 && entry.getValue() > 0, "ESCAPE_ROSTER");
+			payload.append('\t').append(row(entry.getKey(), entry.getValue()));
+		});
+		payload.append('\t').append(cast.arrivals().size());
+		for (Arrival arrival : cast.arrivals().stream().sorted(Comparator.comparingInt(Arrival::objectId)).toList())
+		{
+			require(arrival.epoch() > 0 && approved.getOrDefault(arrival.objectId(), 0L) == arrival.epoch() && recipients.add(arrival.objectId())
+				&& arrival.before().instanceId() == original.instanceId() && arrival.after().instanceId() == 0 && !arrival.before().equals(arrival.after())
+				&& arrival.arrivedNanos() >= cast.startedNanos() && arrival.arrivedNanos() <= cast.completedNanos()
+				&& arrival.arrivedNanos() - cast.startedNanos() >= cast.nativeCastMillis() * 1_000_000L,
+				"ESCAPE_ARRIVAL_OR_ROSTER");
+			payload.append('\t').append(row(arrival.objectId(), arrival.before().x(), arrival.before().y(), arrival.before().z(),
+				arrival.after().x(), arrival.after().y(), arrival.after().z(), arrival.arrivedNanos()));
+		}
+		return payload.toString();
+	}
+
+	private static String mpDebit(MpDebit debit)
+	{
+		require(debit != null && Double.isFinite(debit.requested()) && debit.requested() > 0 && Double.isFinite(debit.before())
+			&& Double.isFinite(debit.after()) && debit.after() >= 0 && debit.before() > debit.after()
+			&& Math.abs(debit.before() - debit.after() - debit.requested()) <= HEAL_WRITE_TOLERANCE, "ESCAPE_MP_DEBIT");
+		return row(debit.requested(), debit.before(), debit.after());
+	}
+
+	private static AuditReceipt readEscape(String[] cells)
+	{
+		require(cells.length >= 29 && cells.length <= 109, "ESCAPE_ROW_SHAPE");
+		final int count = object(cells[17]);
+		final int arrivalsColumn = 18 + 2 * count;
+		require(count <= 9 && arrivalsColumn < cells.length, "ESCAPE_RECIPIENT_COUNT");
+		final var approved = new HashMap<Integer, Long>();
+		for (int index = 18; index < arrivalsColumn; index += 2)
+		{
+			require(approved.putIfAbsent(object(cells[index]), positive(cells[index + 1])) == null, "ESCAPE_DUPLICATE_RECIPIENT");
+		}
+		final int arrivalCount = object(cells[arrivalsColumn]);
+		require(arrivalCount <= count && cells.length == arrivalsColumn + 1 + 8 * arrivalCount, "ESCAPE_ARRIVAL_COUNT");
+		final int instance = nonnegativeInt(cells[6]);
+		final var arrivals = new ArrayList<Arrival>();
+		for (int index = arrivalsColumn + 1; index < cells.length; index += 8)
+		{
+			final int id = object(cells[index]);
+			arrivals.add(new Arrival(id, approved.getOrDefault(id, 0L), escapePoint(cells, index + 1, instance), escapePoint(cells, index + 4, 0),
+				positive(cells[index + 7])));
+		}
+		final var initial = new MpDebit(scalar(cells[11]), scalar(cells[12]), scalar(cells[13]));
+		final var hit = new MpDebit(scalar(cells[14]), scalar(cells[15]), scalar(cells[16]));
+		final var receipt = new Receipt(object(cells[2]), object(cells[3]), object(cells[4]), positive(cells[5]), object(cells[7]), positive(cells[8]),
+			positive(cells[9]), initial, hit, arrivals, Status.valueOf(cells[10]));
+		return new AuditReceipt(receipt, instance, approved);
+	}
+
+	private static PhantomNavigationPoint escapePoint(String[] row, int index, int instance)
+	{
+		return new PhantomNavigationPoint(Integer.parseInt(row[index]), Integer.parseInt(row[index + 1]), Integer.parseInt(row[index + 2]), instance);
 	}
 
 	static String castRow(NativeCastTrace trace)

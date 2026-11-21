@@ -2,6 +2,7 @@
 package org.l2jmobius.tests.phantoms;
 
 import static org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.MAX_AGGRO_CASTS;
+import static org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.MAX_ESCAPE_CASTS;
 import static org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.MAX_ITEM_DEBITS;
 
 import java.io.IOException;
@@ -41,6 +42,8 @@ import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerPvPKill;
 import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
 import org.l2jmobius.gameserver.model.groups.Party;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.AuditReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
@@ -80,7 +83,10 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	record DuelDamageTotals(int paidDealt, int paidReceived, BigDecimal hpDealt, BigDecimal cpDealt, BigDecimal hpReceived, BigDecimal cpReceived) { }
 	/** Captured paid damage totals, stock deaths and any death rows with exact action attribution. */
 	record DuelEvidence(List<PaidPvpDamage> paidDamage, DuelDamageTotals damageTotals, List<DuelDeath> nativeDeaths,
-		Optional<Outcome> nativeDeathOutcome, boolean allDeathsLinked, List<String> eventRows, List<String> originalRows) { }
+		Optional<Outcome> nativeDeathOutcome, boolean allDeathsLinked, int nativeEscapeCasts, List<String> eventRows, List<String> originalRows)
+	{
+		boolean hasPaidActivity() { return !paidDamage.isEmpty() || nativeEscapeCasts > 0; }
+	}
 	private record DuelEvent(long nanos, String row) { }
 
 	private static final class ItemCapture implements AutoCloseable
@@ -372,7 +378,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			if (_pvpDamage != null)
 			{
 				final var damage = _pvpDamage.finished(settled);
-				require(damage.allDeathsLinked() && !damage.paidDamage().isEmpty(), "INVALID_OR_EMPTY_NATIVE_GROUP_PVP");
+				require(damage.allDeathsLinked() && damage.hasPaidActivity(), "INVALID_OR_EMPTY_NATIVE_GROUP_PVP");
 				events.addAll(damage.eventRows());
 				originals.addAll(damage.originalRows());
 			}
@@ -437,12 +443,14 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private final Map<String, NativeCastTrace> _traces = new HashMap<>();
 		private final Map<Integer, DuelDeath> _stockDeaths = new HashMap<>();
 		private final Map<String, NativeTerminal> _terminals = new HashMap<>();
+		private final List<AuditReceipt> _nativeEscapes = new ArrayList<>();
 		private final HashSet<String> _operations = new HashSet<>();
 		private final Map<Integer, ConsumerEventListener> _deathListeners;
 		private final List<Integer> _listening = new ArrayList<>();
 		private final List<LearningPolicy> _wrapped = new ArrayList<>();
 		private final ItemCapture _items;
 		private AutoCloseable _auditObserver;
+		private AutoCloseable _escapeObserver;
 		private boolean _draining;
 		private boolean _closed;
 		private boolean _invalid;
@@ -541,6 +549,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		{
 			if (_items != null) { _items.open(() -> ACTIVE_PVP.get() == this); }
 			_auditObserver = LearningCastEvidence.observeNativeAudit(this::nativeTrace, this::nativeTerminal);
+			_escapeObserver = PhantomLearnedEscape.observeNativeAudit(this::nativeEscape, this::escapeObserverFailed);
 			_deathListeners.forEach((objectId, listener) ->
 			{
 				_roster.get(objectId).player().addListener(listener);
@@ -566,6 +575,28 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				_wrapped.add(policy);
 			});
 		}
+
+		private synchronized void nativeEscape(AuditReceipt original)
+		{
+			if (_closed || _invalid) { return; }
+			final var cast = original.cast();
+			final boolean scored = _scored.contains(cast.casterObjectId());
+			if (original.instanceId() != _instance || cast.startedNanos() < _started || _nativeEscapes.size() >= MAX_ESCAPE_CASTS
+				|| original.approvedRecipients().entrySet().stream().anyMatch(entry ->
+				{
+					final var participant = _roster.get(entry.getKey());
+					return participant == null || participant.epoch() != entry.getValue() || !participant.current()
+						|| _scored.contains(entry.getKey()) != scored
+						|| (_items == null && participant.player().getParty() != participant.party());
+				}))
+			{
+				_invalid = true;
+				return;
+			}
+			_nativeEscapes.add(original);
+		}
+
+		private synchronized void escapeObserverFailed(String reason) { _invalid = true; }
 
 		private synchronized void issuedPvp(LearningPolicy policy, LearningPolicy.Attempt attempt, Player actor, Player target)
 		{
@@ -647,7 +678,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				_items.close();
 				final long settled = System.nanoTime();
 				final DuelEvidence evidence = finished(settled);
-				require(evidence.allDeathsLinked() && !evidence.paidDamage().isEmpty(), "INVALID_OR_EMPTY_NATIVE_DUEL");
+				require(evidence.allDeathsLinked() && evidence.hasPaidActivity(), "INVALID_OR_EMPTY_NATIVE_DUEL");
 				final var events = new ArrayList<>(evidence.eventRows());
 				final var originals = new ArrayList<>(evidence.originalRows());
 				_items.addRows(_episodeId, events, originals);
@@ -671,6 +702,13 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				events.addAll(original.timedEvents());
 				originalRows.addAll(original.originalRows());
 			}
+			for (var original : _nativeEscapes)
+			{
+				require(original.cast().completedNanos() <= settled, "NATIVE_ESCAPE_OUTSIDE_DUEL_WINDOW");
+				PhantomLearning131AuditOriginals.escapeEvents(_episodeId, original)
+					.forEach(row -> events.add(new DuelEvent(Long.parseLong(row.split("\t", 4)[2]), row)));
+				originalRows.add(PhantomLearning131AuditOriginals.escapeRow(_episodeId, original));
+			}
 			final long linkedDeaths = paid.stream().filter(damage -> damage.original().lethal()).count();
 			require(linkedDeaths == _terminals.size(), "NATIVE_PVP_ORPHAN_TERMINAL");
 			final var dealt = paid.stream().filter(damage -> _scored.contains(damage.original().attempt().selected().actorObjectId())).toList();
@@ -681,7 +719,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			final boolean scoredOut = scoredDeaths == _scored.size(), opponentOut = deaths.size() - scoredDeaths == _roster.size() - _scored.size();
 			final Optional<Outcome> outcome = !scoredOut && !opponentOut ? Optional.empty()
 				: Optional.of(scoredOut && opponentOut ? Outcome.DRAW : scoredOut ? Outcome.LOSS : Outcome.WIN);
-			return new DuelEvidence(paid, totals, deaths, outcome, linkedDeaths == deaths.size(),
+			return new DuelEvidence(paid, totals, deaths, outcome, linkedDeaths == deaths.size(), _nativeEscapes.size(),
 				events.stream().sorted(Comparator.comparingLong(DuelEvent::nanos)).map(DuelEvent::row).toList(), List.copyOf(originalRows));
 		}
 
@@ -728,7 +766,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				finally
 				{
 					try { closeAuditObserver(_auditObserver); }
-					finally { ACTIVE_PVP.compareAndSet(this, null); }
+					finally
+					{
+						try { closeAuditObserver(_escapeObserver); }
+						finally { ACTIVE_PVP.compareAndSet(this, null); }
+					}
 				}
 			}
 		}
@@ -1093,7 +1135,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			case "ADMITTED" -> 1;
 			case "EXECUTED" -> 2;
 			case "PAY" -> 3;
-			case "DAMAGE", "HEAL", "MP_TRANSFER", "AGGRO" -> 4;
+			case "DAMAGE", "HEAL", "MP_TRANSFER", "AGGRO", "ESCAPE_ARRIVAL" -> 4;
 			case "DEATH" -> 5;
 			case "KILL_CREDIT" -> 6;
 			default -> throw new IllegalArgumentException("TASK131_NATIVE_AUDIT_DAMAGE_KIND");

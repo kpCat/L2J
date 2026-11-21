@@ -22,6 +22,11 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroCast;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroSwitch;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Arrival;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.AuditReceipt;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.MpDebit;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Receipt;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Status;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
@@ -34,6 +39,7 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.Fact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.EpisodeWindow;
@@ -76,6 +82,7 @@ public final class PhantomLearning131EvaluationChecks
 		paidHealingRequiresItsNativeEffect();
 		paidRechargeRequiresItsNativeEffect();
 		paidAggroRequiresNativeRetarget();
+		paidEscapeRequiresNativeArrival();
 		frozenAuditPolicyRequiresCommittedAction();
 		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
@@ -423,6 +430,78 @@ public final class PhantomLearning131EvaluationChecks
 		rejectsHealProjection(events, originals, roster, new EpisodeWindow(1000, 29, 70));
 		refuse(() -> new NpcAggroCast(42, 7, 3, 28, 4, 1004, 1010, 220, 220, List.of(a)), "Unpaid hit cannot certify a retarget");
 		refuse(() -> PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster, window, true), "NPC retarget is never a PvP tank effect");
+	}
+
+	private static void paidEscapeRequiresNativeArrival() throws Exception
+	{
+		final String episode = "5".repeat(64);
+		final long started = 1_900_000_000L, castStarted = 2_000_000_000L, castCompleted = 3_640_000_000L;
+		final long combatEnd = 3_580_000_000L, settled = 3_900_000_000L;
+		final var before = new PhantomNavigationPoint(100, 100, 100, 3);
+		final var town = new PhantomNavigationPoint(2000, 100, 100, 0);
+		final var first = new Arrival(42, 7, before, town, 3_500_000_100L);
+		final var second = new Arrival(43, 8, before, town, 3_600_000_000L);
+		final var initial = new MpDebit(52, 500, 448);
+		final var hit = new MpDebit(205, 460, 255);
+		final var roster = Map.of(42, 7L, 43, 8L);
+		final var receipt = new Receipt(1255, 1, 42, 7, 1500, castStarted, castCompleted, initial, hit, List.of(first, second), Status.ARRIVED);
+		final var cast = new AuditReceipt(receipt, 3, roster);
+		final String[] items = PhantomLearning131AuditOriginals.itemWindow(1_950_000_000L, settled - 1, 0).split("\t", -1);
+		final String[] saved = PhantomLearning131AuditOriginals.escapeRow(episode, cast).split("\t", -1);
+		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(List.of(items, saved), episode);
+		final var events = PhantomLearning131AuditOriginals.escapeEvents(episode, cast).stream().map(row -> row.split("\t", -1)).toList();
+		final var window = new EpisodeWindow(started, combatEnd - started, settled - started);
+		PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster, window, true);
+		check(events.size() == 2 && originals.escapes().size() == 1, "One paid Party Recall produces only its observed arrivals");
+		refuse(() -> PhantomLearning131Evaluation.verifyNativeProjection(changedField(events, 0, 5, "43"), originals, roster, window, true), "Arrival cannot be attributed to another actor");
+		refuse(() -> PhantomLearning131Evaluation.verifyNativeProjection(events, originals, Map.of(42, 7L, 43, 9L), window, true), "Arrival must belong to the frozen participant generation");
+		check(window.offset("ESCAPE_ARRIVAL", Long.parseLong(events.getFirst()[2])) < window.combatElapsed()
+			&& window.offset("ESCAPE_ARRIVAL", Long.parseLong(events.getLast()[2])) > window.combatElapsed(),
+			"Arrival records preserve their own clock on either side of the combat cutoff");
+		refuse(() -> PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster,
+			new EpisodeWindow(started, combatEnd - started, castCompleted - started - 1), true), "The cast must finish by settlement");
+		refuse(() -> PhantomLearning131AuditOriginals.escapeRow(episode, new AuditReceipt(new Receipt(1050, 1, 42, 7, 1500, castStarted,
+			castCompleted, initial, hit, List.of(new Arrival(42, 7, before, town, castStarted + 1)), Status.ARRIVED), 3, Map.of(42, 7L))),
+			"An arrival before the scheduled hit cannot certify native Return");
+		final var partial = new AuditReceipt(new Receipt(1255, 1, 42, 7, 1500, castStarted, castCompleted, initial, hit, List.of(first), Status.INTERRUPTED), 3, roster);
+		final String[] partialRow = PhantomLearning131AuditOriginals.escapeRow(episode, partial).split("\t", -1);
+		check(PhantomLearning131AuditOriginals.escapeEvents(episode, partial).size() == 1, "Only the member actually moved in an interrupted Party Recall is recorded");
+		refuse(() -> PhantomLearning131AuditOriginals.decodeAuditRows(List.of(items, saved, partialRow), episode), "One underlying cast cannot be replayed as a second recall");
+		refuse(() -> PhantomLearning131AuditOriginals.escapeRow(episode, new AuditReceipt(new Receipt(1050, 1, 42, 7, 1500, castStarted, castCompleted,
+			initial, new MpDebit(84, 448, 447), List.of(first), Status.ARRIVED), 3, Map.of(42, 7L))), "An incomplete native debit cannot certify arrival");
+
+		final Path reports = Path.of(System.getProperty("phantom.test.reports", ".")).toRealPath();
+		final Path scratch = Files.createTempDirectory(reports, "task131-closed-escape-");
+		try
+		{
+			final Path directory = Files.createDirectories(scratch.resolve(".phantom-local/logs/TASK131/episodes").resolve(episode));
+			final String metadata = meta("schema", "NATIVE_BINDING131_V1", "manifestSha", "a".repeat(64), "bootId", "boot-01", "blockId", "group-01",
+				"episodeId", episode, "attempt", "0", "position", "0", "arm", "H", "side", "LEFT", "sceneId", "group", "fixtureSha", "b".repeat(64),
+				"opponentSha", "c".repeat(64), "policySha", "d".repeat(64), "modelSha", "NONE", "startNanos", Long.toString(started));
+			final Path binding = Files.writeString(directory.resolve("binding131.tsv"),
+				metadata + "actor\t42\t7\tLEFT\tSUPPORT\nactor\t43\t8\tLEFT\tDAMAGE\nactor\t102\t91\tRIGHT\tOPPONENT\n");
+			final Path crossed = Files.writeString(scratch.resolve("crossed.tsv"),
+				metadata + "actor\t42\t7\tLEFT\tSUPPORT\nactor\t43\t8\tRIGHT\tOPPONENT\nactor\t102\t91\tRIGHT\tOPPONENT\n");
+			try
+			{
+				PhantomLearning131Evaluation.verifyClosedDamage(crossed, episode, digest(crossed), true, combatEnd, settled, events, List.of(items, saved));
+				throw new AssertionError("A native recall must not credit arrivals on the opposing side");
+			}
+			catch (IllegalArgumentException refused)
+			{
+				check(refused.getMessage().equals("EVAL131_ESCAPE_EFFECT_SIDE_OR_PARTY"), "Cross-side recall must fail on the roster, not on an unrelated binding field");
+			}
+			final String sealed = PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, digest(binding), true, combatEnd, settled,
+				PhantomLearning131AuditOriginals.escapeEvents(episode, cast), List.of(String.join("\t", items), String.join("\t", saved)));
+			PhantomLearning131Evaluation.verifySealedDamage(binding, episode, sealed, true);
+		}
+		finally
+		{
+			try (var paths = Files.walk(scratch))
+			{
+				for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) { Files.delete(path); }
+			}
+		}
 	}
 
 	private static void rejectsHealProjection(List<String[]> events, PhantomLearning131AuditOriginals.AuditRows originals, Map<Integer, Long> roster, EpisodeWindow window)

@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCas
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.AuditRows;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.AggroFact;
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.EscapeFact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.Fact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.HealFact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.RechargeFact;
@@ -55,7 +56,7 @@ public final class PhantomLearning131Evaluation
 	private static final String REPORT = "TASK131_EVALUATION_REPORT_V2";
 	static final int DOCUMENT_MAX_BYTES = 8 * 1024 * 1024;
 	static final int PAID_MAX_BYTES = 32 * 1024 * 1024;
-	static final String PAID_SCHEMA = "NATIVE_PAID131_V7";
+	static final String PAID_SCHEMA = "NATIVE_PAID131_V8";
 	private static final Set<String> OPPONENTS = Set.of("B0", "A1", "B1");
 	private static final Set<String> GROUP_SIZES = Set.of("1x2", "2x2", "3x5", "9x9");
 	private static final int BANK_SIZE = 32;
@@ -105,7 +106,7 @@ public final class PhantomLearning131Evaluation
 		{
 			final long offset = Math.subtractExact(stamp, started);
 			require(offset >= 0 && offset <= settledElapsed, "OUTSIDE_NATIVE_SETTLEMENT");
-			require(offset <= combatElapsed || kind.equals("KILL_CREDIT") || kind.equals("CC_END"), "OUTSIDE_NATIVE_COMBAT");
+			require(offset <= combatElapsed || kind.equals("KILL_CREDIT") || kind.equals("CC_END") || kind.equals("ESCAPE_ARRIVAL"), "OUTSIDE_NATIVE_COMBAT");
 			return offset;
 		}
 	}
@@ -603,8 +604,8 @@ public final class PhantomLearning131Evaluation
 		List<String[]> events, List<String[]> paid)
 	{
 		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(paid, episodeId);
-		require(!originals.damage().isEmpty() || !originals.heals().isEmpty() || !originals.recharges().isEmpty() || !originals.aggro().isEmpty(),
-			"NO_PAID_NATIVE_ORIGINALS");
+		require(!originals.damage().isEmpty() || !originals.heals().isEmpty() || !originals.recharges().isEmpty() || !originals.aggro().isEmpty()
+			|| !originals.escapes().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
 		final var roster = participants(binding, Side.valueOf(binding.get("side")));
 		verifyNativeProjection(events, originals, epochs(roster), window, pvp);
 		verifyEffectSides(originals, roster);
@@ -634,6 +635,14 @@ public final class PhantomLearning131Evaluation
 				require(roster.get(change.formerAlly()).side() == side && roster.get(change.target().objectId()).side() != side, "AGGRO_EFFECT_SIDE");
 			}
 		}
+		for (var fact : originals.escapes().values())
+		{
+			final var original = fact.original();
+			final var side = roster.get(original.cast().casterObjectId()).side();
+			final var team = roster.entrySet().stream().filter(member -> member.getValue().side() == side).map(Map.Entry::getKey).toList();
+			require(team.containsAll(original.approvedRecipients().keySet())
+				&& (original.cast().skillId() != 1255 || team.size() == original.approvedRecipients().size()), "ESCAPE_EFFECT_SIDE_OR_PARTY");
+		}
 	}
 
 	/** A raw event may affect a bank result only when this schema can prove its native origin. */
@@ -655,6 +664,7 @@ public final class PhantomLearning131Evaluation
 				case "HEAL" -> healing.contains(row[6]);
 				case "MP_TRANSFER" -> recharging.contains(row[6]);
 				case "AGGRO" -> originals.aggro().containsKey(row[6]);
+				case "ESCAPE_ARRIVAL" -> originals.escapes().containsKey(row[6]);
 				default -> false;
 			}), "UNPROVEN_NATIVE_EVENT");
 		}
@@ -662,7 +672,32 @@ public final class PhantomLearning131Evaluation
 		verifyHealProjection(events, originals.heals(), epochs, window);
 		verifyRechargeProjection(events, originals.recharges(), epochs, window);
 		verifyAggroProjection(events, originals.aggro(), epochs, window, pvp);
+		verifyEscapeProjection(events, originals.escapes(), epochs, originals.items().openedNanos(), window, pvp);
 		verifyPaymentProjection(events, originals.items(), epochs, window);
+	}
+
+	private static void verifyEscapeProjection(List<String[]> events, Map<String, EscapeFact> originals, Map<Integer, Long> roster,
+		long opened, EpisodeWindow window, boolean pvp)
+	{
+		require(pvp || originals.isEmpty(), "PVE_ESCAPE_ORIGINAL_NOT_SUPPORTED");
+		int expectedEffects = 0;
+		for (var fact : originals.values())
+		{
+			final var original = fact.original();
+			require(original.cast().startedNanos() >= Math.max(opened, window.started()) && original.cast().startedNanos() < window.combatEnd()
+				&& original.cast().completedNanos() <= window.settledEnd()
+				&& original.approvedRecipients().entrySet().stream().allMatch(member -> member.getValue().equals(roster.get(member.getKey()))),
+				"ESCAPE_EPOCH_OR_WINDOW");
+			expectedEffects += fact.events().size();
+		}
+		final var used = new HashSet<String>();
+		for (String[] event : events)
+		{
+			if (!event[3].equals("ESCAPE_ARRIVAL")) { continue; }
+			final var original = originals.get(event[6]);
+			require(original != null && String.join("\t", event).equals(original.events().get(event[1])) && used.add(event[1]), "ESCAPE_WITHOUT_NATIVE_ARRIVAL");
+		}
+		require(used.size() == expectedEffects, "INCOMPLETE_ESCAPE_PROJECTION");
 	}
 
 	private static void verifyAggroProjection(List<String[]> events, Map<String, AggroFact> originals, Map<Integer, Long> roster, EpisodeWindow window, boolean pvp)
@@ -1037,6 +1072,7 @@ public final class PhantomLearning131Evaluation
 		private final Map<Integer, Long> _deaths = new HashMap<>();
 		private final Set<Integer> _creditedMobs = new HashSet<>();
 		private final Map<Integer, Long> _escaped = new HashMap<>();
+		private final Set<String> _escapeCasts = new HashSet<>();
 		private final Map<Role, Set<String>> _samples = new EnumMap<>(Role.class);
 		private final Map<Role, Integer> _unknown = new EnumMap<>(Role.class);
 		private BigDecimal _paid = BigDecimal.ZERO;
@@ -1124,6 +1160,21 @@ public final class PhantomLearning131Evaluation
 					require(friendly && !friendlyTarget && _block.plan().scene().objective() == Objective.PVE_KILLS, "NATIVE_NPC_AGGRO_REQUIRED");
 					_aggro++;
 					_samples.computeIfAbsent(Role.TANK, _ -> new HashSet<>()).add(operation);
+				}
+				case "ESCAPE_ARRIVAL" ->
+				{
+					length(row, 7);
+					if (offset > _window.combatElapsed()) { return; }
+					require(friendly == friendlyTarget && !_deaths.containsKey(target) && _escaped.putIfAbsent(target, offset) == null, "NATIVE_ESCAPE_ARRIVAL");
+					if (_escapeCasts.add(operation))
+					{
+						if (friendly) { _executed++; }
+						else { _opponentExecuted++; }
+					}
+					if (friendly && _block.plan().scene().objective() == Objective.ESCAPE && scoredCount(_escaped.keySet()) == _block.plan().scene().requiredProgress())
+					{
+						_objectiveAt = offset;
+					}
 				}
 				default ->
 				{
@@ -1225,12 +1276,6 @@ public final class PhantomLearning131Evaluation
 					length(row, 7);
 					require(_block.plan().scene().objective() == Objective.PVE_KILLS && friendly && !friendlyTarget && _deaths.containsKey(target)
 						&& _creditedMobs.add(target), "NATIVE_KILL_CREDIT");
-				}
-				case "ESCAPE_ARRIVAL" ->
-				{
-					length(row, 7);
-					require(friendly == friendlyTarget && !_deaths.containsKey(target) && _escaped.putIfAbsent(target, offset) == null, "NATIVE_ESCAPE_ARRIVAL");
-					if (friendly && _block.plan().scene().objective() == Objective.ESCAPE && scoredCount(_escaped.keySet()) == _block.plan().scene().requiredProgress()) { _objectiveAt = offset; }
 				}
 				default -> throw new IllegalArgumentException("EVAL131_UNSUPPORTED_NATIVE_EVENT");
 			}
