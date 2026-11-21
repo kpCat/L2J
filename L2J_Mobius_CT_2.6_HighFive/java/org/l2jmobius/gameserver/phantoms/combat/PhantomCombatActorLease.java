@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnaps
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 
 public interface PhantomCombatActorLease extends AutoCloseable
 {
@@ -363,6 +364,18 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	default ActionOutcome castPvp(int ownerObjectId, int tacticalTargetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash)
 	{
 		return castPvp(tacticalTargetObjectId, skill, mode, forceUse, authorityHash);
+	}
+
+	default LearningPolicy.Attempt preparePvpLearning(LearningPolicy learning, PhantomPvpCombatRequest request, int tacticalTargetObjectId,
+		List<SelectedSkill> ready, long generation)
+	{
+		return null;
+	}
+
+	default ActionOutcome castPvp(int ownerObjectId, int tacticalTargetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash,
+		LearningPolicy.Attempt learned)
+	{
+		return learned == null ? castPvp(ownerObjectId, tacticalTargetObjectId, skill, mode, forceUse, authorityHash) : ActionOutcome.REJECTED;
 	}
 
 	default ActionOutcome attackSiege(int targetObjectId, PhantomSiegeCombatRequest request)

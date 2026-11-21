@@ -35,21 +35,28 @@ import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.handler.ItemHandler;
+import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.zone.type.ArenaZone;
+import org.l2jmobius.gameserver.model.zone.type.NoPvPZone;
+import org.l2jmobius.gameserver.model.zone.type.PeaceZone;
+import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
@@ -77,13 +84,16 @@ public final class PhantomCombat131Fixture
 	private static final String HEADER = "status\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tskillId\tskillLevel\tweapon\tshotItem\tshots\tadena\tanchor\tnpcId\tspawn\tpreflightObjectId\tx\ty\tz\texp\tsp";
 	private static final String SCENE_HEADER = "profileId\tactorObjectId\tgoalId\tgoalRevision\tplanIdentity\tanchor\tx\ty\tz\tnpcId\tnpcLevel\tspawnKey\trespawnMinMs\trespawnMaxMs\tpreflightObjectId\tpreflightInstanceId\tpreflightGeneration\tqualifyingTargets\tknowledgeSha256\ttopologySha256\tprogressionSha256\tcommerceSha256";
 	static final String OFFENSE_HEADER = "profileId\tobjectId\tclass\tlevel\tskillId\tskillLevel\tprovenance\tfixtureSha\tsceneScopeSha";
+	private static final String DUEL_ARENA = "gludin_pvp";
+	private static final String DUEL_PROOF_HEADER = "status\tarm\tside\topeningSide\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tweapon\tshotItem\tshots\tadena\tarena\tinstanceId\tstartX\tstartY\tstartZ\tstoredX\tstoredY\tstoredZ\tlearnedPvpRanks\tcontrolRanks";
 
-	private record Admission(Path game, Path sql, Path ini, Instant deadline) { }
+	private record Admission(Path game, Path sql, Path ini, Instant deadline, boolean duel) { }
 	private record Birth(long profile, long seed) { }
 	private record Scene(String anchor, PhantomTopologyPoint point, int npcId, int npcLevel, String spawn, int respawnMin, int respawnMax,
 		PlayerNativeEvidence.Target preflightTarget, Skill skill, PhantomHistoricalBackgroundPlanner.Result plan, int qualifyingTargets) { }
 	private record Actor(long profile, int object, String account, PlayerClass profession, int level, Skill skill, int weapon, int shot,
-		long shots, long adena, long exp, long sp, Scene scene, List<Skill> learnedDamage) { }
+		long shots, long adena, long exp, long sp, Scene scene, PhantomTopologyPoint storedPoint, List<Skill> learnedOffense) { }
+	static record DuelIdentity(int arm, String side, long profile, int object, String account, String role, int profession, List<SelectedSkill> skills) { }
 
 	private enum Role
 	{
@@ -105,6 +115,7 @@ public final class PhantomCombat131Fixture
 	public static void main(String[] args)
 	{
 		int exit = 1;
+		final String scope = args.length > 0 && args[0].equals("SETUP_DUEL") ? "N06" : "N01";
 		try
 		{
 			final Admission admission = admit(args);
@@ -112,19 +123,26 @@ public final class PhantomCombat131Fixture
 			check(!PhantomPlayersConfig.isEnabled(), "MASTER_ENABLED");
 			DatabaseFactory.initFromConfig(admission.ini().toString());
 			verifySession(admission.sql());
+			if (admission.duel())
+			{
+				check(Instant.now().isBefore(admission.deadline()), "DUEL_SETUP_DEADLINE");
+				Files.writeString(admission.sql().resolve("n06-duel-fixture.claim"), "SETUP_DUEL " + Instant.now() + "\n",
+					StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+			}
 			PhantomHeadlessPlayerTestEnvironment.initializeOwnedPlayerInfrastructure();
 			InitialEquipmentData.getInstance();
 			InitialShortcutData.getInstance();
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			try (var source = PhantomBackgroundSuite.ProductionAuthorityFixture.start(admission.game().resolve("data/phantoms/topology"), admission.game()))
 			{
-				prepare(admission, source);
+				if (admission.duel()) { prepareDuel(admission, source); }
+				else { prepare(admission, source); }
 			}
 			exit = 0;
 		}
 		catch (Throwable failure)
 		{
-			System.err.println("TASK131_N01_FIXTURE_FAILED " + failure.getClass().getSimpleName());
+			System.err.println("TASK131_" + scope + "_FIXTURE_FAILED " + failure.getClass().getSimpleName());
 			if (failure.getMessage() != null && failure.getMessage().matches("TASK131_N01_[A-Z0-9_]+")) { System.err.println(failure.getMessage()); }
 			for (StackTraceElement frame : failure.getStackTrace())
 			{
@@ -139,18 +157,20 @@ public final class PhantomCombat131Fixture
 				finally { DatabaseFactory.close(); }
 			}
 		}
-		System.out.println("TASK131_N01_FIXTURE_EXIT=" + exit + " GAMESERVER_BOOT=0 LOGINSERVER_BOOT=0 COMBAT=0");
+		System.out.println("TASK131_" + scope + "_FIXTURE_EXIT=" + exit + " GAMESERVER_BOOT=0 LOGINSERVER_BOOT=0 COMBAT=0");
 		System.exit(exit);
 	}
 
 	private static Admission admit(String[] args) throws Exception
 	{
-		check(args.length == 7 && "SETUP".equals(args[0]), "ADMISSION_ARGUMENTS");
+		check(args.length == 7 && ("SETUP".equals(args[0]) || "SETUP_DUEL".equals(args[0])), "ADMISSION_ARGUMENTS");
+		final boolean duel = "SETUP_DUEL".equals(args[0]);
 		final Path game = physical(Path.of("").toAbsolutePath().normalize(), false);
 		final Path runtime = game.getParent(), task = runtime.getParent();
-		check(game.endsWith(Path.of(".phantom-local/logs/TASK131/native-runtime/game")), "OWNED_RUNTIME_ROOT");
+		check(duel ? task.endsWith(Path.of(".phantom-local/logs/TASK131")) && "game".equals(game.getFileName().toString())
+			&& runtime.getFileName().toString().matches("native-runtime-r[1-9][0-9]*") : game.endsWith(Path.of(".phantom-local/logs/TASK131/native-runtime/game")), "OWNED_RUNTIME_ROOT");
 		physical(game.resolve("log"), false);
-		check(args[1].matches("n01-setup(?:-[a-z0-9]+)?"), "OWNED_SQL_LANE");
+		check(args[1].matches(duel ? "n06-setup-r[1-9][0-9]*" : "n01-setup(?:-[a-z0-9]+)?"), "OWNED_SQL_LANE");
 		final Path sql = physical(task.resolve("sql-lanes").resolve(args[1]).resolve("sql-task131"), false);
 		final Path ini = physical(sql.resolve("Database.ini"), true);
 		final Path jar = physical(runtime.resolve("libs/GameServer.jar"), true);
@@ -159,6 +179,11 @@ public final class PhantomCombat131Fixture
 		final long pid = Long.parseLong(args[5]);
 		final var process = ProcessHandle.of(pid).filter(ProcessHandle::isAlive).orElseThrow(() -> failure("SQL_PROCESS_ABSENT"));
 		check(process.info().command().orElse("").toLowerCase(Locale.ROOT).endsWith("\\mariadbd.exe"), "SQL_PROCESS_BINARY");
+		if (duel)
+		{
+			final String ownedConfig = "--defaults-file=" + physical(sql.resolve("owned-server.ini"), true);
+			check(Arrays.equals(process.info().arguments().orElse(new String[0]), new String[] {ownedConfig, "--console"}), "DUEL_OWNED_SQL_PROCESS");
+		}
 		final var deadline = Instant.parse(args[6]);
 		final Instant now = Instant.now();
 		check(now.isBefore(deadline) && deadline.isBefore(now.plusSeconds(900)), "SETUP_DEADLINE");
@@ -166,7 +191,7 @@ public final class PhantomCombat131Fixture
 		try (var reader = Files.newBufferedReader(ini)) { settings.load(reader); }
 		check(JDBC.equals(settings.getProperty("URL")) && LOGIN.equals(settings.getProperty("Login")) && "com.mysql.cj.jdbc.Driver".equals(settings.getProperty("Driver"))
 			&& settings.getProperty("Password", "").matches("[0-9a-f]{64}") && "false".equals(settings.getProperty("BackupDatabase")), "OWNED_DATABASE_CONFIG");
-		return new Admission(game, sql, ini, deadline);
+		return new Admission(game, sql, ini, deadline, duel);
 	}
 
 	private static void verifySession(Path sql) throws Exception
@@ -229,8 +254,8 @@ public final class PhantomCombat131Fixture
 				check(row.profile().profileId() == birth.profile(), "EXCLUSIVE_PROFILE_SEQUENCE");
 				for (int stage = 0; stage < 12 && row.state().state() != PhantomPopulationState.State.READY; stage++) { row = population.advanceCreation(row).snapshot(); }
 				check(row.state().state() == PhantomPopulationState.State.READY, "PRODUCTION_CREATION_" + row.state().state());
-				final Actor actor = prepareActor(row, role, profession, level, birth.seed(), profiles, source, planner, goals, roster);
-				verifyStored(actor);
+				final Actor actor = prepareActor(row, role, profession, level, birth.seed(), profiles, source, planner, goals, roster, false);
+				verifyStored(actor, false);
 				roster.add(actor);
 				Files.writeString(receipt, tsv(actor, role), StandardOpenOption.APPEND);
 				if (actor.scene() != null) { Files.writeString(scenes, sceneTsv(actor), StandardOpenOption.APPEND); }
@@ -250,7 +275,7 @@ public final class PhantomCombat131Fixture
 			final var known = new StringBuilder(OFFENSE_HEADER).append('\n');
 			for (var actor : roster)
 			{
-				for (Skill skill : actor.learnedDamage())
+				for (Skill skill : actor.learnedOffense())
 				{
 					final var fields = List.of(actor.profile(), actor.object(), actor.profession().getId(), actor.level(), skill.getId(), skill.getLevel(),
 						"STORED_CLASS_DAMAGE", fixtureSha.toLowerCase(Locale.ROOT), scopeSha.toLowerCase(Locale.ROOT));
@@ -260,6 +285,129 @@ public final class PhantomCombat131Fixture
 			Files.writeString(admission.sql().resolve("n01-learned-offense.tsv"), known.toString(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
 		}
 		System.out.println("TASK131_N01_SETUP_STORED actors=4 sceneCandidates=" + qualified + " worldPlayers=0");
+	}
+
+	private static void prepareDuel(Admission admission, PhantomBackgroundSuite.ProductionAuthorityFixture source) throws Exception
+	{
+		final var starts = duelArena();
+		check(World.getInstance().getPlayers().isEmpty(), "DUEL_WORLD_NOT_EMPTY");
+		final var profiles = PhantomProfileRepository.open();
+		final ZoneId zone = PhantomPlayersConfig.settings().populationTimeZone();
+		final var catalog = PhantomPopulationCatalog.load(admission.game().resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
+		final var population = new PhantomPopulationStore(profiles, catalog, zone);
+		final var planner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
+		final var goals = new PhantomGoalStateStore(profiles);
+		final var identities = new ArrayList<DuelIdentity>(4);
+		final var proof = new StringBuilder(DUEL_PROOF_HEADER).append('\n');
+		final int level = 76;
+		boolean controlAvailable = false;
+		int ordinal = 0;
+		for (int arm = 1; arm <= 2; arm++)
+		{
+			for (int position = 0; position < starts.size(); position++)
+			{
+				check(Instant.now().isBefore(admission.deadline()) && !PhantomPlayersConfig.isEnabled(), "DUEL_SETUP_FENCE");
+				final Role role = (arm == 1) == (position == 0) ? Role.MAGE : Role.PHYSICAL;
+				final PlayerClass profession = minimumClass(role, level);
+				final Birth birth = selectBirth(profiles, catalog, zone, ++ordinal, profession, level);
+				var row = population.createShell(1, ordinal, birth.seed());
+				check(row.profile().profileId() == birth.profile(), "EXCLUSIVE_PROFILE_SEQUENCE");
+				for (int stage = 0; stage < 12 && row.state().state() != PhantomPopulationState.State.READY; stage++) { row = population.advanceCreation(row).snapshot(); }
+				check(row.state().state() == PhantomPopulationState.State.READY, "PRODUCTION_CREATION_" + row.state().state());
+				final Actor actor = prepareActor(row, role, profession, level, birth.seed(), profiles, source, planner, goals, List.of(), true);
+				verifyStored(actor, true);
+				final String side = position == 0 ? "A" : "B";
+				final var skills = actor.learnedOffense().stream().map(skill -> new SelectedSkill(skill.getId(), skill.getLevel())).toList();
+				controlAvailable |= actor.learnedOffense().stream().anyMatch(PhantomCombat131Fixture::duelControl);
+				final var identity = new DuelIdentity(arm, side, actor.profile(), actor.object(), actor.account(), role.name(), profession.getId(), skills);
+				identities.add(identity);
+				proof.append(duelTsv(identity, actor, starts.get(position)));
+			}
+		}
+		validateDuelRoster(identities);
+		check(controlAvailable, "DUEL_LEARNED_CONTROL_ABSENT");
+		verifyDuelAccounts(identities);
+		check(Instant.now().isBefore(admission.deadline()) && !PhantomPlayersConfig.isEnabled() && World.getInstance().getPlayers().isEmpty()
+			&& population.loadManagedAfter(0, 5).size() == identities.size(), "DUEL_ROSTER_AND_WORLD_CLOSURE");
+		Files.writeString(admission.sql().resolve("n06-duel-fixture.tsv"), proof, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+		System.out.println("TASK131_N06_SETUP_STORED actors=4 mirroredArms=2 worldPlayers=0");
+	}
+
+	private static void verifyDuelAccounts(List<DuelIdentity> roster) throws Exception
+	{
+		final var unverified = roster.stream().collect(Collectors.toMap(DuelIdentity::account, DuelIdentity::object));
+		final String sql = "SELECT a.login,c.charId,c.online FROM accounts a LEFT JOIN characters c ON c.account_name=a.login";
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement(); var rows = query.executeQuery(sql))
+		{
+			while (rows.next())
+			{
+				final String account = rows.getString(1);
+				check(Objects.equals(unverified.remove(account), rows.getInt(2)) && rows.getInt(3) == 0, "DUEL_ACCOUNT_OR_OBJECT_OUTSIDE_ROSTER");
+			}
+		}
+		check(unverified.isEmpty(), "DUEL_ACCOUNT_ROSTER_INCOMPLETE");
+	}
+
+	static void validateDuelRoster(List<DuelIdentity> roster)
+	{
+		check(roster.size() == 4, "DUEL_ROSTER_SIZE");
+		final var profiles = new java.util.HashSet<Long>();
+		final var objects = new java.util.HashSet<Integer>();
+		final var accounts = new java.util.HashSet<String>();
+		for (int index = 0; index < roster.size(); index++)
+		{
+			final var identity = roster.get(index);
+			final int arm = index / 2 + 1;
+			final boolean west = index % 2 == 0;
+			final String role = ((arm == 1) == west ? Role.MAGE : Role.PHYSICAL).name();
+			check(identity.arm() == arm && identity.side().equals(west ? "A" : "B") && identity.role().equals(role)
+				&& identity.profile() > 0 && profiles.add(identity.profile()) && identity.object() > 0 && objects.add(identity.object())
+				&& identity.account().matches("[a-zA-Z0-9_-]{1,45}") && accounts.add(identity.account().toLowerCase(Locale.ROOT))
+				&& identity.skills().size() >= 2, "DUEL_ROSTER_IDENTITY");
+			final var mirrored = roster.get(roster.size() - 1 - index);
+			check(identity.profession() >= 0 && identity.profession() == mirrored.profession() && identity.skills().equals(mirrored.skills()), "DUEL_MIRROR_CLASS_AND_RANKS");
+		}
+		check(roster.get(0).profession() != roster.get(1).profession(), "DUEL_DISTINCT_CLASSES");
+	}
+
+	private static List<PhantomTopologyPoint> duelArena()
+	{
+		final var geo = GeoEngine.getInstance();
+		final var west = duelPoint(geo, -88000);
+		final var east = duelPoint(geo, -87840);
+		check(Math.abs(west.z() - east.z()) <= 32 && geo.canSeeTarget(west.x(), west.y(), west.z(), east.x(), east.y(), east.z(), 0)
+			&& geo.canSeeTarget(east.x(), east.y(), east.z(), west.x(), west.y(), west.z(), 0)
+			&& geo.canMoveToTarget(west.x(), west.y(), west.z(), east.x(), east.y(), east.z(), 0)
+			&& geo.canMoveToTarget(east.x(), east.y(), east.z(), west.x(), west.y(), west.z(), 0), "DUEL_ARENA_TRAVERSAL");
+		check(World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast).noneMatch(mob ->
+			mob.getInstanceId() == 0 && mob.isSpawned() && !mob.isAlikeDead() && mob.isAggressive()
+				&& (Math.abs((long) mob.getZ() - west.z()) <= 256 || Math.abs((long) mob.getZ() - east.z()) <= 256)
+				&& Math.min(distance(west, mob), distance(east, mob)) <= mob.getAggroRange() + NpcConfig.MAX_DRIFT_RANGE), "DUEL_ARENA_FOREIGN_AGGRO");
+		return List.of(west, east);
+	}
+
+	private static PhantomTopologyPoint duelPoint(GeoEngine geo, int x)
+	{
+		final int y = 142220;
+		check(geo.hasGeo(x, y), "DUEL_ARENA_GEODATA");
+		final int z = geo.getHeight(x, y, -3500);
+		final var zones = ZoneManager.getInstance();
+		final var arena = zones.getZone(x, y, z, ArenaZone.class);
+		check(arena != null && DUEL_ARENA.equals(arena.getName()) && zones.getZone(x, y, z, PeaceZone.class) == null
+			&& zones.getZone(x, y, z, NoPvPZone.class) == null && zones.getZone(x, y, z, WaterZone.class) == null, "DUEL_ARENA_ZONE");
+		return new PhantomTopologyPoint(x, y, z, 0);
+	}
+
+	private static String duelTsv(DuelIdentity identity, Actor actor, PhantomTopologyPoint start)
+	{
+		final var stored = actor.storedPoint();
+		final String ranks = identity.skills().stream().map(skill -> skill.skillId() + ":" + skill.skillLevel()).collect(Collectors.joining(","));
+		final String controls = actor.learnedOffense().stream().filter(PhantomCombat131Fixture::duelControl)
+			.map(skill -> skill.getId() + ":" + skill.getLevel()).collect(Collectors.joining(","));
+		final var fields = List.of("SETUP_DUEL_STORED", identity.arm(), identity.side(), "A", identity.profile(), identity.object(), identity.account(),
+			identity.role(), identity.profession(), actor.level(), actor.weapon(), actor.shot(), actor.shots(), actor.adena(), DUEL_ARENA, start.instanceId(),
+			start.x(), start.y(), start.z(), stored.x(), stored.y(), stored.z(), ranks, controls);
+		return String.join("\t", fields.stream().map(Object::toString).toList()) + "\n";
 	}
 
 	private static PlayerClass minimumClass(Role role, int level)
@@ -341,7 +489,8 @@ public final class PhantomCombat131Fixture
 	}
 
 	private static Actor prepareActor(PhantomPopulationStore.ManagedSnapshot row, Role role, PlayerClass profession, int level, long seed,
-		PhantomProfileRepository profiles, PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomHistoricalBackgroundPlanner planner, PhantomGoalStateStore goals, List<Actor> roster)
+		PhantomProfileRepository profiles, PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomHistoricalBackgroundPlanner planner, PhantomGoalStateStore goals,
+		List<Actor> roster, boolean duel)
 	{
 		final long id = row.profile().profileId();
 		final int object = row.profile().characterObjectId();
@@ -386,7 +535,7 @@ public final class PhantomCombat131Fixture
 			actor.setRunning();
 			actor.standUp();
 			final var origin = actor.getLocation();
-			final Scene scene = scene(id, actor, role, seed, source, planner, roster);
+			final Scene scene = duel ? null : scene(id, actor, role, seed, source, planner, roster);
 			if (scene == null) { actor.setXYZInvisible(origin.getX(), origin.getY(), origin.getZ()); }
 			final var plan = scene == null ? planner.idleInitial(id, actor, seed, 1) : scene.plan();
 			check(plan.ready(), "PRODUCTION_BASELINE_PLAN");
@@ -395,10 +544,12 @@ public final class PhantomCombat131Fixture
 			actor.storeMe();
 			final var capture = source.authority().captureOwnedNative(id, actor, plan.goal(), null);
 			check(new PhantomBackgroundTransaction().captureBaseline(capture.state(), plan.goal(), capture.context()).status() == PhantomBackgroundTransaction.Status.SUCCESS, "PRODUCTION_BASELINE_CAPTURE");
-			final Skill skill = scene == null ? minimumSkill(actor, role, null) : scene.skill();
+			final List<Skill> duelSkills = duel ? learnedDuelOffense(actor, role) : List.of();
+			final Skill skill = duel ? duelSkills.stream().filter(Skill::isDamage).findFirst().orElse(null) : scene == null ? minimumSkill(actor, role, null) : scene.skill();
 			check(skill != null, "NATIVE_LEARNED_OFFENSIVE_SKILL");
 			return new Actor(id, object, actor.getAccountName(), profession, level, skill, weapon, shot, actor.getInventory().getInventoryItemCount(shot, -1),
-				actor.getAdena(), actor.getExp(), actor.getSp(), scene, learnedDamage(actor, role, skill));
+				actor.getAdena(), actor.getExp(), actor.getSp(), scene, new PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId()),
+				duel ? duelSkills : learnedDamage(actor, role, skill));
 		}
 		finally
 		{
@@ -461,6 +612,28 @@ public final class PhantomCombat131Fixture
 			})
 			.sorted(Comparator.comparing((Skill skill) -> skill.getId() != baseline.getId()).thenComparingInt(Skill::getId))
 			.limit(16).sorted(Comparator.comparingInt(Skill::getId)).toList();
+	}
+
+	private static List<Skill> learnedDuelOffense(Player actor, Role role)
+	{
+		final var mode = role.magic ? PhantomCombatMode.RANGED_MAGIC : PhantomCombatMode.MELEE_PHYSICAL;
+		final var tree = SkillTreeData.getInstance();
+		return L2jCombatBackend.nativePvpSkills(actor, mode, PhantomNativeCombatCapability.MAXIMUM_SKILLS).stream()
+			.map(selected -> actor.getKnownSkill(selected.skillId()))
+			.filter(skill -> skill.isDamage() || duelControl(skill))
+			.filter(skill -> skill.getHpConsume() == 0 && skill.getItemConsumeCount() == 0 && skill.getChargeConsumeCount() == 0 && skill.getMaxSoulConsumeCount() == 0
+				&& skill.getAffectRange() == 0 && skill.getFlyType() == null && skill.getCastRange() > 0 && actor.getStat().getMpConsume(skill) <= actor.getCurrentMp())
+			.filter(skill ->
+			{
+				final var learned = tree.getClassSkill(skill.getId(), skill.getLevel(), actor.getPlayerClass());
+				return learned != null && learned.getGetLevel() <= actor.getLevel();
+			})
+			.sorted(Comparator.comparingInt(Skill::getId)).toList();
+	}
+
+	private static boolean duelControl(Skill skill)
+	{
+		return skill.hasEffectType(EffectType.STUN, EffectType.PARALYZE, EffectType.ROOT, EffectType.MUTE);
 	}
 
 	private static Scene scene(long profile, Player actor, Role role, long seed, PhantomBackgroundSuite.ProductionAuthorityFixture source,
@@ -576,7 +749,7 @@ public final class PhantomCombat131Fixture
 		return "fixed:" + name + ":" + location.getX() + ":" + location.getY() + ":" + location.getZ();
 	}
 
-	private static void verifyStored(Actor actor) throws Exception
+	private static void verifyStored(Actor actor, boolean duel) throws Exception
 	{
 		check(World.getInstance().findObject(actor.object()) == null, "DETACHED_ACTOR");
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement(
@@ -589,11 +762,11 @@ public final class PhantomCombat131Fixture
 				check(rows.next() && actor.account().equals(rows.getString(1)) && actor.profession().getId() == rows.getInt(2) && actor.profession().getId() == rows.getInt(3)
 					&& actor.level() == rows.getInt(4) && rows.getInt(5) == 0 && actor.exp() == rows.getLong(6) && actor.sp() == rows.getLong(7)
 					&& rows.getInt(8) == actor.skill().getLevel(), "DURABLE_CLASS_SKILL_AND_OFF");
-				if (actor.scene() != null)
-				{
-					final var point = actor.scene().point();
-					check(rows.getInt(9) == point.x() && rows.getInt(10) == point.y() && rows.getInt(11) == point.z(), "DURABLE_SCENE_PLACEMENT");
-				}
+			if (duel || actor.scene() != null)
+			{
+				final var point = duel ? actor.storedPoint() : actor.scene().point();
+				check(rows.getInt(9) == point.x() && rows.getInt(10) == point.y() && rows.getInt(11) == point.z(), "DURABLE_SCENE_PLACEMENT");
+			}
 				check(!rows.next(), "DURABLE_ACTOR_SINGLE_ROW");
 			}
 		}
@@ -605,7 +778,7 @@ public final class PhantomCombat131Fixture
 			{
 				final var stored = new java.util.HashMap<Integer, Integer>();
 				while (rows.next()) { stored.put(rows.getInt(1), rows.getInt(2)); }
-				check(actor.learnedDamage().stream().allMatch(skill -> stored.getOrDefault(skill.getId(), 0) == skill.getLevel()), "DURABLE_LEARNED_DAMAGE_RANKS");
+				check(actor.learnedOffense().stream().allMatch(skill -> stored.getOrDefault(skill.getId(), 0) == skill.getLevel()), "DURABLE_LEARNED_DAMAGE_RANKS");
 			}
 		}
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement(

@@ -1841,6 +1841,55 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome castPvp(int ownerObjectId, int tacticalTargetObjectId, SelectedSkill selected, PhantomCombatMode mode, boolean forceUse, String authorityHash)
 		{
+			return castPvp(ownerObjectId, tacticalTargetObjectId, selected, mode, forceUse, authorityHash, null);
+		}
+
+		@Override
+		public LearningPolicy.Attempt preparePvpLearning(LearningPolicy learning, PhantomPvpCombatRequest request, int tacticalTargetObjectId,
+			List<SelectedSkill> ready, long generation)
+		{
+			if (!learning.ownedPvpEpisodes() || request.profileId() != _profileId || request.source().proactive() || request.forceUse()
+				|| tacticalTargetObjectId != request.targetObjectId() || ready.size() < 2 || !(World.getInstance().findObject(tacticalTargetObjectId) instanceof Player target))
+			{ return null; }
+			final var owner = _player.getNativeWorkOwner();
+			final var opponent = target.getNativeWorkOwner();
+			if (owner == null || opponent == null || owner.player() != _player || opponent.player() != target || !_player.isNativeWorkManaged() || !target.isNativeWorkManaged())
+			{ return null; }
+			final java.util.function.BooleanSupplier current = () -> executionValid() && !request.planOwnershipToken().isCancelled()
+				&& _player.getNativeWorkOwner() == owner && owner.isCurrent() && PlayerNativeWork.observationEvidence(_player) != null
+				&& target.getNativeWorkOwner() == opponent && opponent.isCurrent() && PlayerNativeWork.observationEvidence(target) != null
+				&& World.getInstance().findObject(target.getObjectId()) == target && _player.getInstanceId() == target.getInstanceId()
+				&& (_player.getParty() == null || _player.getParty() != target.getParty());
+			if (!current.getAsBoolean()) { return null; }
+			final var candidates = new ArrayList<Skill>(learning.maximumCandidates());
+			for (SelectedSkill reference : ready)
+			{
+				final var skill = _player.getKnownSkill(reference.skillId());
+				if (skill == null || skill.getLevel() != reference.skillLevel() || !exactPvpLearningSkill(skill, target))
+				{
+					if (candidates.isEmpty()) { return null; }
+					continue;
+				}
+				candidates.add(skill);
+				if (candidates.size() == learning.maximumCandidates()) { break; }
+			}
+			final org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken cancellation = () -> !current.getAsBoolean();
+			final var descriptor = new PhantomCombatRequest(_profileId, target.getObjectId(), request.mode(), true, false, request.timeoutMillis(),
+				cancellation, PhantomCombatRequest.LearningScope.PVP, null, cancellation);
+			return learning.chooseOwnedPvp(descriptor, generation, _player, target, candidates, current);
+		}
+
+		private boolean exactPvpLearningSkill(Skill skill, Player target)
+		{
+			return skill.isDamage() && skill.getAffectRange() == 0 && !skill.isChanneling() && !skill.isSimultaneousCast() && skill.getFlyType() == null
+				&& !skill.hasCastPreconditions() && distance(_player, target) <= Math.max(40, _player.getMagicalAttackRange(skill))
+				&& _player.getStat().getMpInitialConsume(skill) + _player.getStat().getMpConsume(skill) > 0;
+		}
+
+		@Override
+		public ActionOutcome castPvp(int ownerObjectId, int tacticalTargetObjectId, SelectedSkill selected, PhantomCombatMode mode, boolean forceUse, String authorityHash,
+			LearningPolicy.Attempt learned)
+		{
 			if ((authorityHash == null) || !authorityHash.matches("[0-9A-F]{64}") || (selected == null))
 			{
 				return ActionOutcome.REJECTED;
@@ -1875,10 +1924,20 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
-			if (target.isInvulAgainst(skill.getId(), skill.getLevel()) || !skill.checkCondition(_player, target, false) || (skill.getMaxSoulConsumeCount() > 0 && _player.getChargedSouls() < skill.getMaxSoulConsumeCount()) || (PhantomPvpSkillSafety.requiresRear(skill) && _player.isInFrontOf(target)) || (!skill.isDamage() && target.isAffectedBySkill(skill.getId())) || !_player.useMagic(skill, forceUse, false))
+			if (target.isInvulAgainst(skill.getId(), skill.getLevel()) || !skill.checkCondition(_player, target, false) || (skill.getMaxSoulConsumeCount() > 0 && _player.getChargedSouls() < skill.getMaxSoulConsumeCount()) || (PhantomPvpSkillSafety.requiresRear(skill) && _player.isInFrontOf(target)) || (!skill.isDamage() && target.isAffectedBySkill(skill.getId())))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
+			final boolean accepted;
+			if (learned == null) { accepted = _player.useMagic(skill, forceUse, false); }
+			else
+			{
+				if (forceUse || target != owner || learned.request().profileId() != _profileId || learned.request().targetObjectId() != ownerObjectId
+					|| learned.request().mode() != mode || !selected.equals(learned.candidate().skill()) || !learned.candidate().exact().getAsBoolean()
+					|| !exactPvpLearningSkill(skill, owner)) { return ActionOutcome.REJECTED; }
+				accepted = LearningCastEvidence.dispatchPvp(learned, _player, owner, skill, learned.candidate().exact(), () -> _player.useMagic(skill, false, false));
+			}
+			if (!accepted) { return ActionOutcome.UNAVAILABLE; }
 			final SkillUseHolder observed = _player.getCurrentSkill();
 			final boolean owned = _player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (observed != null) && (observed.getSkillId() == selected.skillId()) && (observed.getSkillLevel() == selected.skillLevel());
 			return owned ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;

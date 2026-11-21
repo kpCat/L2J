@@ -282,12 +282,16 @@ public class CreatureStatus
 	}
 	protected boolean setCurrentHp(double newHp, boolean broadcastPacket, boolean nativeRegeneration)
 	{
-		return setCurrentHp(newHp, broadcastPacket, null, nativeRegeneration, Double.NaN);
+		return setCurrentHp(newHp, broadcastPacket, nativeRegeneration, null, Double.NaN);
+	}
+	protected boolean setCurrentHp(double newHp, boolean broadcastPacket, boolean nativeRegeneration, Player damageAttacker, double observedHp)
+	{
+		return setCurrentHp(newHp, broadcastPacket, damageAttacker, nativeRegeneration, observedHp);
 	}
 	
 	private boolean setCurrentHp(double newHp, boolean broadcastPacket, Player damageAttacker, boolean nativeRegeneration, double observedHp)
 	{
-		final PlayerNativeWork.Owner damageOwner = damageAttacker == null ? null : damageAttacker.getNativeWorkOwner();
+		final PlayerNativeWork.Owner damageOwner = (damageAttacker != null) && (_creature instanceof Attackable) ? damageAttacker.getNativeWorkOwner() : null;
 		final PlayerNativeEvidence damageEvidence = (damageOwner != null) && (damageOwner.player() == damageAttacker) && damageOwner.isCurrent() ? damageOwner.evidence() : null;
 		PlayerNativeEvidence.Target damageTarget = null;
 		double actualHpDelta = 0;
@@ -305,6 +309,10 @@ public class CreatureStatus
 		{
 			if (_creature.isDead())
 			{
+				if ((damageAttacker != null) && (_creature instanceof Player target))
+				{
+					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.pvpPoolInterfered(target, damageAttacker);
+				}
 				return false;
 			}
 			final double beforeHp = _currentHp;
@@ -336,6 +344,17 @@ public class CreatureStatus
 				damageTarget = target.getNativeEvidenceTarget();
 				actualHpDelta = beforeHp - _currentHp;
 				uncontestedWrite = beforeHp == observedHp;
+			}
+			if ((damageAttacker != null) && !nativeRegeneration && (_creature instanceof Player target))
+			{
+				if (beforeHp != observedHp)
+				{
+					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.pvpPoolInterfered(target, damageAttacker);
+				}
+				else if (_currentHp < beforeHp)
+				{
+					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.pvpHpWritten(target, damageAttacker, beforeHp, _currentHp);
+				}
 			}
 			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.hpWritten(_creature, beforeHp, _currentHp, nativeRegeneration);
 			observeRegeneration(nativeRegeneration ? _currentHp - beforeHp : 0, 0);

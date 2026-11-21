@@ -10,7 +10,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
 
 public record PhantomCombatRequest(long profileId, int targetObjectId, PhantomCombatMode mode, boolean useShotsIfAvailable, boolean lootAfterVictory, long timeoutMillis, PhantomCancellationToken planOwnershipToken, LearningScope learningScope, PartyRoles partyRoles, PhantomCancellationToken receiptCancellation, Runnable walkRetreatUnavailable)
 {
-	public enum LearningScope { NONE, SOLO, PARTY }
+	public enum LearningScope { NONE, SOLO, PARTY, PVP }
 
 	public record PartyRoles(Set<Integer> members, int tanks, int healers, int damage)
 	{

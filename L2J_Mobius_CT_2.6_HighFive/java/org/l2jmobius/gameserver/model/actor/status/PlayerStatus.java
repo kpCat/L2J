@@ -99,6 +99,7 @@ public class PlayerStatus extends PlayableStatus
 			return;
 		}
 		final double poolBefore = getCurrentHp() + getCurrentCp();
+		final Player damageAttacker = !isDOT && !isHPConsumption && (attacker instanceof Player source) && (source != player) ? source : null;
 		
 		if (!isHPConsumption)
 		{
@@ -233,13 +234,15 @@ public class PlayerStatus extends PlayableStatus
 			{
 				if (_currentCp >= amount)
 				{
-					setCurrentCp(_currentCp - amount); // Set Cp to diff of Cp vs value
+					final double observedCp = _currentCp;
+					setCurrentCp(observedCp - amount, true, amount > 0 ? damageAttacker : null, observedCp);
 					amount = 0; // No need to subtract anything from Hp
 				}
 				else
 				{
-					amount -= _currentCp; // Get diff from value vs Cp; will apply diff to Hp
-					setCurrentCp(0, false); // Set Cp to 0
+					final double observedCp = _currentCp;
+					amount -= observedCp; // Get diff from value vs Cp; will apply diff to Hp
+					setCurrentCp(0, false, damageAttacker, observedCp);
 				}
 			}
 			
@@ -276,7 +279,8 @@ public class PlayerStatus extends PlayableStatus
 		
 		if (amount > 0)
 		{
-			amount = getCurrentHp() - amount;
+			final double observedHp = getCurrentHp();
+			amount = observedHp - amount;
 			if (amount <= 0)
 			{
 				if (player.isInDuel())
@@ -301,7 +305,7 @@ public class PlayerStatus extends PlayableStatus
 				}
 			}
 			
-			setCurrentHp(amount);
+			setCurrentHp(amount, true, false, damageAttacker, observedHp);
 		}
 		
 		if (!isHPConsumption && (attacker instanceof Player source) && ((getCurrentHp() + getCurrentCp()) < poolBefore))
@@ -325,7 +329,10 @@ public class PlayerStatus extends PlayableStatus
 				return;
 			}
 			
-			player.doDie(attacker);
+			if (player.doDie(attacker) && (damageAttacker != null))
+			{
+				org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.terminalDeath(player);
+			}
 			if (!PlayerConfig.DISABLE_TUTORIAL)
 			{
 				final QuestState qs = player.getQuestState("Q00255_Tutorial");
@@ -343,9 +350,9 @@ public class PlayerStatus extends PlayableStatus
 		return setCurrentHp(newHp, broadcastPacket, false);
 	}
 	@Override
-	protected boolean setCurrentHp(double newHp, boolean broadcastPacket, boolean nativeRegeneration)
+	protected boolean setCurrentHp(double newHp, boolean broadcastPacket, boolean nativeRegeneration, Player damageAttacker, double observedHp)
 	{
-		final boolean result = super.setCurrentHp(newHp, broadcastPacket, nativeRegeneration);
+		final boolean result = super.setCurrentHp(newHp, broadcastPacket, nativeRegeneration, damageAttacker, observedHp);
 		final Player player = getActiveChar();
 		if (!PlayerConfig.DISABLE_TUTORIAL && (getCurrentHp() <= (player.getStat().getMaxHp() * .3)))
 		{
@@ -373,6 +380,11 @@ public class PlayerStatus extends PlayableStatus
 	
 	public void setCurrentCp(double value, boolean broadcastPacket)
 	{
+		setCurrentCp(value, broadcastPacket, null, Double.NaN);
+	}
+
+	private void setCurrentCp(double value, boolean broadcastPacket, Player damageAttacker, double observedCp)
+	{
 		// Get the Max CP of the Creature
 		final int currentCp = (int) _currentCp;
 		final Player player = getActiveChar();
@@ -382,8 +394,13 @@ public class PlayerStatus extends PlayableStatus
 		{
 			if (player.isDead())
 			{
+				if (damageAttacker != null)
+				{
+					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.pvpPoolInterfered(player, damageAttacker);
+				}
 				return;
 			}
+			final double beforeCp = _currentCp;
 			
 			final double newCp = Math.max(0, value);
 			if (newCp >= maxCp)
@@ -406,6 +423,17 @@ public class PlayerStatus extends PlayableStatus
 				
 				// Start the HP/MP/CP Regeneration task with Medium priority
 				startHpMpRegeneration();
+			}
+			if (damageAttacker != null)
+			{
+				if (beforeCp != observedCp)
+				{
+					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.pvpPoolInterfered(player, damageAttacker);
+				}
+				else if (_currentCp < beforeCp)
+				{
+					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.pvpCpWritten(player, damageAttacker, beforeCp, _currentCp);
+				}
 			}
 		}
 		

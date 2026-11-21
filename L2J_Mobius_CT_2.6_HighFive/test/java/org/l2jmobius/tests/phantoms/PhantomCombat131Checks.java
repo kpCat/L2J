@@ -7,6 +7,7 @@ import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131;
 import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131.Offense;
 import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131.OffenseContext;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.tests.phantoms.PhantomCombat131Fixture.DuelIdentity;
 
 public final class PhantomCombat131Checks
 {
@@ -24,6 +25,30 @@ public final class PhantomCombat131Checks
 		System.out.println("TASK131_D1_CONTEXTUAL_OFFENSE_PASS");
 		PhantomCombatCoreSuite.testPartyAreaOwner();
 		System.out.println("TASK131_D3_PARTY_AREA_OWNER_PASS");
+		testDuelSetupRoster();
+		System.out.println("TASK131_N06_SETUP_ROSTER_CONTRACT_PASS");
+	}
+
+	private static void testDuelSetupRoster()
+	{
+		final var mage = List.of(new SelectedSkill(10, 12), new SelectedSkill(11, 18));
+		final var physical = List.of(new SelectedSkill(20, 9), new SelectedSkill(21, 14));
+		final var first = new DuelIdentity(1, "A", 1, 110, "owned_a", "MAGE", 10, mage);
+		final var second = new DuelIdentity(1, "B", 2, 120, "owned_b", "PHYSICAL", 88, physical);
+		final var third = new DuelIdentity(2, "A", 3, 130, "owned_c", "PHYSICAL", 88, physical);
+		final var fourth = new DuelIdentity(2, "B", 4, 140, "owned_d", "MAGE", 10, mage);
+		PhantomCombat131Fixture.validateDuelRoster(List.of(first, second, third, fourth));
+		rejectDuelRoster(List.of(first, second, third, new DuelIdentity(2, "B", 4, 110, "owned_d", "MAGE", 10, mage)));
+		rejectDuelRoster(List.of(first, second, third, new DuelIdentity(2, "B", 4, 140, "owned_a", "MAGE", 10, mage)));
+		rejectDuelRoster(List.of(first, second, third, new DuelIdentity(2, "B", 4, 140, "owned_d", "MAGE", 10,
+			List.of(new SelectedSkill(10, 11), mage.getLast()))));
+	}
+
+	private static void rejectDuelRoster(List<DuelIdentity> roster)
+	{
+		try { PhantomCombat131Fixture.validateDuelRoster(roster); }
+		catch (IllegalStateException expected) { return; }
+		throw new AssertionError("Inconsistent N06 setup roster was accepted.");
 	}
 
 	private static void testSharedOffensePreference()

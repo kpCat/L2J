@@ -65,6 +65,7 @@ public final class PhantomLearning131Evaluation
 		Slot slot() { return block.order().get(position); }
 	}
 	record SoloDamageBinding(String episodeId, String sha, long started, long actorEpoch, long targetEpoch) { }
+	record DuelDamageBinding(String episodeId, String sha, long started, long scoredEpoch, long opponentEpoch) { }
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
@@ -386,23 +387,44 @@ public final class PhantomLearning131Evaluation
 	/** Check the pre-action binding of the one native source/target this damage observer can witness. */
 	static SoloDamageBinding soloDamageBinding(ScheduledArm scheduled, Path path, String expectedSha, int actorId, int targetId) throws IOException
 	{
-		final Document binding = readBinding(path);
+		require(scheduled.block().stratum() == Stratum.SOLO_PVE && actorId != targetId, "SOLO_DAMAGE_BINDING");
+		final Document binding = scheduledDamageBinding(scheduled, path, expectedSha, "SOLO_DAMAGE");
 		final Slot slot = scheduled.slot();
-		require(scheduled.block().stratum() == Stratum.SOLO_PVE && actorId != targetId && binding.sha().equals(digest(expectedSha))
-			&& binding.get("blockId").equals(scheduled.block().id()) && binding.get("sceneId").equals(scheduled.sceneId())
-			&& binding.get("fixtureSha").equals(scheduled.fixtureSha()) && binding.get("position").equals(Integer.toString(scheduled.position()))
-			&& binding.get("arm").equals(slot.arm().name()) && binding.get("side").equals(slot.side().name())
-			&& Set.of("0", "1").contains(binding.get("attempt")), "SOLO_DAMAGE_BINDING");
-		for (String key : List.of("manifestSha", "opponentSha", "policySha")) { digest(binding.get(key)); }
-		token(binding.get("bootId"));
-		if (slot.arm() == Arm.C || slot.arm() == Arm.R) { digest(binding.get("modelSha")); }
-		else { require(binding.get("modelSha").equals("NONE"), "SOLO_DAMAGE_MODEL"); }
 		final var roster = participants(binding, slot.side());
 		final Participant actor = roster.get(actorId), target = roster.get(targetId);
 		require(roster.size() == 1 + scheduled.opponentSize() && roster.values().stream().filter(value -> value.side() == slot.side()).count() == 1
 			&& actor != null && actor.side() == slot.side() && actor.role() == Role.DAMAGE
 			&& target != null && target.side() != slot.side() && target.role() == Role.OPPONENT, "SOLO_DAMAGE_ROSTER");
 		return new SoloDamageBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), actor.epoch(), target.epoch());
+	}
+
+	static DuelDamageBinding duelDamageBinding(ScheduledArm scheduled, Path path, String expectedSha, int scoredId, int opponentId) throws IOException
+	{
+		require(scheduled.block().stratum() == Stratum.DUEL_PVP && scheduled.block().scene().initialRosterSize() == 1
+			&& scheduled.opponentSize() == 1 && scoredId != opponentId, "DUEL_DAMAGE_BINDING");
+		final Document binding = scheduledDamageBinding(scheduled, path, expectedSha, "DUEL_DAMAGE");
+		final Slot slot = scheduled.slot();
+		final var roster = participants(binding, slot.side());
+		final Participant scored = roster.get(scoredId), opponent = roster.get(opponentId);
+		require(roster.size() == 2 && scored != null && scored.side() == slot.side() && scored.role() == Role.DAMAGE
+			&& opponent != null && opponent.side() != slot.side(), "DUEL_DAMAGE_ROSTER");
+		return new DuelDamageBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), scored.epoch(), opponent.epoch());
+	}
+
+	private static Document scheduledDamageBinding(ScheduledArm scheduled, Path path, String expectedSha, String name) throws IOException
+	{
+		final Document binding = readBinding(path);
+		final Slot slot = scheduled.slot();
+		require(binding.sha().equals(digest(expectedSha))
+			&& binding.get("blockId").equals(scheduled.block().id()) && binding.get("sceneId").equals(scheduled.sceneId())
+			&& binding.get("fixtureSha").equals(scheduled.fixtureSha()) && binding.get("position").equals(Integer.toString(scheduled.position()))
+			&& binding.get("arm").equals(slot.arm().name()) && binding.get("side").equals(slot.side().name())
+			&& Set.of("0", "1").contains(binding.get("attempt")), name + "_BINDING");
+		for (String key : List.of("manifestSha", "opponentSha", "policySha")) { digest(binding.get(key)); }
+		token(binding.get("bootId"));
+		if (slot.arm() == Arm.C || slot.arm() == Arm.R) { digest(binding.get("modelSha")); }
+		else { require(binding.get("modelSha").equals("NONE"), name + "_MODEL"); }
+		return binding;
 	}
 
 	private static final class Raw

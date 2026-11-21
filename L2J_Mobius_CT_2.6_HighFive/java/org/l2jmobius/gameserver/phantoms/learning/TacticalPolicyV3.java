@@ -174,6 +174,8 @@ public final class TacticalPolicyV3
 	DamageChoice damage(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest request, int actorObjectId,
 		List<LearningPolicy.Candidate> candidates, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill baseline)
 	{
+		final boolean pvp = request.learningScope() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.PVP;
+		if (pvp && _episodes131 == null) { return null; }
 		if (_mode == Mode.OFF || candidates.size() < 2 || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { reason("DAMAGE_OFFER_OR_MODE",request.profileId(),request.targetObjectId());return null; }
 		final long now = System.nanoTime(), profile = request.profileId();
 		if (_last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(profile)) { reason("COOLDOWN_OR_ACTOR_CAP",profile,request.targetObjectId());return null; }
@@ -183,10 +185,12 @@ public final class TacticalPolicyV3
 		{
 			_last.put(profile, now);
 			if (!(World.getInstance().findObject(actorObjectId) instanceof Player actor)
-				|| !(World.getInstance().findObject(request.targetObjectId()) instanceof org.l2jmobius.gameserver.model.actor.instance.Monster target)
+				|| !(World.getInstance().findObject(request.targetObjectId()) instanceof org.l2jmobius.gameserver.model.actor.Creature target)
+				|| (pvp ? !(target instanceof Player) : !(target instanceof org.l2jmobius.gameserver.model.actor.instance.Monster))
 				|| actor.isAlikeDead() || target.isAlikeDead() || actor.isCastingNow() || actor.isAttackingNow()) { return null; }
 			final long generation = _generation.incrementAndGet(), snapshotStarted = System.nanoTime();
-			final var observation = TacticalSnapshotV3.collect(actor, profile, generation, _maximumEntities);
+			final var observation = pvp ? TacticalSnapshotV3.ownedPvp(actor, (Player)target, profile, generation)
+				: TacticalSnapshotV3.collect(actor, profile, generation, _maximumEntities);
 			_snapshotTime.add(System.nanoTime() - snapshotStarted);
 			if (observation.entity(target.getObjectId()) == null) { return null; }
 			final var offered = new ArrayList<LegalActionV3>();
@@ -205,7 +209,7 @@ public final class TacticalPolicyV3
 			}
 			if (stock < 0) { return null; }
 			int selected = stock;
-			if (_model != null)
+			if (!pvp && _model != null)
 			{
 				final long encodeStarted = System.nanoTime();
 				final var encoded = _model.encode(observation.state());
@@ -222,7 +226,7 @@ public final class TacticalPolicyV3
 				if (_mode != Mode.ON || best - second < .025f) { reason(_mode!=Mode.ON?"SHADOW":"MARGIN",profile,target.getObjectId());selected = stock; }
 			}
 			if (System.nanoTime() - now > 5_000_000L) { reason("BUDGET_5MS",profile,target.getObjectId());overBudget.increment(); selected = stock; }
-			else if(_exploration!=null&&!_exploration.spent())
+			else if(!pvp&&_exploration!=null&&!_exploration.spent())
 			{
 				var session=_exploration;
 				var decision=session.offer(observation,offered,offered.get(stock),actor.getNativeWorkOwner()!=null&&actor.getNativeWorkOwner().isCurrent()

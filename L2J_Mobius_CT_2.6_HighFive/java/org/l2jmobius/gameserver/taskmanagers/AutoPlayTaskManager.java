@@ -166,7 +166,8 @@ public class AutoPlayTaskManager
 					if (creature.isAlikeDead() || !isTargetModeValid(targetMode, player, creature, phantomPolicy))
 					{
 						// Logic for Spoil (254) skill.
-						if (creature.isMonster() && creature.isDead() && ((phantomPolicy == null) || phantomPolicy.permitsTarget(creature)) && player.getAutoUseSettings().getAutoSkills().contains(254))
+						// Managed actors already tried their bounded collector before target replacement.
+						if ((phantomPolicy == null) && creature.isMonster() && creature.isDead() && player.getAutoUseSettings().getAutoSkills().contains(254))
 						{
 							final Skill sweeper = player.getKnownSkill(42);
 							if (sweeper != null)

@@ -3,12 +3,14 @@ package org.l2jmobius.tests.phantoms;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,6 +24,10 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpReceipt;
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.LearningStore;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
@@ -30,6 +36,7 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.NativeTiming;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
+import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.DuelDamageBinding;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.ScheduledArm;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.SoloDamageBinding;
 
@@ -38,6 +45,190 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 {
 	private static final int MAX_CASTS = 64;
 	private static final AtomicReference<PhantomLearning131AuditDamage> ACTIVE = new AtomicReference<>();
+	private static final AtomicReference<PvpCapture> ACTIVE_DUEL = new AtomicReference<>();
+
+	/** The original preserves separate nullable pools and exact MP. The row projects only DAMAGE. */
+	static final class PaidPvpDamage
+	{
+		private final String _episodeId;
+		private final String _bindingSha;
+		private final PvpReceipt _original;
+
+		private PaidPvpDamage(String episodeId, String bindingSha, PvpReceipt original)
+		{
+			_episodeId = episodeId;
+			_bindingSha = bindingSha;
+			_original = original;
+		}
+
+		String episodeId() { return _episodeId; }
+		String bindingSha() { return _bindingSha; }
+		PvpReceipt original() { return _original; }
+		String operationId() { return PhantomLearning131AuditDamage.operationId(_episodeId, _original.owner()); }
+
+		long damageNanos() { return Math.max(lastWrite(_original.hp()), lastWrite(_original.cp())); }
+
+		String eventRow()
+		{
+			final var action = _original.attempt().selected();
+			return String.join("\t", "event", _original.eventKey(), Long.toString(damageNanos()), "DAMAGE",
+				Integer.toString(action.actorObjectId()), Integer.toString(action.targetObjectId()), operationId(),
+				poolDamage(_original.hp()), poolDamage(_original.cp()));
+		}
+
+		private static String poolDamage(PvpPoolWrite write)
+		{
+			if (write == null) { return "0"; }
+			final var value = BigDecimal.valueOf(write.delta()).setScale(9, RoundingMode.HALF_EVEN).stripTrailingZeros();
+			final String decimal = value.toPlainString();
+			require(value.signum() > 0 && decimal.matches("[0-9]{1,18}(\\.[0-9]{1,9})?"), "PVP_POOL_OUTSIDE_WIRE_PRECISION");
+			return decimal;
+		}
+
+		private static long lastWrite(PvpPoolWrite write) { return write == null ? 0 : write.lastWrite(); }
+	}
+
+	private record DuelParticipant(long profile, Player player, long epoch, PlayerNativeWork.Owner owner)
+	{
+		boolean current()
+		{
+			return profile > 0 && owner != null && player.getNativeWorkOwner() == owner && owner.player() == player && owner.epoch() == epoch && owner.isCurrent()
+				&& owner.evidence() != null && owner.evidence() == PlayerNativeWork.observationEvidence(player)
+				&& World.getInstance().findObject(player.getObjectId()) == player;
+		}
+
+		boolean drained()
+		{
+			return !owner.isCurrent() && PlayerNativeWork.observationEvidence(player) == null && World.getInstance().findObject(player.getObjectId()) == null;
+		}
+	}
+
+	static final class PvpCapture implements AutoCloseable
+	{
+		private final DuelDamageBinding _binding;
+		private final DuelParticipant _scored;
+		private final DuelParticipant _opponent;
+		private final int _instance;
+		private final Map<LearningPolicy, LearningPolicy.Observer> _delegates;
+		private final Map<TacticalReceiptV3.Attempt, Long> _issued = new IdentityHashMap<>();
+		private final Map<String, PaidPvpDamage> _paid = new HashMap<>();
+		private final HashSet<String> _operations = new HashSet<>();
+		private boolean _draining;
+		private boolean _closed;
+		private boolean _invalid;
+
+		private PvpCapture(DuelDamageBinding binding, DuelParticipant scored, DuelParticipant opponent,
+			Map<LearningPolicy, LearningPolicy.Observer> delegates)
+		{
+			_binding = binding;
+			_scored = scored;
+			_opponent = opponent;
+			_instance = scored.player().getInstanceId();
+			_delegates = Map.copyOf(delegates);
+			require(scored.profile() != opponent.profile() && bothCurrent() && !scored.player().isAlikeDead() && !opponent.player().isAlikeDead()
+				&& binding.started() <= System.nanoTime(), "NATIVE_DUEL_OWNERS");
+			require(!_delegates.isEmpty() && _delegates.size() <= 2 && _delegates.keySet().stream().allMatch(LearningPolicy::ownedPvpEpisodes),
+				"NATIVE_DUEL_POLICY");
+		}
+
+		private boolean bothCurrent()
+		{
+			return _scored.current() && _opponent.current() && _scored.player().getInstanceId() == _instance
+				&& _opponent.player().getInstanceId() == _instance;
+		}
+
+		private void install()
+		{
+			_delegates.forEach((policy, delegate) -> policy.observer(new LearningPolicy.Observer()
+			{
+				@Override public void issued(LearningPolicy.Attempt attempt, Player actor, Monster target) { delegate.issued(attempt, actor, target); }
+				@Override public void recorded(LearningPolicy.Attempt attempt, LearningStore.Evidence evidence) { delegate.recorded(attempt, evidence); }
+				@Override public void issuedPvp(LearningPolicy.Attempt attempt, Player actor, Player target)
+				{
+					PvpCapture.this.issuedPvp(policy, attempt, actor, target);
+					delegate.issuedPvp(attempt, actor, target);
+				}
+				@Override public void paidPvp(PvpReceipt receipt)
+				{
+					PvpCapture.this.paidPvp(receipt);
+					delegate.paidPvp(receipt);
+				}
+			}));
+		}
+
+		private synchronized void issuedPvp(LearningPolicy policy, LearningPolicy.Attempt attempt, Player actor, Player target)
+		{
+			if (_closed || _invalid) { return; }
+			final boolean scored = actor == _scored.player();
+			final DuelParticipant source = scored ? _scored : _opponent, victim = scored ? _opponent : _scored;
+			final var tactical = attempt.tactical();
+			if (tactical == null || attempt.policy() != policy || attempt.request().profileId() != source.profile() || attempt.generation() <= 0
+				|| actor != source.player() || target != victim.player() || !bothCurrent() || _issued.size() >= MAX_CASTS
+				|| !matchesDuelAction(tactical, source, victim) || _issued.putIfAbsent(tactical, attempt.generation()) != null)
+			{
+				_invalid = true;
+			}
+		}
+
+		private boolean matchesDuelAction(TacticalReceiptV3.Attempt attempt, DuelParticipant actor, DuelParticipant victim)
+		{
+			final var observation = attempt.observation();
+			final var action = attempt.selected();
+			return observation.profileId() == actor.profile() && observation.actorObjectId() == actor.player().getObjectId()
+				&& observation.actorEpoch() == actor.epoch() && observation.capturedNanos() >= _binding.started()
+				&& action.family() == LegalActionV3.Family.DAMAGE && action.targetObjectId() == victim.player().getObjectId()
+				&& action.targetEpoch() == victim.epoch();
+		}
+
+		private synchronized void paidPvp(PvpReceipt receipt)
+		{
+			if (_closed || _invalid) { return; }
+			final Long generation = _issued.remove(receipt.attempt());
+			final var original = new PaidPvpDamage(_binding.episodeId(), _binding.sha(), receipt);
+			if (generation == null || generation.longValue() != receipt.owner().generation() || !bothCurrent() || receipt.instanceId() != _instance
+				|| _paid.size() >= MAX_CASTS || !_operations.add(original.operationId()) || _paid.putIfAbsent(receipt.eventKey(), original) != null)
+			{
+				_invalid = true;
+			}
+		}
+
+		List<PaidPvpDamage> afterDrain(TacticalEpisodeV3.NativeDrain drain) throws Exception
+		{
+			synchronized (this)
+			{
+				require(!_closed && !_draining && ACTIVE_DUEL.get() == this, "NATIVE_DUEL_NOT_OPEN");
+				_draining = true;
+			}
+			try
+			{
+				drain.finish();
+				require(_scored.drained() && _opponent.drained(), "NATIVE_DUEL_NOT_DRAINED");
+				return finished(System.nanoTime());
+			}
+			finally { close(); }
+		}
+
+		private synchronized List<PaidPvpDamage> finished(long settled)
+		{
+			require(!_closed && !_invalid && !_paid.isEmpty(), "INVALID_OR_EMPTY_NATIVE_DUEL");
+			for (var original : _paid.values())
+			{
+				require(original.damageNanos() <= settled && original.original().mpLastWrite() <= settled, "NATIVE_WRITE_OUTSIDE_DUEL_WINDOW");
+				original.eventRow(); // Refuse an unrepresentable debit before handing a fragment to the producer.
+			}
+			return _paid.values().stream().sorted(Comparator.comparingLong(PaidPvpDamage::damageNanos).thenComparing(damage -> damage.original().eventKey())).toList();
+		}
+
+		@Override public synchronized void close()
+		{
+			_closed = true;
+			if (ACTIVE_DUEL.get() == this)
+			{
+				_delegates.forEach(LearningPolicy::observer);
+				ACTIVE_DUEL.compareAndSet(this, null);
+			}
+		}
+	}
 
 	static final class PaidDamage
 	{
@@ -104,12 +295,33 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			&& binding.started() <= System.nanoTime(), "NATIVE_OWNER_OR_SPAWN");
 	}
 
+	/** Capture paid native DAMAGE in either direction of the exact planned duel. */
+	static PvpCapture openPvp(ScheduledArm planned, Path binding, String bindingSha, String nonce, long scoredProfile, Player scored,
+		long opponentProfile, Player opponent, Map<LearningPolicy, LearningPolicy.Observer> ownedObservers) throws IOException
+	{
+		requireOwnedBoot(nonce);
+		final var sealed = PhantomLearning131Evaluation.duelDamageBinding(planned, binding, bindingSha, scored.getObjectId(), opponent.getObjectId());
+		final var capture = new PvpCapture(sealed,
+			new DuelParticipant(scoredProfile, scored, sealed.scoredEpoch(), scored.getNativeWorkOwner()),
+			new DuelParticipant(opponentProfile, opponent, sealed.opponentEpoch(), opponent.getNativeWorkOwner()), ownedObservers);
+		require(ACTIVE_DUEL.compareAndSet(null, capture), "NATIVE_DUEL_OBSERVER_BUSY");
+		try
+		{
+			capture.install();
+			return capture;
+		}
+		catch (RuntimeException failure)
+		{
+			capture.close();
+			throw failure;
+		}
+	}
+
 	/** Reserve the timing hook in an isolated TEST boot and tee the owned, episode-local paid observer. */
 	static PhantomLearning131AuditDamage open(ScheduledArm planned, Path binding, String bindingSha, String nonce, long profileId, Player actor, Monster target,
 		TacticalPolicyV3 ownedPolicy, Consumer<TacticalReceiptV3> existingPaidObserver) throws IOException
 	{
-		require(nonce != null && nonce.matches("[a-f0-9]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
-			&& Boolean.getBoolean("phantom.learning.train"), "OWNED_AUDIT_BOOT_REQUIRED");
+		requireOwnedBoot(nonce);
 		final var sealed = PhantomLearning131Evaluation.soloDamageBinding(planned, binding, bindingSha, actor.getObjectId(), target.getObjectId());
 		final var capture = new PhantomLearning131AuditDamage(sealed, profileId, actor, target, ownedPolicy, existingPaidObserver);
 		require(ACTIVE.compareAndSet(null, capture), "NATIVE_TIMING_OBSERVER_BUSY");
@@ -120,6 +332,12 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			existingPaidObserver.accept(receipt);
 		});
 		return capture;
+	}
+
+	private static void requireOwnedBoot(String nonce)
+	{
+		require(nonce != null && nonce.matches("[a-f0-9]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
+			&& Boolean.getBoolean("phantom.learning.train"), "OWNED_AUDIT_BOOT_REQUIRED");
 	}
 
 	private synchronized void nativeTiming(NativeTiming timing)

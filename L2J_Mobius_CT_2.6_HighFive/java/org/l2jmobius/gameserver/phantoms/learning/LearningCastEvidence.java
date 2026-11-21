@@ -33,15 +33,51 @@ public final class LearningCastEvidence
 		private static final String SALT = UUID.randomUUID().toString();
 		private static final java.util.concurrent.atomic.AtomicInteger REJECTIONS = new java.util.concurrent.atomic.AtomicInteger();
 	}
+	public record PvpPoolWrite(double before, double after, long firstWrite, long lastWrite)
+	{
+		public PvpPoolWrite
+		{
+			if (!Double.isFinite(before) || !Double.isFinite(after) || before <= after || after < 0 || firstWrite <= 0 || lastWrite < firstWrite)
+			{ throw new IllegalArgumentException("Invalid PvP pool write"); }
+		}
+		public double delta() { return before - after; }
+	}
+
+	/** Exact paid PvP effect. A pool without a native debit is absent. */
+	public record PvpReceipt(String eventKey, TacticalReceiptV3.Attempt attempt, PvpPoolWrite hp, PvpPoolWrite cp, double mp,
+		long mpFirstWrite, long mpLastWrite, long elapsedNanos, int instanceId, boolean lethal, HealEvidenceV3.SourceOwner owner)
+	{
+		public PvpReceipt
+		{
+			if (eventKey == null || !eventKey.matches("[a-f0-9]{64}") || attempt == null || owner == null || hp == null && cp == null
+				|| !Double.isFinite(mp) || mp <= 0 || elapsedNanos <= 0 || instanceId < 0 || mpLastWrite < mpFirstWrite || lethal && hp == null)
+			{ throw new IllegalArgumentException("Invalid native PvP receipt"); }
+			final var observation = attempt.observation();
+			final var target = observation.entity(attempt.selected().targetObjectId());
+			if (attempt.selected().family() != LegalActionV3.Family.DAMAGE || target == null || target.role() != TacticalObservationV3.Role.ENEMY
+				|| mpFirstWrite < observation.capturedNanos()
+				|| !matchesPool(hp, target.fact(TacticalObservationV3.Field.MAX_HP), observation.capturedNanos())
+				|| !matchesPool(cp, target.fact(TacticalObservationV3.Field.MAX_CP), observation.capturedNanos()))
+			{ throw new IllegalArgumentException("PvP effect differs from the admitted target pools"); }
+		}
+
+		private static boolean matchesPool(PvpPoolWrite write, TacticalObservationV3.Fact maximum, long observed)
+		{
+			return write == null || maximum.known() && maximum.value() > 0 && write.before() <= maximum.value() + 1e-6 && write.firstWrite() >= observed;
+		}
+	}
+
 	private final LearningPolicy.Attempt _attempt;
 	private final Player _actor;
-	private final Monster _target;
+	private final Creature _target;
 	private final Skill _skill;
 	private final PlayerNativeWork.Owner _owner;
 	private final PlayerNativeEvidence _nativeEvidence;
 	private final long _epoch;
 	private final Party _party;
 	private final PlayerNativeEvidence.Target _spawn;
+	private final PlayerNativeWork.Owner _pvpOwner;
+	private final String _pvpOpponentParty;
 	private final BooleanSupplier _leaseValid;
 	private final long _created = System.nanoTime();
 	private final double _maxHp;
@@ -57,9 +93,11 @@ public final class LearningCastEvidence
 	private long _hpStart,_hpEnd,_mpStart,_mpEnd;
 	private boolean _lethal;
 	private double _mp, _beforeHp = Double.NaN, _afterHp;
+	private PvpPoolWrite _pvpHp;
+	private PvpPoolWrite _pvpCp;
 	private String _captureRejection = "no-native-task";
 
-	private LearningCastEvidence(LearningPolicy.Attempt attempt, Player actor, Monster target, Skill skill, BooleanSupplier leaseValid)
+	private LearningCastEvidence(LearningPolicy.Attempt attempt, Player actor, Creature target, Skill skill, BooleanSupplier leaseValid)
 	{
 		_attempt = attempt;
 		_actor = actor;
@@ -69,7 +107,9 @@ public final class LearningCastEvidence
 		_nativeEvidence = PlayerNativeWork.observationEvidence(actor);
 		_epoch = _owner == null ? 0 : _owner.epoch();
 		_party = actor.getParty();
-		_spawn = target.getNativeEvidenceTarget();
+		_spawn = target instanceof Monster monster ? monster.getNativeEvidenceTarget() : null;
+		_pvpOwner = target instanceof Player opponent ? opponent.getNativeWorkOwner() : null;
+		_pvpOpponentParty = target instanceof Player opponent ? pvpPartyIdentity(opponent) : null;
 		_leaseValid = leaseValid;
 		_maxHp = target.getMaxHp();
 	}
@@ -90,6 +130,33 @@ public final class LearningCastEvidence
 		{
 			restore(DISPATCH, previous);
 		}
+	}
+
+	public static boolean dispatchPvp(LearningPolicy.Attempt attempt, Player actor, Player opponent, Skill skill, BooleanSupplier leaseValid, BooleanSupplier nativeDispatch)
+	{
+		if (!TRAIN || attempt == null || attempt.tactical() == null || attempt.request().learningScope() != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.PVP)
+		{ return false; }
+		final var observation = attempt.tactical().observation();
+		final var selected = attempt.tactical().selected();
+		if (actor == null || opponent == null || skill == null || actor.getKnownSkill(skill.getId()) != skill
+			|| observation.actorObjectId() != actor.getObjectId() || observation.actorEpoch() != TacticalSnapshotV3.epoch(actor)
+			|| observation.profileId() != attempt.request().profileId() || attempt.request().targetObjectId() != opponent.getObjectId()
+			|| selected.family() != LegalActionV3.Family.DAMAGE || selected.skillId() != skill.getId() || selected.skillLevel() != skill.getLevel())
+		{ return false; }
+		final var ticket = new LearningCastEvidence(attempt, actor, opponent, skill, leaseValid);
+		if (ticket.lifetimeRejection() != null) { return false; }
+		final var previous = DISPATCH.get();
+		attempt.policy().observePvpIssued(attempt, actor, opponent);
+		DISPATCH.set(ticket);
+		try
+		{
+			final boolean accepted = nativeDispatch.getAsBoolean();
+			if (accepted) { ticket.issued(); }
+			else { ticket.cancelled(); }
+			return accepted;
+		}
+		catch (RuntimeException | Error rejected) { ticket.cancelled(); throw rejected; }
+		finally { restore(DISPATCH, previous); }
 	}
 
 	public static LearningCastEvidence capture(Creature actor, Skill skill, List<WorldObject> targets, boolean simultaneous)
@@ -124,9 +191,24 @@ public final class LearningCastEvidence
 		{ return "actor-epoch"; }
 		if (!_leaseValid.getAsBoolean()) { return "execution-lease"; }
 		if (_actor.getParty() != _party) { return "native-party"; }
-		if (World.getInstance().findObject(_target.getObjectId()) != _target || !_spawn.equals(_target.getNativeEvidenceTarget())
-			|| _spawn.instanceId() != _actor.getInstanceId()) { return "target-spawn"; }
+		if (World.getInstance().findObject(_target.getObjectId()) != _target || _target.getInstanceId() != _actor.getInstanceId()) { return "target-spawn"; }
+		if (_target instanceof Monster monster)
+		{
+			if (!_spawn.equals(monster.getNativeEvidenceTarget())) { return "target-spawn"; }
+		}
+		else if (!(_target instanceof Player opponent) || _pvpOwner == null || opponent == _actor || opponent.getParty() != null && opponent.getParty() == _actor.getParty()
+			|| opponent.getNativeWorkOwner() != _pvpOwner || _pvpOwner.player() != opponent || !_pvpOwner.isCurrent()
+			|| PlayerNativeWork.observationEvidence(opponent) == null || _attempt.tactical().selected().targetObjectId() != opponent.getObjectId()
+			|| _attempt.tactical().selected().targetEpoch() != _pvpOwner.epoch()) { return "target-epoch"; }
+		else if (_pvpOpponentParty == null || !_attempt.tactical().observation().partyIdentity().equals(pvpPartyIdentity(_actor))
+			|| !_pvpOpponentParty.equals(pvpPartyIdentity(opponent))) { return "pvp-party-membership"; }
 		return System.nanoTime() - _created < 15_000_000_000L ? null : "age";
+	}
+
+	private static String pvpPartyIdentity(Player actor)
+	{
+		try { return TacticalSnapshotV3.partyIdentity(actor); }
+		catch (RuntimeException changed) { return null; }
 	}
 
 	public void hit(Runnable nativeHit)
@@ -246,6 +328,54 @@ public final class LearningCastEvidence
 			ticket._afterHp = after;
 		}
 	}
+
+	public static void pvpHpWritten(Player target, Creature attacker, double before, double after)
+	{
+		pvpPoolWritten(target, attacker, before, after, true);
+	}
+
+	public static void pvpCpWritten(Player target, Creature attacker, double before, double after)
+	{
+		pvpPoolWritten(target, attacker, before, after, false);
+	}
+
+	public static void pvpPoolInterfered(Player target, Creature attacker)
+	{
+		final var ticket = pvpDamageTicket(target, attacker);
+		if (ticket != null) { ticket._failed = true; }
+	}
+
+	private static LearningCastEvidence pvpDamageTicket(Player target, Creature attacker)
+	{
+		if (!TRAIN) { return null; }
+		final var ticket = DAMAGE.get();
+		return ticket != null && ticket == EFFECT.get() && ticket._pvpOwner != null && ticket._target == target && ticket._actor == attacker
+			&& target.getNativeWorkOwner() == ticket._pvpOwner && ticket._pvpOwner.isCurrent() && ticket._actor.getNativeWorkOwner() == ticket._owner
+			&& ticket._owner.isCurrent() && !ticket._published ? ticket : null;
+	}
+
+	private static void pvpPoolWritten(Player target, Creature attacker, double before, double after, boolean hp)
+	{
+		if (!Double.isFinite(before) || !Double.isFinite(after) || before <= after || after < 0) { return; }
+		final var ticket = pvpDamageTicket(target, attacker);
+		if (ticket == null) { return; }
+		final PvpPoolWrite previous = hp ? ticket._pvpHp : ticket._pvpCp;
+		if (previous != null && previous.after() != before)
+		{
+			ticket._failed = true;
+			return;
+		}
+		final long now = System.nanoTime();
+		final var write = new PvpPoolWrite(previous == null ? before : previous.before(), after, previous == null ? now : previous.firstWrite(), now);
+		if (hp)
+		{
+			ticket._pvpHp = write;
+			ticket._beforeHp = write.before();
+			ticket._afterHp = write.after();
+			ticket._damage = write.delta();
+		}
+		else { ticket._pvpCp = write; }
+	}
 	public void mpDebit(Runnable nativeDebit)
 	{
 		final var previous = MP.get(); MP.set(this);
@@ -297,18 +427,28 @@ public final class LearningCastEvidence
 			final var action = _attempt.candidate();
 			final float reward = (float) Math.clamp((_damage / Math.max(1, _maxHp)) * 8 - action.mpCost() / 1000 - action.castMillis() / 30000.0 - action.itemCost() * .005, -1, 1);
 			final String actorKey = _attempt.policy().actorKey(_attempt.request().profileId());
+			final String targetIdentity = _pvpOwner == null ? _spawn.toString() : _target.getObjectId() + "@" + _pvpOwner.epoch();
 			final String eventKey = hash(RunIdentity.SALT + ":" + actorKey + ":" + _actor.getObjectId() + ":" + _epoch + ":" + _attempt.generation()
-				+ ":" + _attempt.sequence() + ":" + _attempt.request().learningScope() + ":" + _spawn);
+				+ ":" + _attempt.sequence() + ":" + _attempt.request().learningScope() + ":" + targetIdentity);
 			final var evidence = new LearningStore.Evidence(eventKey, actorKey, _attempt.request().learningScope().name(),
 				_attempt.policy().version(), _skill.getId(), _skill.getLevel(), _damage, reward, action.features());
 			if (_attempt.tactical() != null)
 			{
 				final var tactical = _attempt.tactical();
 				final long elapsed = Math.max(1, System.nanoTime() - _created);
-				TerminalRewardReceiptV1.nativeTiming(new TerminalRewardReceiptV1.NativeTiming(eventKey,_actor.getInstanceId(),_hpStart,_hpEnd,_mpStart,_mpEnd,_lethal));
+				final var owner = new HealEvidenceV3.SourceOwner(_attempt.generation(),
+					"Combat/" + _attempt.request().profileId() + "/" + _attempt.generation() + "/" + _attempt.sequence());
+				if (_pvpOwner == null)
+				{
+					TerminalRewardReceiptV1.nativeTiming(new TerminalRewardReceiptV1.NativeTiming(eventKey,_actor.getInstanceId(),_hpStart,_hpEnd,_mpStart,_mpEnd,_lethal));
+				}
+				else
+				{
+					_attempt.policy().observePvpPaid(new PvpReceipt(eventKey, tactical, _pvpHp, _pvpCp, _mp, _mpStart, _mpEnd, elapsed, _actor.getInstanceId(), _lethal, owner));
+					if (_pvpHp == null) { return; }
+				}
 				_attempt.policy().recordTactical(new TacticalReceiptV3(eventKey, tactical, _beforeHp, _afterHp, _damage, _mp, elapsed,
-					TacticalReceiptV3.reward(_damage, _maxHp, _mp, elapsed), new HealEvidenceV3.SourceOwner(_attempt.generation(),
-						"Combat/" + _attempt.request().profileId() + "/" + _attempt.generation() + "/" + _attempt.sequence())));
+					TacticalReceiptV3.reward(_damage, _maxHp, _mp, elapsed), owner));
 				return;
 			}
 			final boolean enqueued = _attempt.policy().record(evidence);
@@ -341,7 +481,8 @@ public final class LearningCastEvidence
 	private String publicationRejection()
 	{
 		if (_failed) { return "native-effect"; }
-		if (_damage <= 0) { return "no-exact-hp"; }
+		if (_damage <= 0 && _pvpCp == null) { return "no-exact-hp"; }
+		if (_pvpOwner != null && _mp <= 0) { return "no-exact-mp"; }
 		final String lifetime = lifetimeRejection();
 		if (lifetime != null) { return lifetime; }
 		return _attempt.request().receiptCancellation().isCancelled() ? "receipt-owner" : null;

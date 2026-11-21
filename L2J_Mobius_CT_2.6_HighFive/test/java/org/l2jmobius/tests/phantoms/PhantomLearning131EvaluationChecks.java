@@ -99,6 +99,7 @@ public final class PhantomLearning131EvaluationChecks
 			&& plan.getLast().block().stratum() == Stratum.GROUP_PVP && plan.getLast().block().index() == 7 && plan.getLast().position() == 3,
 			"producer can read all planned arms in stratum, block-index and position order before collecting evidence");
 		checkSoloDamageBinding(plan.getFirst(), temporary);
+		checkDuelDamageBinding(plan.stream().filter(slot -> slot.block().stratum() == Stratum.DUEL_PVP).findFirst().orElseThrow(), temporary);
 
 		final var lines = Files.readAllLines(protocol);
 		final int firstBlock = 5;
@@ -149,6 +150,31 @@ public final class PhantomLearning131EvaluationChecks
 		catch (IllegalArgumentException refused)
 		{
 			check(refused.getMessage().equals("EVAL131_SOLO_DAMAGE_ROSTER"), "actor and target sides are checked independently of the binding hash");
+		}
+	}
+
+	private static void checkDuelDamageBinding(PhantomLearning131Evaluation.ScheduledArm scheduled, Path temporary) throws Exception
+	{
+		final Path path = temporary.resolve("duel-binding131.tsv");
+		final Slot slot = scheduled.slot();
+		final String own = slot.side().name();
+		final String opposing = (slot.side() == Side.LEFT ? Side.RIGHT : Side.LEFT).name();
+		final String metadata = meta("schema", "NATIVE_BINDING131_V1", "manifestSha", "a".repeat(64), "bootId", "00002", "blockId", scheduled.block().id(),
+			"episodeId", "ep-duel-01", "attempt", "0", "position", Integer.toString(scheduled.position()), "arm", slot.arm().name(), "side", own,
+			"sceneId", scheduled.sceneId(), "fixtureSha", scheduled.fixtureSha(), "opponentSha", "b".repeat(64), "policySha", "c".repeat(64),
+			"modelSha", slot.arm() == Arm.C || slot.arm() == Arm.R ? "d".repeat(64) : "NONE", "startNanos", "100");
+		Files.writeString(path, metadata + "actor\t42\t71\t" + own + "\tDAMAGE\nactor\t102\t91\t" + opposing + "\tOPPONENT\n");
+		final var binding = PhantomLearning131Evaluation.duelDamageBinding(scheduled, path, digest(path), 42, 102);
+		check(binding.episodeId().equals("ep-duel-01") && binding.started() == 100 && binding.scoredEpoch() == 71 && binding.opponentEpoch() == 91,
+			"both live participant epochs come from the exact scheduled duel binding");
+		try
+		{
+			PhantomLearning131Evaluation.duelDamageBinding(scheduled, path, digest(path), 102, 42);
+			throw new AssertionError("Swapping the scored and opposing world objects cannot bind the duel");
+		}
+		catch (IllegalArgumentException refused)
+		{
+			check(refused.getMessage().equals("EVAL131_DUEL_DAMAGE_ROSTER"), "duel participant sides are checked independently of the binding hash");
 		}
 	}
 

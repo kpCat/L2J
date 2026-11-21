@@ -48,6 +48,23 @@ public final class TacticalSnapshotV3
 		{ if (entities.size() < maximumEntities) { entities.add(entity(actor, enemy, Role.ENEMY)); } }
 		return new TacticalObservationV3(decision, System.nanoTime(), profile, actor.getObjectId(), epoch(actor), partyIdentity(actor), entities);
 	}
+
+	static TacticalObservationV3 ownedPvp(Player actor, Player opponent, long profile, long decision)
+	{
+		final var own = actor.getNativeWorkOwner();
+		final var foe = opponent.getNativeWorkOwner();
+		if (actor == opponent || own == null || foe == null || own.player() != actor || foe.player() != opponent || !own.isCurrent() || !foe.isCurrent()
+			|| !actor.isNativeWorkManaged() || !opponent.isNativeWorkManaged() || actor.getInstanceId() != opponent.getInstanceId()
+			|| actor.getParty() != null && actor.getParty() == opponent.getParty())
+		{ throw new IllegalArgumentException("Exactly owned opposing player required"); }
+		final var enemy = entity(actor, opponent, Role.ENEMY);
+		final var facts = new EnumMap<Field, Fact>(enemy.facts());
+		fact(facts, Field.MAX_HP, opponent.getMaxHp());
+		fact(facts, Field.MAX_CP, opponent.getMaxCp());
+		fact(facts, Field.CP, opponent.getCurrentCp() / Math.max(1, opponent.getMaxCp()));
+		final var boundEnemy = new Entity(Role.ENEMY, opponent.getObjectId(), foe.epoch(), 0, 0, facts, List.of(), List.of(), List.of(), List.of());
+		return new TacticalObservationV3(decision, System.nanoTime(), profile, actor.getObjectId(), own.epoch(), partyIdentity(actor), List.of(entity(actor, actor, Role.SELF), boundEnemy));
+	}
 	public static Entity entity(Player self, Creature actor, Role role)
 	{
 		final var facts = new EnumMap<Field, Fact>(Field.class);

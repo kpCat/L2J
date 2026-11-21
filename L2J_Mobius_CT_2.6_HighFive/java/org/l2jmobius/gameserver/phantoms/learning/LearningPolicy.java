@@ -52,7 +52,25 @@ public final class LearningPolicy
 	public interface Observer
 	{
 		void issued(Attempt attempt, Player actor, Monster target);
+		default void issuedPvp(Attempt attempt, Player actor, Player target) { }
+		default void paidPvp(LearningCastEvidence.PvpReceipt receipt) { }
 		void recorded(Attempt attempt, LearningStore.Evidence evidence);
+	}
+
+	public boolean ownedPvpEpisodes() { return active(LearningScope.PVP); }
+
+	public Attempt chooseOwnedPvp(PhantomCombatRequest request, long generation, Player actor, Player target, List<Skill> ready, BooleanSupplier current)
+	{
+		if (!ownedPvpEpisodes() || request.learningScope() != LearningScope.PVP || !current.getAsBoolean() || generation <= 0
+			|| ready.size() < 2 || ready.size() > _maxCandidates || request.targetObjectId() != target.getObjectId()) { return null; }
+		final Skill stock = ready.getFirst();
+		final var baseline = new SelectedSkill(stock.getId(), stock.getLevel());
+		final var candidates = ready.stream().map(skill -> new Candidate(new SelectedSkill(skill.getId(), skill.getLevel()), new float[0],
+			actor.getStat().getMpInitialConsume(skill) + actor.getStat().getMpConsume(skill), skill.getHitTime(), skill.getItemConsumeCount(),
+			() -> current.getAsBoolean() && actor.getKnownSkill(skill.getId()) == skill)).toList();
+		final var choice = _tactical.damage(request, actor.getObjectId(), candidates, baseline);
+		if (choice == null || !choice.selected().exact().getAsBoolean()) { return null; }
+		return new Attempt(this, choice.selected(), request, generation, choice.attempt().observation().decisionId(), baseline, 0, candidates, choice.attempt());
 	}
 	public record TimingSummary(long count, long p50Nanos, long p95Nanos, long p99Nanos, long maxNanos) { }
 	public record Counters(long evaluated, long preferredDifferent, long applied, long overBudget, long unknown) { }
@@ -168,7 +186,8 @@ public final class LearningPolicy
 
 	public boolean active(LearningScope scope)
 	{
-		return scope != LearningScope.NONE && _mode != Mode.OFF && (_model != null || _writer != null || _tactical.hasEpisodes131()) && _catalogCurrent.getAsBoolean();
+		return scope != LearningScope.NONE && _mode != Mode.OFF && (scope == LearningScope.PVP ? _tactical.hasEpisodes131()
+			: _model != null || _writer != null || _tactical.hasEpisodes131()) && _catalogCurrent.getAsBoolean();
 	}
 
 	public int maximumCandidates()
@@ -322,6 +341,22 @@ public final class LearningPolicy
 		catch (RuntimeException failure) { observationRejected(); }
 	}
 
+	void observePvpIssued(Attempt attempt, Player actor, Player target)
+	{
+		final Observer observer = _observer;
+		if (observer == null) { return; }
+		try { observer.issuedPvp(attempt, actor, target); }
+		catch (RuntimeException failure) { observationRejected(); }
+	}
+
+	void observePvpPaid(LearningCastEvidence.PvpReceipt receipt)
+	{
+		final Observer observer = _observer;
+		if (observer == null) { return; }
+		try { observer.paidPvp(receipt); }
+		catch (RuntimeException failure) { observationRejected(); }
+	}
+
 	void observeRecorded(Attempt attempt, LearningStore.Evidence evidence)
 	{
 		final Observer observer = _observer;
@@ -363,7 +398,7 @@ public final class LearningPolicy
 		{
 			case SOLO -> _soloWitness;
 			case PARTY -> _partyWitness;
-			case NONE -> null;
+			case NONE, PVP -> null;
 		};
 	}
 

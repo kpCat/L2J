@@ -19,6 +19,8 @@ import org.l2jmobius.gameserver.phantoms.learning.ActionFeedbackV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Entity;
@@ -56,6 +58,8 @@ public final class PhantomLearning131FrozenChecks
 			System.out.println("LEARNING131_V4_HEAL_OFFER_CONTRACT_PASS");
 			checkCaptureScope(model);
 			System.out.println("LEARNING131_EPISODE_SCOPE_OFFLINE_PASS");
+			checkPvpReceipt();
+			System.out.println("LEARNING131_PVP_HP_CP_CONTRACT_PASS");
 			checkCommittedReplay(scratch, lineage.head());
 			System.out.println("LEARNING131_COMMITTED_REPLAY_OFFLINE_PASS");
 		}
@@ -67,6 +71,28 @@ public final class PhantomLearning131FrozenChecks
 			}
 			Files.delete(scratch);
 		}
+	}
+
+	private static void checkPvpReceipt() throws IOException
+	{
+		final long started = System.nanoTime();
+		final var self = new Entity(Role.SELF, 101, 1, 0, 0, Map.of(), List.of(), List.of(), List.of(), List.of());
+		final var enemy = new Entity(Role.ENEMY, 102, 2, 0, 0, Map.of(Field.MAX_HP, Fact.known(800), Field.MAX_CP, Fact.known(400)),
+			List.of(), List.of(), List.of(), List.of());
+		final var observation = new TacticalObservationV3(1, started, 1, 101, 1, "", List.of(self, enemy));
+		final var stock = offer(observation, 1000, 2);
+		final var alternative = offer(observation, 7000, 2);
+		final var attempt = new TacticalReceiptV3.Attempt(observation, List.of(stock, alternative), alternative, stock, 0);
+		final var owner = new SourceOwner(1, "Combat/1/1/1");
+		final var cp = new PvpPoolWrite(100, 0, started + 40, started + 40);
+		final var hp = new PvpPoolWrite(800, 740, started + 50, started + 50);
+		final var cpOnly = new PvpReceipt(SOURCE, attempt, null, cp, 4, started + 10, started + 20, 100, 0, false, owner);
+		check(cpOnly.hp() == null && cpOnly.cp().delta() == 100, "CP-only action must keep HP absent");
+		final var mixed = new PvpReceipt(SOURCE, attempt, hp, cp, 4, started + 10, started + 20, 100, 0, false, owner);
+		check(mixed.hp().delta() == 60 && mixed.cp().delta() == 100, "PvP HP and CP cannot share a pool");
+		rejects(() -> new PvpReceipt(SOURCE, attempt, null, cp, 0, started + 10, started + 20, 100, 0, false, owner), "Unpaid PvP effect");
+		rejects(() -> new PvpReceipt(SOURCE, attempt, null, new PvpPoolWrite(500, 350, started + 40, started + 40), 4,
+			started + 10, started + 20, 100, 0, false, owner), "PvP CP debit above the pinned pool");
 	}
 
 	private static void checkCommittedReplay(Path root, String originalHead) throws Exception

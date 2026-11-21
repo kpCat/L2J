@@ -1945,12 +1945,16 @@ public final class PhantomCombatService
 		final ActionOutcome spacing = session._actorLease.maintainPvpPosition(ownerObjectId, skills.stream().findFirst().orElse(null), session._request.mode());
 		if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
 		if (ready.isEmpty() && !session._loadout.normalAttackFallback()) { return; }
+		final var learned = ready.size() >= 2 && _learning.ownedPvpEpisodes()
+			? session._actorLease.preparePvpLearning(_learning, session._pvpRequest, tacticalTargetObjectId, ready, session._generation) : null;
+		if (learned != null && (!ready.contains(learned.candidate().skill()) || !learned.candidate().exact().getAsBoolean())) { return; }
 		final var shot = session._actorLease.activateShot(session._request.mode());
 		_metrics.shot(shot);
 		if (shot != ShotOutcome.ACTIVATED) { finish(session, PhantomCombatResult.SUPPLY_REQUIRED); return; }
-		for (SelectedSkill selected : ready)
+		for (SelectedSkill selected : learned == null ? ready : List.of(learned.candidate().skill()))
 		{
-			final ActionOutcome outcome = session._actorLease.castPvp(ownerObjectId, tacticalTargetObjectId, selected, session._request.mode(), session._pvpRequest.forceUse(), session._pvpRequest.authorityHash());
+			final ActionOutcome outcome = session._actorLease.castPvp(ownerObjectId, tacticalTargetObjectId, selected, session._request.mode(), session._pvpRequest.forceUse(),
+				session._pvpRequest.authorityHash(), learned);
 			if (outcome == ActionOutcome.ISSUED)
 			{
 				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
@@ -1963,7 +1967,7 @@ public final class PhantomCombatService
 			}
 			if (outcome == ActionOutcome.ALREADY_OWNED) { return; }
 		}
-		if (!session._loadout.normalAttackFallback()) { return; }
+		if (learned != null || !session._loadout.normalAttackFallback()) { return; }
 		final ActionOutcome outcome = session._actorLease.attackPvp(ownerObjectId, tacticalTargetObjectId, session._pvpRequest.authorityHash());
 		if (outcome == ActionOutcome.ISSUED)
 		{

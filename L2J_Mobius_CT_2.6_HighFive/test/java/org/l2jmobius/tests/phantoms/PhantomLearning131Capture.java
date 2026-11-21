@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.skill.Skill;
@@ -105,6 +106,12 @@ final class PhantomLearning131Capture
 			}
 
 			@Override
+			public void issuedPvp(LearningPolicy.Attempt attempt, Player actor, Player target)
+			{
+				beforeDamage(attempt, actor, target);
+			}
+
+			@Override
 			public void recorded(LearningPolicy.Attempt attempt, LearningStore.Evidence row) { }
 		});
 	}
@@ -154,7 +161,7 @@ final class PhantomLearning131Capture
 		}
 	}
 
-	private void beforeDamage(LearningPolicy.Attempt attempt, Player actor, Monster target)
+	private void beforeDamage(LearningPolicy.Attempt attempt, Player actor, Creature target)
 	{
 		final var episode = current.get();
 		final var selected = attempt.tactical();

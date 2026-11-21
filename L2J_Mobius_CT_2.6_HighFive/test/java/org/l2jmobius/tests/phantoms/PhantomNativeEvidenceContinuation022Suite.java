@@ -15,6 +15,27 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 	@Override public String id() { return "native-evidence-continuation022"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("131-managed-sweep-retains-one-collection-owner", context ->
+		{
+			final var javaRoot = context.moduleRoot().resolve("java/org/l2jmobius/gameserver");
+			final String autoPlay = java.nio.file.Files.readString(javaRoot.resolve("taskmanagers/AutoPlayTaskManager.java"));
+			final int managedCollection = autoPlay.indexOf("phantomPolicy.collectBeforeTarget(player)");
+			final int legacySweep = autoPlay.indexOf("// Logic for Spoil (254) skill.");
+			final int targetRelease = autoPlay.indexOf("// Clear target.", legacySweep);
+			PhantomAssertions.assertTrue(managedCollection >= 0 && legacySweep > managedCollection && targetRelease > legacySweep,
+				"Managed collection must be attempted before AutoPlay decides how to release a dead target.");
+			final String stockBranch = autoPlay.substring(legacySweep, targetRelease);
+			PhantomAssertions.assertTrue(stockBranch.contains("if ((phantomPolicy == null) && creature.isMonster() && creature.isDead()"),
+				"A consumed or timed-out corpse can return to the legacy Sweep route under a managed AutoPlay tick.");
+			PhantomAssertions.assertTrue(stockBranch.contains("getAutoSkills().contains(254)") && stockBranch.contains("player.getKnownSkill(42)")
+				&& stockBranch.contains("monster.checkSpoilOwner(player, false)") && stockBranch.contains("player.doCast(sweeper)"),
+				"Ordinary AutoPlay lost its existing learned Sweep route or ownership check.");
+			final String nativeLoot = java.nio.file.Files.readString(javaRoot.resolve("phantoms/combat/PhantomNativeLootControl.java"));
+			PhantomAssertions.assertTrue(nativeLoot.contains("body.isSweepActive() && body.checkSpoilOwner(player, false)")
+				&& nativeLoot.contains("now >= _deadline") && nativeLoot.contains("!body.isSweepActive()")
+				&& nativeLoot.contains("sensor.sweepSequence(_objectId) > _baseline") && nativeLoot.contains("player.useMagic(player.getKnownSkill(42), false, false)"),
+				"The managed owner must preserve active corpse admission, bounded retries and native completion checks.");
+		});
 		registry.add("130-stock-restored-hp-receipt-fences-owner-and-zero-effect", _ ->
 		{
 			final var evidence = new PlayerNativeEvidence(12, 100);
