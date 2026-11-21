@@ -1,0 +1,169 @@
+{
+  "task": "PHANTOM-N01-SETUP-R5",
+  "phase": "CONTINUATION",
+  "date": "2026-11-21",
+  "status": "PARTIAL_SETUP_R5",
+  "branch": "feature/phantom-world",
+  "baseline": "5e57ea7a1820a83857dad35a9d889a424db13b3a",
+  "lane": "n01-setup-r5",
+  "additionalAttempt": {
+    "sqlStart": 1,
+    "explicitSqlAttest": 1,
+    "fixtureSetup": 1,
+    "sqlStop": 1,
+    "gameserverBoot": 0,
+    "loginserverBoot": 0,
+    "combat": 0,
+    "v4Training": 0,
+    "exitCode": 0
+  },
+  "reentry": {
+    "previousOffPid": 3912,
+    "previousOffSha256": "812ea000b4864060cade17792cb9223c5cb75678481e4e9b6800eb2f663d3ff1",
+    "datadirFilesChangedAfterPreviousOff": 0,
+    "canonicalSchemaScripts": 126,
+    "fixtureFreshSchemaGatePassed": true
+  },
+  "sql": {
+    "host": "127.0.0.1",
+    "port": 33331,
+    "schema": "l2jmobiush5_phantom_test_131",
+    "principal": "task131_runtime@127.0.0.1",
+    "pid": 16840,
+    "startedAtUtc": "2026-11-21T10:44:12.6238068Z",
+    "attestedAtUtc": "2026-11-21T10:44:16.0826877Z",
+    "stoppedAtUtc": "2026-11-21T10:44:47.4185387Z"
+  },
+  "setup": {
+    "readyProfiles": 4,
+    "sceneCandidates": 3,
+    "worldPlayers": 0,
+    "fixture": [
+      {
+        "status": "SETUP_STOCK_CANDIDATE",
+        "profileId": 4,
+        "objectId": 268480990,
+        "role": "MAGE",
+        "class": 12,
+        "level": 52,
+        "skillId": 1230,
+        "skillLevel": 8
+      },
+      {
+        "status": "SETUP_STOCK_CANDIDATE",
+        "profileId": 11,
+        "objectId": 268487696,
+        "role": "PHYSICAL",
+        "class": 2,
+        "level": 52,
+        "skillId": 1,
+        "skillLevel": 15
+      },
+      {
+        "status": "SETUP_BLOCKED_STOCK_OPENING",
+        "profileId": 12,
+        "objectId": 268493312,
+        "role": "MAGE",
+        "class": 94,
+        "level": 76,
+        "skillId": 1230,
+        "skillLevel": 28
+      },
+      {
+        "status": "SETUP_STOCK_CANDIDATE",
+        "profileId": 14,
+        "objectId": 268508354,
+        "role": "PHYSICAL",
+        "class": 88,
+        "level": 76,
+        "skillId": 1,
+        "skillLevel": 37
+      }
+    ],
+    "scenes": [
+      {
+        "profileId": 4,
+        "goalRevision": 0,
+        "anchor": "generated.farm.78f7aae7bba7a04b467a32bd.anchor",
+        "npcId": 21261,
+        "preflightObjectId": 268458182,
+        "preflightGeneration": 1,
+        "preflightInstanceId": 0,
+        "respawnMinMs": 36000,
+        "respawnMaxMs": 46000,
+        "qualifyingTargets": 1
+      },
+      {
+        "profileId": 11,
+        "goalRevision": 1,
+        "anchor": "generated.farm.dbe6494cde53da562d91f738.anchor",
+        "npcId": 20667,
+        "preflightObjectId": 268439663,
+        "preflightGeneration": 1,
+        "preflightInstanceId": 0,
+        "respawnMinMs": 23000,
+        "respawnMaxMs": 23000,
+        "qualifyingTargets": 1
+      },
+      {
+        "profileId": 14,
+        "goalRevision": 0,
+        "anchor": "generated.farm.0ac141f2d795f5695b18d40a.anchor",
+        "npcId": 21798,
+        "preflightObjectId": 268449770,
+        "preflightGeneration": 1,
+        "preflightInstanceId": 0,
+        "respawnMinMs": 70000,
+        "respawnMaxMs": 110000,
+        "qualifyingTargets": 2
+      }
+    ]
+  },
+  "profile12": {
+    "status": "BLOCKED_STOCK_OPENING",
+    "ordinaryMobs": 416,
+    "candidateAnchors": 1433,
+    "nearbyAnchors": 15,
+    "sameAnchorPlans": 0,
+    "plannerRejections": {
+      "local.no_safe_learned_target": 15,
+      "planner.selected_other_anchor": 5,
+      "planner.target_or_route.absent": 10
+    }
+  },
+  "r5OriginalsSha256": {
+    "owned-server.ini": "4f966cfbf0cdcbe700a99efa6375640f851f1da731df206b6a3942d765b04a07",
+    "Database.ini": "0f4dca5c46ddcd56c7b2e41f62f14d7174fc5cb5942083c3defa5cc30aa0fb87",
+    "attestation.json": "6c446ca324a46cb3be25d8eb22c60e48def03994f0949ed5b5451c8bc2e557c2",
+    "schema-ready.json": "38d9dc87ae3ae6a13265a7c6e5a2688a06e9f1a9f877cedc3f585bf48170d87a",
+    "off.json": "7c467a3335835df9a4b2189130f5ffcef328de5d3e4e2f401714a8ca4da22df4",
+    "n01-fixture.tsv": "f32652def61777fa2a72cdf429e50852f7b27bf6fcb9c2131c715f761ef6ed77",
+    "n01-scenes.tsv": "c7c62059df3490d5e6c874e777cf8ae5c6f8731a57e206c9b5a381b38bc08ca8",
+    "n01-scene-scope.properties": null,
+    "n01-learned-offense.tsv": null,
+    "java-setup.out": "896560b968fe2851301e09fed79563e559260b9f7b890c1c405ba2d524bec40b"
+  },
+  "cleanup": {
+    "status": "TEST_OFF",
+    "exitEvidence": "OWN_PROCESS_HANDLE_EXIT",
+    "ownedProcessAbsent": true,
+    "testPorts": [
+      2106,
+      33331,
+      33332,
+      33333
+    ],
+    "testListeners": 0,
+    "shared3308PidUnchanged": 7664,
+    "playPreview33318PidUnchanged": 20756,
+    "protectedPinsMatchedBeforeAndAfter": 207,
+    "geoSourceAndRuntimeTilesMatchedBeforeAndAfter": 203,
+    "trainingPinsMatchedBeforeAndAfter": 10,
+    "checkpoint216Sha256": "90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6",
+    "goal024Latch": "PAUSED_SAFETY_REVIEW",
+    "goal024LatchSha256": "3ab3ac9453d631a07261938e11526cfb45cf45dcfcccc1b940642ddd130c7da9",
+    "studioWipPreserved": true
+  },
+  "task131Status": "PARTIAL131",
+  "next": "STOP"
+}
