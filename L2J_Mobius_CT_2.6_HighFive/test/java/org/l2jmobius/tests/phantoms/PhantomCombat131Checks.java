@@ -36,13 +36,15 @@ public final class PhantomCombat131Checks
 		System.out.println("TASK131_N06_SETUP_ROSTER_CONTRACT_PASS");
 		testDuelReceipt();
 		System.out.println("TASK131_N06_SETUP_RECEIPT_CONTRACT_PASS");
+		testDuelRunManifest();
+		System.out.println("TASK131_N06_RUN_MANIFEST_CONTRACT_PASS");
 	}
 
 	private static void testDuelReceipt() throws IOException
 	{
 		final Path scratch = Files.createTempDirectory(Path.of("."), "task131-n06-receipt-");
 		final Path receipt = scratch.resolve("n06-duel-fixture.tsv");
-		final Path cut = scratch.resolve("cut.tsv");
+		final Path cut = scratch.resolve("n06-cut.tsv");
 		final String header = "status\tarm\tside\topeningSide\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tweapon\tshotItem\tshots\tadena\tarena\tinstanceId\tstartX\tstartY\tstartZ\tstoredX\tstoredY\tstoredZ\tlearnedPvpRanks\tcontrolRanks\n";
 		final String contents = header
 			+ "SETUP_DUEL_STORED\t1\tA\tA\t1\t110\towned_a\tMAGE\t94\t76\t6366\t2514\t2000\t50000\tgludin_pvp\t0\t-88000\t142220\t-3500\t10000\t10000\t-3000\t10:12,11:18\t11:18\n"
@@ -76,10 +78,40 @@ public final class PhantomCombat131Checks
 		}
 	}
 
+	private static void testDuelRunManifest() throws IOException
+	{
+		final Path scratch = Files.createTempDirectory(Path.of("."), "task131-n06-manifest-");
+		final Path manifest = scratch.resolve("n06-run.properties");
+		final String zeroSha = "0".repeat(64);
+		final Instant now = Instant.parse("2026-11-21T12:00:00Z");
+		final String input = "schema=TASK131_N06_RUN_V1\nphase=N06\nsqlLane=n06-setup-r1\nruntimeId=native-runtime-r7\n"
+			+ "gameJarSha=" + zeroSha + "\njdbcSha=" + zeroSha + "\nsqlAttestationSha=" + zeroSha
+			+ "\nsqlPid=100\nsqlStartedUtc=2026-11-21T11:55:00Z\nfixtureSha=" + zeroSha + "\nbootId=n06r1\n"
+			+ "issuedUtc=2026-11-21T11:59:00Z\ndeadlineUtc=2026-11-21T12:07:00Z\narms=2\nsecondsPerArm=20\n";
+		try
+		{
+			final String sha = writeReceipt(manifest, input);
+			final var run = PhantomCombat131Fixture.readDuelRun(manifest, sha, now);
+			PhantomAssertions.assertEquals(20, run.seconds(), "The two-arm run did not preserve per-arm time.");
+			PhantomAssertions.assertThrows(RuntimeException.class, () -> PhantomCombat131Fixture.readDuelRun(manifest, sha, now.plusSeconds(335)),
+				"A run was admitted without both native drain windows.");
+			final String duplicateSha = writeReceipt(manifest, input + "phase=N06\n");
+			PhantomAssertions.assertThrows(RuntimeException.class, () -> PhantomCombat131Fixture.readDuelRun(manifest, sha, now),
+				"A run admitted mutated manifest bytes.");
+			PhantomAssertions.assertThrows(RuntimeException.class, () -> PhantomCombat131Fixture.readDuelRun(manifest, duplicateSha, now),
+				"A run admitted duplicate scope keys.");
+		}
+		finally
+		{
+			Files.deleteIfExists(manifest);
+			Files.delete(scratch);
+		}
+	}
+
 	private static void testUnboundDuel(DuelFixture fixture, Path cut, String sha)
 	{
 		final var duel = new PhantomCombat131Duel(fixture, 1, Instant.now().plusSeconds(30));
-		PhantomAssertions.assertTrue(!duel.openingLanded(), "An unbound arm cannot have a native hit.");
+		PhantomAssertions.assertTrue(!duel.openingLandedBefore(System.nanoTime()), "An unbound arm cannot have a native hit.");
 		final var otherArm = fixture.arm(2).getFirst().identity();
 		final var chosen = fixture.arm(1).getFirst().identity();
 		try

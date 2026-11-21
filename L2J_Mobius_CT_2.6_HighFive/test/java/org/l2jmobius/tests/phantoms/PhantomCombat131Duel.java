@@ -11,10 +11,13 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.zone.ZoneId;
+import org.l2jmobius.gameserver.model.zone.type.ArenaZone;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomPvpSkillSafety;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
@@ -29,6 +32,7 @@ final class PhantomCombat131Duel implements PhantomMaterializationLifecyclePort,
 	private final List<DuelSlot> _pair;
 	private final Instant _deadline;
 	private final HashMap<Long, Bound> _bound = new HashMap<>();
+	private final HashMap<Long, Store> _stored = new HashMap<>();
 	private Cut _cut;
 	private boolean _openingAttempted;
 	private Long _openingNanos;
@@ -44,6 +48,7 @@ final class PhantomCombat131Duel implements PhantomMaterializationLifecyclePort,
 	}
 
 	private record Cut(Bound opener, Bound other, Skill skill, int arm) { }
+	record Store(long profile, int object, long epoch, int x, int y, int z, long shots, long adena, boolean dead, long corpse) { }
 
 	PhantomCombat131Duel(DuelFixture fixture, int arm, Instant deadline)
 	{
@@ -69,8 +74,9 @@ final class PhantomCombat131Duel implements PhantomMaterializationLifecyclePort,
 		final var slot = slot(profile, player.getObjectId());
 		beforeMaterialize(profile, player.getObjectId());
 		final var stored = slot.stored();
+		final int nativeZ = GeoEngine.getInstance().getHeight(stored.x(), stored.y(), stored.z());
 		require(!player.isSpawned() && player.getAccountName().equals(slot.identity().account()) && player.getClient() == null && !player.isGM()
-			&& player.getX() == stored.x() && player.getY() == stored.y() && player.getZ() == stored.z() && player.getInstanceId() == stored.instanceId(),
+			&& player.getX() == stored.x() && player.getY() == stored.y() && player.getZ() == nativeZ && player.getInstanceId() == stored.instanceId(),
 			"SETUP_NATIVE_ORIGIN");
 		PhantomCombat131Fixture.verifyDuelArena(_fixture);
 		final var start = slot.start();
@@ -92,7 +98,19 @@ final class PhantomCombat131Duel implements PhantomMaterializationLifecyclePort,
 
 	@Override public synchronized void materializeAborted(long profile, int object) { close(); }
 	@Override public void beforeStore(long profile, Player player) { }
-	@Override public void afterStore(long profile, Player player) { }
+
+	@Override
+	public synchronized void afterStore(long profile, Player player)
+	{
+		final var bound = _bound.get(profile);
+		if (bound == null || bound.player() != player) { return; }
+		final var slot = bound.slot();
+		final boolean dead = player.isDead();
+		_stored.put(profile, new Store(profile, player.getObjectId(), bound.owner().epoch(), player.getX(), player.getY(), player.getZ(),
+			player.getInventory().getInventoryItemCount(slot.shotItem(), -1), player.getAdena(), dead, dead ? player.nativeCorpseGeneration() : 0));
+	}
+
+	synchronized Store store(long profile) { return _stored.get(profile); }
 
 	/** The caller supplies the approved, physical episode directory after launch admission. */
 	synchronized void sealAtStart(Path receipt, String manifestSha, String boot, String episode) throws IOException
@@ -151,12 +169,27 @@ final class PhantomCombat131Duel implements PhantomMaterializationLifecyclePort,
 		}
 	}
 
-	synchronized boolean openingLanded()
+	synchronized boolean openingLandedBefore(long elapsedDeadline)
 	{
 		if (_closed || _openingNanos == null || !Instant.now().isBefore(_deadline) || !_cut.opener().current() || !_cut.other().current()
 			|| World.getInstance().getPlayers().size() != 2) { return false; }
 		final long hit = _cut.other().player().recentPlayerAttackNanos(_cut.opener().player().getObjectId());
-		return hit != 0 && hit - _openingNanos >= 0;
+		return hit != 0 && hit - _openingNanos >= 0 && elapsedDeadline - hit >= 0;
+	}
+
+	synchronized boolean currentInArena()
+	{
+		return !_closed && _cut != null && World.getInstance().getPlayers().size() == 2
+			&& currentInArena(_cut.opener()) && currentInArena(_cut.other());
+	}
+
+	private static boolean currentInArena(Bound bound)
+	{
+		final var player = bound.player();
+		if (!bound.current() || player.getInstanceId() != bound.slot().start().instanceId() || !player.isInsideZone(ZoneId.PVP)
+			|| player.isInsideZone(ZoneId.PEACE) || player.isInsideZone(ZoneId.NO_PVP) || player.isInParty()) { return false; }
+		final var zone = ZoneManager.getInstance().getZone(player.getX(), player.getY(), player.getZ(), ArenaZone.class);
+		return zone != null && "gludin_pvp".equals(zone.getName());
 	}
 
 	private void verifyStart(Bound source, Bound target)

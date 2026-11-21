@@ -9,6 +9,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -90,6 +92,7 @@ public final class PhantomCombat131Fixture
 	static final String OFFENSE_HEADER = "profileId\tobjectId\tclass\tlevel\tskillId\tskillLevel\tprovenance\tfixtureSha\tsceneScopeSha";
 	private static final String DUEL_ARENA = "gludin_pvp";
 	private static final String DUEL_RECEIPT = "n06-duel-fixture.tsv";
+	private static final String DUEL_RUN_FILE = "n06-run.properties";
 	private static final int DUEL_RECEIPT_LIMIT = 64 * 1024;
 	private static final int DUEL_LEVEL = 76;
 	private static final int DUEL_WEST_X = -88000;
@@ -97,7 +100,9 @@ public final class PhantomCombat131Fixture
 	private static final int DUEL_Y = 142220;
 	private static final String DUEL_PROOF_HEADER = "status\tarm\tside\topeningSide\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tweapon\tshotItem\tshots\tadena\tarena\tinstanceId\tstartX\tstartY\tstartZ\tstoredX\tstoredY\tstoredZ\tlearnedPvpRanks\tcontrolRanks";
 
-	private record Admission(Path game, Path sql, Path ini, Instant deadline, boolean duel) { }
+	private record Admission(Path game, Path sql, Path ini, Instant deadline, boolean duel, DuelRun run, DuelFixture fixture) { }
+	static record DuelRun(String sha, String lane, String runtime, String jarSha, String jdbcSha, String attestationSha, long pid, Instant sqlStarted,
+		String fixtureSha, String boot, Instant deadline, int seconds) { }
 	private record Birth(long profile, long seed) { }
 	private record Scene(String anchor, PhantomTopologyPoint point, int npcId, int npcLevel, String spawn, int respawnMin, int respawnMax,
 		PlayerNativeEvidence.Target preflightTarget, Skill skill, PhantomHistoricalBackgroundPlanner.Result plan, int qualifyingTargets) { }
@@ -152,15 +157,25 @@ public final class PhantomCombat131Fixture
 	public static void main(String[] args)
 	{
 		int exit = 1;
-		final String scope = args.length > 0 && args[0].equals("SETUP_DUEL") ? "N06" : "N01";
+		final boolean runningDuel = args.length > 0 && args[0].equals("RUN_DUEL");
+		final String scope = runningDuel || args.length > 0 && args[0].equals("SETUP_DUEL") ? "N06" : "N01";
 		try
 		{
 			final Admission admission = admit(args);
 			ConfigLoader.init();
 			check(!PhantomPlayersConfig.isEnabled(), "MASTER_ENABLED");
+			if (runningDuel) { check("OFF".equals(PhantomPlayersConfig.learningSettings().mode()), "DUEL_ORDINARY_LEARNING_ENABLED"); }
 			DatabaseFactory.initFromConfig(admission.ini().toString());
 			verifySession(admission.sql());
-			if (admission.duel())
+			Path evidence = null;
+			if (runningDuel)
+			{
+				verifyDuelStoredOrigins(admission.fixture());
+				check(PhantomCombat131DuelRuntime.bothArmsFit(Instant.now(), admission.run().deadline(), admission.run().seconds()), "DUEL_RUN_TIME_BEFORE_CLAIM");
+				evidence = claimDuelRun(admission);
+			}
+			else { verifyFreshSchema(); }
+			if (admission.duel() && !runningDuel)
 			{
 				check(Instant.now().isBefore(admission.deadline()), "DUEL_SETUP_DEADLINE");
 				Files.writeString(admission.sql().resolve("n06-duel-fixture.claim"), "SETUP_DUEL " + Instant.now() + "\n",
@@ -172,15 +187,22 @@ public final class PhantomCombat131Fixture
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			try (var source = PhantomBackgroundSuite.ProductionAuthorityFixture.start(admission.game().resolve("data/phantoms/topology"), admission.game()))
 			{
-				if (admission.duel()) { prepareDuel(admission, source); }
+				if (runningDuel)
+				{
+					final var run = admission.run();
+					check(!PhantomPlayersConfig.isEnabled() && "OFF".equals(PhantomPlayersConfig.learningSettings().mode())
+						&& PhantomCombat131DuelRuntime.bothArmsFit(Instant.now(), run.deadline(), run.seconds()), "DUEL_RUN_BEFORE_NATIVE_ARMS");
+					PhantomCombat131DuelRuntime.run(admission.fixture(), source, admission.game(), evidence, run.sha(), run.boot(), run.deadline(), run.seconds());
+				}
+				else if (admission.duel()) { prepareDuel(admission, source); }
 				else { prepare(admission, source); }
 			}
 			exit = 0;
 		}
 		catch (Throwable failure)
 		{
-			System.err.println("TASK131_" + scope + "_FIXTURE_FAILED " + failure.getClass().getSimpleName());
-			if (failure.getMessage() != null && failure.getMessage().matches("TASK131_N01_[A-Z0-9_]+")) { System.err.println(failure.getMessage()); }
+			System.err.println("TASK131_" + scope + (runningDuel ? "_RUN_FAILED " : "_FIXTURE_FAILED ") + failure.getClass().getSimpleName());
+			if (failure.getMessage() != null && failure.getMessage().matches("TASK131_(?:N01|N06)_[A-Z0-9_]+")) { System.err.println(failure.getMessage()); }
 			for (StackTraceElement frame : failure.getStackTrace())
 			{
 				if (frame.getClassName().startsWith("org.l2jmobius.")) { System.err.println(frame); }
@@ -194,32 +216,37 @@ public final class PhantomCombat131Fixture
 				finally { DatabaseFactory.close(); }
 			}
 		}
-		System.out.println("TASK131_" + scope + "_FIXTURE_EXIT=" + exit + " GAMESERVER_BOOT=0 LOGINSERVER_BOOT=0 COMBAT=0");
+		System.out.println("TASK131_" + scope + (runningDuel ? "_RUN_EXIT=" : "_FIXTURE_EXIT=") + exit + " GAMESERVER_BOOT=0 LOGINSERVER_BOOT=0"
+			+ (runningDuel ? "" : " COMBAT=0"));
 		System.exit(exit);
 	}
 
 	private static Admission admit(String[] args) throws Exception
 	{
-		check(args.length == 7 && ("SETUP".equals(args[0]) || "SETUP_DUEL".equals(args[0])), "ADMISSION_ARGUMENTS");
-		final boolean duel = "SETUP_DUEL".equals(args[0]);
+		final boolean runningDuel = args.length == 8 && "RUN_DUEL".equals(args[0]);
+		check(runningDuel || args.length == 7 && ("SETUP".equals(args[0]) || "SETUP_DUEL".equals(args[0])), "ADMISSION_ARGUMENTS");
+		final boolean duel = runningDuel || "SETUP_DUEL".equals(args[0]);
 		final Path game = physical(Path.of("").toAbsolutePath().normalize(), false);
 		final Path runtime = game.getParent(), task = runtime.getParent();
 		check(duel ? task.endsWith(Path.of(".phantom-local/logs/TASK131")) && "game".equals(game.getFileName().toString())
 			&& runtime.getFileName().toString().matches("native-runtime-r[1-9][0-9]*") : game.endsWith(Path.of(".phantom-local/logs/TASK131/native-runtime/game")), "OWNED_RUNTIME_ROOT");
+		check(!runningDuel || Files.notExists(runtime.resolve("BOOT_DISABLED.txt"), LinkOption.NOFOLLOW_LINKS), "DUEL_RUN_BOOT_DISABLED");
 		physical(game.resolve("log"), false);
 		check(args[1].matches(duel ? "n06-setup-r[1-9][0-9]*" : "n01-setup(?:-[a-z0-9]+)?"), "OWNED_SQL_LANE");
 		final Path sql = physical(task.resolve("sql-lanes").resolve(args[1]).resolve("sql-task131"), false);
 		final Path ini = physical(sql.resolve("Database.ini"), true);
 		final Path jar = physical(runtime.resolve("libs/GameServer.jar"), true);
 		check(physical(Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()), true).equals(jar), "GS_CODE_SOURCE");
-		check(sha256(jar).equals(args[2]) && sha256(ini).equals(args[3]) && sha256(physical(sql.resolve("attestation.json"), true)).equals(args[4]), "ADMISSION_HASH");
+		check(sha256(jar).equalsIgnoreCase(args[2]) && sha256(ini).equalsIgnoreCase(args[3])
+			&& sha256(physical(sql.resolve("attestation.json"), true)).equalsIgnoreCase(args[4]), "ADMISSION_HASH");
 		final long pid = Long.parseLong(args[5]);
 		final var process = ProcessHandle.of(pid).filter(ProcessHandle::isAlive).orElseThrow(() -> failure("SQL_PROCESS_ABSENT"));
-		check(process.info().command().orElse("").toLowerCase(Locale.ROOT).endsWith("\\mariadbd.exe"), "SQL_PROCESS_BINARY");
+		final var info = process.info();
+		check(info.command().orElse("").toLowerCase(Locale.ROOT).endsWith("\\mariadbd.exe"), "SQL_PROCESS_BINARY");
 		if (duel)
 		{
 			final String ownedConfig = "--defaults-file=" + physical(sql.resolve("owned-server.ini"), true);
-			check(Arrays.equals(process.info().arguments().orElse(new String[0]), new String[] {ownedConfig, "--console"}), "DUEL_OWNED_SQL_PROCESS");
+			check(Arrays.equals(info.arguments().orElse(new String[0]), new String[] {ownedConfig, "--console"}), "DUEL_OWNED_SQL_PROCESS");
 		}
 		final var deadline = Instant.parse(args[6]);
 		final Instant now = Instant.now();
@@ -228,7 +255,14 @@ public final class PhantomCombat131Fixture
 		try (var reader = Files.newBufferedReader(ini)) { settings.load(reader); }
 		check(JDBC.equals(settings.getProperty("URL")) && LOGIN.equals(settings.getProperty("Login")) && "com.mysql.cj.jdbc.Driver".equals(settings.getProperty("Driver"))
 			&& settings.getProperty("Password", "").matches("[0-9a-f]{64}") && "false".equals(settings.getProperty("BackupDatabase")), "OWNED_DATABASE_CONFIG");
-		return new Admission(game, sql, ini, deadline, duel);
+		if (!runningDuel) { return new Admission(game, sql, ini, deadline, duel, null, null); }
+		final var run = readDuelRun(sql.resolve(DUEL_RUN_FILE), args[7], Instant.now());
+		check(run.lane().equals(args[1]) && run.runtime().equals(runtime.getFileName().toString()) && run.jarSha().equalsIgnoreCase(args[2])
+			&& run.jdbcSha().equalsIgnoreCase(args[3]) && run.attestationSha().equalsIgnoreCase(args[4]) && run.pid() == pid && run.deadline().equals(deadline),
+			"DUEL_RUN_LAUNCH_PIN");
+		check(process.isAlive() && info.startInstant().filter(actual -> Duration.between(actual, run.sqlStarted()).abs().compareTo(Duration.ofMillis(2)) < 0).isPresent(),
+			"DUEL_RUN_SQL_START");
+		return new Admission(game, sql, ini, deadline, true, run, readDuelFixture(sql.resolve(DUEL_RECEIPT), run.fixtureSha()));
 	}
 
 	private static void verifySession(Path sql) throws Exception
@@ -239,11 +273,60 @@ public final class PhantomCombat131Fixture
 			check(rows.next() && SCHEMA.equals(rows.getString(1)) && (LOGIN + "@127.0.0.1").equals(rows.getString(2)) && rows.getInt(3) == 33331
 				&& physical(Path.of(rows.getString(4)), false).equals(physical(sql.resolve("data"), false)) && "127.0.0.1".equals(rows.getString(5)), "OWNED_JDBC_IDENTITY");
 		}
+	}
+
+	private static void verifyFreshSchema() throws Exception
+	{
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement();
 			var rows = query.executeQuery("SELECT (SELECT COUNT(*) FROM accounts), (SELECT COUNT(*) FROM characters), (SELECT COUNT(*) FROM phantom_profiles), (SELECT COUNT(*) FROM phantom_ai_training_examples)"))
 		{
 			check(rows.next() && rows.getLong(1) == 0 && rows.getLong(2) == 0 && rows.getLong(3) == 0 && rows.getLong(4) == 0, "FRESH_SCHEMA_REQUIRED");
 		}
+	}
+
+	static DuelRun readDuelRun(Path manifest, String expectedSha, Instant now) throws IOException
+	{
+		final byte[] bytes = readDuelPinned(manifest, DUEL_RUN_FILE, expectedSha, 4096);
+		final String text = StandardCharsets.US_ASCII.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
+		final String[] lines = text.split("\n", -1);
+		check(lines.length == 16 && lines[15].isEmpty(), "DUEL_RUN_MANIFEST_SHAPE");
+		final Map<String, String> fields = new java.util.HashMap<>();
+		for (int index = 0; index < 15; index++)
+		{
+			final String[] field = lines[index].split("=", -1);
+			check(field.length == 2 && field[0].matches("[A-Za-z][A-Za-z0-9]*") && field[1].matches("[^\\s=]+")
+				&& fields.putIfAbsent(field[0], field[1]) == null, "DUEL_RUN_MANIFEST_FIELD");
+		}
+		check(fields.keySet().equals(Set.of("schema", "phase", "sqlLane", "runtimeId", "gameJarSha", "jdbcSha", "sqlAttestationSha", "sqlPid",
+			"sqlStartedUtc", "fixtureSha", "bootId", "issuedUtc", "deadlineUtc", "arms", "secondsPerArm")), "DUEL_RUN_MANIFEST_KEYS");
+		final String lane = fields.get("sqlLane"), runtime = fields.get("runtimeId"), boot = fields.get("bootId");
+		check("TASK131_N06_RUN_V1".equals(fields.get("schema")) && "N06".equals(fields.get("phase")) && "2".equals(fields.get("arms"))
+			&& lane.matches("n06-setup-r[1-9][0-9]*") && runtime.matches("native-runtime-r[1-9][0-9]*") && boot.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,39}"),
+			"DUEL_RUN_MANIFEST_SCOPE");
+		final int seconds = duelInt(fields.get("secondsPerArm"));
+		final long pid = duelNumber(fields.get("sqlPid"));
+		final Instant issued = Instant.parse(fields.get("issuedUtc")), deadline = Instant.parse(fields.get("deadlineUtc")), sqlStarted = Instant.parse(fields.get("sqlStartedUtc"));
+		check(pid > 0 && !sqlStarted.isAfter(issued) && !issued.isAfter(now) && !deadline.isAfter(issued.plusSeconds(900))
+			&& PhantomCombat131DuelRuntime.bothArmsFit(now, deadline, seconds), "DUEL_RUN_MANIFEST_TIME");
+		return new DuelRun(expectedSha.toLowerCase(Locale.ROOT), lane, runtime, duelRunSha(fields.get("gameJarSha")), duelRunSha(fields.get("jdbcSha")),
+			duelRunSha(fields.get("sqlAttestationSha")), pid, sqlStarted, duelRunSha(fields.get("fixtureSha")), boot, deadline, seconds);
+	}
+
+	private static String duelRunSha(String sha)
+	{
+		check(sha.matches("(?i)[a-f0-9]{64}"), "DUEL_RUN_HASH_FIELD");
+		return sha.toLowerCase(Locale.ROOT);
+	}
+
+	private static Path claimDuelRun(Admission admission) throws IOException
+	{
+		final var run = admission.run();
+		final Path evidence = admission.sql().resolve("n06-run-" + run.boot());
+		check(Files.notExists(evidence, LinkOption.NOFOLLOW_LINKS), "DUEL_RUN_EVIDENCE_EXISTS");
+		Files.writeString(admission.sql().resolve("n06-run.claim"), "schema=TASK131_N06_RUN_CLAIM_V1\nmanifestSha=" + run.sha()
+			+ "\nfixtureSha=" + run.fixtureSha() + "\nbootId=" + run.boot() + "\npid=" + ProcessHandle.current().pid() + "\nclaimedUtc=" + Instant.now() + "\n",
+			StandardCharsets.US_ASCII, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
+		return physical(Files.createDirectory(evidence), false);
 	}
 
 	static Path physical(Path path, boolean file) throws IOException
@@ -385,6 +468,35 @@ public final class PhantomCombat131Fixture
 		check(unverified.isEmpty(), "DUEL_ACCOUNT_ROSTER_INCOMPLETE");
 	}
 
+	private static void verifyDuelStoredOrigins(DuelFixture fixture) throws Exception
+	{
+		verifyDuelAccounts(fixture.slots().stream().map(DuelSlot::identity).toList());
+		final var unverified = fixture.slots().stream().collect(Collectors.toMap(slot -> slot.identity().profile(), slot -> slot));
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement())
+		{
+			connection.setReadOnly(true);
+			try (var count = query.executeQuery("SELECT (SELECT COUNT(*) FROM characters), (SELECT COUNT(*) FROM phantom_ai_training_examples)"))
+			{
+				check(count.next() && count.getInt(1) == fixture.slots().size() && count.getLong(2) == 0, "DUEL_RUN_SQL_EXCLUSIVE_ROSTER");
+			}
+			try (var rows = query.executeQuery("SELECT p.profile_id,p.character_object_id,c.account_name,c.classid,c.base_class,c.level,c.online,c.x,c.y,c.z "
+				+ "FROM phantom_profiles p LEFT JOIN characters c ON c.charId=p.character_object_id"))
+			{
+				while (rows.next())
+				{
+					final var slot = unverified.remove(rows.getLong(1));
+					check(slot != null && slot.identity().object() == rows.getInt(2) && slot.identity().account().equals(rows.getString(3))
+						&& slot.identity().profession() == rows.getInt(4) && slot.identity().profession() == rows.getInt(5)
+						&& slot.level() == rows.getInt(6) && Integer.valueOf(0).equals(rows.getObject(7, Integer.class))
+						&& Integer.valueOf(slot.stored().x()).equals(rows.getObject(8, Integer.class))
+						&& Integer.valueOf(slot.stored().y()).equals(rows.getObject(9, Integer.class))
+						&& Integer.valueOf(slot.stored().z()).equals(rows.getObject(10, Integer.class)), "DUEL_RUN_SQL_ORIGIN");
+				}
+			}
+		}
+		check(unverified.isEmpty(), "DUEL_RUN_SQL_ROSTER_INCOMPLETE");
+	}
+
 	static void validateDuelRoster(List<DuelIdentity> roster)
 	{
 		check(roster.size() == 4, "DUEL_ROSTER_SIZE");
@@ -449,13 +561,7 @@ public final class PhantomCombat131Fixture
 
 	static DuelFixture readDuelFixture(Path receipt, String expectedSha) throws IOException
 	{
-		final Path file = physical(receipt, true);
-		check(file.getFileName().toString().equals(DUEL_RECEIPT) && expectedSha.matches("(?i)[0-9a-f]{64}"), "DUEL_RECEIPT_SCOPE");
-		final byte[] bytes;
-		try (var stream = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) { bytes = stream.readNBytes(DUEL_RECEIPT_LIMIT + 1); }
-		check(bytes.length <= DUEL_RECEIPT_LIMIT, "DUEL_RECEIPT_BOUND");
-		final String sha = TacticalObservationV3.hash(bytes);
-		check(sha.equalsIgnoreCase(expectedSha), "DUEL_RECEIPT_SHA");
+		final byte[] bytes = readDuelPinned(receipt, DUEL_RECEIPT, expectedSha, DUEL_RECEIPT_LIMIT);
 		final String text = StandardCharsets.US_ASCII.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
 		final String[] rows = text.split("\n", -1);
 		check(rows.length == 6 && rows[0].equals(DUEL_PROOF_HEADER) && rows[5].isEmpty(), "DUEL_RECEIPT_SHAPE");
@@ -470,7 +576,17 @@ public final class PhantomCombat131Fixture
 		}
 		check(Math.abs(slots.get(0).start().z() - slots.get(1).start().z()) <= 32 && slots.stream().anyMatch(slot -> !slot.controlRanks().isEmpty()),
 			"DUEL_RECEIPT_SLOPE_AND_CONTROL");
-		return new DuelFixture(sha, slots);
+		return new DuelFixture(expectedSha.toLowerCase(Locale.ROOT), slots);
+	}
+
+	private static byte[] readDuelPinned(Path source, String fileName, String expectedSha, int limit) throws IOException
+	{
+		final Path file = physical(source, true);
+		check(file.getFileName().toString().equals(fileName) && expectedSha.matches("(?i)[0-9a-f]{64}"), "DUEL_FILE_SCOPE");
+		final byte[] bytes;
+		try (var stream = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) { bytes = stream.readNBytes(limit + 1); }
+		check(bytes.length <= limit && TacticalObservationV3.hash(bytes).equalsIgnoreCase(expectedSha), "DUEL_FILE_BOUND_OR_SHA");
+		return bytes;
 	}
 
 	private static DuelSlot readDuelSlot(String row)

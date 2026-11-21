@@ -1,5 +1,5 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024,off-and-protected-v11.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
+G0	P0	UNKNOWN	S024,off-and-protected-v12.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
 G1	P1	UNKNOWN	TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14	Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
 G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE, AREA/AURA и ограниченное окно смерти или дефицита MP, живые эффекты и tactical frame открыты
@@ -35,7 +35,7 @@ N02	P3	NOT_RUN	NONE	Механические варианты native
 N03	P3	NOT_RUN	v10-native-evidence-continuation022.log	Офлайн проверен один путь Sweep для Phantom, нативные предметы и отказ повторной выдачи открыты
 N04	P3	NOT_RUN	NONE	Party PvE, роли, AoE и CC
 N05	P3	NOT_RUN	member-corpse-red,member-corpse-green,ant-combat-v11-reviewed.log	Офлайн проверены окна смерти и дефицита MP, точный Recharge, выход и тайм-аут, живые эффекты и расходы открыты
-N06	P3	NOT_RUN	ant-combat-v11-reviewed.log	Офлайн проверены зеркальная fixture по SHA и отказы для чужого участника и незапечатанной пары, native бой открыт
+N06	P3	NOT_RUN	ant-combat-v12-reviewed.log,focused-v12-final.log	RUN_DUEL подключён к штатной реакции на реальный урон, офлайн проверены манифест и отказы до допуска, живые эффекты и STORE открыты
 N07	P3	NOT_RUN	NONE	PvP 1×2 и 2×2
 N08	P3	NOT_RUN	NONE	PvP 3×5
 N09	P3	NOT_RUN	NONE	PvP 9×9

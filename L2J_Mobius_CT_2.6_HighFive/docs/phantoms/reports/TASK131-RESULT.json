@@ -52,8 +52,8 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v11-reviewed.log",
-    "finalContractLog": "contract-v11-final.log",
+    "aggregateLog": "ant-combat-v12-reviewed.log",
+    "finalContractLog": "focused-v12-final.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -61,11 +61,12 @@
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
     "regressionTestsPassed": 171,
-    "contractGroupsPassed": 16,
+    "contractGroupsPassed": 17,
     "jarExitCode": 0,
     "jarSha256": "db3f311bcb694cc951d6a7a04043a8752f5f0908316a07523bc68dafbfbac8f8",
     "loginJarSha256": "c6922728d2d5e386e6b2e4e7d90fbb5030cb4f57bd77f4af743219e1b7a553cd",
     "jarLog": "jar-v11-reviewed.log",
+    "jarReuse": "V11_JARS_REVERIFIED_PRODUCTION_SOURCES_UNCHANGED",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
@@ -79,12 +80,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v10.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v11.json",
-    "exactPathCount": 10
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v11.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v12.json",
+    "exactPathCount": 8
   },
   "testReadiness": {
-    "iterationParent": "406c725ce5e0ab2b4aa61d646a6f34bae4224183",
+    "iterationParent": "381d48806f5c6a0bc8e177fda9913ec2d53cf9bf",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -183,24 +184,27 @@
     },
     "n06DuelSetup": {
       "entryPoint": "PhantomCombat131Fixture SETUP_DUEL",
-      "fixtureSourceSha256": "1916036b629c0690326a897526c742b704a74ad219474b36dd07f3503b738749",
-      "bindingSourceSha256": "c5ec2609dea2e3ea14bdc80589078220a998f6c198de68ee283194af55144013",
+      "fixtureSourceSha256": "bfe8ce739b2d0cdefb420443b326dc74a7cafc755fe87811d33bc50a8a97e956",
+      "bindingSourceSha256": "9fd41be9166cf25561c4f5247ddaa6a0700ca5bb79b30089a1e61df2bbbbd416",
+      "runtimeSourceSha256": "93e29fceae8034c5a661d2e9774c281e4824d8f6c52e60b87fd61677da971c87",
+      "observationSourceSha256": "61a899b8b13f317f6e541a5bef3d2fe476a2055f3264e1f827c37e4015a11600",
       "plannedActors": 4,
       "level": 76,
       "plannedMirroredArms": 2,
       "nativeSetup": "NOT_RUN",
       "testBinding": "SHA256_PINNED_RECEIPT_AND_EXACT_MIRRORED_ARM",
       "nativeCombat": "NOT_RUN",
-      "runtimeAuthority": "PENDING"
+      "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
+      "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "off-and-protected-v11.json",
+    "g0OffReceipt": "off-and-protected-v12.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v11.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v12.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -416,8 +420,8 @@
     "N06": {
       "phase": "P3",
       "status": "NOT_RUN",
-      "evidence": "ant-combat-v11-reviewed.log",
-      "reason": "Офлайн проверены зеркальная fixture по SHA и отказы для чужого участника и незапечатанной пары, native бой открыт"
+      "evidence": "ant-combat-v12-reviewed.log,focused-v12-final.log",
+      "reason": "RUN_DUEL подключён к штатной реакции на реальный урон, офлайн проверены манифест и отказы до допуска, живые эффекты и STORE открыты"
     },
     "N07": {
       "phase": "P3",
