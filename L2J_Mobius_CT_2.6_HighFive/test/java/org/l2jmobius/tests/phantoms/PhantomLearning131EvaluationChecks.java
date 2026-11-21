@@ -799,11 +799,34 @@ public final class PhantomLearning131EvaluationChecks
 			final String operation = PhantomLearning131AuditDamage.operationId(episode, owner);
 			final var window = new EpisodeWindow(started, dispatch + 20 - started, dispatch + 30 - started);
 			final var rows = List.of(choice, dispatched);
-			PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), rows, Map.of(operation, trace), window);
+			PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), rows, Map.of(operation, trace), window, true);
+			PhantomLearning131Evaluation.verifyOpponentDispatch(root, state.head(), episode, scene, model.sha256(), rows,
+				Map.of(operation, trace), window, Map.of(42, 7L));
+			try
+			{
+				PhantomLearning131Evaluation.verifyOpponentDispatch(root, state.head(), episode, scene, model.sha256(), List.of(),
+					Map.of(operation, trace), window, Map.of(42, 7L));
+				throw new AssertionError("A paid opponent cast cannot be hidden behind an empty decision log");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_MODEL_NATIVE_DISPATCH"), "empty opponent log requires no paid casts"); }
+			try
+			{
+				PhantomLearning131Evaluation.verifyOpponentDispatch(root, state.head(), episode, scene, "f".repeat(64), rows,
+					Map.of(operation, trace), window, Map.of(42, 7L));
+				throw new AssertionError("A paid opponent decision must replay against the manifest's frozen model");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_FROZEN_DISPATCH_PLAN"), "wrong opponent checkpoint refused"); }
+			try
+			{
+				PhantomLearning131Evaluation.verifyOpponentDispatch(root, state.head(), episode, scene, model.sha256(), rows,
+					Map.of(operation, trace), window, Map.of(42, 8L));
+				throw new AssertionError("An opponent proof cannot reuse the preceding participant epoch");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_OPPONENT_DECISION_OWNER"), "stale opponent epoch refused"); }
 			try
 			{
 				PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), Collections.singletonList(choice),
-					Map.of(operation, trace), window);
+					Map.of(operation, trace), window, true);
 				throw new AssertionError("A replayed choice without native dispatch cannot explain a paid effect");
 			}
 			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_MODEL_NATIVE_DISPATCH"), "paid action needs its exact intent"); }
@@ -811,17 +834,53 @@ public final class PhantomLearning131EvaluationChecks
 				1, 1000, 1, dispatch, dispatch + 1, dispatch + 2, trace.observationSha());
 			try
 			{
-				PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), rows, Map.of(operation, otherTrace), window);
+				PhantomLearning131Evaluation.verifyOpponentDispatch(root, state.head(), episode, scene, model.sha256(), rows,
+					Map.of(operation, otherTrace), window, Map.of(42, 7L));
+				throw new AssertionError("A substituted opponent skill must fail the native dispatch comparison");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_MODEL_NATIVE_DISPATCH"), "wrong opponent skill refused"); }
+			try
+			{
+				PhantomLearning131Evaluation.verifyFrozenDispatch(root, state.head(), episode, scene, model.sha256(), rows, Map.of(operation, otherTrace), window, true);
 				throw new AssertionError("An unrelated skill cannot use the model's decision receipt");
 			}
 			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_MODEL_NATIVE_DISPATCH"), "paid skill must match replay"); }
 			try
 			{
-				PhantomLearning131Evaluation.verifyFrozenDispatch(root, "f".repeat(64), episode, scene, model.sha256(), rows, Map.of(operation, trace), window);
+				PhantomLearning131Evaluation.verifyFrozenDispatch(root, "f".repeat(64), episode, scene, model.sha256(), rows, Map.of(operation, trace), window, true);
 				throw new AssertionError("A cold but uncommitted archive cannot impersonate the pinned checkpoint");
 			}
 			catch (IllegalArgumentException refused) { check(refused.getMessage().contains("committed ancestor"), "checkpoint must be in committed lineage"); }
 			check(ActionContinuationV4.load(root).head().equals(state.head()), "AUDIT verification is read-only");
+			final Path baseline = Files.createDirectory(root.resolve("opponent-baseline"));
+			final var empty = ActionValueV4.empty();
+			final var c0 = ActionContinuationV4.initialize(baseline, empty);
+			final var baselinePlan = new ActionExplorationV4.Plan(2, "MODEL_V2", 0, 0, 0, "AUDIT", episode, scene, empty.sha256(), plan.skills());
+			final var frozenOpponent = ActionExplorationV4.frozenOpponentCommitted(baselinePlan, baseline, c0.head());
+			final var opponentChoice = frozenOpponent.choose(observed, List.of(stock, other), stock, true, Long.MAX_VALUE);
+			ActionExplorationV4.verifyFrozenOpponent(baseline, c0.head(), empty.sha256(), episode, List.of(opponentChoice));
+			final var falseCritical = ActionExplorationV4.frozenOpponentCommitted(baselinePlan, baseline, c0.head())
+				.choose(observed, List.of(stock, other), stock, false, Long.MAX_VALUE);
+			try
+			{
+				ActionExplorationV4.verifyFrozenOpponent(baseline, c0.head(), empty.sha256(), episode, List.of(falseCritical));
+				throw new AssertionError("Critical stock cannot stand in for frozen inference without witnessed HP");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_UNWITNESSED_CRITICAL_STOCK"), "unwitnessed critical stock refused"); }
+			final var criticalActor = new TacticalObservationV3.Entity(TacticalObservationV3.Role.SELF, 42, 7, 0, 0,
+				Map.of(TacticalObservationV3.Field.HP, TacticalObservationV3.Fact.known(.25)), List.of(), List.of(), List.of(), List.of());
+			final var criticalObservation = new TacticalObservationV3(1, started, 1, 42, 7, "", List.of(criticalActor, enemy));
+			final var trueCritical = ActionExplorationV4.frozenOpponentCommitted(baselinePlan, baseline, c0.head())
+				.choose(criticalObservation, List.of(stock, other), stock, false, Long.MAX_VALUE);
+			ActionExplorationV4.verifyFrozenOpponent(baseline, c0.head(), empty.sha256(), episode, List.of(trueCritical));
+			PhantomLearning131Evaluation.verifyOpponentDispatch(baseline, c0.head(), episode, scene, empty.sha256(), List.of(),
+				Map.of(), window, Map.of(42, 7L));
+			try
+			{
+				ActionExplorationV4.frozenCommitted(baselinePlan, baseline, c0.head());
+				throw new AssertionError("C0 is a frozen opponent while scored C and R still require a trained checkpoint");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().contains("trained checkpoint"), "C0 cannot qualify for a scored arm"); }
 			verifyHeuristicAuditControl(episode, scene, observed, stock, other, owner, operation, plan, rows);
 		}
 		finally

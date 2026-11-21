@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,15 +41,19 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.ScheduledArm;
+import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Stratum;
 
 /** Records the existing native cast/apply receipts for one active TASK131 episode at a time. */
 final class PhantomLearning131Capture
 {
+	private static final Object AUDIT_PUBLICATION = new Object();
+
 	record Actor(long profile, int objectId, long epoch) { }
 	record Target(int objectId, long epoch) { }
 	record Original(String episodeId, String sealSha) { }
 	record Settlement(ActionExplorationV4.Plan plan, TacticalEpisodeV3 episode,
 		List<TacticalReceiptV3> receipts, Map<Long, ActionExperimentReceiptV4.Intent> intents, List<ActionExplorationV4.Decision> decisions) { }
+	record OpponentAudit(PhantomLearning131Capture capture, Episode episode, String head) { }
 
 	static final class Episode
 	{
@@ -100,6 +105,7 @@ final class PhantomLearning131Capture
 	private final AtomicReference<Episode> current = new AtomicReference<>();
 	private final TacticalPolicyV3 tactical;
 	private final LearningPolicy damage;
+	private final String manifestSha;
 	private final AuditControl auditControl;
 
 	PhantomLearning131Capture(String manifestSha, ActionValueV4 model)
@@ -129,6 +135,7 @@ final class PhantomLearning131Capture
 
 	private PhantomLearning131Capture(String manifestSha, ActionValueV4 model, AuditControl auditControl)
 	{
+		this.manifestSha = manifestSha;
 		this.auditControl = auditControl;
 		tactical = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, heal -> paid(TacticalReceiptV3.fromHeal(heal)));
 		if (auditControl != null)
@@ -333,6 +340,8 @@ final class PhantomLearning131Capture
 	/** Freezes the observed events at the native episode drain boundary. */
 	Settlement settle(Episode episode, TacticalEpisodeV3 settled, String nonce)
 	{
+		final var plan = episode.experiment.plan();
+		require(Set.of("TRAIN", "TUNING").contains(plan.split()), "SETTLED_EPISODE_SCOPE");
 		final List<TacticalReceiptV3> receipts;
 		final Map<Long, ActionExperimentReceiptV4.Intent> intents;
 		synchronized (episode)
@@ -342,8 +351,7 @@ final class PhantomLearning131Capture
 			receipts = List.copyOf(episode.paid.values());
 			intents = Map.copyOf(episode.intents);
 		}
-		final var plan = episode.experiment.plan();
-		require(Set.of("TRAIN", "TUNING").contains(plan.split()) && plan.episode().equals(settled.id()) && settled.ownerNonce().equals(nonce)
+		require(plan.episode().equals(settled.id()) && settled.ownerNonce().equals(nonce)
 			&& settled.startedNanos() == episode.started && !receipts.isEmpty()
 			&& Set.copyOf(settled.eventKeys()).equals(receipts.stream().map(TacticalReceiptV3::eventKey).collect(Collectors.toSet()))
 			&& episode.roster.values().stream().allMatch(actor -> settled.actors().stream().anyMatch(actual ->
@@ -358,7 +366,7 @@ final class PhantomLearning131Capture
 
 	/** Seal the decision and dispatch originals after this AUDIT arm's native players have drained. */
 	String publishAuditPolicy(Episode episode, ScheduledArm scheduled, Path bindingFile, String bindingSha, String head,
-		Map<Integer, Player> drained, String nonce) throws IOException
+		Map<Integer, Player> drained, String nonce, OpponentAudit opponent) throws IOException
 	{
 		require(nonce != null && nonce.matches("[a-f0-9]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
 			&& (auditControl != null ? "NONE".equals(head) : head.matches("[a-f0-9]{64}")), "OWNED_FROZEN_POLICY");
@@ -375,15 +383,53 @@ final class PhantomLearning131Capture
 			case S -> PhantomLearning131Evaluation.stockControl(scheduled.block().stratum());
 			default -> null;
 		};
-		require(plan.split().equals("AUDIT") && plan.episode().equals(binding.episodeId()) && plan.sourceSha().equals(scheduled.fixtureSha())
+		final Stratum stratum = scheduled.block().stratum();
+		final boolean pvp = stratum == Stratum.DUEL_PVP || stratum == Stratum.GROUP_PVP;
+		final var expected = new HashSet<>(binding.scoredEpochs().keySet());
+		if (pvp) { expected.addAll(binding.opponentEpochs().keySet()); }
+		require((opponent != null) == pvp && drained.keySet().equals(expected), "FROZEN_POLICY_DRAIN_ROSTER");
+		require(manifestSha.equals(binding.manifestSha()) && plan.split().equals("AUDIT") && plan.episode().equals(binding.episodeId()) && plan.sourceSha().equals(scheduled.fixtureSha())
 			&& planned == auditControl && plan.modelSha().equals(binding.modelSha())
-			&& episode.started == binding.started() && drained.keySet().equals(binding.scoredEpochs().keySet())
-			&& episode.roster.size() == drained.size(), "FROZEN_POLICY_SCOPE");
+			&& episode.started == binding.started(), "FROZEN_POLICY_SCOPE");
+		if (opponent != null)
+		{
+			final var other = opponent.capture();
+			final var otherPlan = opponent.episode().experiment.plan();
+			require(other != this && other.auditControl == null && damage.ownsPvpCampaign131(binding.manifestSha(), nonce)
+				&& other.damage.ownsPvpCampaign131(binding.manifestSha(), nonce)
+				&& otherPlan.policyId().equals("MODEL_V2") && otherPlan.split().equals("AUDIT")
+				&& otherPlan.episode().equals(binding.episodeId()) && otherPlan.sourceSha().equals(scheduled.fixtureSha())
+				&& otherPlan.modelSha().equals(binding.opponentSha()) && opponent.head().matches("[a-f0-9]{64}")
+				&& opponent.episode().started == binding.started(), "FROZEN_OPPONENT_SCOPE");
+		}
+		synchronized (AUDIT_PUBLICATION)
+		{
+			final var proof = new StringBuilder(row("meta", "schema", "NATIVE_FROZEN_POLICY131_V1"))
+				.append(row("meta", "episodeId", binding.episodeId())).append(row("meta", "bindingSha", binding.sha()))
+				.append(row("meta", "arm", scheduled.slot().arm())).append(row("meta", "modelHead", head));
+			appendAuditLog(proof, episode, drained, binding.scoredEpochs(), pvp, false);
+			if (opponent != null)
+			{
+				proof.append(row("opponentHead", opponent.head()));
+				opponent.capture().appendAuditLog(proof, opponent.episode(), drained, binding.opponentEpochs(), true, true);
+			}
+			final byte[] bytes = proof.toString().getBytes(StandardCharsets.US_ASCII);
+			require(bytes.length <= PhantomLearning131Evaluation.DOCUMENT_MAX_BYTES, "FROZEN_POLICY_LOG_BOUND");
+			ActionExperimentReceiptV4.publish(directory.resolve("policy131.tsv"), bytes);
+			completeAuditPublication(episode);
+			if (opponent != null) { opponent.capture().completeAuditPublication(opponent.episode()); }
+			return hash(bytes);
+		}
+	}
+
+	private void appendAuditLog(StringBuilder proof, Episode episode, Map<Integer, Player> drained, Map<Integer, Long> epochs, boolean pvp, boolean opponent)
+	{
+		require(episode.roster.size() == epochs.size(), "FROZEN_POLICY_SCOPE");
 		for (Actor actor : episode.roster.values())
 		{
 			final Player player = drained.get(actor.objectId());
 			final var owner = player == null ? null : player.getNativeWorkOwner();
-			require(player != null && player.getObjectId() == actor.objectId() && binding.scoredEpochs().get(actor.objectId()) == actor.epoch()
+			require(player != null && player.getObjectId() == actor.objectId() && epochs.getOrDefault(actor.objectId(), 0L) == actor.epoch()
 				&& (owner == null || !owner.isCurrent() && owner.epoch() == actor.epoch()) && PlayerNativeWork.observationEvidence(player) == null
 				&& World.getInstance().findObject(actor.objectId()) == null, "FROZEN_POLICY_OWNER_NOT_DRAINED");
 		}
@@ -391,24 +437,25 @@ final class PhantomLearning131Capture
 		synchronized (episode)
 		{
 			require(!episode.accepting && !episode.sealed && !episode.fault && current.get() == episode, "FROZEN_POLICY_DRAIN");
-			episode.sealed = true;
 			intents = List.copyOf(episode.intents.values());
 		}
 		final var decisions = episode.experiment.decisions();
 		if (auditControl != null) { ActionExplorationV4.verifyControlLog(auditControl, decisions); }
-		else { episode.experiment.verifyFrozenLog(decisions); }
+		else if (!pvp) { episode.experiment.verifyFrozenLog(decisions); }
+		else if (!opponent || !decisions.isEmpty()) { episode.experiment.verifyFrozenAuditLog(decisions); }
 		final var encoder = Base64.getUrlEncoder().withoutPadding();
-		final var proof = new StringBuilder(row("meta", "schema", "NATIVE_FROZEN_POLICY131_V1"))
-			.append(row("meta", "episodeId", binding.episodeId())).append(row("meta", "bindingSha", binding.sha()))
-			.append(row("meta", "arm", scheduled.slot().arm())).append(row("meta", "modelHead", head));
 		decisions.forEach(decision -> proof.append(row("decision", encoder.encodeToString(decision.bytes()))));
 		intents.stream().sorted(Comparator.comparingLong(intent -> intent.decision().cursor()))
 			.forEach(intent -> proof.append(row("intent", encoder.encodeToString(intent.bytes()))));
-		final byte[] bytes = proof.toString().getBytes(StandardCharsets.US_ASCII);
-		require(bytes.length <= 8 * 1024 * 1024, "FROZEN_POLICY_LOG_BOUND");
-		ActionExperimentReceiptV4.publish(directory.resolve("policy131.tsv"), bytes);
-		require(current.compareAndSet(episode, null), "EPISODE_REPLACED_BEFORE_SEAL");
-		return hash(bytes);
+	}
+
+	private void completeAuditPublication(Episode episode)
+	{
+		synchronized (episode)
+		{
+			episode.sealed = true;
+			require(current.compareAndSet(episode, null), "EPISODE_REPLACED_BEFORE_SEAL");
+		}
 	}
 
 	/** The boot publishes frozen originals after canonical runtime drain and STORE. */

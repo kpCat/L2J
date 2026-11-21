@@ -85,7 +85,8 @@ public final class PhantomLearning131Evaluation
 	record SoloDamageBinding(String episodeId, String sha, long started, long actorEpoch, long targetEpoch) { }
 	record DuelDamageBinding(String episodeId, String sha, long started, long scoredEpoch, long opponentEpoch) { }
 	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs, Set<Integer> scoredPlayers, Map<Integer, Long> npcEpochs) { }
-	record PolicyArmBinding(String episodeId, String sha, long started, String modelSha, Map<Integer, Long> scoredEpochs) { }
+	record PolicyArmBinding(String episodeId, String sha, long started, String manifestSha, String modelSha, String opponentSha,
+		Map<Integer, Long> scoredEpochs, Map<Integer, Long> opponentEpochs) { }
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt, Set<String> encounters) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, String modelProofSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
@@ -494,38 +495,86 @@ public final class PhantomLearning131Evaluation
 		require(proof.sha().equals(occurrence.modelProofSha()) && proof.get("episodeId").equals(occurrence.id()) && proof.get("bindingSha").equals(binding.document().sha())
 			&& proof.get("arm").equals(arm.name()) && proof.get("modelHead").equals(head), "FROZEN_MODEL_ORIGIN_PIN");
 		final var paid = new HashMap<String, NativeCastTrace>();
+		final var opponentPaid = new HashMap<String, NativeCastTrace>();
 		for (var damage : originals.damage().values())
 		{
-			if (binding.participants().get(damage.actor()).side() == binding.slot().side()) { paid.put(damage.operationId(), damage.trace()); }
+			final var sidePaid = binding.participants().get(damage.actor()).side() == binding.slot().side() ? paid : opponentPaid;
+			sidePaid.put(damage.operationId(), damage.trace());
 		}
 		for (var heal : originals.heals().values())
 		{
 			final var cast = heal.original().cast();
-			if (binding.participants().get(cast.actorObjectId()).side() == binding.slot().side()) { paid.put(heal.operationId(), cast); }
+			final var sidePaid = binding.participants().get(cast.actorObjectId()).side() == binding.slot().side() ? paid : opponentPaid;
+			sidePaid.put(heal.operationId(), cast);
 		}
+		final var stratum = occurrence.block().plan().stratum();
+		final boolean pvp = stratum == Stratum.DUEL_PVP || stratum == Stratum.GROUP_PVP;
+		final var log = proof.rows();
+		int scoredEnd = log.size();
+		for (int index = 0; index < log.size(); index++)
+		{
+			if (!log.get(index)[0].equals("opponentHead")) { continue; }
+			require(pvp, "UNEXPECTED_OPPONENT_POLICY");
+			fields(log.get(index), "opponentHead", 2);
+			scoredEnd = index;
+			break;
+		}
+		if (pvp)
+		{
+			if (scoredEnd == log.size()) { throw new Incomplete("FROZEN_OPPONENT_DISPATCH_MISSING"); }
+			final Map<Integer, Long> epochs = new HashMap<>();
+			binding.participants().forEach((object, member) ->
+			{
+				if (member.side() != binding.slot().side()) { epochs.put(object, member.epoch()); }
+			});
+			verifyOpponentDispatch(modelArchive(manifestPath), digest(log.get(scoredEnd)[1]), occurrence.id(), occurrence.block().fixtureSha(),
+				manifest.get("opponent." + occurrence.block().opponent()), log.subList(scoredEnd + 1, log.size()), opponentPaid, window, epochs);
+		}
+		final var scored = log.subList(0, scoredEnd);
 		if (arm == Arm.H)
 		{
-			verifyHeuristicDispatch(occurrence.id(), occurrence.block().fixtureSha(), proof.rows(), paid, window);
+			verifyHeuristicDispatch(occurrence.id(), occurrence.block().fixtureSha(), scored, paid, window);
 		}
 		else if (arm == Arm.S)
 		{
-			verifyControlDispatch(stock, occurrence.id(), occurrence.block().fixtureSha(), proof.rows(), paid, window);
+			verifyControlDispatch(stock, occurrence.id(), occurrence.block().fixtureSha(), scored, paid, window);
 		}
 		else
 		{
 			verifyFrozenDispatch(modelArchive(manifestPath), head, occurrence.id(), occurrence.block().fixtureSha(), binding.document().get("modelSha"),
-				proof.rows(), paid, window);
+				scored, paid, window, pvp);
 		}
 	}
 
+	static void verifyOpponentDispatch(Path lineage, String head, String episode, String fixtureSha, String modelSha, List<String[]> rows,
+		Map<String, NativeCastTrace> paid, EpisodeWindow window, Map<Integer, Long> epochs) throws IOException
+	{
+		require(!epochs.isEmpty(), "OPPONENT_DECISION_OWNER");
+		if (rows.isEmpty())
+		{
+			require(paid.isEmpty(), "MODEL_NATIVE_DISPATCH");
+			ActionExplorationV4.verifyFrozenOpponent(lineage, head, modelSha, episode, List.of());
+			return;
+		}
+		final var decisions = verifyDispatch(rows, episode, paid, window);
+		final var plan = decisions.getFirst().plan();
+		require(plan.policyId().equals("MODEL_V2") && plan.split().equals("AUDIT") && plan.episode().equals(episode)
+			&& plan.sourceSha().equals(fixtureSha) && plan.modelSha().equals(modelSha), "FROZEN_DISPATCH_PLAN");
+		require(decisions.stream().map(ActionExplorationV4.Decision::observation)
+			.allMatch(observation -> epochs.getOrDefault(observation.actorObjectId(), 0L) == observation.actorEpoch()), "OPPONENT_DECISION_OWNER");
+		ActionExplorationV4.verifyFrozenOpponent(lineage, head, modelSha, episode, decisions);
+	}
+
 	static void verifyFrozenDispatch(Path lineage, String head, String episode, String fixtureSha, String modelSha, List<String[]> rows,
-		Map<String, NativeCastTrace> paid, EpisodeWindow window) throws IOException
+		Map<String, NativeCastTrace> paid, EpisodeWindow window, boolean pvp) throws IOException
 	{
 		final var decisions = verifyDispatch(rows, episode, paid, window);
 		final var plan = decisions.getFirst().plan();
 		require(plan.policyId().equals("MODEL_V2") && plan.split().equals("AUDIT") && plan.episode().equals(episode)
 			&& plan.sourceSha().equals(fixtureSha) && plan.modelSha().equals(modelSha), "FROZEN_DISPATCH_PLAN");
-		ActionExplorationV4.frozenCommitted(plan, lineage, head).verifyFrozenLog(decisions);
+		final var frozen = ActionExplorationV4.frozenCommitted(plan, lineage, head);
+		if (pvp) { frozen.verifyFrozenAuditLog(decisions); }
+		else { frozen.verifyFrozenLog(decisions); }
 	}
 
 	static void verifyHeuristicDispatch(String episode, String fixtureSha, List<String[]> rows,
@@ -1097,9 +1146,11 @@ public final class PhantomLearning131Evaluation
 		final var binding = scheduledBinding(scheduled, path, expectedSha, "MODEL_ARM");
 		final var roster = participants(binding, slot.side());
 		final var scored = new HashMap<Integer, Long>();
-		roster.forEach((actor, member) -> { if (member.side() == slot.side()) { scored.put(actor, member.epoch()); } });
-		require(scored.size() == scheduled.block().scene().initialRosterSize() && roster.size() - scored.size() == scheduled.opponentSize(), "AUDIT_POLICY_ARM_ROSTER");
-		return new PolicyArmBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), binding.get("modelSha"), Map.copyOf(scored));
+		final var opponent = new HashMap<Integer, Long>();
+		roster.forEach((actor, member) -> (member.side() == slot.side() ? scored : opponent).put(actor, member.epoch()));
+		require(scored.size() == scheduled.block().scene().initialRosterSize() && opponent.size() == scheduled.opponentSize(), "AUDIT_POLICY_ARM_ROSTER");
+		return new PolicyArmBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), digest(binding.get("manifestSha")),
+			binding.get("modelSha"), digest(binding.get("opponentSha")), Map.copyOf(scored), Map.copyOf(opponent));
 	}
 
 	static AuditControl stockControl(Stratum stratum)

@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field;
 
 /** TEST-only single decision owner. Proposals never grant native execution authority. */
 public final class ActionExplorationV4
@@ -200,6 +201,46 @@ public final class ActionExplorationV4
 		return admitFrozen(plan, ActionContinuationV4.committedState(lineageRoot, checkpointHead));
 	}
 
+	/** The frozen opponent can be the committed C0 root. Scored evaluation still requires TRAIN updates. */
+	public static ActionExplorationV4 frozenOpponentCommitted(Plan plan, Path lineageRoot, String checkpointHead) throws IOException
+	{
+		requireFrozenPlan(plan, checkpointHead);
+		return admitOpponent(plan, opponentCheckpoint(lineageRoot, checkpointHead, plan.modelSha()));
+	}
+
+	public static void verifyFrozenOpponent(Path lineageRoot, String checkpointHead, String modelSha, String episode, List<Decision> decisions) throws IOException
+	{
+		final var state = opponentCheckpoint(lineageRoot, checkpointHead, modelSha);
+		if (episode == null || !episode.matches("[a-f0-9]{64}") || state.episodes().containsKey(episode))
+		{
+			throw new IllegalArgumentException("Frozen opponent requires a fresh AUDIT episode");
+		}
+		if (decisions.isEmpty()) { return; }
+		final var plan = decisions.getFirst().plan();
+		requireFrozenPlan(plan, checkpointHead);
+		if (!plan.episode().equals(episode)) { throw new IllegalArgumentException("Frozen opponent episode mismatch"); }
+		admitOpponent(plan, state).verifyFrozenAuditLog(decisions);
+	}
+
+	private static ActionContinuationV4.State opponentCheckpoint(Path lineageRoot, String checkpointHead, String modelSha) throws IOException
+	{
+		final var state = ActionContinuationV4.committedState(lineageRoot, checkpointHead);
+		if (!state.model().sha256().equals(modelSha) || state.model().updates() == 0 && state.sequence() != 0)
+		{
+			throw new IllegalArgumentException("Frozen opponent requires the pinned committed checkpoint");
+		}
+		return state;
+	}
+
+	private static ActionExplorationV4 admitOpponent(Plan plan, ActionContinuationV4.State state)
+	{
+		if (!plan.split().equals("AUDIT") || !plan.modelSha().equals(state.model().sha256()) || state.episodes().containsKey(plan.episode()))
+		{
+			throw new IllegalArgumentException("Frozen opponent requires a fresh AUDIT plan");
+		}
+		return new ActionExplorationV4(plan, state.model());
+	}
+
 	private static void requireFrozenPlan(Plan plan, String head)
 	{
 		if (plan == null || !plan.frozenInference() || head == null || !head.matches("[a-f0-9]{64}"))
@@ -258,9 +299,41 @@ public final class ActionExplorationV4
 				if (!ranked(replay.reason()) || !replay.reason().equals(decision.reason()) || !replay.selected().equals(decision.selected()))
 				{ throw new IllegalArgumentException("Frozen evaluation decision differs from the pinned model"); }
 			}
-			else if (!decision.reason().equals("CRITICAL_STOCK") || decision.capturedNanos() >= decision.deadline())
+			else if (!(decision.reason().equals("CRITICAL_STOCK") || initialOpponentStock(decision)) || decision.capturedNanos() >= decision.deadline())
 			{ throw new IllegalArgumentException("Incomplete frozen evaluation inference"); }
 		}
+	}
+
+	/** Independently check the stock exceptions supported by the paid snapshot. */
+	public void verifyFrozenAuditLog(List<Decision> decisions)
+	{
+		verifyFrozenLog(decisions);
+		if (!_plan.split().equals("AUDIT") || decisions.stream().anyMatch(decision ->
+			!decision.mode().equals("MODEL") && !initialOpponentStock(decision) && !observedCriticalHp(decision)))
+		{
+			throw new IllegalArgumentException("EVAL131_UNWITNESSED_CRITICAL_STOCK");
+		}
+	}
+
+	private boolean initialOpponentStock(Decision decision)
+	{
+		return _frozenModel.updates() == 0 && decision.reason().equals("MODEL_UNREADY");
+	}
+
+	private static boolean observedCriticalHp(Decision decision)
+	{
+		final var observation = decision.observation();
+		return lowHp(observation, observation.actorObjectId(), .30)
+			|| decision.stock().family() == LegalActionV3.Family.HEAL
+				&& decision.offered().stream().anyMatch(action -> lowHp(observation, action.targetObjectId(), .25));
+	}
+
+	private static boolean lowHp(TacticalObservationV3 observation, int object, double threshold)
+	{
+		final var entity = observation.entity(object);
+		if (entity == null) { return false; }
+		final var hp = entity.fact(Field.HP);
+		return hp.known() && hp.value() >= 0 && hp.value() <= threshold;
 	}
 
 	private static Plan validateLogStructure(List<Decision> decisions)
