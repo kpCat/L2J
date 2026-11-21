@@ -18,6 +18,9 @@ import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4.Inte
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroCast;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroSwitch;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
@@ -72,6 +75,7 @@ public final class PhantomLearning131EvaluationChecks
 		paidItemsRequireNativeLedger();
 		paidHealingRequiresItsNativeEffect();
 		paidRechargeRequiresItsNativeEffect();
+		paidAggroRequiresNativeRetarget();
 		frozenAuditPolicyRequiresCommittedAction();
 		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
@@ -393,6 +397,32 @@ public final class PhantomLearning131EvaluationChecks
 		PhantomLearning131Evaluation.verifyNativeProjection(PhantomLearning131AuditOriginals.rechargeEvents(episode, noWrite).stream().map(row -> row.split("\t", -1)).toList(),
 			zero, roster, window, false);
 		check(zero.recharges().get(key).effective().signum() == 0, "A paid handler without a pool write earns zero MP transfer");
+	}
+
+	private static void paidAggroRequiresNativeRetarget()
+	{
+		final String episode = "4".repeat(64);
+		final var a = new NpcAggroSwitch(new Target(102, 3, 91), 103, 92, 1030);
+		final var b = new NpcAggroSwitch(new Target(104, 3, 93), 103, 92, 1031);
+		final var cast = new NpcAggroCast(42, 7, 3, 28, 4, 1004, 1010, 220, 190, List.of(a, b));
+		final String[] items = PhantomLearning131AuditOriginals.itemWindow(1000, 1068, 0).split("\t", -1);
+		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(List.of(items,
+			PhantomLearning131AuditOriginals.aggroRow(episode, cast).split("\t", -1)), episode);
+		final var events = PhantomLearning131AuditOriginals.aggroEvents(episode, cast).stream().map(row -> row.split("\t", -1)).toList();
+		final var roster = Map.of(42, 7L, 102, 91L, 103, 92L, 104, 93L);
+		final var window = new EpisodeWindow(1000, 50, 70);
+		PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster, window, false);
+		check(events.size() == 2 && originals.aggro().size() == 1, "Two bound monsters can switch on one paid native cast");
+		final var partA = new NpcAggroCast(42, 7, 3, 28, 4, 1004, 1010, 220, 190, List.of(a));
+		final var partB = new NpcAggroCast(42, 7, 3, 28, 4, 1004, 1010, 220, 190, List.of(b));
+		final var split = List.of(items, PhantomLearning131AuditOriginals.aggroRow(episode, partA).split("\t", -1),
+			PhantomLearning131AuditOriginals.aggroRow(episode, partB).split("\t", -1));
+		refuse(() -> PhantomLearning131AuditOriginals.decodeAuditRows(split, episode), "One native debit cannot be split into independent TANK samples");
+		rejectsHealProjection(changedField(events, 0, 5, "104"), originals, roster, window);
+		rejectsHealProjection(events, originals, Map.of(42, 7L, 102, 91L, 103, 91L, 104, 93L), window);
+		rejectsHealProjection(events, originals, roster, new EpisodeWindow(1000, 29, 70));
+		refuse(() -> new NpcAggroCast(42, 7, 3, 28, 4, 1004, 1010, 220, 220, List.of(a)), "Unpaid hit cannot certify a retarget");
+		refuse(() -> PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster, window, true), "NPC retarget is never a PvP tank effect");
 	}
 
 	private static void rejectsHealProjection(List<String[]> events, PhantomLearning131AuditOriginals.AuditRows originals, Map<Integer, Long> roster, EpisodeWindow window)

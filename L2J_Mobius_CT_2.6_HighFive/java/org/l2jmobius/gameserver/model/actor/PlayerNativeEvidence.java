@@ -1,18 +1,26 @@
 package org.l2jmobius.gameserver.model.actor;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import org.l2jmobius.gameserver.ai.Intention;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask;
+import org.l2jmobius.gameserver.model.effects.EffectType;
+import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.model.skill.Skill;
 
-/** Optional scalar observation. Calls belong after successful native writers, never attempts or aggro. */
+/** Optional scalar observation of committed native writes and outcomes. */
 public final class PlayerNativeEvidence
 {
 	public enum Phase { NONE, ROUTE, COMBAT, REGEN, DEATH_RECOVERY }
@@ -41,6 +49,7 @@ public final class PlayerNativeEvidence
 	private static final ThreadLocal<PickupFrame> PICKUP_CONTEXT = new ThreadLocal<>();
 	private static final AtomicReference<ResourceObservation> RESOURCE_OBSERVER = new AtomicReference<>();
 	private static final ThreadLocal<CastDebitContext> CAST_DEBIT = new ThreadLocal<>();
+	private static final ThreadLocal<NpcAggroHit> AGGRO_HIT = new ThreadLocal<>();
 
 	public sealed interface ResourceWrite permits ItemDebit, CastMpDebit
 	{
@@ -51,28 +60,63 @@ public final class PlayerNativeEvidence
 		ItemProcessType process, long sequence, long observedNanos) implements ResourceWrite { }
 	public record CastMpDebit(int actorObjectId, long actorEpoch, int skillId, int skillLevel, Target target, double before, double after) implements ResourceWrite { }
 	private record CastDebitContext(ResourceObservation observer, Player actor, PlayerNativeWork.Owner owner, MagicUseTask task, Target target) { }
+	public record NpcAggroSwitch(Target target, int formerAlly, long formerEpoch, long observedNanos)
+	{
+		public NpcAggroSwitch
+		{
+			if (!valid(target) || formerAlly <= 0 || formerEpoch <= 0 || formerAlly == target.objectId() || observedNanos <= 0)
+			{ throw new IllegalArgumentException("Invalid native NPC aggro transition."); }
+		}
+	}
+
+	public record NpcAggroCast(int actor, long epoch, int instance, int skillId, int skillLevel, long hitStartedNanos, long paidNanos,
+		double mpBefore, double mpAfter, List<NpcAggroSwitch> switches)
+	{
+		public NpcAggroCast
+		{
+			switches = List.copyOf(switches);
+			if (actor <= 0 || epoch <= 0 || instance < 0 || skillId <= 0 || skillLevel <= 0 || hitStartedNanos <= 0 || paidNanos < hitStartedNanos
+				|| !Double.isFinite(mpBefore) || !Double.isFinite(mpAfter) || mpBefore <= mpAfter || mpAfter < 0 || switches.isEmpty() || switches.size() > MAX_TARGETS
+				|| switches.stream().map(change -> change.target().objectId()).distinct().count() != switches.size()
+				|| switches.stream().anyMatch(change -> change.formerAlly() == actor || change.target().objectId() == actor
+					|| change.target().instanceId() != instance || change.observedNanos() < paidNanos))
+			{ throw new IllegalArgumentException("Invalid paid native NPC aggro cast."); }
+		}
+	}
 
 	/** One explicit TEST observer. The callback only receives committed scalar writes and must return without blocking. */
 	public static ResourceObservation observeResourceWrites(Consumer<ResourceWrite> observation)
 	{
+		return observeResourceWrites(observation, null);
+	}
+
+	public static ResourceObservation observeResourceWrites(Consumer<ResourceWrite> observation, Consumer<NpcAggroCast> aggro)
+	{
 		if (!System.getProperty("phantom.learning131.nonce", "").matches("[0-9a-f]{32}")) { throw new IllegalStateException("Missing scoped native resource observation claim."); }
-		final var observer = new ResourceObservation(java.util.Objects.requireNonNull(observation));
+		final var observer = new ResourceObservation(java.util.Objects.requireNonNull(observation), aggro);
 		if (!RESOURCE_OBSERVER.compareAndSet(null, observer)) { throw new IllegalStateException("Native resource observer already installed."); }
 		return observer;
 	}
 
 	public static boolean observesResourceWrites() { return RESOURCE_OBSERVER.get() != null; }
 
+	public static boolean observesNpcAggro()
+	{
+		final var observer = RESOURCE_OBSERVER.get();
+		return observer != null && observer._aggro != null;
+	}
+
 	public static final class ResourceObservation implements AutoCloseable
 	{
 		private record ItemWindow(long writes, long closedNanos) { }
 
 		private final Consumer<ResourceWrite> _observation;
+		private final Consumer<NpcAggroCast> _aggro;
 		private final AtomicReference<String> _failure = new AtomicReference<>();
 		private final AtomicReference<ItemWindow> _items = new AtomicReference<>(new ItemWindow(0, 0));
 		private final long _openedNanos = timestamp();
 
-		private ResourceObservation(Consumer<ResourceWrite> observation) { _observation = observation; }
+		private ResourceObservation(Consumer<ResourceWrite> observation, Consumer<NpcAggroCast> aggro) { _observation = observation; _aggro = aggro; }
 		public String failure() { return _failure.get(); }
 		public long itemWrites() { return _items.get().writes(); }
 		public long openedNanos() { return _openedNanos; }
@@ -108,6 +152,22 @@ public final class PlayerNativeEvidence
 			catch (RuntimeException | Error failure) { _failure.compareAndSet(null, failure.getClass().getName()); }
 		}
 
+		private void acceptAggro(NpcAggroHit hit)
+		{
+			if (RESOURCE_OBSERVER.get() != this || closedNanos() != 0 || failure() != null || hit.switches.isEmpty()) { return; }
+			if (hit.invalid || hit.paid == 0)
+			{
+				_failure.compareAndSet(null, "NPC_AGGRO_HIT_MP_UNPROVEN");
+				return;
+			}
+			try
+			{
+				_aggro.accept(new NpcAggroCast(hit.player.getObjectId(), hit.owner.epoch(), hit.instance, hit.skill.getId(), hit.skill.getLevel(),
+					hit.started, hit.paid, hit.mpBefore, hit.mpAfter, hit.switches));
+			}
+			catch (RuntimeException | Error failure) { _failure.compareAndSet(null, failure.getClass().getName()); }
+		}
+
 		@Override public void close()
 		{
 			for (;;)
@@ -129,8 +189,160 @@ public final class PlayerNativeEvidence
 		}
 	}
 
+	private static final class NpcAggroHit
+	{
+		final Player player;
+		final PlayerNativeWork.Owner owner;
+		final Party party;
+		final MagicUseTask task;
+		final Skill skill;
+		final int instance;
+		final Map<Monster, Target> targets;
+		final long started = ResourceObservation.timestamp();
+		final List<NpcAggroSwitch> switches = new ArrayList<>();
+		boolean paying, invalid;
+		Monster switching;
+		NpcAggroSwitch pendingSwitch;
+		long paid;
+		double mpBefore, mpAfter;
+
+		NpcAggroHit(Player player, PlayerNativeWork.Owner owner, Party party, MagicUseTask task, Skill skill, Map<Monster, Target> targets)
+		{
+			this.player = player;
+			this.owner = owner;
+			this.party = party;
+			this.task = task;
+			this.skill = skill;
+			this.targets = targets;
+			instance = player.getInstanceId();
+		}
+	}
+
+	/** Bound to the stock phase-2 task so other MP changes and triggered casts cannot authenticate this action. */
+	public static void observeNpcAggroHit(Creature actor, MagicUseTask task, Runnable nativeHit)
+	{
+		final var observer = RESOURCE_OBSERVER.get();
+		final var skill = task.getSkill();
+		final Player player = actor.asPlayer();
+		final var owner = player == null ? null : player.getNativeWorkOwner();
+		final var party = player == null ? null : player.getParty();
+		if (observer == null || observer._aggro == null || AGGRO_HIT.get() != null || !owned(player, owner) || player.isAlikeDead() || party == null
+			|| task.getPhase() != 2 || !actor.isCurrentNativeMagicUseTask(task) || skill == null || !skill.hasEffectType(EffectType.AGGRESSION)
+			|| player.getKnownSkill(skill.getId()) != skill)
+		{
+			nativeHit.run();
+			return;
+		}
+		final var targets = task.observeTargets(MAX_TARGETS, () -> actor.isCurrentNativeMagicUseTask(task));
+		if (targets.status() != MagicUseTask.TargetStatus.READY)
+		{
+			nativeHit.run();
+			return;
+		}
+		final var exact = new LinkedHashMap<Monster, Target>();
+		for (WorldObject target : targets.targets())
+		{
+			if (!(target instanceof Monster monster) || monster.getInstanceId() != player.getInstanceId() || !monster.isSpawned()
+				|| World.getInstance().findObject(target.getObjectId()) != monster)
+			{
+				nativeHit.run();
+				return;
+			}
+			final Target generation = monster.getNativeEvidenceTarget();
+			if (!valid(generation) || exact.putIfAbsent(monster, generation) != null)
+			{
+				nativeHit.run();
+				return;
+			}
+		}
+		final var hit = new NpcAggroHit(player, owner, party, task, skill, exact);
+		AGGRO_HIT.set(hit);
+		try { nativeHit.run(); }
+		finally
+		{
+			AGGRO_HIT.remove();
+			observer.acceptAggro(hit);
+		}
+	}
+
+	/** Observe only GetAgro's stock NPC attack-target change, not clan assistance or a request to change intention. */
+	public static void observeNpcAggroSwitch(Creature effector, Creature recipient, Skill skill, Runnable nativeSwitch)
+	{
+		final var hit = AGGRO_HIT.get();
+		if (hit == null || hit.switching != null || hit.player != effector || hit.skill != skill || !(recipient instanceof Monster monster)
+			|| !hit.targets.containsKey(monster) || !monster.hasAI() || monster.getAI().getIntention() != Intention.ATTACK)
+		{
+			nativeSwitch.run();
+			return;
+		}
+		hit.switching = monster;
+		final var ai = monster.getAI();
+		try
+		{
+			nativeSwitch.run();
+			if (hit.pendingSwitch != null && monster.hasAI() && monster.getAI() == ai && ai.getIntention() == Intention.ATTACK
+				&& ai.getAttackTarget() == hit.player && hit.pendingSwitch.target().equals(monster.getNativeEvidenceTarget()))
+			{
+				hit.switches.add(hit.pendingSwitch);
+			}
+		}
+		finally
+		{
+			hit.pendingSwitch = null;
+			hit.switching = null;
+		}
+	}
+
+	public static boolean expectsNpcAttackTarget(Creature recipient, Creature newTarget)
+	{
+		final var hit = AGGRO_HIT.get();
+		return hit != null && hit.switching == recipient && hit.player == newTarget;
+	}
+
+	/** Called only by the actual NPC AI target setter in the synchronous GetAgro scope. */
+	public static void npcAttackTargetWritten(Creature recipient, Creature before, Creature after)
+	{
+		final var hit = AGGRO_HIT.get();
+		if (hit == null || hit.switching != recipient || hit.player != after) { return; }
+		final Monster monster = hit.switching;
+		final Player ally = before == null ? null : before.asPlayer();
+		final var owner = ally == null ? null : ally.getNativeWorkOwner();
+		if (ally == hit.player || !owned(ally, owner) || ally.isAlikeDead() || hit.player.isAlikeDead()
+			|| ally.getParty() != hit.party || hit.player.getParty() != hit.party
+			|| ally.getInstanceId() != hit.instance || World.getInstance().findObject(ally.getObjectId()) != ally
+			|| !owned(hit.player, hit.owner) || !hit.player.isCurrentNativeMagicUseTask(hit.task) || monster.isAlikeDead()
+			|| World.getInstance().findObject(monster.getObjectId()) != monster)
+		{ return; }
+		final Target target = hit.targets.get(monster);
+		if (!target.equals(monster.getNativeEvidenceTarget()) || hit.pendingSwitch != null || hit.switches.size() >= MAX_TARGETS)
+		{
+			hit.invalid = true;
+			return;
+		}
+		hit.pendingSwitch = new NpcAggroSwitch(target, ally.getObjectId(), owner.epoch(), ResourceObservation.timestamp());
+	}
+
+	private static boolean owned(Player player, PlayerNativeWork.Owner owner)
+	{
+		return owner != null && owner.player() == player && owner == player.getNativeWorkOwner() && owner.isCurrent() && owner.evidence() != null
+			&& owner.evidence().matches(player.getObjectId(), owner.epoch());
+	}
+
 	/** Only the stock hit-consumption call opens this context; general MP writers cannot attribute a cast. */
 	public static void observeOffensiveCastDebit(Creature actor, MagicUseTask task, Runnable debit)
+	{
+		final var aggro = AGGRO_HIT.get();
+		if (aggro != null && aggro.task == task && aggro.player == actor)
+		{
+			aggro.paying = true;
+			try { observeStockCastDebit(actor, task, debit); }
+			finally { aggro.paying = false; }
+			return;
+		}
+		observeStockCastDebit(actor, task, debit);
+	}
+
+	private static void observeStockCastDebit(Creature actor, MagicUseTask task, Runnable debit)
 	{
 		final var observer = RESOURCE_OBSERVER.get();
 		final Player player = actor.asPlayer();
@@ -153,6 +365,17 @@ public final class PlayerNativeEvidence
 	/** Called by the actual MP writer under its existing lock. */
 	public static void castMpWritten(Creature actor, double before, double after, boolean regeneration)
 	{
+		final var aggro = AGGRO_HIT.get();
+		if (aggro != null && aggro.paying && aggro.player == actor && !regeneration)
+		{
+			if (aggro.paid != 0 || !Double.isFinite(before) || !Double.isFinite(after) || before <= after || after < 0) { aggro.invalid = true; }
+			else
+			{
+				aggro.paid = ResourceObservation.timestamp();
+				aggro.mpBefore = before;
+				aggro.mpAfter = after;
+			}
+		}
 		final var context = CAST_DEBIT.get();
 		if (context == null || regeneration || context.actor() != actor || context.actor().getNativeWorkOwner() != context.owner() || !context.owner().isCurrent()
 			|| !valid(context.target()) || !Double.isFinite(before) || !Double.isFinite(after) || before <= after || after < 0) { return; }

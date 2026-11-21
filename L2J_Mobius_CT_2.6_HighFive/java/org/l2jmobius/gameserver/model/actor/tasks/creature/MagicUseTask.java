@@ -23,6 +23,7 @@ import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomAreaControl131;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape;
@@ -112,8 +113,8 @@ public class MagicUseTask implements Runnable
 				}
 				case 2:
 				{
-					if (_healLearning == null) { _creature.onMagicHitTimer(this); }
-					else { _healLearning.hit(() -> _creature.onMagicHitTimer(this)); }
+					if (PlayerNativeEvidence.observesNpcAggro()) { PlayerNativeEvidence.observeNpcAggroHit(_creature, this, this::nativeHit); }
+					else { nativeHit(); }
 					break;
 				}
 				case 3:
@@ -129,6 +130,12 @@ public class MagicUseTask implements Runnable
 			if (_nativeLifetimeOwned && _creature.isCurrentNativeMagicUseTask(this)) { _creature.abortCast(); }
 			throw failure;
 		}
+	}
+
+	private void nativeHit()
+	{
+		if (_healLearning == null) { _creature.onMagicHitTimer(this); }
+		else { _healLearning.hit(() -> _creature.onMagicHitTimer(this)); }
 	}
 
 	public boolean isNativeLifetimeOwned() { return _nativeLifetimeOwned; }

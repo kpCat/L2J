@@ -20,11 +20,15 @@
  */
 package org.l2jmobius.gameserver.ai;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.interfaces.ILocational;
 import org.l2jmobius.gameserver.model.skill.Skill;
@@ -816,7 +820,24 @@ public abstract class AbstractAI
 	
 	protected void setAttackTarget(Creature target)
 	{
+		if (PlayerNativeEvidence.observesNpcAggro() && PlayerNativeEvidence.expectsNpcAttackTarget(_actor, target))
+		{
+			final Creature previous = (Creature) AttackTargetField.HANDLE.getAndSet(this, target);
+			PlayerNativeEvidence.npcAttackTargetWritten(_actor, previous, target);
+			return;
+		}
 		_attackTarget = target;
+	}
+
+	private static final class AttackTargetField
+	{
+		private static final VarHandle HANDLE;
+
+		static
+		{
+			try { HANDLE = MethodHandles.lookup().findVarHandle(AbstractAI.class, "_attackTarget", Creature.class); }
+			catch (ReflectiveOperationException error) { throw new ExceptionInInitializerError(error); }
+		}
 	}
 	
 	public Creature getAttackTarget()

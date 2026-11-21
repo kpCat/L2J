@@ -1,6 +1,7 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.tests.phantoms;
 
+import static org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.MAX_AGGRO_CASTS;
 import static org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.MAX_ITEM_DEBITS;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroCast;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ResourceObservation;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
@@ -90,6 +92,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 
 		void open(BooleanSupplier current)
 		{
+			open(current, null);
+		}
+
+		void open(BooleanSupplier current, Consumer<NpcAggroCast> aggro)
+		{
 			_observer = PlayerNativeEvidence.observeResourceWrites(write ->
 			{
 				if (write instanceof ItemDebit item && current.getAsBoolean()
@@ -97,7 +104,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				{
 					_items.add(item);
 				}
-			});
+			}, aggro);
 		}
 
 		@Override public synchronized void close()
@@ -246,6 +253,8 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private final ItemCapture _items = new ItemCapture();
 		private final ConcurrentLinkedQueue<NativeHealReceipt> _heals = new ConcurrentLinkedQueue<>();
 		private final ConcurrentLinkedQueue<NativeRechargeReceipt> _recharges = new ConcurrentLinkedQueue<>();
+		private final ConcurrentLinkedQueue<NpcAggroCast> _aggro = new ConcurrentLinkedQueue<>();
+		private final AtomicInteger _aggroCasts = new AtomicInteger();
 		private final AtomicInteger _queued = new AtomicInteger();
 		private final AtomicReference<String> _failure = new AtomicReference<>();
 		private AutoCloseable _observer;
@@ -274,7 +283,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 
 		private void install()
 		{
-			_items.open(() -> ACTIVE_GROUP.get() == this);
+			_items.open(() -> ACTIVE_GROUP.get() == this, _pvpDamage == null ? this::nativeAggro : null);
 			_observer = HealEvidenceV3.observeNativeAudit(this::nativeHeal, this::nativeRecharge, reason -> _failure.compareAndSet(null, reason));
 			if (_pvpDamage != null) { _pvpDamage.claim(); }
 		}
@@ -291,6 +300,29 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			if (_closed || ACTIVE_GROUP.get() != this || _failure.get() != null) { return; }
 			try { if (reserveSupport(receipt.cast(), receipt.observation().capturedNanos())) { _recharges.add(receipt); } }
 			catch (RuntimeException unavailable) { _failure.compareAndSet(null, "NATIVE_RECHARGE_OBSERVER_FAILED"); }
+		}
+
+		private void nativeAggro(NpcAggroCast cast)
+		{
+			if (_closed || ACTIVE_GROUP.get() != this || _failure.get() != null) { return; }
+			final var actor = _players.get(cast.actor());
+			if (cast.instance() != _instance || cast.hitStartedNanos() < _binding.started() || actor == null || !actor.current(_instance, cast.epoch())
+				|| cast.switches().stream().anyMatch(change ->
+				{
+					final var ally = _players.get(change.formerAlly());
+					return ally == null || !ally.current(_instance, change.formerEpoch())
+						|| _binding.npcEpochs().getOrDefault(change.target().objectId(), 0L) != change.target().spawnGeneration();
+				}))
+			{
+				_failure.compareAndSet(null, "FOREIGN_NATIVE_AGGRO");
+				return;
+			}
+			if (_aggroCasts.getAndUpdate(count -> Math.min(count + 1, MAX_AGGRO_CASTS)) >= MAX_AGGRO_CASTS)
+			{
+				_failure.compareAndSet(null, "NATIVE_AGGRO_RECEIPT_CAP");
+				return;
+			}
+			_aggro.add(cast);
 		}
 
 		private boolean reserveSupport(NativeCastTrace cast, long capturedNanos)
@@ -356,6 +388,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 					events.addAll(PhantomLearning131AuditOriginals.rechargeEvents(_binding.episodeId(), recharge));
 					originals.add(PhantomLearning131AuditOriginals.rechargeRow(recharge));
 				});
+			_aggro.stream().sorted(Comparator.comparingLong(NpcAggroCast::hitStartedNanos).thenComparingInt(NpcAggroCast::actor)).forEach(cast ->
+			{
+				events.addAll(PhantomLearning131AuditOriginals.aggroEvents(_binding.episodeId(), cast));
+				originals.add(PhantomLearning131AuditOriginals.aggroRow(_binding.episodeId(), cast));
+			});
 			_items.addRows(_binding.episodeId(), events, originals);
 			return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), _pvpDamage != null, combatEnd, settled, events, originals);
 		}
@@ -1056,7 +1093,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			case "ADMITTED" -> 1;
 			case "EXECUTED" -> 2;
 			case "PAY" -> 3;
-			case "DAMAGE", "HEAL", "MP_TRANSFER" -> 4;
+			case "DAMAGE", "HEAL", "MP_TRANSFER", "AGGRO" -> 4;
 			case "DEATH" -> 5;
 			case "KILL_CREDIT" -> 6;
 			default -> throw new IllegalArgumentException("TASK131_NATIVE_AUDIT_DAMAGE_KIND");

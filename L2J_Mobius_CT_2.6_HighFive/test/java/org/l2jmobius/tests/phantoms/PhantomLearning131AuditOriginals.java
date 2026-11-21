@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroCast;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroSwitch;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeRechargeReceipt;
@@ -30,12 +33,13 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 
-/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V6 episode document. */
+/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V7 episode document. */
 final class PhantomLearning131AuditOriginals
 {
 	static final int MAX_ITEM_DEBITS = 2048;
-	// 9 x 64 casts with two rows each, up to 18 death/stock pairs, plus heal and item ledgers.
-	private static final int MAX_ROWS = 2 * 9 * 64 + 2 * 18 + 512 + MAX_ITEM_DEBITS + 1;
+	static final int MAX_AGGRO_CASTS = 512;
+	// 9 x 64 damage casts, up to 18 death/stock pairs, plus support, aggro and item ledgers.
+	private static final int MAX_ROWS = 2 * 9 * 64 + 2 * 18 + 512 + MAX_AGGRO_CASTS + MAX_ITEM_DEBITS + 1;
 	private static final double HEAL_WRITE_TOLERANCE = 1e-6;
 	private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
 	private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
@@ -90,7 +94,10 @@ final class PhantomLearning131AuditOriginals
 	{
 		long effectNanos() { return original.targetWriteNanos() == 0 ? original.handlerFinishedNanos() : original.targetWriteNanos(); }
 	}
-	record AuditRows(Map<String, Fact> damage, ItemLedger items, Map<String, HealFact> heals, Map<String, RechargeFact> recharges) { }
+	record AggroFact(NpcAggroCast cast, Map<String, NpcAggroSwitch> effects) { }
+	private record AggroCastClock(int actor, long epoch, long nanos) { }
+	record AuditRows(Map<String, Fact> damage, ItemLedger items, Map<String, HealFact> heals, Map<String, RechargeFact> recharges,
+		Map<String, AggroFact> aggro) { }
 
 	private PhantomLearning131AuditOriginals() { }
 
@@ -101,6 +108,7 @@ final class PhantomLearning131AuditOriginals
 		final var items = new ArrayList<String[]>();
 		final var heals = new ArrayList<String[]>();
 		final var recharges = new ArrayList<String[]>();
+		final var aggro = new ArrayList<String[]>();
 		String[] window = null;
 		for (String[] cells : rows)
 		{
@@ -115,6 +123,7 @@ final class PhantomLearning131AuditOriginals
 				case "item" -> items.add(cells);
 				case "heal" -> heals.add(cells);
 				case "recharge" -> recharges.add(cells);
+				case "aggro" -> aggro.add(cells);
 				default -> damage.add(cells);
 			}
 		}
@@ -159,7 +168,27 @@ final class PhantomLearning131AuditOriginals
 			require(keys.add(key) && operations.add(recharge.operationId()), "REUSED_PAID_IDENTITY");
 			rechargeFacts.put(key, recharge);
 		}
-		return new AuditRows(damageFacts, new ItemLedger(opened, closed, count, byKey), Map.copyOf(healFacts), Map.copyOf(rechargeFacts));
+		final var aggroFacts = new HashMap<String, AggroFact>();
+		final var aggroHits = new HashSet<AggroCastClock>();
+		final var aggroDebits = new HashSet<AggroCastClock>();
+		require(aggro.size() <= MAX_AGGRO_CASTS, "AGGRO_CAST_CAP");
+		for (String[] cells : aggro)
+		{
+			final var cast = readAggro(cells);
+			final String operation = eventKey(cells[1]);
+			require(aggroRow(episodeId, cast).equals(String.join("\t", cells)) && operations.add(operation)
+				&& aggroHits.add(new AggroCastClock(cast.actor(), cast.epoch(), cast.hitStartedNanos()))
+				&& aggroDebits.add(new AggroCastClock(cast.actor(), cast.epoch(), cast.paidNanos())), "AGGRO_CAST_IDENTITY");
+			final var effects = new HashMap<String, NpcAggroSwitch>();
+			for (var change : cast.switches())
+			{
+				final String key = aggroEffectKey(operation, change);
+				require(keys.add(key), "REUSED_AGGRO_EFFECT_IDENTITY");
+				effects.put(key, change);
+			}
+			aggroFacts.put(operation, new AggroFact(cast, Map.copyOf(effects)));
+		}
+		return new AuditRows(damageFacts, new ItemLedger(opened, closed, count, byKey), Map.copyOf(healFacts), Map.copyOf(rechargeFacts), Map.copyOf(aggroFacts));
 	}
 
 	static Map<String, Fact> decode(List<String[]> rows, String episodeId)
@@ -399,6 +428,54 @@ final class PhantomLearning131AuditOriginals
 			&& learned(observation, cast.skillId(), cast.skillLevel()), "RECHARGE_CAST_OR_BASELINE");
 		final var maxMp = ally.fact(Field.MAX_MP);
 		require(maxMp.known() && maxMp.value() > 0 && original.afterMp() <= maxMp.value() + HEAL_WRITE_TOLERANCE, "RECHARGE_NATIVE_MP_WRITE");
+	}
+
+	static String aggroRow(String episodeId, NpcAggroCast cast)
+	{
+		final String payload = aggroPayload(cast);
+		return row("aggro", aggroOperation(episodeId, payload)) + "\t" + payload;
+	}
+
+	static List<String> aggroEvents(String episodeId, NpcAggroCast cast)
+	{
+		final String operation = aggroOperation(episodeId, aggroPayload(cast));
+		return cast.switches().stream().map(change -> row("event", aggroEffectKey(operation, change), change.observedNanos(), "AGGRO",
+			cast.actor(), change.target().objectId(), operation, 1)).toList();
+	}
+
+	private static String aggroPayload(NpcAggroCast cast)
+	{
+		final var payload = new StringBuilder(row(cast.actor(), cast.epoch(), cast.instance(), cast.skillId(), cast.skillLevel(), cast.hitStartedNanos(),
+			cast.paidNanos(), cast.mpBefore(), cast.mpAfter()));
+		for (var change : cast.switches())
+		{
+			payload.append('\t').append(row(change.target().objectId(), change.target().spawnGeneration(), change.formerAlly(), change.formerEpoch(), change.observedNanos()));
+		}
+		return payload.toString();
+	}
+
+	private static String aggroOperation(String episodeId, String payload)
+	{
+		return TacticalObservationV3.hash(("TASK131_AGGRO_CAST_V1\n" + episodeId + '\n' + payload).getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static String aggroEffectKey(String operation, NpcAggroSwitch change)
+	{
+		return TacticalObservationV3.hash(("TASK131_AGGRO_EFFECT_V1\n" + operation + '\n' + change.target().objectId() + ':' + change.target().spawnGeneration()).getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static NpcAggroCast readAggro(String[] row)
+	{
+		require(row.length >= 16 && row.length <= 91 && (row.length - 11) % 5 == 0, "AGGRO_CAST_SHAPE");
+		final int instance = nonnegativeInt(row[4]);
+		final var switches = new ArrayList<NpcAggroSwitch>();
+		for (int column = 11; column < row.length; column += 5)
+		{
+			final var target = new Target(object(row[column]), instance, positive(row[column + 1]));
+			switches.add(new NpcAggroSwitch(target, object(row[column + 2]), positive(row[column + 3]), positive(row[column + 4])));
+		}
+		return new NpcAggroCast(object(row[2]), positive(row[3]), instance, object(row[5]), object(row[6]), positive(row[7]), positive(row[8]),
+			scalar(row[9]), scalar(row[10]), switches);
 	}
 
 	static String castRow(NativeCastTrace trace)

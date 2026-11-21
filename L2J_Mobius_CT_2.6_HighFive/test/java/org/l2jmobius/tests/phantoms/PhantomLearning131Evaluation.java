@@ -34,6 +34,7 @@ import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3.Family;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.AuditRows;
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.AggroFact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.Fact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.HealFact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.RechargeFact;
@@ -54,7 +55,7 @@ public final class PhantomLearning131Evaluation
 	private static final String REPORT = "TASK131_EVALUATION_REPORT_V2";
 	static final int DOCUMENT_MAX_BYTES = 8 * 1024 * 1024;
 	static final int PAID_MAX_BYTES = 32 * 1024 * 1024;
-	static final String PAID_SCHEMA = "NATIVE_PAID131_V6";
+	static final String PAID_SCHEMA = "NATIVE_PAID131_V7";
 	private static final Set<String> OPPONENTS = Set.of("B0", "A1", "B1");
 	private static final Set<String> GROUP_SIZES = Set.of("1x2", "2x2", "3x5", "9x9");
 	private static final int BANK_SIZE = 32;
@@ -81,7 +82,7 @@ public final class PhantomLearning131Evaluation
 	}
 	record SoloDamageBinding(String episodeId, String sha, long started, long actorEpoch, long targetEpoch) { }
 	record DuelDamageBinding(String episodeId, String sha, long started, long scoredEpoch, long opponentEpoch) { }
-	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs, Set<Integer> scoredPlayers) { }
+	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs, Set<Integer> scoredPlayers, Map<Integer, Long> npcEpochs) { }
 	record ModelArmBinding(String episodeId, String sha, long started, String modelSha, Map<Integer, Long> scoredEpochs) { }
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt, Set<String> encounters) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, String modelProofSha, int attempt, int position, Block block) { }
@@ -602,7 +603,8 @@ public final class PhantomLearning131Evaluation
 		List<String[]> events, List<String[]> paid)
 	{
 		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(paid, episodeId);
-		require(!originals.damage().isEmpty() || !originals.heals().isEmpty() || !originals.recharges().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
+		require(!originals.damage().isEmpty() || !originals.heals().isEmpty() || !originals.recharges().isEmpty() || !originals.aggro().isEmpty(),
+			"NO_PAID_NATIVE_ORIGINALS");
 		final var roster = participants(binding, Side.valueOf(binding.get("side")));
 		verifyNativeProjection(events, originals, epochs(roster), window, pvp);
 		verifyEffectSides(originals, roster);
@@ -624,6 +626,14 @@ public final class PhantomLearning131Evaluation
 			final var cast = recharge.original().cast();
 			require(roster.get(cast.actorObjectId()).side() == roster.get(cast.targetObjectId()).side(), "RECHARGE_EFFECT_SIDE");
 		}
+		for (var aggro : originals.aggro().values())
+		{
+			final var side = roster.get(aggro.cast().actor()).side();
+			for (var change : aggro.effects().values())
+			{
+				require(roster.get(change.formerAlly()).side() == side && roster.get(change.target().objectId()).side() != side, "AGGRO_EFFECT_SIDE");
+			}
+		}
 	}
 
 	/** A raw event may affect a bank result only when this schema can prove its native origin. */
@@ -644,13 +654,44 @@ public final class PhantomLearning131Evaluation
 				case "DAMAGE", "DEATH", "KILL_CREDIT" -> damage.contains(row[6]);
 				case "HEAL" -> healing.contains(row[6]);
 				case "MP_TRANSFER" -> recharging.contains(row[6]);
+				case "AGGRO" -> originals.aggro().containsKey(row[6]);
 				default -> false;
 			}), "UNPROVEN_NATIVE_EVENT");
 		}
 		verifyPaidProjection(events, originals.damage(), epochs, window, pvp);
 		verifyHealProjection(events, originals.heals(), epochs, window);
 		verifyRechargeProjection(events, originals.recharges(), epochs, window);
+		verifyAggroProjection(events, originals.aggro(), epochs, window, pvp);
 		verifyPaymentProjection(events, originals.items(), epochs, window);
+	}
+
+	private static void verifyAggroProjection(List<String[]> events, Map<String, AggroFact> originals, Map<Integer, Long> roster, EpisodeWindow window, boolean pvp)
+	{
+		require(!pvp || originals.isEmpty(), "PVP_NPC_AGGRO");
+		int expectedEffects = 0;
+		for (var fact : originals.values())
+		{
+			final var cast = fact.cast();
+			require(roster.getOrDefault(cast.actor(), 0L) == cast.epoch() && cast.hitStartedNanos() >= window.started(), "AGGRO_CASTER_OR_WINDOW");
+			for (var change : fact.effects().values())
+			{
+				require(roster.getOrDefault(change.formerAlly(), 0L) == change.formerEpoch()
+					&& roster.getOrDefault(change.target().objectId(), 0L) == change.target().spawnGeneration()
+					&& change.observedNanos() <= window.combatEnd(), "AGGRO_RECIPIENT_OR_WINDOW");
+			}
+			expectedEffects += fact.effects().size();
+		}
+		final var used = new HashSet<String>();
+		for (String[] event : events)
+		{
+			if (!event[3].equals("AGGRO")) { continue; }
+			length(event, 8);
+			final var fact = originals.get(event[6]);
+			final var change = fact == null ? null : fact.effects().get(event[1]);
+			require(change != null && object(event[4]) == fact.cast().actor() && object(event[5]) == change.target().objectId()
+				&& positive(event[2]) == change.observedNanos() && event[7].equals("1") && used.add(event[1]), "AGGRO_WITHOUT_MATCHING_NATIVE_SWITCH");
+		}
+		require(used.size() == expectedEffects, "INCOMPLETE_AGGRO_PROJECTION");
 	}
 
 	private static void verifyHealProjection(List<String[]> events, Map<String, HealFact> originals, Map<Integer, Long> roster, EpisodeWindow window)
@@ -945,12 +986,14 @@ public final class PhantomLearning131Evaluation
 		require(scored == scheduled.block().scene().initialRosterSize() && roster.size() - scored == scheduled.opponentSize(), "HEAL_GROUP_ROSTER");
 		final var players = new HashMap<Integer, Long>();
 		final var scoredPlayers = new HashSet<Integer>();
+		final var npcs = new HashMap<Integer, Long>();
 		roster.forEach((object, member) ->
 		{
 			if (member.side() == side) { scoredPlayers.add(object); }
 			if (stratum == Stratum.GROUP_PVP || member.side() == side) { players.put(object, member.epoch()); }
+			else { npcs.put(object, member.epoch()); }
 		});
-		return new HealBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), Map.copyOf(players), Set.copyOf(scoredPlayers));
+		return new HealBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), Map.copyOf(players), Set.copyOf(scoredPlayers), Map.copyOf(npcs));
 	}
 
 	static ModelArmBinding modelArmBinding(ScheduledArm scheduled, Path path, String expectedSha) throws IOException
@@ -1075,6 +1118,13 @@ public final class PhantomLearning131Evaluation
 					require(price != null && source == target, "PAID_RESOURCE_PRICE");
 					if (friendly) { _paid = _paid.add(price.multiply(BigDecimal.valueOf(positive(row[8])))); }
 				}
+				case "AGGRO" ->
+				{
+					length(row, 8);
+					require(friendly && !friendlyTarget && _block.plan().scene().objective() == Objective.PVE_KILLS, "NATIVE_NPC_AGGRO_REQUIRED");
+					_aggro++;
+					_samples.computeIfAbsent(Role.TANK, _ -> new HashSet<>()).add(operation);
+				}
 				default ->
 				{
 					require(action != null && action.stage() == 2 && action.source() == source, "EFFECT_WITHOUT_EXECUTION");
@@ -1122,16 +1172,9 @@ public final class PhantomLearning131Evaluation
 					else if (mp.signum() > 0) { _opponentEffects++; }
 					return friendly && role == Role.SUPPORT && mp.signum() > 0;
 				}
-				case "AGGRO", "BUFF" ->
+				case "BUFF" ->
 				{
 					length(row, 8);
-					if (row[3].equals("AGGRO"))
-					{
-						decimal(row[7], false);
-						require(friendly != friendlyTarget && _block.plan().scene().objective() == Objective.PVE_KILLS, "NATIVE_NPC_AGGRO_REQUIRED");
-						if (friendly) { _aggro++; }
-						return friendly && role == Role.TANK;
-					}
 					token(row[7]);
 					require(friendly == friendlyTarget, "BUFF_EFFECT");
 					if (friendly) { _buffs++; }

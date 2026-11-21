@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Attackable;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.conditions.Condition;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
@@ -72,7 +73,14 @@ public class GetAgro extends AbstractEffect
 	{
 		if ((effected != null) && effected.isAttackable())
 		{
-			effected.getAI().setIntention(Intention.ATTACK, effector);
+			if (PlayerNativeEvidence.observesNpcAggro())
+			{
+				PlayerNativeEvidence.observeNpcAggroSwitch(effector, effected, skill, () -> effected.getAI().setIntention(Intention.ATTACK, effector));
+			}
+			else
+			{
+				effected.getAI().setIntention(Intention.ATTACK, effector);
+			}
 			
 			// Monsters from the same clan should assist.
 			final NpcTemplate template = effected.asAttackable().getTemplate();
