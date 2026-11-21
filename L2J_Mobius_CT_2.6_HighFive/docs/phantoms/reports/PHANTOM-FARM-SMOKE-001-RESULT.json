@@ -1,0 +1,44 @@
+{
+  "task": "PHANTOM-FARM-SMOKE-001",
+  "date": "2026-11-21",
+  "status": "BLOCKED_SMOKE",
+  "decision": "NO_GO",
+  "phase": "P0",
+  "decisionElapsedSecondsUpperBound": 120,
+  "reason": "P0_R4_ATTESTATION_UNVERIFIABLE",
+  "branch": "feature/phantom-world",
+  "sourceHead": "0d2ac555dfde3b4b1e5ab2fd6cfeca834e769d7e",
+  "sourceParent": "9dd1cdf1c6fd086415db60a53ba4ca73b593b4ab",
+  "githubInitialHead": "0d2ac555dfde3b4b1e5ab2fd6cfeca834e769d7e",
+  "taskManifestVerifiedFiles": 6,
+  "r4": {
+    "taskScenePin": "a87df6c95dccaeac9b67ed03dbbff6b195930b3915e632bf2f3e05c9ae74d10",
+    "taskScenePinLength": 63,
+    "historicalReportScenePin": "a87df6c95d5ccaeac9b67ed03dbbff6b195930b3915e632bf2f3e05c9ae74d10",
+    "fixture": "ACCESS_DENIED",
+    "scenes": "ACCESS_DENIED",
+    "scope": "FILE_NOT_FOUND",
+    "verifiedOriginalSceneSha256": null
+  },
+  "evidenceSha256": {
+    "TASK.md": "3e44a7eac7412f9f4d7e236d594bc66b64585a7332e41aa7ecb252cac0edf599",
+    "TASK131-HANDOFF.md": "a4f51c2b550b74a9b486979a5151462ba431247f0f7585813befa7dbddafb9c9",
+    "TASK131-RESULT.json": "bd21c1957c0719326dfce64c658e0e699083fdc3c6d607bada65ccd43bfca7f8",
+    "PhantomCombat131Fixture.java": "bfe8ce739b2d0cdefb420443b326dc74a7cafc755fe87811d33bc50a8a97e956",
+    "PhantomLearning131Native.java": "2574d4904a3df4ab79cff63143f132ad6e9b0af7ae2016b0d483b6f2b92f02b9"
+  },
+  "acceptance": {"S0": "FAIL", "S1": "UNKNOWN", "S2": "UNKNOWN", "S3": "UNKNOWN", "S4": "UNKNOWN", "S5": "UNKNOWN"},
+  "counts": {"sqlStart": 0, "sqlAttest": 0, "sqlStop": 0, "setup": 0, "combat": 0, "gs": 0, "ls": 0},
+  "nativeEvidence": null,
+  "durableDelta": null,
+  "build": "NOT_RUN",
+  "regression": "NOT_RUN",
+  "negativeControls": "NOT_RUN",
+  "testLaneCreated": false,
+  "observedTestTcpListeners": {"33331": 0, "33332": 0, "33333": 0},
+  "protectedPinsAndShared3308Reattested": false,
+  "changedPaths": [
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-FARM-SMOKE-001.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-FARM-SMOKE-001-RESULT.json"
+  ]
+}
