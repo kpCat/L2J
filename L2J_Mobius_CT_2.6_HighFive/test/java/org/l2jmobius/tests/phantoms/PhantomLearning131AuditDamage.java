@@ -35,6 +35,8 @@ import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerPvPKill;
 import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
@@ -53,17 +55,21 @@ import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.NativeTiming;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.DuelDamageBinding;
+import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.HealBinding;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.ScheduledArm;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.SoloDamageBinding;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Outcome;
+import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Stratum;
 
 /** Joins paid stock cast originals and native writes for an owned Solo PvE or 1x1 PvP AUDIT fragment. */
 final class PhantomLearning131AuditDamage implements AutoCloseable
 {
 	private static final int MAX_CASTS = 64;
 	private static final int MAX_ITEM_WRITES = 512;
+	private static final int MAX_HEAL_WRITES = 512;
 	private static final AtomicReference<PhantomLearning131AuditDamage> ACTIVE = new AtomicReference<>();
 	private static final AtomicReference<PvpCapture> ACTIVE_DUEL = new AtomicReference<>();
+	private static final AtomicReference<GroupHealCapture> ACTIVE_GROUP = new AtomicReference<>();
 
 	record DuelDeath(int killer, int victim, long victimEpoch, long corpseGeneration, long observedNanos) { }
 	record DuelDamageTotals(int paidDealt, int paidReceived, BigDecimal hpDealt, BigDecimal cpDealt, BigDecimal hpReceived, BigDecimal cpReceived) { }
@@ -184,14 +190,156 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	{
 		boolean current()
 		{
-			return profile > 0 && owner != null && player.getNativeWorkOwner() == owner && owner.player() == player && owner.epoch() == epoch && owner.isCurrent()
-				&& owner.evidence() != null && owner.evidence() == PlayerNativeWork.observationEvidence(player)
-				&& World.getInstance().findObject(player.getObjectId()) == player;
+			return profile > 0 && currentOwner(player, epoch, owner);
 		}
 
 		boolean drained()
 		{
-			return !owner.isCurrent() && PlayerNativeWork.observationEvidence(player) == null && World.getInstance().findObject(player.getObjectId()) == null;
+			return drainedOwner(player, owner);
+		}
+	}
+
+	private static boolean currentOwner(Player player, long epoch, PlayerNativeWork.Owner owner)
+	{
+		return owner != null && player.getNativeWorkOwner() == owner && owner.player() == player && owner.epoch() == epoch && owner.isCurrent()
+			&& owner.evidence() != null && owner.evidence() == PlayerNativeWork.observationEvidence(player)
+			&& World.getInstance().findObject(player.getObjectId()) == player;
+	}
+
+	private static boolean drainedOwner(Player player, PlayerNativeWork.Owner owner)
+	{
+		return !owner.isCurrent() && PlayerNativeWork.observationEvidence(player) == null && World.getInstance().findObject(player.getObjectId()) == null;
+	}
+
+	private record HealParticipant(Player player, long epoch, PlayerNativeWork.Owner owner)
+	{
+		boolean current(int instance, long observedEpoch)
+		{
+			return observedEpoch == epoch && player.getInstanceId() == instance && currentOwner(player, epoch, owner);
+		}
+
+		boolean drained() { return drainedOwner(player, owner); }
+	}
+
+	/** Passive HEAL and item writer capture for the exact bound group. Combat and leases stay with their native owners. */
+	static final class GroupHealCapture implements AutoCloseable
+	{
+		private final HealBinding _binding;
+		private final Path _bindingFile;
+		private final boolean _pvp;
+		private final int _instance;
+		private final Map<Integer, HealParticipant> _players;
+		private final ItemCapture _items = new ItemCapture();
+		private final ConcurrentLinkedQueue<NativeHealReceipt> _heals = new ConcurrentLinkedQueue<>();
+		private final AtomicInteger _queued = new AtomicInteger();
+		private final AtomicReference<String> _failure = new AtomicReference<>();
+		private AutoCloseable _observer;
+		private boolean _draining;
+		private volatile boolean _closed;
+
+		private GroupHealCapture(HealBinding binding, Path bindingFile, boolean pvp, Map<Integer, Player> players)
+		{
+			_binding = binding;
+			_bindingFile = bindingFile;
+			_pvp = pvp;
+			final var roster = Map.copyOf(players);
+			require(roster.size() > 1 && roster.keySet().equals(binding.playerEpochs().keySet())
+				&& binding.started() <= System.nanoTime(), "NATIVE_HEAL_ROSTER");
+			_instance = roster.values().iterator().next().getInstanceId();
+			final var participants = new HashMap<Integer, HealParticipant>();
+			roster.forEach((id, player) ->
+			{
+				final long epoch = binding.playerEpochs().get(id);
+				final var participant = new HealParticipant(player, epoch, player.getNativeWorkOwner());
+				require(player.getObjectId() == id && !player.isAlikeDead() && participant.current(_instance, epoch), "NATIVE_HEAL_OWNER");
+				participants.put(id, participant);
+			});
+			_players = Map.copyOf(participants);
+		}
+
+		private void install()
+		{
+			_items.open(() -> ACTIVE_GROUP.get() == this);
+			_observer = HealEvidenceV3.observeNativeAudit(this::nativeHeal, reason -> _failure.compareAndSet(null, reason));
+		}
+
+		private void nativeHeal(NativeHealReceipt receipt)
+		{
+			if (_closed || ACTIVE_GROUP.get() != this || _failure.get() != null) { return; }
+			try { recordHeal(receipt); }
+			catch (RuntimeException unavailable) { _failure.compareAndSet(null, "NATIVE_HEAL_OBSERVER_FAILED"); }
+		}
+
+		private void recordHeal(NativeHealReceipt receipt)
+		{
+			final var cast = receipt.cast();
+			final var actor = _players.get(cast.actorObjectId());
+			final var target = _players.get(cast.targetObjectId());
+			if (actor == null || target == null || cast.instanceId() != _instance || receipt.observation().capturedNanos() < _binding.started()
+				|| !actor.current(_instance, cast.actorEpoch()) || !target.current(_instance, cast.targetEpoch()))
+			{
+				_failure.compareAndSet(null, "FOREIGN_NATIVE_HEAL");
+				return;
+			}
+			if (_queued.getAndUpdate(count -> Math.min(count + 1, MAX_HEAL_WRITES)) >= MAX_HEAL_WRITES)
+			{
+				_failure.compareAndSet(null, "NATIVE_HEAL_RECEIPT_CAP");
+				return;
+			}
+			_heals.add(receipt);
+		}
+
+		String sealAfterDrain(TacticalEpisodeV3.NativeDrain drain, long combatEnd, List<String> otherEvents, List<String> otherOriginals) throws Exception
+		{
+			synchronized (this)
+			{
+				require(!_closed && !_draining && ACTIVE_GROUP.get() == this, "NATIVE_HEAL_CAPTURE_NOT_OPEN");
+				_draining = true;
+			}
+			try
+			{
+				drain.finish();
+				require(_players.values().stream().allMatch(HealParticipant::drained), "NATIVE_HEAL_GROUP_NOT_DRAINED");
+				return sealDrained(combatEnd, otherEvents, otherOriginals);
+			}
+			finally { close(); }
+		}
+
+		private synchronized String sealDrained(long combatEnd, List<String> otherEvents, List<String> otherOriginals) throws IOException
+		{
+			require(!_closed && ACTIVE_GROUP.get() == this, "NATIVE_HEAL_CAPTURE_NOT_OPEN");
+			stopObservers();
+			final long settled = System.nanoTime();
+			final String failure = _failure.get();
+			require(failure == null, failure);
+			final var events = new ArrayList<>(otherEvents);
+			final var originals = new ArrayList<>(otherOriginals);
+			_heals.stream().sorted(Comparator.comparingLong((NativeHealReceipt heal) -> heal.cast().decisionNanos())
+				.thenComparing(heal -> heal.cast().eventKey())).forEach(heal ->
+				{
+					events.addAll(PhantomLearning131AuditOriginals.healEvents(_binding.episodeId(), heal));
+					originals.add(PhantomLearning131AuditOriginals.healRow(heal));
+				});
+			_items.addRows(_binding.episodeId(), events, originals);
+			return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), _pvp, combatEnd, settled, events, originals);
+		}
+
+		private void stopObservers()
+		{
+			final var observer = _observer;
+			_observer = null;
+			try { _items.close(); }
+			finally { closeAuditObserver(observer); }
+		}
+
+		@Override public synchronized void close()
+		{
+			_closed = true;
+			if (ACTIVE_GROUP.get() == this)
+			{
+				try { stopObservers(); }
+				finally { ACTIVE_GROUP.compareAndSet(this, null); }
+			}
 		}
 	}
 
@@ -552,6 +700,28 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			&& binding.started() <= System.nanoTime(), "NATIVE_OWNER_OR_SPAWN");
 	}
 
+	/** Bind every scheduled player before the scoped HEAL and item observers can receive native writes. */
+	static GroupHealCapture openGroupHeal(ScheduledArm planned, Path binding, String bindingSha, String nonce, Map<Integer, Player> players) throws IOException
+	{
+		requireOwnedBoot(nonce);
+		final var stratum = planned.block().stratum();
+		require(stratum == Stratum.PARTY_PVE || stratum == Stratum.GROUP_PVP, "NATIVE_HEAL_GROUP_STRATUM");
+		final var sealed = PhantomLearning131Evaluation.healBinding(planned, binding, bindingSha);
+		requireUnusedEpisode(binding, sealed.episodeId());
+		final var capture = new GroupHealCapture(sealed, binding, stratum == Stratum.GROUP_PVP, players);
+		require(ACTIVE_GROUP.compareAndSet(null, capture), "NATIVE_HEAL_OBSERVER_BUSY");
+		try
+		{
+			capture.install();
+			return capture;
+		}
+		catch (RuntimeException failure)
+		{
+			capture.close();
+			throw failure;
+		}
+	}
+
 	/** Capture paid native DAMAGE in either direction of the exact planned duel. */
 	static PvpCapture openPvp(ScheduledArm planned, Path binding, String bindingSha, String nonce, long scoredProfile, Player scored,
 		long opponentProfile, Player opponent, Map<LearningPolicy, LearningPolicy.Observer> ownedObservers) throws IOException
@@ -753,7 +923,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		final var window = PhantomLearning131Evaluation.verifyClosedDamage(binding, episodeId, bindingSha, pvp, combatEnd, settled, events, paid);
 		final String identity = meta("episodeId", episodeId) + meta("bindingSha", bindingSha);
 		final String evidence = meta("schema", "NATIVE_EVENTS131_V1") + identity + rows(events);
-		final String originals = meta("schema", "NATIVE_PAID131_V4") + identity + rows(paid);
+		final String originals = meta("schema", "NATIVE_PAID131_V5") + identity + rows(paid);
 		final String eventsSha = contentSha(evidence), paidSha = contentSha(originals);
 		final String seal = meta("schema", "NATIVE_EPISODE131_V3") + meta("bindingSha", bindingSha) + meta("eventsSha", eventsSha)
 			+ meta("paidOriginalsSha", paidSha) + meta("status", "DRAINED")
@@ -777,7 +947,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			case "ADMITTED" -> 1;
 			case "EXECUTED" -> 2;
 			case "PAY" -> 3;
-			case "DAMAGE" -> 4;
+			case "DAMAGE", "HEAL" -> 4;
 			case "DEATH" -> 5;
 			case "KILL_CREDIT" -> 6;
 			default -> throw new IllegalArgumentException("TASK131_NATIVE_AUDIT_DAMAGE_KIND");

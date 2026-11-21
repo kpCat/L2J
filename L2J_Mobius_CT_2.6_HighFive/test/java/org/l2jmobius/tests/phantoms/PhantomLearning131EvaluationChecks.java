@@ -14,6 +14,7 @@ import java.util.Map;
 
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
@@ -54,6 +55,7 @@ public final class PhantomLearning131EvaluationChecks
 		paidPveOriginalRoundTrip();
 		paidPvpCpOriginalRoundTrip();
 		paidItemsRequireNativeLedger();
+		paidHealingRequiresItsNativeEffect();
 		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
 	}
@@ -247,7 +249,7 @@ public final class PhantomLearning131EvaluationChecks
 				check(digest(seal).equals(sealed), "a repeated publication preserves the original seal");
 			}
 			final Path paid = directory.resolve("paid131.tsv");
-			Files.writeString(paid, Files.readString(paid).replace("meta\tschema\tNATIVE_PAID131_V4", "meta\tschema\tNATIVE_PAID131_V3"));
+			Files.writeString(paid, Files.readString(paid).replace("meta\tschema\tNATIVE_PAID131_V5", "meta\tschema\tNATIVE_PAID131_V4"));
 			try
 			{
 				PhantomLearning131Evaluation.verifySealedDamage(binding, episode, sealed, false);
@@ -294,6 +296,49 @@ public final class PhantomLearning131EvaluationChecks
 		final var empty = PhantomLearning131AuditOriginals.decodeAuditRows(Collections.singletonList(emptyWindow), episode).items();
 		PhantomLearning131Evaluation.verifyPaymentProjection(List.of(), empty, roster, window);
 		rejectsItemLedger(List.of(), episode);
+	}
+
+	private static void paidHealingRequiresItsNativeEffect()
+	{
+		final String episode = "7".repeat(64), key = "8".repeat(64);
+		final var self = new TacticalObservationV3.Entity(TacticalObservationV3.Role.SELF, 42, 7, 0, 0, Map.of(), List.of(), List.of(),
+			List.of(new TacticalObservationV3.Ability(1011, 4, 10, 4, 500, 0, 300, true), new TacticalObservationV3.Ability(1015, 5, 10, 4, 500, 0, 300, true)), List.of());
+		final var ally = new TacticalObservationV3.Entity(TacticalObservationV3.Role.ALLY, 103, 92, 0, 0,
+			Map.of(TacticalObservationV3.Field.MAX_HP, TacticalObservationV3.Fact.known(800)), List.of(), List.of(), List.of(), List.of());
+		final var observation = new TacticalObservationV3(1, 1000, 1, 42, 7, "42:42@7,103@92", List.of(self, ally));
+		final var trace = new NativeCastTrace(key, 42, 7, 103, 92, 3, 1011, 4, 1015, 5, 1002, 1006, 1010, TacticalObservationV3.hash(observation.bytes()));
+		final var owner = new SourceOwner(12, "support-12");
+		final String[] items = PhantomLearning131AuditOriginals.itemWindow(1000, 1068, 0).split("\t", -1);
+		final var roster = Map.of(42, 7L, 103, 92L);
+		final var window = new EpisodeWindow(1000, 50, 70);
+		final var apply = new NativeHealReceipt(trace, observation, owner, 1013, 1016, 1003, 1011, 720, 800, 150, 80, 4);
+		final String[] wire = PhantomLearning131AuditOriginals.healRow(apply).split("\t", -1);
+		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(List.of(items, wire), episode);
+		final var events = PhantomLearning131AuditOriginals.healEvents(episode, apply).stream().map(row -> row.split("\t", -1)).toList();
+		PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster, window, false);
+		final var heal = originals.heals().get(key);
+		check(heal.effective().compareTo(new BigDecimal("80")) == 0 && heal.overheal().compareTo(new BigDecimal("70")) == 0
+			&& heal.original().paidMp() == 4, "native healing, clamped excess and paid MP survive replay");
+		rejectsHealProjection(changedField(events, 3, 8, "71"), originals, roster, window);
+		rejectsHealProjection(changedField(events, 1, 5, "42"), originals, roster, window);
+		rejectsHealProjection(events, originals, Map.of(42, 7L, 103, 93L), window);
+		rejectsHealProjection(events, originals, roster, new EpisodeWindow(1000, 14, 70));
+		refuse(() -> new NativeHealReceipt(trace, observation, owner, 1013, 1016, 1003, 1011, 720, 790, 150, 80, 4),
+			"a mismatched native HP write must not produce an exact heal receipt");
+		final var clamped = new NativeHealReceipt(trace, observation, owner, 1013, 0, 1003, 1011, 0, 0, 200, 0, 4);
+		final String[] noWrite = PhantomLearning131AuditOriginals.healRow(clamped).split("\t", -1);
+		final var clampedOriginals = PhantomLearning131AuditOriginals.decodeAuditRows(List.of(items, noWrite), episode);
+		PhantomLearning131Evaluation.verifyNativeProjection(PhantomLearning131AuditOriginals.healEvents(episode, clamped).stream().map(row -> row.split("\t", -1)).toList(),
+			clampedOriginals, roster, window, false);
+		check(clampedOriginals.heals().get(key).effective().signum() == 0
+			&& clampedOriginals.heals().get(key).overheal().compareTo(new BigDecimal("200")) == 0, "a fully clamped paid heal must earn no useful HP");
+	}
+
+	private static void rejectsHealProjection(List<String[]> events, PhantomLearning131AuditOriginals.AuditRows originals, Map<Integer, Long> roster, EpisodeWindow window)
+	{
+		try { PhantomLearning131Evaluation.verifyNativeProjection(events, originals, roster, window, false); }
+		catch (IllegalArgumentException refused) { return; }
+		throw new AssertionError("An unproven heal entered the AUDIT result");
 	}
 
 	private static void rejectsItemLedger(List<String[]> rows, String episode)
@@ -457,6 +502,8 @@ public final class PhantomLearning131EvaluationChecks
 			"producer can read all planned arms in stratum, block-index and position order before collecting evidence");
 		checkSoloDamageBinding(plan.getFirst(), temporary);
 		checkDuelDamageBinding(plan.stream().filter(slot -> slot.block().stratum() == Stratum.DUEL_PVP).findFirst().orElseThrow(), temporary);
+		checkHealBinding(plan.stream().filter(slot -> slot.block().stratum() == Stratum.PARTY_PVE).findFirst().orElseThrow(), temporary);
+		checkHealBinding(plan.stream().filter(slot -> slot.block().stratum() == Stratum.GROUP_PVP).findFirst().orElseThrow(), temporary);
 
 		final var lines = Files.readAllLines(protocol);
 		final int firstBlock = 5;
@@ -533,6 +580,35 @@ public final class PhantomLearning131EvaluationChecks
 		{
 			check(refused.getMessage().equals("EVAL131_DUEL_DAMAGE_ROSTER"), "duel participant sides are checked independently of the binding hash");
 		}
+	}
+
+	private static void checkHealBinding(PhantomLearning131Evaluation.ScheduledArm scheduled, Path temporary) throws Exception
+	{
+		final Slot slot = scheduled.slot();
+		final Side opposing = slot.side() == Side.LEFT ? Side.RIGHT : Side.LEFT;
+		final var stratum = scheduled.block().stratum();
+		final Path path = temporary.resolve("heal-" + stratum + ".tsv");
+		final String episode = "heal-" + stratum;
+		final var rows = new StringBuilder(meta("schema", "NATIVE_BINDING131_V1", "manifestSha", "a".repeat(64), "bootId", "00003",
+			"blockId", scheduled.block().id(), "episodeId", episode, "attempt", "0", "position", Integer.toString(scheduled.position()),
+			"arm", slot.arm().name(), "side", slot.side().name(), "sceneId", scheduled.sceneId(), "fixtureSha", scheduled.fixtureSha(),
+			"opponentSha", "b".repeat(64), "policySha", "c".repeat(64), "modelSha", slot.arm() == Arm.C || slot.arm() == Arm.R ? "d".repeat(64) : "NONE",
+			"startNanos", "100"));
+		final int own = scheduled.block().scene().initialRosterSize();
+		for (int index = 0; index < own; index++)
+		{
+			rows.append("actor\t").append(42 + index).append("\t71\t").append(slot.side()).append("\tHEAL\n");
+		}
+		for (int index = 0; index < scheduled.opponentSize(); index++)
+		{
+			rows.append("actor\t").append(102 + index).append("\t91\t").append(opposing).append("\tOPPONENT\n");
+		}
+		Files.writeString(path, rows);
+		final var binding = PhantomLearning131Evaluation.healBinding(scheduled, path, digest(path));
+		final boolean groupPvp = stratum == Stratum.GROUP_PVP;
+		check(binding.episodeId().equals(episode) && binding.started() == 100 && binding.playerEpochs().get(42) == 71
+			&& binding.playerEpochs().containsKey(102) == groupPvp && binding.playerEpochs().size() == own + (groupPvp ? scheduled.opponentSize() : 0),
+			"Group healing binds the planned players and excludes NPC opponents");
 	}
 
 	private static void refuseSchedule(Path protocol, String sha, String reason) throws Exception

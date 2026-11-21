@@ -25,8 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.AuditRows;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.Fact;
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.HealFact;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.ItemLedger;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.BlockPlan;
@@ -69,6 +71,7 @@ public final class PhantomLearning131Evaluation
 	}
 	record SoloDamageBinding(String episodeId, String sha, long started, long actorEpoch, long targetEpoch) { }
 	record DuelDamageBinding(String episodeId, String sha, long started, long scoredEpoch, long opponentEpoch) { }
+	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs) { }
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
@@ -381,7 +384,7 @@ public final class PhantomLearning131Evaluation
 	{
 		final Document events = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
 		require(events.sha().equals(eventsSha) && events.get("episodeId").equals(id) && events.get("bindingSha").equals(bindingSha), "RAW_EVENTS_PIN");
-		final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V4", "schema", "episodeId", "bindingSha");
+		final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V5", "schema", "episodeId", "bindingSha");
 		require(paid.sha().equals(paidSha) && paid.get("episodeId").equals(id) && paid.get("bindingSha").equals(bindingSha), "PAID_ORIGINALS_PIN");
 		return new EpisodeDocuments(events, paid);
 	}
@@ -419,26 +422,81 @@ public final class PhantomLearning131Evaluation
 		List<String[]> events, List<String[]> paid)
 	{
 		final var originals = PhantomLearning131AuditOriginals.decodeAuditRows(paid, episodeId);
-		require(!originals.damage().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
-		verifyNativeProjection(events, originals, epochs(participants(binding, Side.valueOf(binding.get("side")))), window, pvp);
+		require(!originals.damage().isEmpty() || !originals.heals().isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
+		final var roster = participants(binding, Side.valueOf(binding.get("side")));
+		verifyNativeProjection(events, originals, epochs(roster), window, pvp);
+		for (var heal : originals.heals().values())
+		{
+			final var cast = heal.original().cast();
+			require(roster.get(cast.actorObjectId()).side() == roster.get(cast.targetObjectId()).side(), "HEAL_EFFECT_SIDE");
+		}
 	}
 
 	/** A raw event may affect a bank result only when this schema can prove its native origin. */
 	static void verifyNativeProjection(List<String[]> events, AuditRows originals, Map<Integer, Long> epochs, EpisodeWindow window, boolean pvp)
 	{
-		final var operations = new HashSet<String>();
-		originals.damage().values().forEach(fact -> operations.add(fact.operationId()));
+		final var damage = new HashSet<String>();
+		final var healing = new HashSet<String>();
+		originals.damage().values().forEach(fact -> damage.add(fact.operationId()));
+		originals.heals().values().forEach(fact -> healing.add(fact.operationId()));
 		for (String[] row : events)
 		{
 			require(row.length >= 7 && (switch (row[3])
 			{
 				case "PAY" -> true;
-				case "DECISION", "ADMITTED", "EXECUTED", "DAMAGE", "DEATH", "KILL_CREDIT" -> operations.contains(row[6]);
+				case "DECISION", "ADMITTED", "EXECUTED" -> damage.contains(row[6]) || healing.contains(row[6]);
+				case "DAMAGE", "DEATH", "KILL_CREDIT" -> damage.contains(row[6]);
+				case "HEAL" -> healing.contains(row[6]);
 				default -> false;
 			}), "UNPROVEN_NATIVE_EVENT");
 		}
 		verifyPaidProjection(events, originals.damage(), epochs, window, pvp);
+		verifyHealProjection(events, originals.heals(), epochs, window);
 		verifyPaymentProjection(events, originals.items(), epochs, window);
+	}
+
+	private static void verifyHealProjection(List<String[]> events, Map<String, HealFact> originals, Map<Integer, Long> roster, EpisodeWindow window)
+	{
+		final var operations = new HashMap<String, HealFact>();
+		final var stages = new HashMap<String, Integer>();
+		for (var fact : originals.values())
+		{
+			final var nativeHeal = fact.original();
+			final var cast = nativeHeal.cast();
+			require(operations.putIfAbsent(fact.operationId(), fact) == null
+				&& roster.getOrDefault(cast.actorObjectId(), 0L) == cast.actorEpoch()
+				&& roster.getOrDefault(cast.targetObjectId(), 0L) == cast.targetEpoch(), "HEAL_PARTICIPANT_EPOCH");
+			require(nativeHeal.observation().capturedNanos() >= window.started() && healEffectNanos(fact) <= window.combatEnd()
+				&& nativeHeal.mpFinishedNanos() <= window.settledEnd(), "HEAL_ORIGIN_OR_NATIVE_WINDOW");
+		}
+		final var used = new HashSet<String>();
+		for (String[] event : events)
+		{
+			final var fact = operations.get(event[6]);
+			if (fact == null) { continue; }
+			final var cast = fact.original().cast();
+			if (event[3].equals("HEAL"))
+			{
+				length(event, 9);
+				require(stages.getOrDefault(event[6], 0) == 3 && event[1].equals(cast.eventKey()) && object(event[4]) == cast.actorObjectId()
+					&& object(event[5]) == cast.targetObjectId() && positive(event[2]) == healEffectNanos(fact)
+					&& decimal(event[7], true).compareTo(fact.effective()) == 0 && decimal(event[8], true).compareTo(fact.overheal()) == 0
+					&& used.add(event[1]), "HEAL_WITHOUT_MATCHING_PAID_ORIGINAL");
+			}
+			else
+			{
+				final int stage = verifyPaidCastStage(event, cast, fact.operationId(), true);
+				require(stages.getOrDefault(event[6], 0) == stage - 1, "HEAL_CAST_STAGE_ORDER");
+				stages.put(event[6], stage);
+			}
+		}
+		require(used.size() == originals.size(), "INCOMPLETE_HEAL_PROJECTION");
+	}
+
+	private static long healEffectNanos(HealFact fact)
+	{
+		final var original = fact.original();
+		return original.hpWriteNanos() > 0 ? original.hpWriteNanos() : original.offeredNanos();
 	}
 
 	private static Map<Integer, Long> epochs(Map<Integer, Participant> roster)
@@ -507,7 +565,7 @@ public final class PhantomLearning131Evaluation
 					final var fact = paidOperations.get(event[6]);
 					if (fact != null)
 					{
-						final int stage = verifyPaidCastStage(event, fact);
+						final int stage = verifyPaidCastStage(event, fact.trace(), fact.operationId(), false);
 						require(castStages.getOrDefault(event[6], 0) == stage - 1, "PAID_CAST_STAGE_ORDER");
 						castStages.put(event[6], stage);
 					}
@@ -541,18 +599,18 @@ public final class PhantomLearning131Evaluation
 		require(usedDamage.size() == originals.size() && deaths.isEmpty() && credits.isEmpty(), "INCOMPLETE_PAID_PROJECTION");
 	}
 
-	private static int verifyPaidCastStage(String[] event, Fact fact)
+	private static int verifyPaidCastStage(String[] event, NativeCastTrace trace, String operationId, boolean heal)
 	{
 		final String kind = event[3];
-		final var trace = fact.trace();
 		final String skill = PhantomLearning131AuditOriginals.skillToken(trace.skillId(), trace.skillLevel());
-		require(samePaidEndpoints(event, fact) && event[1].equals(PhantomLearning131AuditOriginals.castStageKey(fact.eventKey(), kind)),
+		require(event[6].equals(operationId) && object(event[4]) == trace.actorObjectId() && object(event[5]) == trace.targetObjectId()
+			&& event[1].equals(PhantomLearning131AuditOriginals.castStageKey(trace.eventKey(), kind)),
 			"PAID_CAST_STAGE_BINDING");
 		switch (kind)
 		{
 			case "DECISION":
 				length(event, 10);
-				require(positive(event[2]) == trace.decisionNanos() && (event[7].equals("DAMAGE") || event[7].equals("OPPONENT"))
+				require(positive(event[2]) == trace.decisionNanos() && (heal ? event[7].equals("HEAL") : event[7].equals("DAMAGE") || event[7].equals("OPPONENT"))
 					&& event[8].equals(skill) && event[9].equals(PhantomLearning131AuditOriginals.skillToken(trace.baselineSkillId(), trace.baselineSkillLevel())),
 					"PAID_CAST_DECISION");
 				return 1;
@@ -619,7 +677,7 @@ public final class PhantomLearning131Evaluation
 	static SoloDamageBinding soloDamageBinding(ScheduledArm scheduled, Path path, String expectedSha, int actorId, int targetId) throws IOException
 	{
 		require(scheduled.block().stratum() == Stratum.SOLO_PVE && actorId != targetId, "SOLO_DAMAGE_BINDING");
-		final Document binding = scheduledDamageBinding(scheduled, path, expectedSha, "SOLO_DAMAGE");
+		final Document binding = scheduledBinding(scheduled, path, expectedSha, "SOLO_DAMAGE");
 		final Slot slot = scheduled.slot();
 		final var roster = participants(binding, slot.side());
 		final Participant actor = roster.get(actorId), target = roster.get(targetId);
@@ -633,7 +691,7 @@ public final class PhantomLearning131Evaluation
 	{
 		require(scheduled.block().stratum() == Stratum.DUEL_PVP && scheduled.block().scene().initialRosterSize() == 1
 			&& scheduled.opponentSize() == 1 && scoredId != opponentId, "DUEL_DAMAGE_BINDING");
-		final Document binding = scheduledDamageBinding(scheduled, path, expectedSha, "DUEL_DAMAGE");
+		final Document binding = scheduledBinding(scheduled, path, expectedSha, "DUEL_DAMAGE");
 		final Slot slot = scheduled.slot();
 		final var roster = participants(binding, slot.side());
 		final Participant scored = roster.get(scoredId), opponent = roster.get(opponentId);
@@ -642,7 +700,24 @@ public final class PhantomLearning131Evaluation
 		return new DuelDamageBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), scored.epoch(), opponent.epoch());
 	}
 
-	private static Document scheduledDamageBinding(ScheduledArm scheduled, Path path, String expectedSha, String name) throws IOException
+	static HealBinding healBinding(ScheduledArm scheduled, Path path, String expectedSha) throws IOException
+	{
+		final Stratum stratum = scheduled.block().stratum();
+		require(stratum == Stratum.PARTY_PVE || stratum == Stratum.GROUP_PVP, "HEAL_GROUP_STRATUM");
+		final Document binding = scheduledBinding(scheduled, path, expectedSha, "HEAL_GROUP");
+		final Side side = scheduled.slot().side();
+		final var roster = participants(binding, side);
+		final long scored = roster.values().stream().filter(member -> member.side() == side).count();
+		require(scored == scheduled.block().scene().initialRosterSize() && roster.size() - scored == scheduled.opponentSize(), "HEAL_GROUP_ROSTER");
+		final var players = new HashMap<Integer, Long>();
+		roster.forEach((object, member) ->
+		{
+			if (stratum == Stratum.GROUP_PVP || member.side() == side) { players.put(object, member.epoch()); }
+		});
+		return new HealBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), Map.copyOf(players));
+	}
+
+	private static Document scheduledBinding(ScheduledArm scheduled, Path path, String expectedSha, String name) throws IOException
 	{
 		final Document binding = readBinding(path);
 		final Slot slot = scheduled.slot();

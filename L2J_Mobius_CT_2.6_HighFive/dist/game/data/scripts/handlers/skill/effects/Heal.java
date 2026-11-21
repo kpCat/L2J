@@ -30,6 +30,7 @@ import org.l2jmobius.gameserver.model.stats.Formulas;
 import org.l2jmobius.gameserver.model.stats.Stat;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3;
 
 /**
  * Heal effect implementation.
@@ -114,7 +115,9 @@ public class Heal extends AbstractEffect
 		}
 		
 		// Prevents overheal and negative amount.
+		final double offered = amount;
 		amount = Math.max(Math.min(amount, effected.getMaxRecoverableHp() - effected.getCurrentHp()), 0);
+		HealEvidenceV3.nativeOffer(effector, effected, skill, offered, amount);
 		if (amount != 0)
 		{
 			effected.setCurrentHp(amount + effected.getCurrentHp());

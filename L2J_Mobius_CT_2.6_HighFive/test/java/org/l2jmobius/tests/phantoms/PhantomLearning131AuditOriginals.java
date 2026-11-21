@@ -14,6 +14,7 @@ import java.util.Map;
 
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.ItemDebit;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.NativeHealReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
@@ -28,11 +29,12 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 
-/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V4 episode document. */
+/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V5 episode document. */
 final class PhantomLearning131AuditOriginals
 {
 	private static final int MAX_ROWS = 1024;
 	private static final long MAX_ITEM_DEBITS = 512;
+	private static final double HEAL_WRITE_TOLERANCE = 1e-6;
 	private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
 	private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
 
@@ -81,7 +83,8 @@ final class PhantomLearning131AuditOriginals
 		ItemLedger { debits = Map.copyOf(debits); }
 	}
 
-	record AuditRows(Map<String, Fact> damage, ItemLedger items) { }
+	record HealFact(NativeHealReceipt original, String operationId, BigDecimal effective, BigDecimal overheal) { }
+	record AuditRows(Map<String, Fact> damage, ItemLedger items, Map<String, HealFact> heals) { }
 
 	private PhantomLearning131AuditOriginals() { }
 
@@ -90,6 +93,7 @@ final class PhantomLearning131AuditOriginals
 		require(episodeId.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,95}") && rows.size() <= MAX_ROWS, "EPISODE_OR_ROW_LIMIT");
 		final var damage = new ArrayList<String[]>();
 		final var items = new ArrayList<String[]>();
+		final var heals = new ArrayList<String[]>();
 		String[] window = null;
 		for (String[] cells : rows)
 		{
@@ -102,6 +106,7 @@ final class PhantomLearning131AuditOriginals
 					window = cells;
 				}
 				case "item" -> items.add(cells);
+				case "heal" -> heals.add(cells);
 				default -> damage.add(cells);
 			}
 		}
@@ -123,7 +128,22 @@ final class PhantomLearning131AuditOriginals
 				"ITEM_STACK_CONTINUITY");
 			require(byKey.putIfAbsent(key, debit) == null, "ITEM_DUPLICATE");
 		}
-		return new AuditRows(decode(damage, episodeId), new ItemLedger(opened, closed, count, byKey));
+		final var damageFacts = decode(damage, episodeId);
+		final var keys = new HashSet<>(byKey.keySet());
+		final var operations = new HashSet<>(byKey.keySet());
+		for (Fact fact : damageFacts.values())
+		{
+			require(keys.add(fact.eventKey()) && operations.add(fact.operationId()), "REUSED_PAID_IDENTITY");
+		}
+		final var healFacts = new HashMap<String, HealFact>();
+		for (String[] cells : heals)
+		{
+			final HealFact heal = healFact(episodeId, readHeal(cells));
+			final String key = heal.original().cast().eventKey();
+			require(keys.add(key) && operations.add(heal.operationId()), "REUSED_PAID_IDENTITY");
+			healFacts.put(key, heal);
+		}
+		return new AuditRows(damageFacts, new ItemLedger(opened, closed, count, byKey), Map.copyOf(healFacts));
 	}
 
 	static Map<String, Fact> decode(List<String[]> rows, String episodeId)
@@ -242,9 +262,84 @@ final class PhantomLearning131AuditOriginals
 			null, process.equals("-") ? null : ItemProcessType.NONE, positive(cells[2]), positive(cells[10]));
 	}
 
+	static String healRow(NativeHealReceipt original)
+	{
+		checkHeal(original);
+		final SourceOwner owner = original.owner();
+		return castRow("heal", original.cast()) + "\t" + row(ENCODER.encodeToString(original.observation().bytes()), owner.generation(),
+			ENCODER.encodeToString(owner.operationKey().getBytes(StandardCharsets.UTF_8)), original.offeredNanos(), original.hpWriteNanos(),
+			original.mpStartedNanos(), original.mpFinishedNanos(), original.beforeHp(), original.afterHp(), original.offeredHp(),
+			original.requestedHp(), original.paidMp());
+	}
+
+	private static NativeHealReceipt readHeal(String[] cells)
+	{
+		require(cells.length == 27, "HEAL_ROW_SHAPE");
+		final byte[] observationBytes = bytes(cells[15], 524288);
+		final var observation = TacticalObservationV3.restore(observationBytes);
+		final byte[] ownerBytes = bytes(cells[17], 512);
+		final var owner = new SourceOwner(positive(cells[16]), new String(ownerBytes, StandardCharsets.UTF_8));
+		require(Arrays.equals(observationBytes, observation.bytes()) && Arrays.equals(ownerBytes, owner.operationKey().getBytes(StandardCharsets.UTF_8)),
+			"HEAL_NATIVE_ENCODING");
+		return new NativeHealReceipt(readCast(cells, eventKey(cells[1])), observation, owner, positive(cells[18]), nonnegative(cells[19]),
+			positive(cells[20]), positive(cells[21]), scalar(cells[22]), scalar(cells[23]), scalar(cells[24]), scalar(cells[25]), scalar(cells[26]));
+	}
+
+	static List<String> healEvents(String episodeId, NativeHealReceipt original)
+	{
+		final HealFact fact = healFact(episodeId, original);
+		final NativeCastTrace cast = original.cast();
+		final var events = new ArrayList<>(castEvents(cast, fact.operationId(), "HEAL"));
+		final long effectNanos = original.hpWriteNanos() == 0 ? original.offeredNanos() : original.hpWriteNanos();
+		events.add(row("event", cast.eventKey(), effectNanos, "HEAL", cast.actorObjectId(), cast.targetObjectId(), fact.operationId(),
+			fact.effective().toPlainString(), fact.overheal().toPlainString()));
+		return List.copyOf(events);
+	}
+
+	private static HealFact healFact(String episodeId, NativeHealReceipt original)
+	{
+		require(episodeId.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,95}"), "EPISODE_ID");
+		checkHeal(original);
+		final BigDecimal effective = quantizeHp(original.afterHp() - original.beforeHp());
+		final BigDecimal overheal = quantizeHp(original.offeredHp() - original.requestedHp());
+		require((original.requestedHp() == 0 || effective.signum() > 0) && effective.signum() + overheal.signum() > 0
+			&& wireHpBounded(effective) && wireHpBounded(overheal), "HEAL_WIRE_PRECISION");
+		return new HealFact(original, operationId(episodeId, original.owner()), effective, overheal);
+	}
+
+	private static void checkHeal(NativeHealReceipt original)
+	{
+		final NativeCastTrace cast = original.cast();
+		final TacticalObservationV3 observation = original.observation();
+		final var ally = observation.entity(cast.targetObjectId());
+		require(ally != null && ally.role() == Role.ALLY && !observation.partyIdentity().isBlank()
+			&& traceMatches(cast, cast.eventKey(), cast.instanceId(), observation, ally.objectId(), ally.epoch(),
+				cast.skillId(), cast.skillLevel(), original.offeredNanos())
+			&& learned(observation, cast.skillId(), cast.skillLevel()) && learned(observation, cast.baselineSkillId(), cast.baselineSkillLevel()),
+			"HEAL_CAST_OR_PARTY");
+		require(original.mpStartedNanos() >= cast.decisionNanos() && original.mpFinishedNanos() >= original.mpStartedNanos()
+			&& Double.isFinite(original.paidMp()) && original.paidMp() > 0 && Double.isFinite(original.offeredHp()) && original.offeredHp() > 0
+			&& Double.compare(original.requestedHp(), 0) >= 0 && original.requestedHp() <= original.offeredHp(), "HEAL_CLAMP_OR_MP");
+		if (original.requestedHp() == 0)
+		{
+			require(original.hpWriteNanos() == 0 && Double.compare(original.beforeHp(), 0) == 0 && Double.compare(original.afterHp(), 0) == 0,
+				"HEAL_ZERO_CLAMP");
+			return;
+		}
+		final var maxHp = ally.fact(Field.MAX_HP);
+		require(original.hpWriteNanos() >= original.offeredNanos() && maxHp.known() && maxHp.value() > 0
+			&& Double.compare(original.beforeHp(), 0) >= 0 && original.afterHp() > original.beforeHp() && original.afterHp() <= maxHp.value() + HEAL_WRITE_TOLERANCE
+			&& Math.abs((original.afterHp() - original.beforeHp()) - original.requestedHp()) <= HEAL_WRITE_TOLERANCE, "HEAL_NATIVE_HP_WRITE");
+	}
+
 	static String castRow(NativeCastTrace trace)
 	{
-		return row("cast", trace.eventKey(), trace.actorObjectId(), trace.actorEpoch(), trace.targetObjectId(), trace.targetEpoch(), trace.instanceId(),
+		return castRow("cast", trace);
+	}
+
+	private static String castRow(String kind, NativeCastTrace trace)
+	{
+		return row(kind, trace.eventKey(), trace.actorObjectId(), trace.actorEpoch(), trace.targetObjectId(), trace.targetEpoch(), trace.instanceId(),
 			trace.skillId(), trace.skillLevel(), trace.baselineSkillId(), trace.baselineSkillLevel(), trace.decisionNanos(), trace.admittedNanos(),
 			trace.executedNanos(), trace.observationSha());
 	}
@@ -269,7 +364,7 @@ final class PhantomLearning131AuditOriginals
 
 	static List<String> castEvents(NativeCastTrace trace, String operationId, String role)
 	{
-		require(role.equals("DAMAGE") || role.equals("OPPONENT"), "CAST_ROLE");
+		require(role.equals("DAMAGE") || role.equals("OPPONENT") || role.equals("HEAL"), "CAST_ROLE");
 		final String operation = eventKey(operationId);
 		final int actor = trace.actorObjectId(), target = trace.targetObjectId();
 		final String chosen = skillToken(trace.skillId(), trace.skillLevel());
@@ -469,9 +564,19 @@ final class PhantomLearning131AuditOriginals
 
 	static BigDecimal wireDamage(double delta)
 	{
-		final var value = BigDecimal.valueOf(delta).setScale(9, RoundingMode.HALF_EVEN).stripTrailingZeros();
-		require(value.signum() > 0 && value.toPlainString().matches("[0-9]{1,18}(\\.[0-9]{1,9})?"), "DAMAGE_WIRE_PRECISION");
+		final var value = quantizeHp(delta);
+		require(value.signum() > 0 && wireHpBounded(value), "DAMAGE_WIRE_PRECISION");
 		return value;
+	}
+
+	private static BigDecimal quantizeHp(double amount)
+	{
+		return BigDecimal.valueOf(amount).setScale(9, RoundingMode.HALF_EVEN).stripTrailingZeros();
+	}
+
+	private static boolean wireHpBounded(BigDecimal value)
+	{
+		return value.toPlainString().matches("[0-9]{1,18}(\\.[0-9]{1,9})?");
 	}
 
 	private static String operationId(String episode, SourceOwner owner) { return PhantomLearning131AuditDamage.operationId(episode, owner); }
