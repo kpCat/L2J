@@ -40,6 +40,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSn
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPveSelection;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.SiegeTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
@@ -440,6 +442,7 @@ public final class PhantomCombatService
 
 		PhantomCombatActorLease lease = null;
 		PhantomCombatLoadout resolvedLoadout = null;
+		StockPveAuthority stockPveAudit = null;
 		StartStatus failure = null;
 		try
 		{
@@ -460,12 +463,16 @@ public final class PhantomCombatService
 					_metrics.leaseAcquired();
 					final ActorSnapshot actor = lease.actorSnapshot();
 					final boolean playerCombat = (pvpRequest != null) || ((siegeRequest != null) && (siegeRequest.targetKind() == org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind.PLAYER));
+					if (!playerCombat && raidRequest == null && siegeRequest == null && !retreatOnly)
+					{
+						stockPveAudit = _learning.bindStockPveAudit131(request, actor.objectId());
+					}
 					Optional<PhantomCombatLoadout> loadout;
 					if (playerCombat)
 					{
 						loadout = _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills());
 					}
-					else if (raidRequest != null || siegeRequest != null || retreatOnly)
+					else if (raidRequest != null || siegeRequest != null || retreatOnly || stockPveAudit != null)
 					{
 						loadout = _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
 					}
@@ -542,6 +549,7 @@ public final class PhantomCombatService
 			if ((_state == ServiceState.RUNNING) && (_sessions.get(request.profileId()) == reserved) && !reserved._result.terminal() && !request.planOwnershipToken().isCancelled())
 			{
 				reserved._actorLease = lease;
+				reserved._stockPveAudit = stockPveAudit;
 				reserved._loadout = resolvedLoadout;
 				reserved._contentBasicMelee = contentBasicMelee;
 				reserved._retreatOnly = retreatOnly;
@@ -2003,6 +2011,19 @@ public final class PhantomCombatService
 
 	private void issueAction(PhantomCombatSession session, ActorSnapshot actor, TargetSnapshot target)
 	{
+		final var archived = session._stockPveAudit;
+		if (archived == null)
+		{
+			issuePveAction(session, actor, target, false);
+		}
+		else if (!archived.submit(() -> issuePveAction(session, actor, target, true)))
+		{
+			finish(session, PhantomCombatResult.CANCELLED);
+		}
+	}
+
+	private void issuePveAction(PhantomCombatSession session, ActorSnapshot actor, TargetSnapshot target, boolean stockPve)
+	{
 		final int targetId = session._request.targetObjectId();
 		final boolean group = session._request.partyRoles() != null;
 		if (group && session._actorLease.preservePartyControl(targetId))
@@ -2017,7 +2038,7 @@ public final class PhantomCombatService
 		final boolean canSpendMp = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent();
 		final Map<SelectedSkill, PhantomCombatActorLease.PartyAreaChoice> areaChoices = new java.util.LinkedHashMap<>();
 		final Map<SelectedSkill, Integer> areaCounts = new java.util.LinkedHashMap<>();
-		if (group && canSpendMp && now() >= session._partyAreaRetryAfter)
+		if (!stockPve && group && canSpendMp && now() >= session._partyAreaRetryAfter)
 		{
 			for (var choice : session._actorLease.partyAreaChoices(session._request, () -> partyAreaCurrent(session)))
 			{
@@ -2025,8 +2046,19 @@ public final class PhantomCombatService
 				areaCounts.put(choice.skill(), choice.recipients());
 			}
 		}
-		final var selection = _capabilityResolver.resolvePveAction(actor, session._request.mode(), session._actorLease,
-			targetId, canSpendMp, _policy.maximumSelectedSkills(), areaCounts);
+		final var mode = session._request.mode();
+		final Optional<PhantomCombatCapabilityResolver.SkillSelection> selection;
+		if (stockPve)
+		{
+			// Pre-TASK131 PvE caps the authored loadout before checking readiness.
+			selection = _capabilityResolver.resolve(actor, mode, session._actorLease, _policy.maximumSelectedSkills())
+				.map(loadout -> new PhantomCombatCapabilityResolver.SkillSelection(loadout, canSpendMp
+					? loadout.selectedSkills().stream().filter(skill -> session._actorLease.skillReady(targetId, skill, mode)).toList() : List.of()));
+		}
+		else
+		{
+			selection = _capabilityResolver.resolvePveAction(actor, mode, session._actorLease, targetId, canSpendMp, _policy.maximumSelectedSkills(), areaCounts);
+		}
 		if (selection.isPresent())
 		{
 			session._loadout = selection.orElseThrow().loadout();
@@ -2061,9 +2093,10 @@ public final class PhantomCombatService
 		}
 		SelectedSkill selected = null;
 		final List<SelectedSkill> ready = selection.map(PhantomCombatCapabilityResolver.SkillSelection::readySkills).orElseGet(List::of);
+		final int cursor = session._nextSkill;
 		if (!ready.isEmpty())
 		{
-			selected = ready.getFirst();
+			selected = ready.get(stockPve ? Math.floorMod(cursor, ready.size()) : 0);
 			session._nextSkill++;
 		}
 		final var area = areaChoices.get(selected);
@@ -2110,7 +2143,8 @@ public final class PhantomCombatService
 				final long started = witnessing ? System.nanoTime() : 0;
 				final var candidates = session._actorLease.learningCandidates(session._request, actor, target, ready);
 				final long sequence = Integer.toUnsignedLong(session._nextSkill);
-				final var decision = _learning.choose(candidates, baseline, session._generation * 131 + sequence, session._request, actor.objectId());
+				final var archived = stockPve ? new StockPveSelection(cursor, session._loadout.selectedSkills(), ready) : null;
+				final var decision = _learning.choose(candidates, baseline, session._generation * 131 + sequence, session._request, actor.objectId(), archived);
 				final long decisionNanos = witnessing ? System.nanoTime() - started : 0;
 				if (witnessing && candidates.size() >= 2 && candidates.size() <= _learning.maximumCandidates())
 				{
@@ -2395,6 +2429,7 @@ public final class PhantomCombatService
 			if (failure == null)
 			{
 				session._actorLease = null;
+				session._stockPveAudit = null;
 				session._cleanupState = CleanupState.COMPLETE;
 				_actorLeases--;
 				_metrics.leaseReleased();

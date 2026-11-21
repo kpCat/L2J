@@ -7,13 +7,16 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPveSelection;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.*;
 
 /** A bounded tie-break inside stock Party support, with rescue and dispatch authority retained by its owner. */
@@ -32,7 +35,35 @@ public final class TacticalPolicyV3
 	private volatile TrainExplorationV1 _exploration;
 	private volatile ActionExplorationV4 _experiment;
 	private volatile BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> _episodes131;
+	private AuditControl _auditControl131;
+	private StockPveScope _stockPveScope131;
 	private Consumer<ActionExperimentReceiptV4.Intent> _healIntentSink;
+
+	@FunctionalInterface
+	public interface StockPveScope
+	{
+		StockPveAuthority bind(long profileId, int actorObjectId, int targetObjectId);
+	}
+
+	public record StockPveAuthority(Object episodeFence, BooleanSupplier current)
+	{
+		public StockPveAuthority
+		{
+			Objects.requireNonNull(episodeFence);
+			Objects.requireNonNull(current);
+		}
+
+		/** The same fence closes future dispatch, while already published native work drains. */
+		public boolean submit(Runnable action)
+		{
+			synchronized (episodeFence)
+			{
+				if (!current.getAsBoolean()) { return false; }
+				action.run();
+				return true;
+			}
+		}
+	}
 	/** Mutually exclusive, pre-CUT TEST-only owner; ordinary configuration has no entry point. */
 	public synchronized void actionExplorationTest(ActionExplorationV4 session)
 	{
@@ -58,33 +89,41 @@ public final class TacticalPolicyV3
 		{
 			throw new IllegalArgumentException("TASK131 model episodes require fixed V4 weights");
 		}
-		bindEpisodes131(episodes, healIntentSink);
+		bindEpisodes131(episodes, healIntentSink, null, null);
 	}
 
-	/** Bind H after explicitly verifying that no learning model is installed. */
-	public synchronized void actionHeuristicAudit131(BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
-		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
+	/** Bind a comparison arm without learning weights. The archived PvE picker also requires the active episode's actor and target fence. */
+	public synchronized void actionControlAudit131(AuditControl control, BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
+		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink, StockPveScope stockPveScope)
 	{
-		if (_actionValueMode != Mode.OFF || _actionValue != null)
+		if (control == null || _actionValueMode != Mode.OFF || _actionValue != null || (control == AuditControl.STOCK_PVE) != (stockPveScope != null))
 		{
-			throw new IllegalArgumentException("TASK131 heuristic AUDIT requires learning OFF and no weights");
+			throw new IllegalArgumentException("TASK131 control AUDIT requires exact scope, learning OFF and no weights");
 		}
-		bindEpisodes131(episodes, healIntentSink);
+		bindEpisodes131(episodes, healIntentSink, control, stockPveScope);
 	}
 
 	private void bindEpisodes131(BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
-		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink)
+		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink, AuditControl control, StockPveScope stockPveScope)
 	{
 		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || _experiment != null || _exploration != null
 			|| _episodes131 != null || !_last.isEmpty() || _model != null)
 		{
 			throw new IllegalArgumentException("TASK131 requires an exclusive TEST episode source");
 		}
+		Objects.requireNonNull(episodes);
 		_healIntentSink = Objects.requireNonNull(healIntentSink);
-		_episodes131 = Objects.requireNonNull(episodes);
+		_auditControl131 = control;
+		_stockPveScope131 = stockPveScope;
+		_episodes131 = episodes;
 	}
 
 	boolean hasEpisodes131() { return _episodes131 != null; }
+	boolean hasStockPveControl131() { return _episodes131 != null && _auditControl131 == AuditControl.STOCK_PVE; }
+	StockPveAuthority bindStockPveAudit131(long profileId, int actorId, int targetId)
+	{
+		return hasStockPveControl131() ? _stockPveScope131.bind(profileId, actorId, targetId) : null;
+	}
 
 	private ActionExplorationV4 experiment(TacticalObservationV3 observation, List<LegalActionV3> offered)
 	{
@@ -94,7 +133,7 @@ public final class TacticalPolicyV3
 		if (active == null || active.plan().schemaVersion() != 2) { return null; }
 		final var plan = active.plan();
 		final var weights = _actionValue;
-		return (weights == null ? plan.heuristicAudit() : !plan.heuristicAudit() && plan.modelSha().equals(weights.sha256())) ? active : null;
+		return (weights == null ? plan.auditControl() == _auditControl131 : plan.auditControl() == null && plan.modelSha().equals(weights.sha256())) ? active : null;
 	}
 	private volatile Mode _actionValueMode = Mode.OFF;
 	private volatile ActionValueV4 _actionValue;
@@ -199,8 +238,16 @@ public final class TacticalPolicyV3
 	DamageChoice damage(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest request, int actorObjectId,
 		List<LearningPolicy.Candidate> candidates, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill baseline)
 	{
+		return damage(request, actorObjectId, candidates, baseline, null);
+	}
+
+	DamageChoice damage(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest request, int actorObjectId,
+		List<LearningPolicy.Candidate> candidates, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill baseline,
+		StockPveSelection stockPveSelection)
+	{
 		final boolean pvp = request.learningScope() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.PVP;
-		if (pvp && _episodes131 == null) { return null; }
+		if (pvp && (_episodes131 == null || hasStockPveControl131())) { return null; }
+		if (hasStockPveControl131() != (stockPveSelection != null)) { return null; }
 		if (_mode == Mode.OFF || candidates.size() < 2 || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { reason("DAMAGE_OFFER_OR_MODE",request.profileId(),request.targetObjectId());return null; }
 		final long now = System.nanoTime(), profile = request.profileId();
 		if (_last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(profile)) { reason("COOLDOWN_OR_ACTOR_CAP",profile,request.targetObjectId());return null; }
@@ -214,8 +261,9 @@ public final class TacticalPolicyV3
 				|| (pvp ? !(target instanceof Player) : !(target instanceof org.l2jmobius.gameserver.model.actor.instance.Monster))
 				|| actor.isAlikeDead() || target.isAlikeDead() || actor.isCastingNow() || actor.isAttackingNow()) { return null; }
 			final long generation = _generation.incrementAndGet(), snapshotStarted = System.nanoTime();
-			final var observation = pvp ? TacticalSnapshotV3.ownedPvp(actor, (Player)target, profile, generation)
+			final var snapshot = pvp ? TacticalSnapshotV3.ownedPvp(actor, (Player)target, profile, generation)
 				: TacticalSnapshotV3.collect(actor, profile, generation, _maximumEntities);
+			final var observation = stockPveSelection == null ? snapshot : snapshot.withStockPveSelection(stockPveSelection);
 			_snapshotTime.add(System.nanoTime() - snapshotStarted);
 			if (observation.entity(target.getObjectId()) == null) { return null; }
 			final var offered = new ArrayList<LegalActionV3>();
@@ -295,7 +343,7 @@ public final class TacticalPolicyV3
 		int stock, boolean safe, long deadline)
 	{
 		final var stockAction = offered.get(stock);
-		if (experiment.plan().heuristicAudit())
+		if (experiment.plan().auditControl() != null)
 		{
 			final var decision = experiment.choose(observation, offered, stockAction, safe, deadline);
 			reason(decision.mode(), observation.profileId(), decision.selected().targetObjectId());
@@ -385,7 +433,8 @@ public final class TacticalPolicyV3
 						session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),ref.profileId(),decision.selected().targetObjectId());
 					}
 				}
-				else if (experiment != null && (!rankingDeadlinePassed || experiment.plan().heuristicAudit()) && offered.stream().allMatch(experiment.plan()::accepts))
+				else if (experiment != null && (!rankingDeadlinePassed || experiment.plan().auditControl() == AuditControl.HEURISTIC)
+					&& offered.stream().allMatch(experiment.plan()::accepts))
 				{
 					final boolean safe = !rankingDeadlinePassed && actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent()
 						&& actor.getCurrentHp() > actor.getMaxHp() * .30 && actor.getAttackByList().isEmpty()

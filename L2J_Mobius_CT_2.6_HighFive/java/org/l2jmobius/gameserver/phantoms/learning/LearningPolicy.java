@@ -24,6 +24,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPveSelection;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
 
 /** One shared immutable model, with a bounded decision inside the existing combat lease. */
 public final class LearningPolicy
@@ -58,6 +60,12 @@ public final class LearningPolicy
 	}
 
 	public boolean ownedPvpEpisodes() { return active(LearningScope.PVP); }
+
+	public StockPveAuthority bindStockPveAudit131(PhantomCombatRequest request, int actorId)
+	{
+		return request.learningScope() == LearningScope.SOLO || request.learningScope() == LearningScope.PARTY
+			? _tactical.bindStockPveAudit131(request.profileId(), actorId, request.targetObjectId()) : null;
+	}
 
 	public Attempt chooseOwnedPvp(PhantomCombatRequest request, long generation, Player actor, Player target, List<Skill> ready, BooleanSupplier current)
 	{
@@ -102,7 +110,13 @@ public final class LearningPolicy
 	}
 	public Decision choose(List<Candidate> candidates, SelectedSkill baseline, long sequence, PhantomCombatRequest request, int actorObjectId)
 	{
-		final var choice = _tactical.damage(request, actorObjectId, candidates, baseline);
+		return choose(candidates, baseline, sequence, request, actorObjectId, null);
+	}
+
+	public Decision choose(List<Candidate> candidates, SelectedSkill baseline, long sequence, PhantomCombatRequest request, int actorObjectId,
+		StockPveSelection stockPveSelection)
+	{
+		final var choice = _tactical.damage(request, actorObjectId, candidates, baseline, stockPveSelection);
 		if (choice != null) { return new Decision(choice.selected().skill(), choice.selected(), choice.attempt()); }
 		return _tactical.hasEpisodes131() ? new Decision(baseline, null) : choose(candidates, baseline, sequence);
 	}
@@ -110,7 +124,7 @@ public final class LearningPolicy
 	/** The stock visible Solo caster supplies ready skills and keeps execution ownership. */
 	public Attempt chooseVisible131(long profileId, long actorEpoch, Player actor, Monster target, List<Skill> ready, Skill baseline, BooleanSupplier current)
 	{
-		if (!_tactical.hasEpisodes131() || !active(LearningScope.SOLO) || actorEpoch <= 0 || ready.size() < 2 || ready.size() > _maxCandidates
+		if (!_tactical.hasEpisodes131() || _tactical.hasStockPveControl131() || !active(LearningScope.SOLO) || actorEpoch <= 0 || ready.size() < 2 || ready.size() > _maxCandidates
 			|| actor.getParty() != null || !ready.contains(baseline) || !current.getAsBoolean())
 		{
 			return null;
@@ -186,7 +200,7 @@ public final class LearningPolicy
 
 	public boolean active(LearningScope scope)
 	{
-		return scope != LearningScope.NONE && _mode != Mode.OFF && (scope == LearningScope.PVP ? _tactical.hasEpisodes131()
+		return scope != LearningScope.NONE && _mode != Mode.OFF && (scope == LearningScope.PVP ? _tactical.hasEpisodes131() && !_tactical.hasStockPveControl131()
 			: _model != null || _writer != null || _tactical.hasEpisodes131()) && _catalogCurrent.getAsBoolean();
 	}
 

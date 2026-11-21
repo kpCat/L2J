@@ -22,6 +22,7 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroCast;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.NpcAggroSwitch;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.Arrival;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.AuditReceipt;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomLearnedEscape.MpDebit;
@@ -36,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpReceip
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPveSelection;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
@@ -850,6 +852,32 @@ public final class PhantomLearning131EvaluationChecks
 			final var late = new ActionExplorationV4(plan).choose(observed, List.of(stock, other), stock, true, observed.capturedNanos());
 			check(late.selected().equals(stock) && late.reason().equals("BUDGET_5MS"), "Late observation must preserve H's existing heuristic");
 			ActionExplorationV4.verifyHeuristicLog(List.of(late));
+			final var archived = new ActionExplorationV4.Plan(2, "STOCK_PVE_V2", 0, 0, 0, "AUDIT", episode, scene, "NONE", plan.skills());
+			final var ready = List.of(new SelectedSkill(stock.skillId(), stock.skillLevel()), new SelectedSkill(other.skillId(), other.skillLevel()));
+			final var archivedInput = new StockPveSelection(1, ready, ready);
+			final var archivedObserved = new TacticalObservationV3(observed.decisionId(), observed.capturedNanos(), observed.profileId(),
+				observed.actorObjectId(), observed.actorEpoch(), observed.partyIdentity(), observed.entities(), archivedInput);
+			final var archivedChoice = new ActionExplorationV4(archived).choose(archivedObserved, List.of(stock, other), other, true, Long.MAX_VALUE);
+			refuse(() -> new ActionExplorationV4(archived).choose(observed, List.of(stock, other), other, true, Long.MAX_VALUE),
+				"Retagging an ordinary H observation as S must fail");
+			refuse(() -> new ActionExplorationV4(archived).choose(archivedObserved, List.of(stock, other), stock, true, Long.MAX_VALUE),
+				"Explicit stock input must reproduce the archive cursor");
+			final long archivedDispatch = archivedChoice.capturedNanos() + 1;
+			final var archivedTrace = new NativeCastTrace(cast.eventKey(), 42, 7, 102, 91, 0, other.skillId(), 1, other.skillId(), 1,
+				archivedDispatch, archivedDispatch + 1, archivedDispatch + 2, TacticalObservationV3.hash(archivedObserved.bytes()));
+			final String[] archivedDecision = {"decision", encoder.encodeToString(archivedChoice.bytes())};
+			final String[] archivedIntent = {"intent", encoder.encodeToString(new Intent(archivedChoice, owner, archivedDispatch).bytes())};
+			final var archivedRows = List.of(archivedDecision, archivedIntent);
+			final var archivedWindow = new EpisodeWindow(started, archivedDispatch + 10 - started, archivedDispatch + 20 - started);
+			PhantomLearning131Evaluation.verifyStockPveDispatch(episode, scene, archivedRows, Map.of(operation, archivedTrace), archivedWindow);
+			final var sameCastWithoutArchive = new NativeCastTrace(cast.eventKey(), 42, 7, 102, 91, 0, other.skillId(), 1, other.skillId(), 1,
+				archivedDispatch, archivedDispatch + 1, archivedDispatch + 2, cast.observationSha());
+			refuse(() -> PhantomLearning131Evaluation.verifyStockPveDispatch(episode, scene, archivedRows, Map.of(operation, sameCastWithoutArchive), archivedWindow),
+				"Adding fake archived inputs to the transcript must not authenticate a paid cast that never observed them");
+			refuse(() -> PhantomLearning131Evaluation.verifyStockPveDispatch(episode, scene, List.of(choice, intent), Map.of(operation, cast), window),
+				"The H transcript cannot serve as archived PvE S");
+			refuse(() -> PhantomLearning131Evaluation.verifyHeuristicDispatch(episode, scene, archivedRows, Map.of(operation, archivedTrace), archivedWindow),
+				"The archived PvE transcript cannot serve as H");
 		}
 		finally
 		{

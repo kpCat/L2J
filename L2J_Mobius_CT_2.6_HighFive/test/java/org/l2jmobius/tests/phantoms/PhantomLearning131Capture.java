@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
 import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
@@ -33,11 +34,11 @@ import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation.ScheduledArm;
-import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
 
 /** Records the existing native cast/apply receipts for one active TASK131 episode at a time. */
 final class PhantomLearning131Capture
@@ -55,6 +56,7 @@ final class PhantomLearning131Capture
 		private final Map<Long, Actor> roster;
 		private final Set<Target> foes;
 		private final Set<Target> allies;
+		private final Object dispatchFence = new Object();
 		private final Map<Long, ActionExperimentReceiptV4.Intent> intents = new LinkedHashMap<>();
 		private final Map<String, TacticalReceiptV3> paid = new LinkedHashMap<>();
 		private boolean accepting = true;
@@ -95,25 +97,31 @@ final class PhantomLearning131Capture
 	private final AtomicReference<Episode> current = new AtomicReference<>();
 	private final TacticalPolicyV3 tactical;
 	private final LearningPolicy damage;
-	private final boolean heuristicAudit;
+	private final AuditControl auditControl;
 
 	PhantomLearning131Capture(String manifestSha, ActionValueV4 model)
 	{
-		this(manifestSha, Objects.requireNonNull(model), false);
+		this(manifestSha, Objects.requireNonNull(model), null);
 	}
 
 	static PhantomLearning131Capture heuristicAudit(String manifestSha)
 	{
-		return new PhantomLearning131Capture(manifestSha, null, true);
+		return new PhantomLearning131Capture(manifestSha, null, AuditControl.HEURISTIC);
 	}
 
-	private PhantomLearning131Capture(String manifestSha, ActionValueV4 model, boolean heuristicAudit)
+	static PhantomLearning131Capture stockPveAudit(String manifestSha)
 	{
-		this.heuristicAudit = heuristicAudit;
+		return new PhantomLearning131Capture(manifestSha, null, AuditControl.STOCK_PVE);
+	}
+
+	private PhantomLearning131Capture(String manifestSha, ActionValueV4 model, AuditControl auditControl)
+	{
+		this.auditControl = auditControl;
 		tactical = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, heal -> paid(TacticalReceiptV3.fromHeal(heal)));
-		if (heuristicAudit)
+		if (auditControl != null)
 		{
-			tactical.actionHeuristicAudit131(this::selectExperiment, this::before);
+			tactical.actionControlAudit131(auditControl, this::selectExperiment, this::before,
+				auditControl == AuditControl.STOCK_PVE ? this::bindPveSelection : null);
 		}
 		else
 		{
@@ -148,8 +156,42 @@ final class PhantomLearning131Capture
 	{
 		synchronized (episode)
 		{
-			require(episode.experiment.plan().heuristicAudit() == heuristicAudit, "EPISODE_POLICY_MODE");
+			require(episode.experiment.plan().auditControl() == auditControl, "EPISODE_POLICY_MODE");
 			require(episode.accepting && current.compareAndSet(null, episode), "EPISODE_OVERLAP");
+		}
+	}
+
+	private StockPveAuthority bindPveSelection(long profile, int actorId, int targetId)
+	{
+		final var episode = current.get();
+		if (episode == null) { return null; }
+		synchronized (episode)
+		{
+			final var actor = episode.roster.get(profile);
+			final var world = World.getInstance();
+			final var player = world.getPlayer(actorId);
+			if (!episode.accepting || episode.fault || actor == null || actor.objectId() != actorId || player == null
+				|| !(world.findObject(targetId) instanceof Monster monster) || player.getInstanceId() != monster.getInstanceId())
+			{
+				return null;
+			}
+			final var sensor = PlayerNativeWork.observationEvidence(player);
+			final var nativeTarget = monster.getNativeEvidenceTarget();
+			if (sensor == null || !sensor.matches(actorId, actor.epoch()) || nativeTarget == null
+				|| !episode.foes.contains(new Target(targetId, nativeTarget.spawnGeneration())))
+			{
+				return null;
+			}
+			return new StockPveAuthority(episode.dispatchFence, () ->
+			{
+				synchronized (episode)
+				{
+					return current.get() == episode && episode.accepting && !episode.fault
+						&& world.getPlayer(actorId) == player && PlayerNativeWork.observationEvidence(player) == sensor
+						&& world.findObject(targetId) == monster && nativeTarget.equals(monster.getNativeEvidenceTarget())
+						&& player.getInstanceId() == monster.getInstanceId();
+				}
+			});
 		}
 	}
 
@@ -235,10 +277,14 @@ final class PhantomLearning131Capture
 
 	void closeChoices(Episode episode)
 	{
-		require(current.get() == episode, "FOREIGN_EPISODE");
-		synchronized (episode)
+		// Wait only for the current bounded S dispatch. Native observers use the episode monitor separately.
+		synchronized (episode.dispatchFence)
 		{
-			episode.accepting = false;
+			synchronized (episode)
+			{
+				require(current.get() == episode, "FOREIGN_EPISODE");
+				episode.accepting = false;
+			}
 		}
 	}
 
@@ -277,12 +323,12 @@ final class PhantomLearning131Capture
 		return new Settlement(plan, settled, receipts, intents, decisions);
 	}
 
-	/** Seal the C/H/R decision and dispatch originals after this arm's native players have drained. */
+	/** Seal the decision and dispatch originals after this AUDIT arm's native players have drained. */
 	String publishAuditPolicy(Episode episode, ScheduledArm scheduled, Path bindingFile, String bindingSha, String head,
 		Map<Integer, Player> drained, String nonce) throws IOException
 	{
 		require(nonce != null && nonce.matches("[a-f0-9]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
-			&& (heuristicAudit ? "NONE".equals(head) : head.matches("[a-f0-9]{64}")), "OWNED_FROZEN_POLICY");
+			&& (auditControl != null ? "NONE".equals(head) : head.matches("[a-f0-9]{64}")), "OWNED_FROZEN_POLICY");
 		PhantomLearning131Native.taskRoot(bindingFile);
 		PhantomLearning131Native.physical(bindingFile, true);
 		final var binding = PhantomLearning131Evaluation.policyArmBinding(scheduled, bindingFile, bindingSha);
@@ -290,8 +336,14 @@ final class PhantomLearning131Capture
 		require(bindingFile.getFileName().toString().equals("binding131.tsv") && directory.getFileName().toString().equals(binding.episodeId())
 			&& directory.getParent().getFileName().toString().equals("episodes"), "FROZEN_POLICY_OUTPUT");
 		final var plan = episode.experiment.plan();
+		final AuditControl planned = switch (scheduled.slot().arm())
+		{
+			case H -> AuditControl.HEURISTIC;
+			case S -> AuditControl.STOCK_PVE;
+			default -> null;
+		};
 		require(plan.split().equals("AUDIT") && plan.episode().equals(binding.episodeId()) && plan.sourceSha().equals(scheduled.fixtureSha())
-			&& (scheduled.slot().arm() == Arm.H) == heuristicAudit && plan.modelSha().equals(binding.modelSha())
+			&& planned == auditControl && plan.modelSha().equals(binding.modelSha())
 			&& episode.started == binding.started() && drained.keySet().equals(binding.scoredEpochs().keySet())
 			&& episode.roster.size() == drained.size(), "FROZEN_POLICY_SCOPE");
 		for (Actor actor : episode.roster.values())
@@ -310,7 +362,7 @@ final class PhantomLearning131Capture
 			intents = List.copyOf(episode.intents.values());
 		}
 		final var decisions = episode.experiment.decisions();
-		if (heuristicAudit) { ActionExplorationV4.verifyHeuristicLog(decisions); }
+		if (auditControl != null) { ActionExplorationV4.verifyControlLog(auditControl, decisions); }
 		else { episode.experiment.verifyFrozenLog(decisions); }
 		final var encoder = Base64.getUrlEncoder().withoutPadding();
 		final var proof = new StringBuilder(row("meta", "schema", "NATIVE_FROZEN_POLICY131_V1"))

@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -44,6 +45,10 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatThreatTable;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
 
 public final class PhantomCombatCoreSuite implements PhantomTestSuite
 {
@@ -69,6 +74,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		if (!_normalTargetPreflightOnly) { new PhantomPveReadiness093Suite().register(registry); }
+		if (!_normalTargetPreflightOnly) { registry.add("131-audit-s-pve-restores-capped-round-robin", _ -> testArchivedPveOffensivePicker()); }
 		if (!_normalTargetPreflightOnly) { registry.add("124-content-retreat-guard-cannot-cancel-or-consume-replacement", _ ->
 		{
 			final Fixture fixture = fixture(1);
@@ -518,6 +524,63 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		finally
 		{
 			fixture.stop();
+		}
+	}
+
+	private static void testArchivedPveOffensivePicker()
+	{
+		final String original = System.getProperty("phantom.learning.train");
+		try
+		{
+			System.setProperty("phantom.learning.train", "true");
+			final var scopeCurrent = new AtomicBoolean(true);
+			final var binds = new AtomicInteger();
+			final Object episodeFence = new Object();
+			final var tactical = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, _ -> { });
+			tactical.actionControlAudit131(AuditControl.STOCK_PVE, (_, _) -> null, _ -> { }, (profile, actorId, targetId) ->
+			{
+				if (profile != 1 || targetId != 100) { return null; }
+				binds.incrementAndGet();
+				return new StockPveAuthority(episodeFence, scopeCurrent::get);
+			});
+			final var learning = LearningPolicy.ownedEpisodes131(tactical, "3".repeat(64));
+			final var fixture = new Fixture(1, learning);
+			try
+			{
+				final var mode = PhantomCombatMode.RANGED_MAGIC;
+				final List<SelectedSkill> authored = List.of(new SelectedSkill(1, 1), new SelectedSkill(3, 1), new SelectedSkill(5, 1),
+					new SelectedSkill(7, 1), new SelectedSkill(9, 1));
+				fixture.capabilities = capabilities(mode, authored);
+				fixture.lease.supportedSkills.addAll(List.of(1, 3, 5, 7, 9));
+				fixture.lease.readinessObserver = () -> PhantomAssertions.assertTrue(Thread.holdsLock(episodeFence),
+					"An S decision must hold the same fence used for episode revocation");
+				fixture.lease.unreadySkills.addAll(List.of(1, 3, 5, 7));
+				final var request = new PhantomCombatRequest(1, 100, mode, false, false, 30_000, fixture.token,
+					PhantomCombatRequest.LearningScope.SOLO, null, fixture.token);
+				final var foreign = new PhantomCombatRequest(1, 101, mode, false, false, 30_000, fixture.token,
+					PhantomCombatRequest.LearningScope.SOLO, null, fixture.token);
+				PhantomAssertions.assertTrue(learning.bindStockPveAudit131(foreign, fixture.lease.actor.objectId()) == null, "The archived choice escaped its bound encounter");
+				PhantomAssertions.assertTrue(fixture.service.startSession(request).accepted(), "Archive PvE request rejected");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, fixture.lease.castCount, "The archived four-slot cap admitted the fifth ready skill");
+				fixture.lease.unreadySkills.removeAll(List.of(1, 3));
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(authored.getFirst(), fixture.lease.lastCast, "Archived PvE round robin did not start with the first authored skill");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(authored.get(1), fixture.lease.lastCast, "Archived PvE round robin did not advance through ready skills");
+				PhantomAssertions.assertEquals(1, binds.get(), "The selector must be bound once at admission");
+				scopeCurrent.set(false);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(2, fixture.lease.castCount, "A released archived scope dispatched another cast");
+				PhantomAssertions.assertEquals(PhantomCombatResult.CANCELLED, fixture.service.find(1).orElseThrow().result(),
+					"An expired S lease must cancel instead of switching to the heuristic");
+			}
+			finally { fixture.stop(); }
+		}
+		finally
+		{
+			if (original == null) { System.clearProperty("phantom.learning.train"); }
+			else { System.setProperty("phantom.learning.train", original); }
 		}
 	}
 
@@ -1265,9 +1328,15 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 
 		private Fixture(int capacity)
 		{
+			this(capacity, LearningPolicy.OFF);
+		}
+
+		private Fixture(int capacity, LearningPolicy learning)
+		{
 			backend.leases.put(1L, lease);
 			final PhantomCombatCapabilityResolver resolver = new PhantomCombatCapabilityResolver(_ -> capabilities);
 			service = new PhantomCombatService(backend, resolver, PhantomCombatPolicy.productionDefaults(capacity), new PhantomCombatMetrics(), clock::get, dispatcher);
+			service.installLearning(learning);
 			service.start();
 		}
 

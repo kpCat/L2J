@@ -5,9 +5,13 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
 
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+
 /** TEST-only single decision owner. Proposals never grant native execution authority. */
 public final class ActionExplorationV4
 {
+	public enum AuditControl { HEURISTIC, STOCK_PVE }
+
 	public record Plan(int schemaVersion, String policyId, long seed, int cap, double epsilon, String split,
 		String episode, String sourceSha, String modelSha, List<String> skills)
 	{
@@ -15,7 +19,7 @@ public final class ActionExplorationV4
 		{
 			skills = List.copyOf(skills);
 			final boolean evaluation = "TUNING".equals(split) || "AUDIT".equals(split);
-			final boolean heuristicAudit = "HEURISTIC_V2".equals(policyId);
+			final boolean controlAudit = "HEURISTIC_V2".equals(policyId) || "STOCK_PVE_V2".equals(policyId);
 			final boolean deterministic = seed == 0 && cap == 0 && Double.compare(epsilon, 0) == 0;
 			final boolean validPolicy = switch (schemaVersion)
 			{
@@ -24,21 +28,29 @@ public final class ActionExplorationV4
 					&& Double.isFinite(epsilon) && epsilon >= .05 && epsilon <= .20
 					&& ("TRAIN".equals(split) || evaluation && policyId.equals("BASELINE_V1"));
 				case 2 -> ("MODEL_V2".equals(policyId) && evaluation && deterministic)
-					|| (heuristicAudit && "AUDIT".equals(split) && deterministic)
+					|| (controlAudit && "AUDIT".equals(split) && deterministic)
 					|| ("EPSILON_V2".equals(policyId) && "TRAIN".equals(split) && cap >= 1 && cap <= 16 && Double.isFinite(epsilon) && epsilon >= .05 && epsilon <= .20);
 				default -> false;
 			};
 			if (!validPolicy || episode == null || !episode.matches("[a-f0-9]{64}") || !sourceSha.matches("[a-f0-9]{64}")
-				|| !(heuristicAudit ? "NONE".equals(modelSha) : modelSha.matches("[a-f0-9]{64}"))
+				|| !(controlAudit ? "NONE".equals(modelSha) : modelSha.matches("[a-f0-9]{64}"))
 				|| skills.size() < 2 || skills.size() > 16 || new HashSet<>(skills).size() != skills.size() || skills.stream().anyMatch(s -> !s.matches("[1-9][0-9]*:[1-9][0-9]*")))
 			{ throw new IllegalArgumentException("Invalid frozen V4 experiment plan"); }
 		}
 		boolean frozenInference() { return "MODEL_V2".equals(policyId); }
-		public boolean heuristicAudit() { return "HEURISTIC_V2".equals(policyId); }
+		public AuditControl auditControl()
+		{
+			return switch (policyId)
+			{
+				case "HEURISTIC_V2" -> AuditControl.HEURISTIC;
+				case "STOCK_PVE_V2" -> AuditControl.STOCK_PVE;
+				default -> null;
+			};
+		}
 		boolean epsilonExploration() { return "EPSILON_V1".equals(policyId) || "EPSILON_V2".equals(policyId); }
 		boolean accepts(LegalActionV3 action)
 		{
-			return (action.family() == LegalActionV3.Family.DAMAGE || schemaVersion == 2 && action.family() == LegalActionV3.Family.HEAL)
+			return (action.family() == LegalActionV3.Family.DAMAGE || schemaVersion == 2 && auditControl() != AuditControl.STOCK_PVE && action.family() == LegalActionV3.Family.HEAL)
 				&& skills.contains(action.skillId() + ":" + action.skillLevel());
 		}
 		void write(DataOutput out) throws IOException
@@ -81,6 +93,20 @@ public final class ActionExplorationV4
 				|| offered.stream().anyMatch(a -> !plan.accepts(a))
 				|| stock.family() == LegalActionV3.Family.HEAL && offered.stream().anyMatch(a -> observation.entity(a.targetObjectId()).role() == TacticalObservationV3.Role.ENEMY))
 			{ throw new IllegalArgumentException("Invalid V4 decision authority"); }
+			final var archived = observation.stockPveSelection();
+			if ((plan.auditControl() == AuditControl.STOCK_PVE) != (archived != null))
+			{
+				throw new IllegalArgumentException("Archived PvE observation is required only for S");
+			}
+			if (archived != null)
+			{
+				final var offeredSkills = offered.stream().map(action -> new SelectedSkill(action.skillId(), action.skillLevel())).toList();
+				if (!archived.selected().equals(new SelectedSkill(stock.skillId(), stock.skillLevel()))
+					|| !offeredSkills.equals(archived.ready().stream().filter(offeredSkills::contains).toList()))
+				{
+					throw new IllegalArgumentException("Archived PvE round robin does not reproduce the recorded stock action");
+				}
+			}
 			if (mode.equals("EXPLORE_COVERAGE"))
 			{
 				if (!plan.policyId().equals("COVERAGE_TEST_V1") || propensity != 1 || draw != 0 || !selected.equals(coverage(plan, offered, stock)) || capturedNanos >= deadline)
@@ -172,14 +198,19 @@ public final class ActionExplorationV4
 	public static void validateLog(List<Decision> decisions)
 	{
 		final var plan = validateLogStructure(decisions);
-		if (plan.frozenInference() || plan.heuristicAudit())
+		if (plan.frozenInference() || plan.auditControl() != null)
 		{ throw new IllegalArgumentException("Frozen evaluation log requires its own policy verifier"); }
 	}
 
 	/** A model-free arm keeps its heuristic even when collecting the snapshot exceeds the ranking budget. */
 	public static void verifyHeuristicLog(List<Decision> decisions)
 	{
-		if (!validateLogStructure(decisions).heuristicAudit() || decisions.stream().anyMatch(decision ->
+		verifyControlLog(AuditControl.HEURISTIC, decisions);
+	}
+
+	public static void verifyControlLog(AuditControl control, List<Decision> decisions)
+	{
+		if (control == null || validateLogStructure(decisions).auditControl() != control || decisions.stream().anyMatch(decision ->
 		{
 			final boolean late = decision.capturedNanos() >= decision.deadline();
 			final boolean expectedReason = late ? decision.reason().equals("BUDGET_5MS")
@@ -187,7 +218,7 @@ public final class ActionExplorationV4
 			return !decision.mode().equals("BASELINE") || !decision.selected().equals(decision.stock()) || !expectedReason;
 		}))
 		{
-			throw new IllegalArgumentException("Incomplete or substituted heuristic AUDIT decision");
+			throw new IllegalArgumentException("Incomplete or substituted model-free AUDIT decision");
 		}
 	}
 
@@ -219,7 +250,7 @@ public final class ActionExplorationV4
 		{
 			var d = decisions.get(i);
 			if (d.cursor() != i || !d.plan().equals(plan) || !generations.add(d.observation().decisionId()) || alternatives >= plan.cap() && d.mode().startsWith("EXPLORE")
-				|| (plan.frozenInference() || plan.heuristicAudit()) && i > 0 && d.observation().decisionId() <= decisions.get(i - 1).observation().decisionId())
+				|| (plan.frozenInference() || plan.auditControl() != null) && i > 0 && d.observation().decisionId() <= decisions.get(i - 1).observation().decisionId())
 			{ throw new IllegalArgumentException("Incomplete, duplicate or over-cap experiment log"); }
 			if (d.mode().startsWith("EXPLORE") && !d.selected().equals(d.stock())) { alternatives++; }
 		}

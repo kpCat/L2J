@@ -29,6 +29,7 @@ import java.util.Set;
 import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4.Intent;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
 import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3.Family;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
@@ -463,13 +464,25 @@ public final class PhantomLearning131Evaluation
 		AuditRows originals, EpisodeWindow window) throws IOException
 	{
 		final Arm arm = binding.slot().arm();
-		if (arm == Arm.S)
+		if (arm == Arm.S && !stockPveStratum(occurrence.block().plan().stratum()))
 		{
-			require(occurrence.modelProofSha().equals("NONE"), "MODEL_PROOF_IN_CONTROL_ARM");
-			return;
+			throw new Incomplete("STOCK_PVP_SELECTOR_REQUIRED");
 		}
-		if (occurrence.modelProofSha().equals("NONE")) { throw new Incomplete(arm == Arm.H ? "HEURISTIC_DISPATCH_MISSING" : "FROZEN_MODEL_DISPATCH_MISSING"); }
-		final String head = arm == Arm.H ? "NONE" : manifest.get(arm == Arm.C ? "candidateHead" : "referenceHead");
+		if (occurrence.modelProofSha().equals("NONE"))
+		{
+			throw new Incomplete(switch (arm)
+			{
+				case H -> "HEURISTIC_DISPATCH_MISSING";
+				case S -> "STOCK_PVE_DISPATCH_MISSING";
+				default -> "FROZEN_MODEL_DISPATCH_MISSING";
+			});
+		}
+		final String head = switch (arm)
+		{
+			case H, S -> "NONE";
+			case C -> manifest.get("candidateHead");
+			case R -> manifest.get("referenceHead");
+		};
 		final Document proof = document(directory.resolve("policy131.tsv"), "NATIVE_FROZEN_POLICY131_V1", "schema", "episodeId", "bindingSha", "arm", "modelHead");
 		require(proof.sha().equals(occurrence.modelProofSha()) && proof.get("episodeId").equals(occurrence.id()) && proof.get("bindingSha").equals(binding.document().sha())
 			&& proof.get("arm").equals(arm.name()) && proof.get("modelHead").equals(head), "FROZEN_MODEL_ORIGIN_PIN");
@@ -486,6 +499,10 @@ public final class PhantomLearning131Evaluation
 		if (arm == Arm.H)
 		{
 			verifyHeuristicDispatch(occurrence.id(), occurrence.block().fixtureSha(), proof.rows(), paid, window);
+		}
+		else if (arm == Arm.S)
+		{
+			verifyStockPveDispatch(occurrence.id(), occurrence.block().fixtureSha(), proof.rows(), paid, window);
 		}
 		else
 		{
@@ -507,11 +524,23 @@ public final class PhantomLearning131Evaluation
 	static void verifyHeuristicDispatch(String episode, String fixtureSha, List<String[]> rows,
 		Map<String, NativeCastTrace> paid, EpisodeWindow window)
 	{
+		verifyControlDispatch(AuditControl.HEURISTIC, episode, fixtureSha, rows, paid, window);
+	}
+
+	static void verifyStockPveDispatch(String episode, String fixtureSha, List<String[]> rows,
+		Map<String, NativeCastTrace> paid, EpisodeWindow window)
+	{
+		verifyControlDispatch(AuditControl.STOCK_PVE, episode, fixtureSha, rows, paid, window);
+	}
+
+	private static void verifyControlDispatch(AuditControl control, String episode, String fixtureSha, List<String[]> rows,
+		Map<String, NativeCastTrace> paid, EpisodeWindow window)
+	{
 		final var decisions = verifyDispatch(rows, episode, paid, window);
 		final var plan = decisions.getFirst().plan();
-		require(plan.heuristicAudit() && plan.episode().equals(episode) && plan.sourceSha().equals(fixtureSha), "HEURISTIC_DISPATCH_PLAN");
-		ActionExplorationV4.verifyHeuristicLog(decisions);
-		require(!paid.isEmpty(), "HEURISTIC_PAID_DISPATCH_REQUIRED");
+		require(plan.auditControl() == control && plan.episode().equals(episode) && plan.sourceSha().equals(fixtureSha), "CONTROL_DISPATCH_PLAN");
+		ActionExplorationV4.verifyControlLog(control, decisions);
+		require(!paid.isEmpty(), "CONTROL_PAID_DISPATCH_REQUIRED");
 	}
 
 	private static List<ActionExplorationV4.Decision> verifyDispatch(List<String[]> rows, String episode, Map<String, NativeCastTrace> paid,
@@ -1058,13 +1087,18 @@ public final class PhantomLearning131Evaluation
 	static PolicyArmBinding policyArmBinding(ScheduledArm scheduled, Path path, String expectedSha) throws IOException
 	{
 		final Slot slot = scheduled.slot();
-		require(slot.arm() == Arm.C || slot.arm() == Arm.H || slot.arm() == Arm.R, "AUDIT_POLICY_ARM_REQUIRED");
+		require(slot.arm() != Arm.S || stockPveStratum(scheduled.block().stratum()), "STOCK_PVP_SELECTOR_REQUIRED");
 		final var binding = scheduledBinding(scheduled, path, expectedSha, "MODEL_ARM");
 		final var roster = participants(binding, slot.side());
 		final var scored = new HashMap<Integer, Long>();
 		roster.forEach((actor, member) -> { if (member.side() == slot.side()) { scored.put(actor, member.epoch()); } });
 		require(scored.size() == scheduled.block().scene().initialRosterSize() && roster.size() - scored.size() == scheduled.opponentSize(), "AUDIT_POLICY_ARM_ROSTER");
 		return new PolicyArmBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), binding.get("modelSha"), Map.copyOf(scored));
+	}
+
+	private static boolean stockPveStratum(Stratum stratum)
+	{
+		return stratum == Stratum.SOLO_PVE || stratum == Stratum.PARTY_PVE;
 	}
 
 	private static Document scheduledBinding(ScheduledArm scheduled, Path path, String expectedSha, String name) throws IOException
