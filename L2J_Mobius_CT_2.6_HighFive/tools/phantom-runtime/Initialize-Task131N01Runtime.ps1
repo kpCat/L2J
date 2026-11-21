@@ -11,6 +11,7 @@ param(
     [ValidateSet('Preflight','Prepare','Attest')][string]$Action='Preflight',
     [Parameter(Mandatory)][ValidatePattern('^n01-setup-r[1-9][0-9]*$')][string]$SqlLane,
     [Parameter(Mandatory)][ValidatePattern('^native-runtime-r[1-9][0-9]*$')][string]$RuntimeId,
+    [switch]$StageMetadataByRuntime,
     [ValidatePattern('^build-v[1-9][0-9]*-reviewed$')][string]$AuditedBuild='',
     [ValidatePattern('^github-readback-v[1-9][0-9]*\.json$')][string]$GithubReadback='',
     [string]$GithubReadbackSha='',
@@ -32,8 +33,8 @@ $task=Join-Path (Split-Path $module -Parent) '.phantom-local\logs\TASK131'
 $oldRuntime=Join-Path $task 'native-runtime'
 $runtime=Join-Path $task $RuntimeId
 $sql=Join-Path $task "sql-lanes\$SqlLane\sql-task131"
-$campaignParent=Join-Path $task 'campaigns'
-$campaign=Join-Path $campaignParent 'n01'
+$campaignParent=Join-Path $task $(if($StageMetadataByRuntime){'runtime-candidates'}else{'campaigns'})
+$campaign=Join-Path $campaignParent $(if($StageMetadataByRuntime){$RuntimeId}else{'n01'})
 $utf8=[Text.UTF8Encoding]::new($false,$true)
 $schema='l2jmobiush5_phantom_test_131'
 $javaEntry='org/l2jmobius/tests/phantoms/PhantomLearning131Native.class'
@@ -433,7 +434,7 @@ if($Action -eq 'Prepare'){
     Assert-N01Directory $campaignParent
     $nonce=[guid]::NewGuid().ToString('N')
     $stage=Join-Path $task ('.n01-runtime-'+$nonce)
-    $metadata=Join-Path $campaignParent ('.n01-candidate-'+$nonce)
+    $metadata=Join-Path $task ('.n01-candidate-'+$nonce)
     New-N01PrivateDirectory $stage
     New-N01PrivateDirectory $metadata
     $substituted=@('BOOT_DISABLED.txt','game/config/Database.ini','login/config/Database.ini','libs/GameServer.jar','libs/LoginServer.jar','game/config/General.ini')
@@ -473,10 +474,10 @@ if($Action -eq 'Prepare'){
     Assert-N01Hash (Join-Path $sql 'n01-scene-scope.properties') $fixture.sceneScopeSha
     Assert-N01Hash (Join-Path $sql 'off.json') $database.offSha
     Assert-N01Off
+    Write-N01New (Join-Path $metadata 'candidate-pins.json') (($candidate | ConvertTo-Json -Depth 6)+"`n")
     # Both destination trees are create-once; no existing runtime or signed campaign is replaced.
     [IO.Directory]::Move($stage,$runtime)
     [IO.Directory]::Move($metadata,$campaign)
-    Write-N01New (Join-Path $campaign 'candidate-pins.json') (($candidate | ConvertTo-Json -Depth 6)+"`n")
     Assert-N01Off
     Write-Output "TASK131_N01_SETUP_PREPARED scenes=4 files=$($runtimePins.Count) classes=$($classPins.Count) launchAuthorized=false"
     return

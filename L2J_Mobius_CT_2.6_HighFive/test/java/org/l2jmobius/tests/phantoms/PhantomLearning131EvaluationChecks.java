@@ -63,6 +63,7 @@ public final class PhantomLearning131EvaluationChecks
 			check(Files.readString(original).equals("owner bytes\n"), "original report bytes survive an output collision");
 
 			frozenPlan(manifest);
+			checkFrozenSchedule(manifest, temporary);
 			final var missingOrigin = temporary.resolve("no-origins.tsv");
 			check(PhantomLearning131Evaluation.run(manifest, evidence, missingOrigin, TEST_EVALUATOR_SHA) == 2
 				&& Files.readString(missingOrigin).contains("UNKNOWN"), "complete frozen plan without independent origin remains unknown");
@@ -88,6 +89,57 @@ public final class PhantomLearning131EvaluationChecks
 				}
 			}
 		}
+	}
+
+	private static void checkFrozenSchedule(Path manifest, Path temporary) throws Exception
+	{
+		final var protocol = manifest.resolveSibling(manifest.getFileName() + ".protocol.tsv");
+		final var plan = PhantomLearning131Evaluation.frozenSchedule(protocol, digest(protocol));
+		check(plan.size() == 128 && plan.getFirst().block().index() == 0 && plan.getFirst().slot().equals(new Slot(Arm.C, Side.LEFT))
+			&& plan.getLast().block().stratum() == Stratum.GROUP_PVP && plan.getLast().block().index() == 7 && plan.getLast().position() == 3,
+			"producer can read all planned arms in stratum, block-index and position order before collecting evidence");
+
+		final var lines = Files.readAllLines(protocol);
+		final int firstBlock = 5;
+		final var reversed = new ArrayList<>(lines);
+		Collections.reverse(reversed.subList(firstBlock, reversed.size()));
+		final var variant = Files.write(temporary.resolve("schedule-variant.tsv"), reversed);
+		check(PhantomLearning131Evaluation.frozenSchedule(variant, digest(variant)).equals(plan), "physical row order cannot change the planned execution order");
+		refuseSchedule(variant, digest(protocol), "PROTOCOL_PIN");
+
+		final var changed = new ArrayList<>(lines);
+		final String[] fields = lines.get(firstBlock).split("\t");
+		fields[16] = "C:RIGHT";
+		changed.set(firstBlock, String.join("\t", fields));
+		Files.write(variant, changed);
+		refuseSchedule(variant, digest(variant), "UNBALANCED_STARTING_SIDE");
+
+		fields[16] = "H:LEFT";
+		fields[17] = "C:LEFT";
+		changed.set(firstBlock, String.join("\t", fields));
+		Files.write(variant, changed);
+		refuseSchedule(variant, digest(variant), "UNBALANCED_ARM_ORDER");
+
+		changed.set(firstBlock, lines.get(firstBlock));
+		final String[] second = lines.get(firstBlock + 1).split("\t");
+		second[3] = "0";
+		changed.set(firstBlock + 1, String.join("\t", second));
+		Files.write(variant, changed);
+		refuseSchedule(variant, digest(variant), "DUPLICATE_BLOCK");
+	}
+
+	private static void refuseSchedule(Path protocol, String sha, String reason) throws Exception
+	{
+		try
+		{
+			PhantomLearning131Evaluation.frozenSchedule(protocol, sha);
+		}
+		catch (IllegalArgumentException refused)
+		{
+			if (refused.getMessage().equals("EVAL131_" + reason)) { return; }
+			throw refused;
+		}
+		throw new AssertionError("Accepted invalid frozen schedule: " + reason);
 	}
 
 	private static void frozenPlan(Path manifest) throws Exception

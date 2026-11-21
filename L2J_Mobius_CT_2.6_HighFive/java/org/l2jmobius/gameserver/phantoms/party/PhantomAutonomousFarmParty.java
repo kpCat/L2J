@@ -482,7 +482,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		for (var leader : page)
 		{
 			final long profileId = leader.ref().profileId();
-			if (_logical != null && _logical.knownGroupFor(profileId).map(row -> row.group().phase() == PhantomLogicalParty.Phase.DRAINING).orElse(false)) { continue; }
+			final var logicalGroup = _logical == null ? null : _logical.knownGroupFor(profileId).map(row -> row.group()).orElse(null);
+			if (logicalGroup != null && logicalGroup.phase() == PhantomLogicalParty.Phase.DRAINING) { continue; }
 			final PhantomGoal goal = roots.get(profileId);
 			if (goal == null || !nativeParticipant(leader) || leader.dead()) { continue; }
 			final var claim = _coordinator.claim(profileId).orElse(null);
@@ -509,8 +510,15 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			if (selected.isEmpty()) { if (_coordinator.committed(profileId)) { _coordinator.releaseAutonomousFarm(profileId); } continue; }
 			if (selected.stream().anyMatch(ref -> _goals.load(ref.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root -> _preparationRequired.test(ref.profileId(), root)).isPresent())) { continue; }
 			final var roster = selected.stream().map(_backend::memberSnapshot).flatMap(java.util.Optional::stream).toList();
-			if (roster.size() != selected.size() || roster.size() < 2 || roster.stream().anyMatch(member -> !nativeParticipant(member))
+			if (roster.size() != selected.size() || roster.size() < 2
 				|| selected.stream().anyMatch(ref -> _goals.load(ref.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root -> ordinaryIntent(ref.profileId(), root)).isEmpty())) { _coordinator.releaseAutonomousFarm(profileId); continue; }
+			// The logical death projection owns recovery and drain for this exact stock roster.
+			if (logicalGroup != null && logicalGroup.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE && !logicalGroup.activityReplanRequired()
+				&& roster.stream().anyMatch(MemberSnapshot::dead) && logicalGroup.members().size() == selected.size()
+				&& selected.stream().allMatch(member -> logicalGroup.contains(member.profileId())) && _coordinator.committed(profileId)
+				&& _backend.observe(leader.ref()).filter(party -> party.leader().equals(leader.ref())
+					&& party.members().size() == selected.size() && party.members().containsAll(selected)).isPresent()) { continue; }
+			if (roster.stream().anyMatch(member -> !nativeParticipant(member))) { _coordinator.releaseAutonomousFarm(profileId); continue; }
 			if (leader.casting() || leader.attacking()) { continue; }
 			if (_arrival != null)
 			{

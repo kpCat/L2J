@@ -257,7 +257,7 @@ function Assert-131PortsFree {
 }
 
 function Get-131Boundary($Context) {
-    Assert-131 ($Context.Body.phase -cin @('N01','TRAIN')) 'NATIVE_ADAPTER_PHASE_UNAVAILABLE'
+    Assert-131 ($Context.Body.phase -cin @('N01','TRAIN','TUNING')) 'NATIVE_ADAPTER_PHASE_UNAVAILABLE'
     Assert-131 ($Context.Body.sqlLane -cmatch '^n01-setup-r[1-9][0-9]*$') 'NATIVE_SQL_SETUP_LANE'
     $now=[DateTime]::UtcNow
     Assert-131 ($now -lt $Context.Deadline -and ($Context.Deadline-$now).TotalSeconds -lt 28800) 'CAMPAIGN_DEADLINE'
@@ -334,7 +334,7 @@ function Get-131Boundary($Context) {
     Assert-131Sha (Join-Path $proof.Root 'n01-scenes.tsv') $executionPlan['sceneSha']
     Assert-131Sha (Join-Path $proof.Root 'n01-fixture.tsv') $executionPlan['fixtureSha']
     Assert-131Sha (Join-Path $proof.Root 'n01-scene-scope.properties') $executionPlan['sceneScopeSha']
-    if($Context.Body.phase -ceq 'TRAIN'){Assert-131Sha (Join-Path $proof.Root 'n01-learned-offense.tsv') $executionPlan['learnedWitnessSha']}
+    if($Context.Body.phase -cin @('TRAIN','TUNING')){Assert-131Sha (Join-Path $proof.Root 'n01-learned-offense.tsv') $executionPlan['learnedWitnessSha']}
     Assert-131PortsFree
     return @{Java=$java;JavaSha=$javaSha;Classpath=($cp -join ';');Execution=$execution;AuthoritySha=$authoritySha;Sql=$proof;Game=(Join-Path $runtime 'game')}
 }
@@ -347,7 +347,11 @@ function Assert-131TrainPlan($Context,$Execution) {
         $Execution['opponentSha'] -cmatch '^[0-9a-f]{64}$' -and $Execution['learnedWitnessSha'] -cmatch '^[0-9a-f]{64}$' -and
         $Execution['cycle'] -ceq [string]$body.cycle -and
         $Execution['observeSeconds'] -ceq [string](Get-131SceneSeconds $body 0) -and $body.quota.maxEpisodes -le 4) 'TRAIN_POLICY_FIXTURE_DRIFT'
-    Assert-131Sha (Get-131Path $Context ('candidate-'+$Execution['opponentSha']+'.bin')) $Execution['opponentSha']
+    if($body.phase -ceq 'TRAIN'){
+        Assert-131Sha (Get-131Path $Context ('candidate-'+$Execution['opponentSha']+'.bin')) $Execution['opponentSha']
+    }else{
+        Assert-131 ($Execution['trainClosedSha'] -cmatch '^[0-9a-f]{64}$') 'TUNING_TRAIN_ORIGIN_PIN'
+    }
     $schedule=Get-131Path $Context 'scenes.tsv'
     Assert-G0PhysicalFile $schedule
     Assert-131 ((Get-Item -LiteralPath $schedule).Length -le 4KB) 'TRAIN_SCENE_FILE_BOUND'
@@ -505,7 +509,7 @@ function Get-131Command($Context,$Boundary,$Boot) {
     }
     $options=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g','-Djava.util.logging.config.file=log.cfg',
         ('-Dphantom.learning131.nonce='+$Boot.Reservation.nonce))
-    if($Context.Body.phase -ceq 'TRAIN'){$options+=@('-Dphantom.learning.train=true')}
+    if($Context.Body.phase -cin @('TRAIN','TUNING')){$options+=@('-Dphantom.learning.train=true')}
     $options+=@('-cp',('"'+$Boundary.Classpath+'"'),$entry131,$command,('"'+$Boundary.Execution+'"'),('"'+$Boot.Launch+'"'))
     return ($options -join ' ')
 }
@@ -589,16 +593,16 @@ function Get-131Ack($Context,$Boot,$Owner,[int]$ExitCode,[string]$Control='obser
     $sealName=if($Context.Body.phase -ceq 'N01'){'n01-drain.properties'}else{'complete131.tsv'}
     Assert-131Sha (Join-Path $Boot.Root $sealName) $ack['sealSha']
     if($Context.Body.phase -ceq 'N01'){Assert-131N01Seal $Context $Boot $ack}
-    if($Context.Body.phase -ceq 'TRAIN'){Assert-131TrainSeal $Context $Boot $ack}
+    if($Context.Body.phase -cin @('TRAIN','TUNING')){Assert-131TrainSeal $Context $Boot $ack}
     if($status -ceq 'UNKNOWN'){$completed=$Boot.Reservation.lastCompleted}
-    if($Control -ceq 'stop' -and ($status -ceq 'PAUSED' -or $Context.Body.phase -ceq 'TRAIN' -and $status -ceq 'COMPLETED')){
+    if($Control -ceq 'stop' -and ($status -ceq 'PAUSED' -or $Context.Body.phase -cin @('TRAIN','TUNING') -and $status -ceq 'COMPLETED')){
         $status='STOPPED'
     }
     return @{Status=$status;Completed=$completed;AckSha=$ackSha;SealSha=$ack['sealSha'];Control=$Control}
 }
 
 function Test-131NativeClaim($Boot) {
-    foreach($name in @('train-java.claim','complete131.tsv','drain131.properties','episodes','train-store131.tsv',
+    foreach($name in @('train-java.claim','tuning-java.claim','complete131.tsv','drain131.properties','episodes','train-store131.tsv','tuning-store131.tsv',
             'n01-java.claim','n01-binding.tsv','n01-native-cycles.tsv','n01-native-costs.tsv','n01-native-loot.tsv')){
         if(Test-Path -LiteralPath (Join-Path $Boot.Root $name)){return $true}
     }
@@ -628,9 +632,10 @@ function Assert-131TrainSeal($Context,$Boot,$Ack) {
         }
     }
     Assert-131 ($metadata.Count -eq 15 -and $metadata.ContainsKey('storeSha')) 'TRAIN_NATIVE_STORE_PIN'
-    Assert-131Sha (Join-Path $Boot.Root 'train-store131.tsv') $metadata['storeSha']
+    $phase=$Context.Body.phase
+    Assert-131Sha (Join-Path $Boot.Root ($phase.ToLowerInvariant()+'-store131.tsv')) $metadata['storeSha']
     $expectedStatus=if($Ack['status'] -ceq 'COMPLETED'){'DRAINED'}else{$Ack['status']}
-    Assert-131 ($metadata['schema'] -ceq 'NATIVE_TRAIN_BOOT131_V1' -and $metadata['phase'] -ceq 'TRAIN' -and
+    Assert-131 ($metadata['schema'] -ceq ('NATIVE_'+$phase+'_BOOT131_V1') -and $metadata['phase'] -ceq $phase -and
         $metadata['status'] -ceq $expectedStatus -and $metadata['bootId'] -ceq $Boot.Reservation.bootId -and $metadata['nonce'] -ceq $Ack['nonce'] -and
         $metadata['pid'] -ceq $Ack['pid'] -and $metadata['processStarted'] -ceq $Ack['startedUtc'] -and $metadata['manifestSha'] -ceq $Context.Sha -and
         $metadata['sourceCommit'] -ceq $Context.Body.sourceCommit -and $metadata['jarSha'] -ceq $Context.Body.gameJarSha -and
@@ -666,7 +671,7 @@ function Assert-131ClosedProof($Context,$Boot,$Close,[int]$LastCompleted) {
     $expected=if($Close.control -ceq 'pause'){'PAUSED'}elseif($Close.control -ceq 'stop'){'STOPPED'}else{'UNKNOWN'}
     Assert-131 ($Close.status -ceq $expected -and (Test-131Request $Boot $Close.control) -and
         (($Close.reason -ceq 'CONTROL_BEFORE_JAVA' -and $null -eq $owner -and $null -eq $Close.exitCode) -or
-         ($Close.reason -ceq 'CONTROL_BEFORE_NATIVE_ADMISSION' -and $Context.Body.phase -cin @('N01','TRAIN') -and $null -ne $owner -and
+         ($Close.reason -ceq 'CONTROL_BEFORE_NATIVE_ADMISSION' -and $Context.Body.phase -cin @('N01','TRAIN','TUNING') -and $null -ne $owner -and
           $Close.exitCode -is [int] -and !(Test-131NativeClaim $Boot)))) 'UNSEALED_CONTROL_BOUNDARY'
 }
 
@@ -733,11 +738,11 @@ function Invoke-131Boot($Context,$State,$Boundary,[datetime]$Deadline) {
             $forced=$false
             while(!$process.WaitForExit(250)){
                 $request=Get-131Request $boot
-                if(!$request -and $elapsedWatch.ElapsedMilliseconds -ge $quiesceAt){
+                if(!$request -and $Context.Body.phase -ceq 'N01' -and $elapsedWatch.ElapsedMilliseconds -ge $quiesceAt){
                     Send-131Request $boot 'stop'
                     $request='stop'
                 }
-                if($request -and ($request -cne 'pause' -or $Context.Body.phase -cne 'TRAIN')){
+                if($request -and ($request -cne 'pause' -or $Context.Body.phase -cnotin @('TRAIN','TUNING'))){
                     $watchLimit=[Math]::Min($watchLimit,$elapsedWatch.ElapsedMilliseconds+$drainMillis)
                 }
                 if($elapsedWatch.ElapsedMilliseconds -ge $watchLimit -or [DateTime]::UtcNow -ge $Deadline){
@@ -757,7 +762,7 @@ function Invoke-131Boot($Context,$State,$Boundary,[datetime]$Deadline) {
             Assert-131Sha $Boundary.Execution $Context.Body.executionSha
             Assert-131MasterOff $Context
             $request=Get-131Request $boot
-            if(!$forced -and $Context.Body.phase -cin @('N01','TRAIN') -and $request -and !(Test-131NativeClaim $boot)){
+            if(!$forced -and $Context.Body.phase -cin @('N01','TRAIN','TUNING') -and $request -and !(Test-131NativeClaim $boot)){
                 $status=if($request -ceq 'stop'){'STOPPED'}else{'PAUSED'}
                 $control=$request
                 $reason='CONTROL_BEFORE_NATIVE_ADMISSION'
@@ -823,8 +828,8 @@ function Get-131Summary($Context,$State,[switch]$Detailed) {
         bootId=$bootId;lastRecordedPid=$processId;completed=$State.Completed;remaining=$Context.Body.quota.maxEpisodes-$State.Completed;boots=$State.Boots
         bootsRemaining=$Context.Body.quota.maxBoots-$State.Boots;resumable=(Test-131Resumable $Context $State)
         chargedNativeMillis=$State.Milliseconds;deadlineUtc=$Context.Deadline.ToString('o');reason=$reason}
-    if($Context.Body.phase -ceq 'TRAIN' -and $status -ceq 'PAUSED' -and !$summary.resumable){
-        $summary.resumeReason='TRAIN_BOOT_QUOTA_OR_CLOSURE_REQUIRED'
+    if($Context.Body.phase -cin @('TRAIN','TUNING') -and $status -ceq 'PAUSED' -and !$summary.resumable){
+        $summary.resumeReason=$Context.Body.phase+'_BOOT_QUOTA_OR_CLOSURE_REQUIRED'
     }
     if($Detailed){
         $summary.sourceCommit=$Context.Body.sourceCommit
@@ -844,7 +849,7 @@ function Test-131Resumable($Context,$State) {
         return $false
     }
     if($Context.Body.phase -ceq 'N01'){return $State.Completed -eq 0 -and !(Test-131NativeClaim $State.Latest)}
-    if($Context.Body.phase -ceq 'TRAIN' -and (Test-131NativeClaim $State.Latest)){
+    if($Context.Body.phase -cin @('TRAIN','TUNING') -and (Test-131NativeClaim $State.Latest)){
         return $State.Closed.ackSha -cne 'NONE' -and $State.Closed.sealSha -cne 'NONE'
     }
     return $true
@@ -857,7 +862,7 @@ function Get-131ReservedMillis($Boot) {
 }
 
 function Assert-131UnclaimedBootExpired($Context,$Boot) {
-    Assert-131 ($Context.Body.phase -cin @('N01','TRAIN') -and [DateTime]::UtcNow -ge (ConvertTo-131Utc $Boot.Reservation.deadlineUtc) -and
+    Assert-131 ($Context.Body.phase -cin @('N01','TRAIN','TUNING') -and [DateTime]::UtcNow -ge (ConvertTo-131Utc $Boot.Reservation.deadlineUtc) -and
         !(Test-131NativeClaim $Boot) -and !(Test-Path -LiteralPath (Join-Path $Boot.Root 'drain131.properties'))) 'UNCLAIMED_BOOT_MANUAL_OWNERSHIP_REQUIRED'
     $needle='-Dphantom.learning131.nonce='+$Boot.Reservation.nonce
     foreach($candidate in @(Get-CimInstance Win32_Process -Filter "Name='java.exe'")){

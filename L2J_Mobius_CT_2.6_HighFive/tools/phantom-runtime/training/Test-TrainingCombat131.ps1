@@ -167,13 +167,15 @@ $body.campaignId='tuning-01'
 $body.phase='TUNING'
 $body.quota.maxEpisodes=3
 $body.scenes=@($body.scenes | Select-Object -First 3)
+$body.sqlLane='foreign-scope'
 [IO.File]::WriteAllText($tuningManifest,($body|ConvertTo-Json -Depth 8),$encoding)
 try{
     $null=& $scriptPath -Action Preflight -Manifest $tuningManifest
     throw 'UNEXPECTED_TUNING_PREFLIGHT_SUCCESS'
 }catch{
-    Assert-Check ($_.Exception.Message -ceq 'TRAINING131_NATIVE_ADAPTER_PHASE_UNAVAILABLE') 'absent TUNING adapter cannot report readiness'
+    Assert-Check ($_.Exception.Message -ceq 'TRAINING131_NATIVE_SQL_SETUP_LANE') 'TUNING preflight cannot cross its owned setup lane'
 }
+$body.sqlLane=$previousSqlLane
 
 function Write-FixtureReceipt([string]$Name,$Value) {
     $path=Join-Path $boot $Name
@@ -184,6 +186,7 @@ function Write-FixtureReceipt([string]$Name,$Value) {
 
 # The only readback from this fabricated receipt chain must be a refusal.
 $body.configShas=@{'game/config/Custom/PhantomPlayers.ini'=$sha}
+$body.executionSha=Write-PreflightPin (Join-Path $tuning 'execution.properties') (@("expectedHead=$sha","opponentSha=$sha",'') -join [char]10)
 [IO.File]::WriteAllText($tuningManifest,($body|ConvertTo-Json -Depth 8),$encoding)
 $manifestSha=(Get-FileHash -LiteralPath $tuningManifest).Hash.ToLowerInvariant()
 $nonce='c'*32
@@ -197,13 +200,18 @@ $libraries=@('GameServer.jar','HikariCP-7.0.2.jar','mysql-connector-j-9.5.0.jar'
 $classpath=@($libraries|ForEach-Object {Join-Path $body.runtimeRoot ('libs\'+$_)})+@(Join-Path $tuning 'native-classes')
 $executable=Join-Path $sandbox 'java.exe'
 $argumentText=('-XX:ActiveProcessorCount=4 -Xms512m -Xmx4g -Djava.util.logging.config.file=log.cfg -Dphantom.learning131.nonce='+$nonce+
-    ' -cp "'+($classpath -join ';')+'" org.l2jmobius.tests.phantoms.PhantomLearning131Native --tuning "'+
+    ' -Dphantom.learning.train=true -cp "'+($classpath -join ';')+'" org.l2jmobius.tests.phantoms.PhantomLearning131Native --tuning "'+
     (Join-Path $tuning 'execution.properties')+'" "'+(Join-Path $boot 'launch131.properties')+'"')
 $owner=[ordered]@{schema='TRAINING_PROCESS131_V1';pid=131;created=$now.ToFileTimeUtc();executable=$executable;javaSha=$body.javaSha
     arguments=$argumentText;commandLine=('"'+$executable+'" '+$argumentText);controllerPid=132;controllerCreated=$now.ToFileTimeUtc()
     nonce=$nonce;reservationSha=$reservedSha}
 $ownerSha=Write-FixtureReceipt 'process.json' $owner
-$sealSha=Write-FixtureReceipt 'complete131.tsv' "fabricated test input`n"
+$tuningStoreSha=Write-FixtureReceipt 'tuning-store131.tsv' 'synthetic controller contract store'
+$tuningMeta=[ordered]@{schema='NATIVE_TUNING_BOOT131_V1';phase='TUNING';status='PAUSED';bootId='00001';nonce=$nonce;pid='131'
+    processStarted=$now.ToString('o');manifestSha=$manifestSha;sourceCommit=$body.sourceCommit;jarSha=$body.gameJarSha
+    expectedHead=$sha;learnerSha=$body.modelSha;opponentSha=$sha;cycle='1';storeSha=$tuningStoreSha}
+$tuningRows=@($tuningMeta.Keys|ForEach-Object {@('meta',$_,$tuningMeta[$_]) -join [char]9})
+$sealSha=Write-FixtureReceipt 'complete131.tsv' (($tuningRows -join [char]10)+[char]10)
 $null=Write-FixtureReceipt 'pause131.request' ($nonce+"`n")
 $ackSha=Write-FixtureReceipt 'drain131.properties' ((@('schema=NATIVE_DRAIN131_V1',"nonce=$nonce","manifestSha=$manifestSha",'bootId=00001',
     'pid=131',('startedUtc='+$now.ToString('o')),'status=PAUSED','completed=0',"sealSha=$sealSha") -join "`n")+"`n")

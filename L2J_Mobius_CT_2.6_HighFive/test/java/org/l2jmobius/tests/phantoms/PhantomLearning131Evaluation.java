@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -56,8 +57,13 @@ public final class PhantomLearning131Evaluation
 		}
 	}
 
-	private record Block(BlockPlan plan, String sceneId, String fixtureSha, String opponentSha,
-		int opponentSize, BigDecimal budget, long deadline, Set<Role> requiredRoles) { }
+	private record Block(BlockPlan plan, String sceneId, String fixtureSha, String opponent,
+		int level, int opponentSize, BigDecimal budget, long deadline, Set<Role> requiredRoles) { }
+	private record Protocol(String bank, Instant frozenAt, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Set<String> encounterFingerprints) { }
+	record ScheduledArm(String bank, BlockPlan block, int position, String sceneId, String fixtureSha, String opponent, int level, int opponentSize)
+	{
+		Slot slot() { return block.order().get(position); }
+	}
 	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
@@ -75,11 +81,34 @@ public final class PhantomLearning131Evaluation
 
 	public static void main(String[] args) throws IOException
 	{
+		if (args.length == 3 && args[0].equals("--plan"))
+		{
+			final var schedule = frozenSchedule(Path.of(args[1]), args[2]);
+			System.out.println("EVAL131_FROZEN_PLAN_OK bank=" + schedule.getFirst().bank() + " blocks=" + BANK_SIZE + " slots=" + schedule.size());
+			return;
+		}
 		if (args.length != 4)
 		{
 			throw new IllegalArgumentException("EVAL131_ARGUMENTS");
 		}
 		System.exit(run(Path.of(args[0]), Path.of(args[1]), Path.of(args[2]), digest(args[3])));
+	}
+
+	/** Read the immutable pre-TRAIN arm schedule without needing models, results, or a native origin. */
+	static List<ScheduledArm> frozenSchedule(Path protocolPath, String expectedSha) throws IOException
+	{
+		final Protocol protocol = readProtocol(protocolPath, expectedSha);
+		final var arms = new ArrayList<ScheduledArm>();
+		final var blocks = protocol.blocks().values().stream().sorted(Comparator.comparing((Block block) -> block.plan().stratum())
+			.thenComparingInt(block -> block.plan().index())).toList();
+		for (Block block : blocks)
+		{
+			for (int position = 0; position < block.plan().order().size(); position++)
+			{
+				arms.add(new ScheduledArm(protocol.bank(), block.plan(), position, block.sceneId(), block.fixtureSha(), block.opponent(), block.level(), block.opponentSize()));
+			}
+		}
+		return List.copyOf(arms);
 	}
 
 	static int run(Path manifest, Path originals, Path output, String evaluatorSha) throws IOException
@@ -120,7 +149,7 @@ public final class PhantomLearning131Evaluation
 	{
 		final Document manifest = document(path, "FROZEN_EVALUATION131_V1", "schema", "bank", "protocolSha", "splitSha", "sourceSha", "jarSha",
 			"configSha", "policySha", "evaluatorSha", "modelSchema", "candidateSha", "referenceSha", "referenceAt", "selectedAt", "lockedAt",
-		"opponent.B0", "opponent.A1", "opponent.B1", "trainStartedAt");
+			"opponent.B0", "opponent.A1", "opponent.B1", "trainStartedAt");
 		require(manifest.rows().isEmpty(), "MANIFEST_ROWS");
 		final String bank = token(manifest.get("bank"));
 		require(manifest.get("sourceSha").matches("[a-f0-9]{40}|[a-f0-9]{64}"), "SOURCE_SHA");
@@ -137,13 +166,12 @@ public final class PhantomLearning131Evaluation
 			&& !manifest.get("candidateSha").equals(manifest.get("referenceSha"))
 			&& Set.of(manifest.get("opponent.B0"), manifest.get("opponent.A1"), manifest.get("opponent.B1")).size() == OPPONENTS.size(), "FROZEN_MODEL_LINEAGE");
 
-		final Document protocol = document(sidecar(path, "protocol"), "AUDIT_PROTOCOL131_V1", "schema", "bank", "seed", "frozenAt");
-		require(protocol.sha().equals(manifest.get("protocolSha")) && protocol.get("bank").equals(bank), "PROTOCOL_PIN");
-		Long.parseLong(protocol.get("seed"));
+		final Protocol protocol = readProtocol(sidecar(path, "protocol"), manifest.get("protocolSha"));
+		require(protocol.bank().equals(bank), "PROTOCOL_PIN");
 		final Instant trainStarted = Instant.parse(manifest.get("trainStartedAt"));
-		require(Instant.parse(protocol.get("frozenAt")).isBefore(trainStarted) && trainStarted.isBefore(reference), "PROTOCOL_FREEZE_ORDER");
+		require(protocol.frozenAt().isBefore(trainStarted) && trainStarted.isBefore(reference), "PROTOCOL_FREEZE_ORDER");
 		final Document splits = document(sidecar(path, "splits"), "AUDIT_SPLITS131_V1", "schema", "bank", "protocolSha");
-		require(splits.get("bank").equals(bank) && splits.get("protocolSha").equals(protocol.sha()) && splits.sha().equals(manifest.get("splitSha")), "SPLIT_PIN");
+		require(splits.get("bank").equals(bank) && splits.get("protocolSha").equals(manifest.get("protocolSha")) && splits.sha().equals(manifest.get("splitSha")), "SPLIT_PIN");
 		final var seenEncounters = new HashSet<String>();
 		final var splitSources = new HashSet<String>();
 		final var splitNames = new HashSet<String>();
@@ -155,9 +183,20 @@ public final class PhantomLearning131Evaluation
 			splitNames.add(row[1]);
 		}
 		require(splitNames.size() == 2, "SPLIT_COVERAGE");
+		require(Collections.disjoint(seenEncounters, protocol.encounterFingerprints()), "SPLIT_LEAKAGE_OR_DUPLICATE_SCENE");
+		return new Audit(manifest, protocol.blocks(), protocol.prices(), locked);
+	}
 
+	private static Protocol readProtocol(Path path, String expectedSha) throws IOException
+	{
+		final Document protocol = document(path, "AUDIT_PROTOCOL131_V1", "schema", "bank", "seed", "frozenAt");
+		require(protocol.sha().equals(digest(expectedSha)), "PROTOCOL_PIN");
+		final String bank = token(protocol.get("bank"));
+		Long.parseLong(protocol.get("seed"));
+		final Instant frozenAt = Instant.parse(protocol.get("frozenAt"));
 		final var blocks = new LinkedHashMap<String, Block>();
 		final var sceneIds = new HashSet<String>();
+		final var encounterFingerprints = new HashSet<String>();
 		final var opponentLabels = new HashSet<String>();
 		final var prices = new HashMap<Integer, BigDecimal>();
 		final var groupSizes = new HashSet<String>();
@@ -173,7 +212,7 @@ public final class PhantomLearning131Evaluation
 			}
 			fields(row, "block", 20);
 			final String sceneId = token(row[4]);
-			require(sceneIds.add(sceneId) && seenEncounters.add(digest(row[6])), "SPLIT_LEAKAGE_OR_DUPLICATE_SCENE");
+			require(sceneIds.add(sceneId) && encounterFingerprints.add(digest(row[6])), "SPLIT_LEAKAGE_OR_DUPLICATE_SCENE");
 			require(OPPONENTS.contains(row[7]), "OPPONENT_LINEAGE");
 			opponentLabels.add(row[7]);
 			final Stratum stratum = Stratum.valueOf(row[2]);
@@ -200,12 +239,13 @@ public final class PhantomLearning131Evaluation
 				order.add(new Slot(Arm.valueOf(slot[0]), Side.valueOf(slot[1])));
 			}
 			final var plan = new BlockPlan(token(row[1]), stratum, Integer.parseInt(row[3]), scene, order);
-			require(blocks.putIfAbsent(plan.id(), new Block(plan, sceneId, digest(row[5]), manifest.get("opponent." + row[7]), opponentSize, budget, deadline, Set.copyOf(roles))) == null, "DUPLICATE_BLOCK");
+			require(blocks.putIfAbsent(plan.id(), new Block(plan, sceneId, digest(row[5]), row[7], level, opponentSize, budget, deadline, Set.copyOf(roles))) == null, "DUPLICATE_BLOCK");
 		}
 		require(blocks.size() == BANK_SIZE && !prices.isEmpty() && opponentLabels.equals(OPPONENTS) && groupSizes.equals(GROUP_SIZES)
 			&& bankRoles.equals(EnumSet.complementOf(EnumSet.of(Role.OPPONENT))) && strataLevels.size() == Stratum.values().length
 			&& strataLevels.values().stream().allMatch(count -> count.equals(Map.of(52, 2, 64, 2, 76, 4))), "INCOMPLETE_FROZEN_BANK");
-		return new Audit(manifest, blocks, prices, locked);
+		TrainingEvaluation131.validatePlan(blocks.values().stream().map(Block::plan).toList());
+		return new Protocol(bank, frozenAt, Map.copyOf(blocks), Map.copyOf(prices), Set.copyOf(encounterFingerprints));
 	}
 
 	private static List<String> evaluate(Audit audit, Path manifestPath, Path originals) throws IOException
@@ -317,7 +357,7 @@ public final class PhantomLearning131Evaluation
 			&& binding.get("bootId").equals(occurrence.boot()) && binding.get("blockId").equals(block.plan().id()) && binding.get("episodeId").equals(occurrence.id())
 			&& binding.get("attempt").equals(Integer.toString(occurrence.attempt())) && binding.get("position").equals(Integer.toString(occurrence.position()))
 			&& binding.get("arm").equals(slot.arm().name()) && binding.get("side").equals(slot.side().name()) && binding.get("sceneId").equals(block.sceneId())
-			&& binding.get("fixtureSha").equals(block.fixtureSha()) && binding.get("opponentSha").equals(block.opponentSha())
+			&& binding.get("fixtureSha").equals(block.fixtureSha()) && binding.get("opponentSha").equals(manifest.get("opponent." + block.opponent()))
 			&& binding.get("policySha").equals(manifest.get("policySha")) && binding.get("modelSha").equals(model), "NATIVE_EPISODE_BINDING");
 		final var participants = new HashMap<Integer, Participant>();
 		for (String[] row : binding.rows())

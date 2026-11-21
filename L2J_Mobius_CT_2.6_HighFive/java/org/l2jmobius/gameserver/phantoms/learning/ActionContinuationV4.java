@@ -301,6 +301,15 @@ public final class ActionContinuationV4
 		verifyBatch(root, load(root), expected, target, samples, nativeSha);
 	}
 
+	/** Read-only confirmation that the exact complete TRAIN batch produced the current cold-verified HEAD. */
+	public static void verifyCurrentBatchOrigin(Path root, String expected, String target, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
+	{
+		final State current = load(root);
+		require(current.head.equals(target) && !expected.equals(target), "committed TRAIN HEAD required");
+		requireCold(root, verifyBatch(root, current, expected, target, samples, nativeSha));
+		require(load(root).head.equals(target), "committed TRAIN HEAD changed");
+	}
+
 	private static State verifyBatch(Path root, State current, String expected, String target, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
 	{
 		require(current.head.equals(expected) || current.head.equals(target), "prepared HEAD changed");
@@ -394,12 +403,18 @@ public final class ActionContinuationV4
 
 	private static State publishHead(Path root, State current, String expected, State next) throws IOException
 	{
-		byte[] cold = encode(out -> { out.writeUTF(next.head); out.writeUTF(next.model.sha256()); out.writeLong(next.globalUpdates); });
-		Path path = root.resolve("cold-" + next.head + ".bin");
-		require(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && Arrays.equals(Files.readAllBytes(path), cold), "verified cold seal required");
+		requireCold(root, next);
 		if (current.head.equals(next.head)) { return current; }
 		require(current.head.equals(expected), "commit parent changed");
 		head(root, expected, next.head);
 		return load(root);
+	}
+
+	private static void requireCold(Path root, State next) throws IOException
+	{
+		byte[] cold = encode(out -> { out.writeUTF(next.head); out.writeUTF(next.model.sha256()); out.writeLong(next.globalUpdates); });
+		Path path = root.resolve("cold-" + next.head + ".bin");
+		require(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && Files.size(path) == cold.length
+			&& Arrays.equals(Files.readAllBytes(path), cold), "verified cold seal required");
 	}
 }

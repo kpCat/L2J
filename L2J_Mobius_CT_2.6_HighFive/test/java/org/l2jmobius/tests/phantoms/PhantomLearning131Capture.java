@@ -39,7 +39,7 @@ final class PhantomLearning131Capture
 	record Target(int objectId, long epoch) { }
 	record Original(String episodeId, String sealSha) { }
 	record Settlement(ActionExplorationV4.Plan plan, TacticalEpisodeV3 episode,
-		List<TacticalReceiptV3> receipts, Map<Long, ActionExperimentReceiptV4.Intent> intents) { }
+		List<TacticalReceiptV3> receipts, Map<Long, ActionExperimentReceiptV4.Intent> intents, List<ActionExplorationV4.Decision> decisions) { }
 
 	static final class Episode
 	{
@@ -161,7 +161,8 @@ final class PhantomLearning131Capture
 		if (episode == null || selected == null || !eligible(attempt.request().profileId(), actor)
 			|| target.getObjectId() != selected.selected().targetObjectId() || TacticalSnapshotV3.epoch(target) != selected.selected().targetEpoch()
 			|| World.getInstance().findObject(target.getObjectId()) != target) { return; }
-		episode.experiment.decisions().stream().filter(decision -> decision.selected().equals(selected.selected())
+		episode.experiment.decisions().stream().filter(decision -> decision.observation().decisionId() == selected.observation().decisionId()
+			&& decision.selected().equals(selected.selected())
 			&& decision.stock().equals(selected.baseline()) && decision.offered().equals(selected.offered()))
 			.findFirst().ifPresent(decision -> before(new ActionExperimentReceiptV4.Intent(decision, new SourceOwner(attempt.generation(),
 				"Combat/" + attempt.request().profileId() + "/" + attempt.generation() + "/" + attempt.sequence()), System.nanoTime())));
@@ -230,32 +231,44 @@ final class PhantomLearning131Capture
 			intents = Map.copyOf(episode.intents);
 		}
 		final var plan = episode.experiment.plan();
-		require(plan.split().equals("TRAIN") && plan.episode().equals(settled.id()) && settled.ownerNonce().equals(nonce)
+		require(Set.of("TRAIN", "TUNING").contains(plan.split()) && plan.episode().equals(settled.id()) && settled.ownerNonce().equals(nonce)
 			&& settled.startedNanos() == episode.started && !receipts.isEmpty()
 			&& Set.copyOf(settled.eventKeys()).equals(receipts.stream().map(TacticalReceiptV3::eventKey).collect(Collectors.toSet()))
 			&& episode.roster.values().stream().allMatch(actor -> settled.actors().stream().anyMatch(actual ->
 				actual.profile() == actor.profile() && actual.objectId() == actor.objectId() && actual.epoch() == actor.epoch()))
 			&& settled.actors().size() == episode.roster.size(), "SETTLED_EPISODE_SCOPE");
-		ActionExplorationV4.validateLog(episode.experiment.decisions());
+		final var decisions = episode.experiment.decisions();
+		if (plan.split().equals("TUNING")) { episode.experiment.verifyFrozenLog(decisions); }
+		else { ActionExplorationV4.validateLog(decisions); }
 		require(current.compareAndSet(episode, null), "EPISODE_REPLACED_BEFORE_SEAL");
-		return new Settlement(plan, settled, receipts, intents);
+		return new Settlement(plan, settled, receipts, intents, decisions);
 	}
 
 	/** The boot publishes frozen originals after canonical runtime drain and STORE. */
-	static Original publishTrain(Path episodes, String bootId, Settlement drained) throws Exception
+	static Original publishEpisode(Path episodes, String bootId, Settlement drained) throws Exception
 	{
 		final var settled = drained.episode();
 		final var plan = drained.plan();
+		final String split = plan.split();
 		require(bootId.matches("[0-9]{5}") && episodes.isAbsolute() && episodes.equals(episodes.toRealPath()) && Files.isDirectory(episodes), "EPISODE_OUTPUT");
 		final Path output = Files.createDirectory(episodes.resolve(settled.id()));
 		final byte[] settlement = settled.json().getBytes(StandardCharsets.UTF_8);
 		ActionExperimentReceiptV4.publish(output.resolve("episode131.json"), settlement);
 		final var seal = new StringBuilder()
-			.append(row("meta", "schema", "NATIVE_TRAIN_EPISODE131_V1")).append(row("meta", "status", "DRAINED"))
-			.append(row("meta", "split", "TRAIN")).append(row("meta", "bootId", bootId)).append(row("meta", "nonce", settled.ownerNonce()))
+			.append(row("meta", "schema", "NATIVE_" + split + "_EPISODE131_V1")).append(row("meta", "status", "DRAINED"))
+			.append(row("meta", "split", split)).append(row("meta", "bootId", bootId)).append(row("meta", "nonce", settled.ownerNonce()))
 			.append(row("meta", "episodeId", settled.id())).append(row("meta", "sourceSha", plan.sourceSha()))
 			.append(row("meta", "policySha", plan.sha256())).append(row("meta", "startedNanos", settled.startedNanos()))
 			.append(row("meta", "settledNanos", settled.settledNanos())).append(row("meta", "episodeSha", hash(settlement)));
+		if (split.equals("TUNING"))
+		{
+			final var encoder = java.util.Base64.getEncoder();
+			final byte[] decisions = drained.decisions().stream().map(decision -> encoder.encodeToString(decision.bytes()))
+				.collect(Collectors.joining("\n", "", "\n")).getBytes(StandardCharsets.US_ASCII);
+			require(decisions.length <= 4 * 1024 * 1024, "FROZEN_LOG_BOUND");
+			ActionExperimentReceiptV4.publish(output.resolve("decisions131.tsv"), decisions);
+			seal.append(row("meta", "decisionsSha", hash(decisions)));
+		}
 		for (var receipt : drained.receipts().stream().sorted(Comparator.comparing(TacticalReceiptV3::eventKey)).toList())
 		{
 			final String event = receipt.eventKey();
@@ -263,7 +276,7 @@ final class PhantomLearning131Capture
 			require(receipt.elapsedNanos() <= settled.settledNanos() - intent.capturedNanos(), "NATIVE_EFFECT_AFTER_DRAIN");
 			final byte[] intentBytes = intent.bytes();
 			final byte[] nativeBytes = PhantomLearning005Native.nativeReceiptJson(receipt).getBytes(StandardCharsets.UTF_8);
-			final byte[] row = TacticalStoreV3.encode(new TacticalStoreV3.Row("TRAIN", "task131|TRAIN|" + settled.id(), receipt));
+			final byte[] row = TacticalStoreV3.encode(new TacticalStoreV3.Row(split, "task131|" + split + "|" + settled.id(), receipt));
 			final byte[] effect = ActionExperimentReceiptV4.bind(intent, plan.sha256(), row, settled, hash(nativeBytes)).bytes();
 			ActionExperimentReceiptV4.publish(output.resolve(event + ".intent.bin"), intentBytes);
 			ActionExperimentReceiptV4.publish(output.resolve(event + ".row.bin"), row);

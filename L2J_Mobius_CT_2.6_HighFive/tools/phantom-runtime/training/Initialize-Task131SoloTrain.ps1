@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Prepare one offline Solo TRAIN cycle from a complete owned N01 fixture.
+Prepare an offline Solo TRAIN or TUNING cycle from a complete owned N01 fixture.
 .DESCRIPTION
 Requires reviewed runtime bytes, a sealed four-scene SETUP, verified stored learned-skill rows,
 the exact current TASK131 continuation HEAD, and actual frozen learner/opponent files.
@@ -10,13 +10,16 @@ The tool creates neither launch authorization nor server processes.
 [CmdletBinding()]
 param(
     [ValidateSet('Preflight','Prepare')][string]$Action='Preflight',
+    [ValidateSet('TRAIN','TUNING')][string]$Phase='TRAIN',
     [Parameter(Mandatory)][ValidatePattern('^n01-setup-r[1-9][0-9]*$')][string]$SqlLane,
+    [ValidatePattern('^native-runtime-r[1-9][0-9]*$')][string]$RuntimeId='',
     [ValidateRange(1,6)][int]$Cycle=1,
     [string]$RuntimeReceiptSha='',
     [string]$LearnedWitnessSha='',
     [string]$ExpectedHead='',
     [string]$LearnerSha='',
     [string]$OpponentSha='',
+    [string]$TrainClosedSha='',
     [string]$SafetyReviewPath='',
     [string]$SafetyReviewSha='',
     [string]$DeadlineUtc='',
@@ -37,8 +40,10 @@ $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $task=Join-Path (Split-Path $module -Parent) '.phantom-local\logs\TASK131'
 $sql=Join-Path $task "sql-lanes\$SqlLane\sql-task131"
 $campaigns=Join-Path $task 'campaigns'
-$n01=Join-Path $campaigns 'n01'
-$campaignId='train-{0:00}' -f $Cycle
+$Phase=$Phase.ToUpperInvariant()
+$tuning=$Phase -ceq 'TUNING'
+$n01=if($RuntimeId){Join-Path $task "runtime-candidates\$RuntimeId"}else{Join-Path $campaigns 'n01'}
+$campaignId='{0}-{1:00}' -f $Phase.ToLowerInvariant(),$Cycle
 $campaign=Join-Path $campaigns $campaignId
 $ledger=Join-Path $task 'fit-ledger'
 $utf8=[Text.UTF8Encoding]::new($false,$true)
@@ -150,6 +155,10 @@ function Get-SoloRuntime($Fixture) {
         AdapterClassSha=$exe['adapterClassSha'];FactoryClassSha=$exe['factoryClassSha'];MaxCyclesPerActor=[int]$exe['maxCyclesPerActor']
         ObserveSeconds=[int]$exe['observeSeconds'];DrainSeconds=[int]$exe['drainSeconds']
     }
+    if($RuntimeId){
+        Assert-Solo ((Split-Path $runtime -Leaf) -ceq $RuntimeId) 'RUNTIME_METADATA_SCOPE'
+        $recheck.StageMetadataByRuntime=$true
+    }
     $attested=@(& (Join-Path (Split-Path $PSScriptRoot -Parent) 'Initialize-Task131N01Runtime.ps1') @recheck)
     Assert-Solo ($attested.Count -eq 1 -and $attested[0] -cmatch '^TASK131_N01_SETUP_ATTESTED scenes=4 ') 'N01_ATTESTATION'
     Assert-SoloSha $meta $RuntimeReceiptSha
@@ -174,7 +183,8 @@ function Get-SoloPlans($Fixture) {
         $byProfile[$row.profileId].Add([int]$row.skillId,[int]$row.skillLevel)
     }
     $chosen=@($Fixture.Actors|Where-Object {$Profiles.Count -eq 0 -or [long]$_.profileId -in $Profiles})
-    Assert-Solo ($chosen.Count -in (1..4) -and ($Profiles.Count -eq 0 -or $Profiles.Count -eq $chosen.Count)) 'SELECTED_PROFILE_SCOPE'
+    $maximum=if($tuning){3}else{4}
+    Assert-Solo ($chosen.Count -ge 1 -and $chosen.Count -le $maximum -and ($Profiles.Count -eq 0 -or $Profiles.Count -eq $chosen.Count)) 'SELECTED_PROFILE_SCOPE'
     $index=0
     foreach($actor in $chosen){
         $stock=@($Fixture.Targets|Where-Object profileId -ceq $actor.profileId)
@@ -184,8 +194,9 @@ function Get-SoloPlans($Fixture) {
             $skills[[int]$actor.skillId] -eq [int]$actor.skillLevel) 'LEARNED_BASELINE_OR_ALTERNATIVES_UNPROVED'
         $tokens=@($skills.Keys|Sort-Object|ForEach-Object {"${_}:$($skills[$_])"}) -join ','
         $source=Get-SoloTextSha ("TASK131_SOLO_SOURCE_V1`n"+($Fixture.FixtureSha,$Fixture.SceneSha,$Fixture.ScopeSha,$LearnedWitnessSha,$actor.profileId,$stock[0].planIdentity -join "`n")+"`n")
-        $episode=Get-SoloTextSha ("TASK131_SOLO_TRAIN_V1`n"+($campaignId,$source,$ExpectedHead,$LearnerSha,$OpponentSha -join "`n")+"`n")
-        [pscustomobject]@{Id=$episode;Profile=$actor.profileId;Seconds=$SecondsPerEpisode;Source=$source;Skills=$tokens;Seed=([long]$Seed+$index)}
+        $episode=Get-SoloTextSha ("TASK131_SOLO_${Phase}_V1`n"+($campaignId,$source,$ExpectedHead,$LearnerSha,$OpponentSha -join "`n")+"`n")
+        $planSeed=if($tuning){0}else{[long]$Seed+$index}
+        [pscustomobject]@{Id=$episode;Profile=$actor.profileId;Seconds=$SecondsPerEpisode;Source=$source;Skills=$tokens;Seed=$planSeed}
         $index++
     }
 }
@@ -221,12 +232,14 @@ function Get-SoloClassPath($Runtime) {
     return @{Java=$java;Libraries=$files}
 }
 
-function Get-SoloPlanPins($Plans,$Java,[string]$EpsilonText) {
+function Get-SoloPlanPins($Plans,$Java,[int]$Cap,[string]$EpsilonText) {
     $helper=Join-Path $PSScriptRoot 'PhantomLearning131PlanPins.java'
     $helperSha=Get-SoloSha $helper
     $rows=@("episodeId`tsourceSha`tseed`tcap`tepsilon`tskills")
-    foreach($plan in $Plans){$rows+=@(@($plan.Id,$plan.Source,$plan.Seed,$ExplorationCap,$EpsilonText,$plan.Skills) -join "`t")}
-    $out=@($rows | & $Java.Java --source=25 -cp ($Java.Libraries -join ';') $helper $ledger $ExpectedHead $LearnerSha $OpponentSha)
+    foreach($plan in $Plans){$rows+=@(@($plan.Id,$plan.Source,$plan.Seed,$Cap,$EpsilonText,$plan.Skills) -join "`t")}
+    $helperArgs=@($ledger,$ExpectedHead,$LearnerSha,$OpponentSha)
+    if($tuning){$helperArgs+=@('TUNING')}
+    $out=@($rows | & $Java.Java --source=25 -cp ($Java.Libraries -join ';') $helper @helperArgs)
     Assert-Solo ($LASTEXITCODE -eq 0 -and $out.Count -eq $Plans.Count) 'CANONICAL_PLAN_CODEC'
     $pins=[ordered]@{}
     for($i=0;$i -lt $Plans.Count;$i++){
@@ -281,6 +294,13 @@ Assert-SoloDirectory $task
 Assert-SoloOff
 # Honest partial scenes and absent SETUP evidence fail before any model, reviewed build or output staging.
 $fixture=Get-SoloFixture
+if($tuning){
+    Assert-Solo ($RuntimeId -and $Profiles.Count -in (1..3) -and $TrainClosedSha -cmatch '^[a-f0-9]{64}$' -and !$PSBoundParameters.ContainsKey('Seed') -and
+        !$PSBoundParameters.ContainsKey('ExplorationCap') -and !$PSBoundParameters.ContainsKey('Epsilon')) 'TUNING_FROZEN_SCOPE'
+    $stockSha=Get-SoloTextSha ("TASK131_TUNING_STOCK_V1`n"+$fixture.FixtureSha+"`n"+$fixture.SceneSha+"`n")
+    Assert-Solo (!$OpponentSha -or $OpponentSha -ceq $stockSha) 'TUNING_STOCK_OPPONENT_PIN'
+    $OpponentSha=$stockSha
+}else{Assert-Solo (!$TrainClosedSha) 'TRAIN_CANNOT_USE_TUNING_ORIGIN'}
 foreach($pin in @($RuntimeReceiptSha,$LearnedWitnessSha,$ExpectedHead,$LearnerSha,$OpponentSha,$SafetyReviewSha)){
     Assert-Solo ($pin -cmatch '^[a-f0-9]{64}$') 'REQUIRED_EXTERNAL_PIN'
 }
@@ -295,31 +315,37 @@ $observe=$plans.Count*$SecondsPerEpisode
 $left=($until-[DateTimeOffset]::UtcNow).TotalSeconds
 Assert-Solo ($left -gt ($BootSeconds+$observe+$DrainSeconds) -and $left -lt 1800) 'FINITE_DEADLINE'
 $java=Get-SoloClassPath $runtime
-$epsilonText=$Epsilon.ToString('0.00############',[Globalization.CultureInfo]::InvariantCulture)
-$planProof=Get-SoloPlanPins $plans $java $epsilonText
+$epsilonText=if($tuning){'0'}else{$Epsilon.ToString('0.00############',[Globalization.CultureInfo]::InvariantCulture)}
+$cap=if($tuning){0}else{$ExplorationCap}
+$planProof=Get-SoloPlanPins $plans $java $cap $epsilonText
 Assert-SoloOff
 
 if($Action -eq 'Preflight'){
-    Write-Output "TASK131_SOLO_TRAIN_PREFLIGHT cycle=$Cycle scenes=$($plans.Count) verifiedStoredSkills=true canonicalPlans=true launchAuthorized=false"
+    Write-Output "TASK131_SOLO_${Phase}_PREFLIGHT cycle=$Cycle scenes=$($plans.Count) verifiedStoredSkills=true canonicalPlans=true javaExecutionVerified=false launchAuthorized=false"
     return
 }
 
 Assert-Solo (!(Test-Path -LiteralPath $campaign)) 'NO_OVERWRITE'
-$stage=Join-Path $campaigns ('.solo-'+[Guid]::NewGuid().ToString('N'))
+Assert-SoloDirectory $campaigns
+$preparations=Join-Path $task 'solo-preparations'
+$null=[IO.Directory]::CreateDirectory($preparations)
+Assert-SoloDirectory $preparations
+$stage=Join-Path $preparations ($campaignId+'-'+[Guid]::NewGuid().ToString('N'))
 New-SoloPrivate $stage
 Copy-SoloClasses $runtime $stage
 Copy-SoloFile $SafetyReviewPath (Join-Path $stage 'safety-review024.json') $SafetyReviewSha
-foreach($model in @($LearnerSha,$OpponentSha)|Select-Object -Unique){
+$modelPins=if($tuning){@($LearnerSha)}else{@($LearnerSha,$OpponentSha)}
+foreach($model in $modelPins|Select-Object -Unique){
     $file='candidate-'+$model+'.bin'
     Copy-SoloFile (Join-Path $ledger $file) (Join-Path $stage $file) $model
 }
 
 $schedule=@("episodeId`tprofileId`tseconds")
-$policy=[ordered]@{schema='TRAIN_POLICY131_V1';expectedHead=$ExpectedHead;learnerSha=$LearnerSha;opponentSha=$OpponentSha}
+$policy=[ordered]@{schema=($Phase+'_POLICY131_V1');expectedHead=$ExpectedHead;learnerSha=$LearnerSha;opponentSha=$OpponentSha}
 $execution=[ordered]@{}
 foreach($key in @('schema','sourceCommit','runtimeRoot','gameJar','gameJarSha','adapterClassSha','factoryClassSha','sqlLane','jdbcSha','fixtureSha','sceneSha',
     'sceneScopeSha','enabledPhantomIniSha','maxCyclesPerActor')){$execution[$key]=$runtime.Execution[$key]}
-$execution.phase='TRAIN'
+$execution.phase=$Phase
 $execution.campaignId=$campaignId
 $execution.cycle=$Cycle
 $execution.maxEpisodes=$plans.Count
@@ -327,6 +353,7 @@ $execution.expectedHead=$ExpectedHead
 $execution.learnerSha=$LearnerSha
 $execution.opponentSha=$OpponentSha
 $execution.learnedWitnessSha=$LearnedWitnessSha
+if($tuning){$execution.trainClosedSha=$TrainClosedSha}
 $execution.rollbackHead=$ExpectedHead
 $execution.rollbackModelSha=$LearnerSha
 $execution.observeSeconds=$observe
@@ -336,7 +363,7 @@ foreach($plan in $plans){
     $schedule+=@(@($plan.Id,$plan.Profile,$plan.Seconds) -join "`t")
     $prefix='episode.'+$plan.Id+'.'
     $policy[$prefix+'seed']=$plan.Seed
-    $policy[$prefix+'cap']=$ExplorationCap
+    $policy[$prefix+'cap']=$cap
     $policy[$prefix+'epsilon']=$epsilonText
     $policy[$prefix+'skills']=$plan.Skills
     $execution[$prefix+'sourceSha']=$plan.Source
@@ -350,7 +377,7 @@ $execution.policySha=Get-SoloSha (Join-Path $stage 'policy131.properties')
 Write-SoloProperties (Join-Path $stage 'execution.properties') $execution
 $executionSha=Get-SoloSha (Join-Path $stage 'execution.properties')
 $manifest=[ordered]@{
-    schema='TRAINING_COMBAT131_V1';campaignId=$campaignId;phase='TRAIN';cycle=$Cycle;auditBank=0;sourceCommit=$runtime.Pins.sourceCommit
+    schema='TRAINING_COMBAT131_V1';campaignId=$campaignId;phase=$Phase;cycle=$Cycle;auditBank=0;sourceCommit=$runtime.Pins.sourceCommit
     runtimeRoot=$runtime.Root;sqlLane=$SqlLane;javaSha=$runtime.Pins.javaSha;gameJarSha=$runtime.Pins.gameJarSha;classPinsSha=$runtime.Pins.classPinsSha
     executionSha=$executionSha;safetyReviewSha=$SafetyReviewSha;fixtureSha=$execution.trainScenesSha;policySha=$execution.policySha;modelSha=$LearnerSha
     dbSealSha=$runtime.Pins.dbSealSha;jdbcSha=$runtime.Pins.jdbcSha;dependencyShas=$runtime.Pins.dependencyShas;configShas=$runtime.Pins.configShas
@@ -365,28 +392,22 @@ Assert-SoloSha (Join-Path $sql 'off.json') $runtime.OffSha
 Assert-Solo ((Read-SoloText (Join-Path $ledger 'HEAD')) -ceq $ExpectedHead) 'FIT_LEDGER_CHANGED'
 Assert-SoloOff
 Assert-SoloDirectory $stage
-[IO.Directory]::Move($stage,$campaign)
-try {
-    # The native read-only phase requires the final namespace. Publish its controller manifest last.
-    $cp=($java.Libraries+@((Join-Path $campaign 'native-classes'))) -join ';'
-    $verification=@(& $java.Java '-Dphantom.learning.train=true' -cp $cp org.l2jmobius.tests.phantoms.PhantomLearning131Native --train-preflight (Join-Path $campaign 'execution.properties'))
-    Assert-Solo ($LASTEXITCODE -eq 0 -and ($verification -join "`n") -cmatch 'TASK131_NATIVE_PREFLIGHT_READY phase=TRAIN ') 'JAVA_TRAIN_PREFLIGHT'
-    Assert-SoloOff
-    Assert-SoloSha (Join-Path $campaign 'execution.properties') $executionSha
-    $manifestBody=($manifest|ConvertTo-Json -Depth 9)+"`n"
-    $close=[ordered]@{
-        schema='TASK131_SOLO_TRAIN_OFFLINE_V1';stage='PREPARED_OFFLINE';launchAuthorized=$false;manifestSha=(Get-SoloTextSha $manifestBody)
-        runtimeReceiptSha=$RuntimeReceiptSha;learnerSha=$LearnerSha;opponentSha=$OpponentSha;expectedHead=$ExpectedHead;learnedWitnessSha=$LearnedWitnessSha
-        planWriterSha=$planProof.HelperSha;profiles=@($plans.Profile);episodeCount=$plans.Count
-    }
-    Write-SoloText (Join-Path $campaign 'offline-preflight.json') (($close|ConvertTo-Json -Depth 4)+"`n")
-    $pending=Join-Path $campaign '.campaign.pending'
-    Write-SoloText $pending $manifestBody
-    Assert-SoloSha $pending $close.manifestSha
-    [IO.File]::Move($pending,(Join-Path $campaign 'campaign.json'))
-}catch{
-    Assert-SoloDirectory $campaign
-    if(!(Test-Path -LiteralPath (Join-Path $campaign 'campaign.json'))){[IO.Directory]::Move($campaign,$stage)}
-    throw
+$cp=($java.Libraries+@((Join-Path $stage 'native-classes'))) -join ';'
+$preflight='--'+$Phase.ToLowerInvariant()+'-preflight'
+$verification=@(& $java.Java '-Dphantom.learning.train=true' -cp $cp org.l2jmobius.tests.phantoms.PhantomLearning131Native $preflight (Join-Path $stage 'execution.properties'))
+Assert-Solo ($LASTEXITCODE -eq 0 -and ($verification -join "`n") -cmatch ('TASK131_NATIVE_PREFLIGHT_READY phase='+$Phase+' ')) 'JAVA_EXECUTION_PREFLIGHT'
+Assert-SoloOff
+Assert-SoloSha (Join-Path $stage 'execution.properties') $executionSha
+$manifestBody=($manifest|ConvertTo-Json -Depth 9)+"`n"
+$close=[ordered]@{
+    schema=('TASK131_SOLO_'+$Phase+'_OFFLINE_V1');stage='PREPARED_OFFLINE';launchAuthorized=$false;manifestSha=(Get-SoloTextSha $manifestBody)
+    runtimeReceiptSha=$RuntimeReceiptSha;learnerSha=$LearnerSha;opponentSha=$OpponentSha;expectedHead=$ExpectedHead;learnedWitnessSha=$LearnedWitnessSha
+    planWriterSha=$planProof.HelperSha;profiles=@($plans.Profile);episodeCount=$plans.Count
 }
-Write-Output "TASK131_SOLO_TRAIN_PREPARED cycle=$Cycle scenes=$($plans.Count) manifestSha=$($close.manifestSha) launchAuthorized=false"
+Write-SoloText (Join-Path $stage 'offline-preflight.json') (($close|ConvertTo-Json -Depth 4)+"`n")
+$stagedManifest=Join-Path $stage 'campaign.json'
+Write-SoloText $stagedManifest $manifestBody
+Assert-SoloSha $stagedManifest $close.manifestSha
+Assert-SoloDirectory $campaigns
+[IO.Directory]::Move($stage,$campaign)
+Write-Output "TASK131_SOLO_${Phase}_PREPARED cycle=$Cycle scenes=$($plans.Count) manifestSha=$($close.manifestSha) launchAuthorized=false"

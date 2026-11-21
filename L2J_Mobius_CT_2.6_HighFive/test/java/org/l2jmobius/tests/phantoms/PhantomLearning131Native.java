@@ -102,10 +102,11 @@ public final class PhantomLearning131Native
 		String executionSha, String fixtureSha, String scenesSha, String enabledConfigSha, String jdbcSha, int maxCycles, int seconds, int drainSeconds,
 		List<Scene> scenes, Training training)
 	{
-		String phase() { return training == null ? "N01" : "TRAIN"; }
+		String phase() { return training == null ? "N01" : training.phase(); }
+		String episodeArtifact(String suffix) { return phase().toLowerCase(Locale.ROOT) + suffix; }
 	}
 	private record TrainScene(long profile, int seconds, ActionExplorationV4.Plan plan) { }
-	private record Training(int cycle, String planSha, String policySha, String head, String opponentSha, ActionValueV4 model, List<TrainScene> episodes) { }
+	private record Training(String phase, int cycle, String planSha, String policySha, String head, String opponentSha, ActionValueV4 model, List<TrainScene> episodes) { }
 	private record Launch(Path root, String manifestSha, String boot, String nonce, Instant deadline, int prior,
 		Map<Long, StoredActor> previousStore) { }
 	private record Bound(Scene scene, Player player, PlayerNativeEvidence sensor, PlayerNativeEvidence.Snapshot initial, Target stock) { }
@@ -120,9 +121,15 @@ public final class PhantomLearning131Native
 	{
 		try
 		{
-			check(args.length == 2 && Set.of("--preflight", "--train-preflight").contains(args[0])
-				|| args.length == 3 && Set.of("--n01", "--train").contains(args[0]), "MODE");
-			final Scope scope = scope(Path.of(args[1]), args[0].startsWith("--train") ? "TRAIN" : "N01");
+			check(args.length == 2 && Set.of("--preflight", "--train-preflight", "--tuning-preflight").contains(args[0])
+				|| args.length == 3 && Set.of("--n01", "--train", "--tuning").contains(args[0]), "MODE");
+			final String phase = switch (args[0])
+			{
+				case "--train", "--train-preflight" -> "TRAIN";
+				case "--tuning", "--tuning-preflight" -> "TUNING";
+				default -> "N01";
+			};
+			final Scope scope = scope(Path.of(args[1]), phase, args.length == 2);
 			if (args.length == 2)
 			{
 				System.out.println("TASK131_NATIVE_PREFLIGHT_READY phase=" + scope.phase() + " scenes=" + (scope.training() == null ? scope.scenes().size() : scope.training().episodes().size()) + " live=false");
@@ -138,7 +145,7 @@ public final class PhantomLearning131Native
 		}
 	}
 
-	private static Scope scope(Path supplied, String phase) throws Exception
+	private static Scope scope(Path supplied, String phase, boolean preflight) throws Exception
 	{
 		final Path execution = physical(supplied, true);
 		final Path task = taskRoot(execution);
@@ -159,8 +166,8 @@ public final class PhantomLearning131Native
 		check("SETUP_CANDIDATES".equals(value(sealed, "stage")) && fixtureSha.equalsIgnoreCase(value(sealed, "fixtureSha256"))
 			&& sceneSha.equalsIgnoreCase(value(sealed, "sceneSha256")) && "true".equals(value(sealed, "nextBootMustBindNativeTargets"))
 			&& String.join(",", cohort.stream().map(scene -> Long.toString(scene.profile())).toList()).equals(value(sealed, "profiles")), "COMPLETE_FIXTURE_SEAL");
-		final Training training = phase.equals("TRAIN")
-			? training(task, execution.getParent(), fields, cohort, sql, fixtureSha, sceneSha, sceneScopeSha) : null;
+		final Training training = phase.equals("N01") ? null
+			: training(task, execution.getParent(), phase, preflight, fields, cohort, sql, fixtureSha, sceneSha, sceneScopeSha);
 		check(training != null || n(fields, "maxEpisodes") == 4, "N01_EPISODE_COUNT");
 
 		final Path runtime = physical(Path.of(value(fields, "runtimeRoot")), false);
@@ -194,36 +201,52 @@ public final class PhantomLearning131Native
 		return new Scope(execution, task, runtime, game, jar, sql, campaign, jarSha, source, sha(execution), fixtureSha, sceneSha, enabledSha, jdbcSha, maxCycles, seconds, drainSeconds, cohort, training);
 	}
 
-	private static Training training(Path task, Path campaign, Properties fields, List<Scene> cohort, Path sql,
+	private static Training training(Path task, Path campaign, String phase, boolean preflight, Properties fields, List<Scene> cohort, Path sql,
 		String fixtureSha, String sceneSha, String sceneScopeSha) throws Exception
 	{
+		final boolean tuning = phase.equals("TUNING");
 		final int cycle = n(fields, "cycle");
-		check(cycle >= 1 && cycle <= 6 && campaign.equals(task.resolve("campaigns/train-%02d".formatted(cycle)))
-			&& campaign.getFileName().toString().equals(value(fields, "campaignId")), "OWN_TRAIN_CYCLE");
+		final String id = "%s-%02d".formatted(phase.toLowerCase(Locale.ROOT), cycle);
+		final boolean stage = preflight && campaign.getParent().equals(task.resolve("solo-preparations"))
+			&& campaign.getFileName().toString().matches(id + "-[a-f0-9]{32}");
+		check(cycle >= 1 && cycle <= 6 && (stage || campaign.equals(task.resolve("campaigns").resolve(id)))
+			&& id.equals(value(fields, "campaignId")), "OWN_TRAIN_CYCLE");
 		final String head = value(fields, "expectedHead"), learner = value(fields, "learnerSha"), opponent = value(fields, "opponentSha");
 		check(head.matches("[0-9a-f]{64}") && learner.matches("[0-9a-f]{64}") && opponent.matches("[0-9a-f]{64}")
 			&& head.equals(value(fields, "rollbackHead")) && learner.equals(value(fields, "rollbackModelSha")), "TRAIN_FROZEN_PAIR");
-		final var checkpoint = ActionContinuationV4.load(physical(task.resolve("fit-ledger"), false));
+		final Path lineage = physical(task.resolve("fit-ledger"), false);
+		final var checkpoint = ActionContinuationV4.load(lineage);
 		final var model = checkpoint.model();
 		check(checkpoint.head().equals(head) && model.sha256().equals(learner), "TRAIN_COLD_LINEAGE");
 		pin(campaign.resolve("candidate-" + learner + ".bin"), learner);
-		final Path opponentFile = physical(campaign.resolve("candidate-" + opponent + ".bin"), true);
-		check(Files.size(opponentFile) <= MAX_ARTIFACT_BYTES, "TRAIN_OPPONENT_BYTE_BOUND");
-		ActionValueV4.restore(Files.readAllBytes(opponentFile), opponent);
+		Path completedTrain = null;
+		if (tuning)
+		{
+			check(opponent.equals(TacticalObservationV3.hash(("TASK131_TUNING_STOCK_V1\n" + fixtureSha + "\n" + sceneSha + "\n")
+				.getBytes(StandardCharsets.UTF_8))), "TUNING_STOCK_OPPONENT_PIN");
+			completedTrain = PhantomLearning131Fit.verifyTuningOrigin(task, cycle, value(fields, "trainClosedSha"), head);
+		}
+		else
+		{
+			final Path opponentFile = physical(campaign.resolve("candidate-" + opponent + ".bin"), true);
+			check(Files.size(opponentFile) <= MAX_ARTIFACT_BYTES, "TRAIN_OPPONENT_BYTE_BOUND");
+			ActionValueV4.restore(Files.readAllBytes(opponentFile), opponent);
+		}
 		final Path schedule = physical(campaign.resolve("scenes.tsv"), true), policyFile = physical(campaign.resolve("policy131.properties"), true);
 		final String scheduleSha = pin(schedule, value(fields, "trainScenesSha")), policySha = pin(policyFile, value(fields, "policySha"));
 		final var policy = properties(policyFile);
-		check("TRAIN_POLICY131_V1".equals(value(policy, "schema")) && head.equals(value(policy, "expectedHead"))
+		check((phase + "_POLICY131_V1").equals(value(policy, "schema")) && head.equals(value(policy, "expectedHead"))
 			&& learner.equals(value(policy, "learnerSha")) && opponent.equals(value(policy, "opponentSha")), "TRAIN_POLICY_SCOPE");
 		final String header = "episodeId\tprofileId\tseconds";
 		final var scheduleRows = table(schedule, header, 3);
 		final int maximum = n(fields, "maxEpisodes");
-		check(maximum >= 1 && maximum <= 4 && scheduleRows.size() == maximum, "TRAIN_NATIVE_SCENE_COUNT");
+		check(maximum >= 1 && maximum <= (tuning ? 3 : 4) && scheduleRows.size() == maximum, "TRAIN_NATIVE_SCENE_COUNT");
 		final Path witness = physical(sql.resolve("n01-learned-offense.tsv"), true);
 		final String learnedSha = pin(witness, value(fields, "learnedWitnessSha"));
 		final var learned = learnedOffense(witness, cohort, fixtureSha, sceneScopeSha);
 		pin(witness, learnedSha);
 		final var selection = new ArrayList<TrainScene>();
+		final Set<String> usedScenes = tuning ? trainingSceneKeys(task, sql, cycle, completedTrain) : Set.of();
 		for (var entry : scheduleRows)
 		{
 			final String episode = entry[0];
@@ -235,19 +258,61 @@ public final class PhantomLearning131Native
 			final String key = "episode." + episode + ".";
 			final String sourceSha = TacticalObservationV3.hash(("TASK131_SOLO_SOURCE_V1\n" + fixtureSha + "\n" + sceneSha + "\n"
 				+ sceneScopeSha + "\n" + learnedSha + "\n" + profile + "\n" + actor.planIdentity() + "\n").getBytes(StandardCharsets.UTF_8));
-			final String sceneId = TacticalObservationV3.hash(("TASK131_SOLO_TRAIN_V1\n" + campaign.getFileName() + "\n" + sourceSha + "\n"
+			final String sceneId = TacticalObservationV3.hash(("TASK131_SOLO_" + phase + "_V1\n" + id + "\n" + sourceSha + "\n"
 				+ head + "\n" + learner + "\n" + opponent + "\n").getBytes(StandardCharsets.UTF_8));
 			final List<String> skills = List.of(value(policy, key + "skills").split(",", -1));
 			final var ranks = learned.get(profile);
-			check(sourceSha.equals(value(fields, key + "sourceSha")) && sceneId.equals(episode) && ranks != null
+			check(sourceSha.equals(value(fields, key + "sourceSha")) && sceneId.equals(episode) && ranks != null && skills.size() >= 2
 				&& skills.equals(ranks.entrySet().stream().map(rank -> rank.getKey() + ":" + rank.getValue()).toList())
 				&& ranks.getOrDefault(actor.skill(), 0) == actor.rank(), "TRAIN_LEARNED_SOURCE_PIN");
-			final var plan = new ActionExplorationV4.Plan(2, "EPSILON_V2", Long.parseLong(value(policy, key + "seed")), n(policy, key + "cap"),
-				Double.parseDouble(value(policy, key + "epsilon")), "TRAIN", episode, sourceSha, learner, skills);
+			check(!checkpoint.episodes().containsKey(episode) && (!tuning || !usedScenes.contains(sceneKey(actor))), "EPISODE_REUSE_OR_TUNING_LEAKAGE");
+			final var plan = new ActionExplorationV4.Plan(2, tuning ? "MODEL_V2" : "EPSILON_V2", Long.parseLong(value(policy, key + "seed")), n(policy, key + "cap"),
+				Double.parseDouble(value(policy, key + "epsilon")), phase, episode, sourceSha, learner, skills);
 			check(plan.sha256().equals(value(fields, key + "policySha")), "TRAIN_EPISODE_POLICY_PIN");
+			if (tuning) { ActionExplorationV4.frozen(plan, lineage, head); }
 			selection.add(new TrainScene(profile, seconds, plan));
 		}
-		return new Training(cycle, scheduleSha, policySha, head, opponent, model, List.copyOf(selection));
+		return new Training(phase, cycle, scheduleSha, policySha, head, opponent, model, List.copyOf(selection));
+	}
+
+	private static Set<String> trainingSceneKeys(Path task, Path tuningSql, int cycle, Path currentExecution) throws Exception
+	{
+		final Set<String> keys = new java.util.HashSet<>();
+		for (int index = 1; index <= cycle; index++)
+		{
+			final Path campaign = task.resolve("campaigns/train-%02d".formatted(index));
+			final Path execution = physical(campaign.resolve("execution.properties"), true);
+			check(index != cycle || execution.equals(currentExecution), "TUNING_TRAIN_ORIGIN_PATH");
+			final String manifest = smallText(physical(campaign.resolve("campaign.json"), true));
+			final String executionSha = pin(execution, jsonScalar(manifest, "executionSha"));
+			final var fields = properties(execution);
+			check("TRAIN".equals(value(fields, "phase")) && value(fields, "campaignId").equals(campaign.getFileName().toString())
+				&& n(fields, "cycle") == index, "TUNING_TRAIN_HISTORY_SCOPE");
+			final String lane = value(fields, "sqlLane");
+			check(lane.matches("n01-setup-r[1-9][0-9]*"), "TUNING_TRAIN_HISTORY_LANE");
+			final Path sql = physical(task.resolve("sql-lanes").resolve(lane).resolve("sql-task131"), false);
+			check(!sql.equals(tuningSql), "TUNING_REQUIRES_FRESH_SQL_FIXTURE");
+			final Path fixture = physical(sql.resolve("n01-fixture.tsv"), true), scenesFile = physical(sql.resolve("n01-scenes.tsv"), true);
+			final String fixtureSha = pin(fixture, value(fields, "fixtureSha")), sceneSha = pin(scenesFile, value(fields, "sceneSha"));
+			final var priorCohort = scenes(fixture, scenesFile);
+			final Path schedule = physical(campaign.resolve("scenes.tsv"), true);
+			final String scheduleSha = pin(schedule, value(fields, "trainScenesSha"));
+			for (String[] row : table(schedule, "episodeId\tprofileId\tseconds", 3))
+			{
+				final long profile = Long.parseLong(row[1]);
+				keys.add(sceneKey(priorCohort.stream().filter(actor -> actor.profile() == profile).findFirst().orElseThrow(() -> failure("TUNING_TRAIN_HISTORY_PROFILE"))));
+			}
+			pin(schedule, scheduleSha);
+			pin(fixture, fixtureSha);
+			pin(scenesFile, sceneSha);
+			pin(execution, executionSha);
+		}
+		return Set.copyOf(keys);
+	}
+
+	private static String sceneKey(Scene scene)
+	{
+		return scene.profession() + ":" + scene.level() + ":" + scene.npc() + ":" + scene.spawn();
 	}
 
 	private static Map<Long, java.util.TreeMap<Integer, Integer>> learnedOffense(Path witness, List<Scene> cohort, String fixtureSha, String scopeSha) throws Exception
@@ -308,7 +373,7 @@ public final class PhantomLearning131Native
 		final var pending = new Launch(root, manifest.toLowerCase(Locale.ROOT), boot, nonce, deadline, prior, Map.of());
 		final String reservationSha = verifyLauncherClaim(pending, path);
 		if (scope.training() == null) { return pending; }
-		final var prefix = PhantomLearning131Fit.completedPrefix(root, pending.manifestSha(), reservationSha);
+		final var prefix = PhantomLearning131Fit.completedPrefix(root, pending.manifestSha(), reservationSha, scope.phase());
 		check(prefix.completed() == prior && prefix.episodeIds().equals(scope.training().episodes().stream().limit(prior).map(v -> v.plan().episode()).toList()), "TRAIN_RESUME_CURSOR");
 		final var checkpoint = prefix.store() == null ? Map.<Long, StoredActor>of() : readTrainStore(prefix.store(), prefix.storeSha(), scope.scenes());
 		check(prior == 0 || !checkpoint.isEmpty(), "TRAIN_RESUME_STORE_REQUIRED");
@@ -380,7 +445,7 @@ public final class PhantomLearning131Native
 		verifyBeforeBoot(scope);
 		final var training = scope.training() == null ? null : new PhantomLearning131Capture(launch.manifestSha(), scope.training().model());
 		final var settlements = new ArrayList<PhantomLearning131Capture.Settlement>();
-		writeNew(launch.root().resolve(training == null ? "n01-java.claim" : "train-java.claim"), line("pid", ProcessHandle.current().pid()) + line("nonce", launch.nonce())
+		writeNew(launch.root().resolve(scope.episodeArtifact("-java.claim")), line("pid", ProcessHandle.current().pid()) + line("nonce", launch.nonce())
 			+ line("executionSha", scope.executionSha()) + line("jarSha", scope.gameJarSha()) + line("startedUtc", currentStart()));
 		boolean bootAttempted = false, enabledRuntime = false;
 		Status terminal = Status.UNKNOWN;
@@ -449,7 +514,7 @@ public final class PhantomLearning131Native
 				{
 					completed = launch.prior() + settlements.size();
 					check(stored.size() == scope.scenes().size() && (status != Status.COMPLETED || completed == scope.training().episodes().size()), "TRAIN_DURABLE_CLOSURE");
-					publishTraining(scope, launch, status, settlements, stored, seal);
+					publishSoloBatch(scope, launch, status, settlements, stored, seal);
 				}
 				writeNew(launch.root().resolve("drain131.properties"), line("schema", "NATIVE_DRAIN131_V1") + line("nonce", launch.nonce())
 					+ line("manifestSha", launch.manifestSha()) + line("bootId", launch.boot()) + line("pid", ProcessHandle.current().pid())
@@ -501,7 +566,9 @@ public final class PhantomLearning131Native
 			check(!before.overflow() && before.epoch() == actor.initial().epoch() && before.damageSequence() == 0 && before.killSequence() == 0
 				&& before.targetSequence() == 0 && before.rewardSequence() == 0, "TRAIN_NATIVE_WORK_BEFORE_CUT");
 			final long started = System.nanoTime();
-			final var episode = new PhantomLearning131Capture.Episode(new ActionExplorationV4(slot.plan()), started,
+			final var experiment = scope.phase().equals("TUNING")
+				? ActionExplorationV4.frozen(slot.plan(), scope.task().resolve("fit-ledger"), scope.training().head()) : new ActionExplorationV4(slot.plan());
+			final var episode = new PhantomLearning131Capture.Episode(experiment, started,
 				List.of(new PhantomLearning131Capture.Actor(slot.profile(), player.getObjectId(), before.epoch())),
 				Set.of(new PhantomLearning131Capture.Target(actor.stock().objectId(), actor.stock().spawnGeneration())));
 			final Instant cutoff = earliest(observeUntil, Instant.now().plusSeconds(slot.seconds()));
@@ -625,12 +692,12 @@ public final class PhantomLearning131Native
 		}
 	}
 
-	private static void publishTraining(Scope scope, Launch launch, Status status, List<PhantomLearning131Capture.Settlement> settlements,
+	private static void publishSoloBatch(Scope scope, Launch launch, Status status, List<PhantomLearning131Capture.Settlement> settlements,
 		Map<Long, StoredActor> stored, Path seal) throws Exception
 	{
 		final var originals = Files.createDirectory(launch.root().resolve("episodes"));
 		final var training = scope.training();
-		final Path store = launch.root().resolve("train-store131.tsv");
+		final Path store = launch.root().resolve(scope.episodeArtifact("-store131.tsv"));
 		final var storeRows = new StringBuilder(STORE_HEADER).append('\n');
 		for (var entry : stored.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList())
 		{
@@ -639,8 +706,13 @@ public final class PhantomLearning131Native
 			storeRows.append(row(entry.getKey(), actor.objectId(), actor.backgroundSha(), totals.exp(), totals.sp(), totals.shots(), totals.wallet()));
 		}
 		writeNew(store, storeRows.toString());
-		final var rows = new StringBuilder(row("meta", "schema", "NATIVE_TRAIN_BOOT131_V1"))
-			.append(row("meta", "phase", "TRAIN")).append(row("meta", "status", status == Status.COMPLETED ? "DRAINED" : status.name()))
+		if (scope.phase().equals("TUNING"))
+		{
+			final var checkpoint = ActionContinuationV4.load(scope.task().resolve("fit-ledger"));
+			check(checkpoint.head().equals(training.head()) && checkpoint.model().sha256().equals(training.model().sha256()), "TUNING_LINEAGE_CHANGED");
+		}
+		final var rows = new StringBuilder(row("meta", "schema", "NATIVE_" + scope.phase() + "_BOOT131_V1"))
+			.append(row("meta", "phase", scope.phase())).append(row("meta", "status", status == Status.COMPLETED ? "DRAINED" : status.name()))
 			.append(row("meta", "bootId", launch.boot())).append(row("meta", "nonce", launch.nonce()))
 			.append(row("meta", "pid", ProcessHandle.current().pid())).append(row("meta", "processStarted", currentStart()))
 			.append(row("meta", "manifestSha", launch.manifestSha())).append(row("meta", "sourceCommit", scope.sourceCommit()))
@@ -649,7 +721,7 @@ public final class PhantomLearning131Native
 			.append(row("meta", "cycle", training.cycle())).append(row("meta", "storeSha", sha(store)));
 		for (var settlement : settlements)
 		{
-			final var original = PhantomLearning131Capture.publishTrain(originals, launch.boot(), settlement);
+			final var original = PhantomLearning131Capture.publishEpisode(originals, launch.boot(), settlement);
 			rows.append(row("episode", original.episodeId(), original.sealSha()));
 		}
 		writeNew(seal, rows.toString());

@@ -165,20 +165,16 @@ public final class TrainingEvaluation131
 	/** Compare a complete bank in the stratum and block-index order of its frozen plan. */
 	public static NumericResult compare(List<BlockPlan> plans, List<Episode> episodes)
 	{
-		final int blockCount = STRATA.length * BLOCKS_PER_STRATUM;
-		require(plans != null && plans.size() == blockCount, "PLAN_BLOCK_COUNT");
-		require(episodes != null && episodes.size() == blockCount * ARM_COUNT, "BANK_EPISODE_COUNT");
+		validatePlan(plans);
+		require(episodes != null && episodes.size() == STRATA.length * BLOCKS_PER_STRATUM * ARM_COUNT, "BANK_EPISODE_COUNT");
 		final var byId = new HashMap<String, MatchedBlock>();
 		final var byIndex = new MatchedBlock[STRATA.length][BLOCKS_PER_STRATUM];
 		for (BlockPlan plan : plans)
 		{
-			require(plan != null, "MISSING_BLOCK_PLAN");
 			final var block = new MatchedBlock(plan);
-			final var blocks = byIndex[plan.stratum().ordinal()];
-			require(blocks[plan.index()] == null && byId.putIfAbsent(plan.id(), block) == null, "DUPLICATE_BLOCK");
-			blocks[plan.index()] = block;
+			byId.put(plan.id(), block);
+			byIndex[plan.stratum().ordinal()][plan.index()] = block;
 		}
-		validateBalance(byIndex);
 
 		final var episodeIds = new HashSet<String>();
 		for (Episode episode : episodes)
@@ -193,18 +189,34 @@ public final class TrainingEvaluation131
 		return bootstrap(differences(byIndex));
 	}
 
-	private static void validateBalance(MatchedBlock[][] byIndex)
+	/** Validate the same plan before any native episode is launched. */
+	static void validatePlan(List<BlockPlan> plans)
 	{
-		for (MatchedBlock[] stratum : byIndex)
+		require(plans != null && plans.size() == STRATA.length * BLOCKS_PER_STRATUM, "PLAN_BLOCK_COUNT");
+		final var ids = new HashSet<String>();
+		final var byIndex = new BlockPlan[STRATA.length][BLOCKS_PER_STRATUM];
+		for (BlockPlan plan : plans)
+		{
+			require(plan != null, "MISSING_BLOCK_PLAN");
+			final var blocks = byIndex[plan.stratum().ordinal()];
+			require(blocks[plan.index()] == null && ids.add(plan.id()), "DUPLICATE_BLOCK");
+			blocks[plan.index()] = plan;
+		}
+		validateBalance(byIndex);
+	}
+
+	private static void validateBalance(BlockPlan[][] byIndex)
+	{
+		for (BlockPlan[] stratum : byIndex)
 		{
 			final int[][] positions = new int[ARM_COUNT][ARM_COUNT];
 			final int[][] sides = new int[ARM_COUNT][SIDE_COUNT];
-			for (MatchedBlock block : stratum)
+			for (BlockPlan block : stratum)
 			{
 				require(block != null, "MISSING_STRATUM_BLOCK");
 				for (int position = 0; position < ARM_COUNT; position++)
 				{
-					final Slot slot = block.plan.order().get(position);
+					final Slot slot = block.order().get(position);
 					positions[slot.arm().ordinal()][position]++;
 					sides[slot.arm().ordinal()][slot.side().ordinal()]++;
 				}
