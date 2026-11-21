@@ -440,10 +440,34 @@ public final class PhantomProfileRepository
 	 */
 	public List<PhantomProfileComponent> mutateComponentsAtomically(long profileId, List<ComponentMutation> mutations)
 	{
-		requireProfileId(profileId);
 		if ((mutations == null) || mutations.isEmpty() || (mutations.size() > 3))
 		{
 			throw new IllegalArgumentException("Atomic component mutation count must be between one and three.");
+		}
+		return mutateComponentsAtomically(profileId, mutations, List.of(), null);
+	}
+
+	@FunctionalInterface
+	public interface ComponentReadback
+	{
+		void verify(Connection connection) throws SQLException;
+	}
+
+	/** Guarded offline maintenance of one profile. Native readback and component CAS share the transaction. */
+	public List<PhantomProfileComponent> mutateComponentsAtomically(long profileId, List<ComponentMutation> mutations,
+		List<PhantomProfileComponent> guards, ComponentReadback readback)
+	{
+		requireProfileId(profileId);
+		if (readback != null && (mutations.isEmpty() || mutations.size() > 40 || guards.size() > 41
+			|| guards.stream().anyMatch(guard -> guard.profileId() != profileId)
+			|| mutations.stream().anyMatch(mutation -> guards.stream().noneMatch(guard -> guard.componentType().equals(mutation.componentType())
+				&& guard.rowVersion() == mutation.expectedRowVersion()))))
+		{
+			throw new IllegalArgumentException("Offline component CAS requires exact bounded preimages for all writes.");
+		}
+		if (readback == null && (!guards.isEmpty() || mutations.isEmpty() || mutations.size() > 3))
+		{
+			throw new IllegalArgumentException("Offline component CAS requires native readback.");
 		}
 		final List<ComponentMutation> ordered = mutations.stream().sorted(Comparator.comparing(ComponentMutation::componentType)).toList();
 		for (int index = 0; index < ordered.size(); index++)
@@ -455,6 +479,26 @@ public final class PhantomProfileRepository
 		}
 		return write("mutate Phantom profile components atomically", connection ->
 		{
+			if (readback != null)
+			{
+				connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+				for (var guard : guards.stream().sorted(Comparator.comparing(PhantomProfileComponent::componentType)).toList())
+				{
+					try (var statement = connection.prepareStatement(FIND_COMPONENT + " FOR UPDATE"))
+					{
+						statement.setLong(1, profileId);
+						statement.setString(2, guard.componentType());
+						try (var rows = statement.executeQuery())
+						{
+							if (!rows.next() || !readComponent(rows).equals(guard))
+							{
+								throw new java.util.ConcurrentModificationException("Offline component CAS preimage changed.");
+							}
+						}
+					}
+				}
+				readback.verify(connection);
+			}
 			final Map<String, PhantomProfileComponent> beforeWitness = COMMIT_WITNESSES.get() == null ? Map.of() : new HashMap<>();
 			if (COMMIT_WITNESSES.get() != null)
 			{
@@ -496,6 +540,11 @@ public final class PhantomProfileRepository
 			for (ComponentMutation mutation : ordered)
 			{
 				final var after = requireComponent(connection, profileId, mutation.componentType());
+				if (readback != null && (after.rowVersion() != mutation.expectedRowVersion() + 1
+					|| after.componentSchemaVersion() != mutation.componentSchemaVersion() || !java.util.Arrays.equals(after.payload(), mutation.payload())))
+				{
+					throw new java.util.ConcurrentModificationException("Offline component CAS readback differs.");
+				}
 				result.add(after);
 				witnessGoal(connection, profileId, mutation.componentType(), beforeWitness.get(mutation.componentType()), after);
 			}

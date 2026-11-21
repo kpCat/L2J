@@ -16,7 +16,6 @@ import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeCraftRecipes;
-import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeCraftRecipes.Receipt;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 
 /** One-shot owner-authorized qualification; never changes stock, capital or Role v1. */
@@ -57,9 +56,20 @@ final class PhantomMerchantCraftProvision
         final var previous = _profiles.findComponent(serverProfile, component).orElse(null);
         if (previous != null)
         {
-            final var receipt = Receipt.decode(previous);
-            if (!receipt.source().equals("OWNER_PROVISIONED_CRAFT")) { throw new IllegalStateException("Merchant craft receipt source differs."); }
-            _recipes.verify(player, receipt); _verified.add(player.getObjectId()); return;
+            final var receipt = PhantomMerchantCraftReceipt.decode(previous);
+            if (previous.componentSchemaVersion() == PhantomMerchantCraftReceipt.VERSION)
+            {
+                if (!receipt.fingerprint().equals(PhantomMerchantCraftReceipt.fingerprint(receipt)))
+                {
+                    throw new IllegalStateException("INCONSISTENT merchant craft source; grant will not replay.");
+                }
+                // Reuse the current native catalog eligibility and persisted Player/SQL verifier after v2 authentication.
+                final var current = _recipes.plan(receipt.source(), player, receipt.classId(), receipt.level(),
+                    receipt.dwarvenRank(), receipt.commonRank(), receipt.recipes());
+                _recipes.verify(player, PhantomMerchantCraftReceipt.withFingerprint(receipt, current.fingerprint()));
+            }
+            else { _recipes.verify(player, receipt); }
+            _verified.add(player.getObjectId()); return;
         }
         // Existing Human/Elf MFG intents return above. Even a dwarf is promoted only from an exact pristine class/skill preimage.
         // Player.create sets the dwarf template/base, but activeClass is initialized only by load/class change.
@@ -71,7 +81,8 @@ final class PhantomMerchantCraftProvision
         final int dwarven = PhantomNativeCraftRecipes.sourceRank(classId, level, CommonSkill.CREATE_DWARVEN.getId()), common = PhantomNativeCraftRecipes.sourceRank(classId, level, CommonSkill.CREATE_COMMON.getId());
         final List<Integer> ids = _recipes.select(player, dwarven, role.ordinal() * (long) _quota, _quota);
         if (ids.size() < 4) { throw new IllegalStateException("Insufficient source-priced recipes; no qualification."); }
-        final var receipt = _recipes.plan("OWNER_PROVISIONED_CRAFT", player, classId, level, dwarven, common, ids);
+        final var nativePlan = _recipes.plan(PhantomMerchantCraftReceipt.SOURCE, player, classId, level, dwarven, common, ids);
+        final var receipt = PhantomMerchantCraftReceipt.withFingerprint(nativePlan, PhantomMerchantCraftReceipt.fingerprint(nativePlan));
         synchronized (player.getSellList())
         {
             synchronized (player.getBuyList())
@@ -79,7 +90,8 @@ final class PhantomMerchantCraftProvision
                 synchronized (player.getManufactureItems())
                 {
                     if (player.isAlikeDead() || player.isCrafting() || RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore() || player.isChangingClass()) { return; }
-                    final var intent = _profiles.insertComponent(serverProfile, component, 1, receipt.encode());
+                    final int version = PhantomMerchantCraftReceipt.VERSION;
+                    final var intent = _profiles.insertComponent(serverProfile, component, version, receipt.encode());
                     try
                     {
                         player.getSellList().clear(); player.getBuyList().clear(); player.getManufactureItems().clear(); player.setPrivateStoreType(PrivateStoreType.NONE);
@@ -95,11 +107,15 @@ final class PhantomMerchantCraftProvision
                             if (rank > 0) { final var nativeSkill = SkillData.getInstance().getSkill(skill.getId(), rank); if (nativeSkill == null) { throw new IllegalStateException("Native craft skill absent."); } player.addSkill(nativeSkill, true); }
                         }
                         player.getStatus().setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp());
-                        _recipes.learn(player, receipt);
-                        _profiles.updateComponent(serverProfile, component, intent.rowVersion(), 1, receipt.state("READY").encode());
+                        _recipes.learn(player, nativePlan);
+                        _profiles.updateComponent(serverProfile, component, intent.rowVersion(), version, receipt.state("READY").encode());
                         _verified.add(player.getObjectId());
                     }
-                    catch (RuntimeException uncertain) { PhantomNativeCraftRecipes.inconsistent(_profiles, intent, receipt); throw uncertain; }
+                    catch (RuntimeException uncertain)
+                    {
+                        _profiles.updateComponent(serverProfile, component, intent.rowVersion(), version, receipt.state("INCONSISTENT").encode());
+                        throw uncertain;
+                    }
                 }
             }
         }
