@@ -30,7 +30,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService.PvpEscalationEvidence;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
-import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PvpProtectionEvidence;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PvpTacticalView;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Candidate;
@@ -139,14 +139,19 @@ public final class PhantomPvpContext
 			return Optional.empty();
 		}
 		final long minute = logicalNanos / NANOS_PER_MINUTE;
-		final List<PvpProtectionEvidence> partyEvidence = _party.pvpProtection(profileId, _policy.limits().helpFanout());
+		final var party = owned == null ? _party.pvpTacticalView(profileId, _policy.limits().helpFanout(), logicalNanos)
+			: _party.pvpTacticalView(profileId, 1, logicalNanos, owned.counterpart().currentObjectId());
 		final PvpEscalationEvidence farmingEvidence = _farming.pvpEscalation(profileId, minute).orElse(null);
 		final Map<Integer, SourceEvidence> exact = new HashMap<>();
-		for (PvpProtectionEvidence evidence : partyEvidence)
+		final Map<Integer, List<SourceEvidence>> partySources = new HashMap<>();
+		for (var evidence : party.protection())
 		{
 			final var member = evidence.directive().targetMember();
 			final PhantomDomainRef help = member.kind() == MemberKind.PHANTOM ? new PhantomDomainRef("profile", Long.toString(member.profileId())) : new PhantomDomainRef("character.object", Integer.toString(member.characterObjectId()));
-			exact.putIfAbsent(evidence.directive().targetObjectId(), new SourceEvidence(Source.PARTY_DEFENSE, evidence.directive().targetObjectId(), evidence.authorityHash(), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), help, null));
+			final int attacker = evidence.directive().targetObjectId();
+			final var source = new SourceEvidence(Source.PARTY_DEFENSE, attacker, evidence.authorityHash(), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), help, null);
+			exact.putIfAbsent(attacker, source);
+			partySources.computeIfAbsent(attacker, _ -> new ArrayList<>()).add(source);
 		}
 		if (farmingEvidence != null)
 		{
@@ -196,7 +201,10 @@ public final class PhantomPvpContext
 			final SourceEvidence supplied = exact.get(targetObjectId);
 			if (supplied != null)
 			{
-				candidates.add(new ObservedEvidence(supplied, observed));
+				for (var source : partySources.getOrDefault(targetObjectId, List.of(supplied)))
+				{
+					candidates.add(new ObservedEvidence(source, observed));
+				}
 			}
 			if (observed.selectedTarget())
 			{
@@ -208,12 +216,18 @@ public final class PhantomPvpContext
 				}
 			}
 		}
-		candidates.sort(Comparator.comparingInt((ObservedEvidence item) -> priority(item._source.source())).thenComparingInt(item -> item._source.targetObjectId()).thenComparing(item -> item._source.authorityHash()));
+		candidates.sort(Comparator.comparingInt((ObservedEvidence item) -> tacticalPriority(party, item._source.source(), item._target.target(), item._target.canonicalContextAllowed()))
+			.thenComparingInt(item -> item._source.targetObjectId()));
 		for (ObservedEvidence selected : candidates)
 		{
 			final Snapshot snapshot = snapshot(profileId, logicalNanos, observation, selected);
 			if ((snapshot != null) && snapshot.candidate().currentAt(logicalNanos) && snapshot.risk().legal() && admissible.test(snapshot.candidate()))
 			{
+				// A new direct attack is a separate cause. It cannot extend or displace an owned defense lease.
+				if (owned != null && owned.source() == Source.PARTY_DEFENSE && !owned.authorityHash().equals(snapshot.candidate().authorityHash()))
+				{
+					continue;
+				}
 				// Already-owned warnings retain their admission. A new dispute needs real disposition/memory.
 				if (owned == null && (snapshot.candidate().source() == Source.FARMING_ESCALATION || snapshot.candidate().source() == Source.REVENGE) && !_social.allowsProactiveDispute(profileId, snapshot.socialSubject(), minute, snapshot.candidate().source() == Source.FARMING_ESCALATION)) { continue; }
 				return Optional.of(snapshot);
@@ -319,6 +333,23 @@ public final class PhantomPvpContext
 			case CLAN_WAR -> 3;
 			case REVENGE -> 4;
 		};
+	}
+
+	static int tacticalPriority(PvpTacticalView party, Source source, PvpTargetSnapshot target, boolean allowed)
+	{
+		if (allowed && target.autoAttackable() && target.reachable() && !target.invulnerable()
+			&& (source == Source.ACTUAL_ATTACK || source == Source.PARTY_DEFENSE))
+		{
+			if (party.focusObjectId() == target.objectId())
+			{
+				return -2;
+			}
+			if (source == Source.PARTY_DEFENSE && party.secondaryObjectIds().contains(target.objectId()))
+			{
+				return 11 + party.secondaryObjectIds().indexOf(target.objectId());
+			}
+		}
+		return 10 + 10 * priority(source);
 	}
 
 	private static int percent(double current, double maximum)

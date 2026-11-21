@@ -1811,6 +1811,30 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	}
 
 	private static void tactics(PhantomTestRegistry registry)	{
+		registry.add("131-pvp-focus-requires-live-roster-and-fresh-causal-target", _ ->
+		{
+			final MemberRef healer = MemberRef.phantom(11, 111);
+			final MemberRef tank = MemberRef.phantom(12, 112);
+			final var first = new PhantomPartyBackend.PvpProtection(tank, 701, 70);
+			final var second = new PhantomPartyBackend.PvpProtection(healer, 702, 65);
+			final long now = 1_000_000_000L;
+			final var opening = PhantomPartyTactics.pvpFrame("roster-a", null, now, List.of(second, first));
+			PhantomAssertions.assertEquals(701, opening.focusObjectId(), "Initial focus ignored the stronger causal threat.");
+			final var nearTie = new PhantomPartyBackend.PvpProtection(healer, 702, 80);
+			final var steady = PhantomPartyTactics.pvpFrame("roster-a", opening, now + 1, List.of(first, nearTie));
+			PhantomAssertions.assertEquals(701, steady.focusObjectId(), "A small priority change broke group focus.");
+			final var urgent = new PhantomPartyBackend.PvpProtection(healer, 702, 120);
+			PhantomAssertions.assertEquals(702, PhantomPartyTactics.pvpFrame("roster-a", steady, now + 2, List.of(first, urgent)).focusObjectId(), "A newly urgent threat could not change focus.");
+			PhantomAssertions.assertEquals(702, PhantomPartyTactics.pvpFrame("roster-b", steady, now + 2, List.of(first, nearTie)).focusObjectId(), "Old roster focus biased a replacement roster.");
+			PhantomAssertions.assertEquals(702, PhantomPartyTactics.pvpFrame("roster-a", steady, now + 2, List.of(nearTie)).focusObjectId(), "A vanished exact threat remained the focus.");
+			PhantomAssertions.assertEquals(702, PhantomPartyTactics.pvpFrame("roster-a", steady, now + 3_000_000_000L, List.of(first, nearTie)).focusObjectId(), "A stale frame extended hysteresis indefinitely.");
+			PhantomAssertions.assertEquals(0, PhantomPartyTactics.pvpFrame("roster-a", steady, now + 2, List.of()).focusObjectId(), "No attack witness must yield no group focus.");
+			final var otherVictim = new PhantomPartyBackend.PvpProtection(healer, 701, 68);
+			final var third = new PhantomPartyBackend.PvpProtection(tank, 703, 50);
+			PhantomAssertions.assertEquals(List.of(first, otherVictim, second), PhantomPartyTactics.limitPvpOpponents(List.of(first, otherVictim, second, third), 2),
+				"Two protected members consumed two opponent slots or lost an exact owned cause.");
+		});
+
 		registry.add("130-maintenance-does-not-incapacitate-healer", context ->
 		{
 			org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT = context.moduleRoot().resolve("dist/game").toFile();

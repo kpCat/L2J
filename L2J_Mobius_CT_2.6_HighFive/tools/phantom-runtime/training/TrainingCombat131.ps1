@@ -13,6 +13,7 @@ $task131=Join-Path (Split-Path $module131 -Parent) '.phantom-local\logs\TASK131'
 $campaigns131=Join-Path $task131 'campaigns'
 $utf131=[Text.UTF8Encoding]::new($false,$true)
 $entry131='org.l2jmobius.tests.phantoms.PhantomLearning131Native'
+$factory131='org.l2jmobius.gameserver.phantoms.PhantomLearning131Factory'
 $sqlSchema131='l2jmobiush5_phantom_test_131'
 $dependencies131=@('HikariCP-7.0.2.jar','mysql-connector-j-9.5.0.jar','slf4j-api-2.0.17.jar','slf4j-simple-2.0.17.jar')
 
@@ -148,7 +149,7 @@ function Assert-131Authority($Context) {
     return Get-131Sha $authorityPath
 }
 
-function Assert-131Ini([string]$Path,$Expected) {
+function Assert-131Ini([string]$Path,$Expected,[switch]$ExactValues) {
     Assert-G0PhysicalFile $Path
     $observed=@{}
     foreach($line in [IO.File]::ReadLines($Path,$utf131)){
@@ -158,7 +159,8 @@ function Assert-131Ini([string]$Path,$Expected) {
         }
     }
     foreach($key in $Expected.Keys){
-        Assert-131 ($observed.ContainsKey($key) -and $observed[$key] -ieq $Expected[$key]) 'RUNTIME_CONFIG_SCOPE'
+        $matchesValue=if($ExactValues){$observed[$key] -ceq $Expected[$key]}else{$observed[$key] -ieq $Expected[$key]}
+        Assert-131 ($observed.ContainsKey($key) -and $matchesValue) 'RUNTIME_CONFIG_SCOPE'
     }
 }
 
@@ -274,7 +276,8 @@ function Get-131Boundary($Context) {
     Assert-131 ($executionPlan['runtimeRoot'].Replace('\\','\') -ieq $runtime -and
         $executionPlan['gameJar'].Replace('\\','\') -ieq (Join-Path $runtime 'libs\GameServer.jar')) 'EXECUTION_RUNTIME_PATH'
     if($Context.Body.phase -ceq 'N01'){
-        Assert-131 ($executionPlan['sceneSha'] -ceq $Context.Body.fixtureSha -and $executionPlan['enabledPhantomIniSha'] -ceq $Context.Body.policySha -and
+        Assert-131 ($executionPlan['fixtureSha'] -ceq $Context.Body.fixtureSha -and $executionPlan['sceneSha'] -cmatch '^[a-f0-9]{64}$' -and
+            $executionPlan['sceneScopeSha'] -cmatch '^[a-f0-9]{64}$' -and $executionPlan['enabledPhantomIniSha'] -ceq $Context.Body.policySha -and
             $executionPlan['observeSeconds'] -ceq [string](Get-131SceneSeconds $Context.Body 0)) 'N01_POLICY_FIXTURE_DRIFT'
         Assert-131Sha (Join-Path $runtime 'game/config/Custom/PhantomPlayers.n01.ini') $Context.Body.policySha
     } else {
@@ -298,13 +301,17 @@ function Get-131Boundary($Context) {
     $cp+=@($classRoot)
     if($Context.Body.phase -ceq 'N01'){
         Assert-131Sha (Join-Path $classRoot ($entry131.Replace('.','\')+'.class')) $executionPlan['adapterClassSha']
-        Assert-131Sha (Join-Path $classRoot 'org/l2jmobius/tests/phantoms/PhantomLearning131Factory.class') $executionPlan['factoryClassSha']
+        Assert-131Sha (Join-Path $classRoot ($factory131.Replace('.','\')+'.class')) $executionPlan['factoryClassSha']
     }
     $runtimeConfigs=@('game/config/Server.ini','game/config/Database.ini','game/config/Custom/PhantomPlayers.ini',
         'game/config/General.ini','game/config/Player.ini','login/config/Server.ini','game/log.cfg')
     Assert-131Fields $Context.Body.configShas $runtimeConfigs
     foreach($name in $runtimeConfigs){Assert-131Sha (Join-Path $runtime $name) $Context.Body.configShas.$name}
     Assert-131 ($Context.Body.configShas.'game/config/Database.ini' -ceq $Context.Body.jdbcSha) 'GAME_JDBC_PIN'
+    Assert-131Ini (Join-Path $runtime 'game/config/Database.ini') ([ordered]@{
+        URL=('jdbc:mysql://127.0.0.1:33331/'+$sqlSchema131+'?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000')
+        Login='task131_runtime';Driver='com.mysql.cj.jdbc.Driver';BackupDatabase='false'
+    }) -ExactValues
     Assert-131Ini (Join-Path $runtime 'game/config/Server.ini') ([ordered]@{GameserverHostname='127.0.0.1';GameserverPort='33332';LoginHost='127.0.0.1';LoginPort='33333'})
     Assert-131Ini (Join-Path $runtime 'login/config/Server.ini') ([ordered]@{LoginserverHostname='127.0.0.1';LoginserverPort='2106';LoginHostname='127.0.0.1';LoginPort='33333'})
     Assert-131MasterOff $Context

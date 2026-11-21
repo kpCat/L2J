@@ -166,11 +166,11 @@ public interface PhantomPartyBackend
 
 	boolean materialize(long profileId);
 
-	record PvpProtection(MemberRef protectedMember, int attackerObjectId)
+	record PvpProtection(MemberRef protectedMember, int attackerObjectId, int priority)
 	{
 		public PvpProtection
 		{
-			if ((protectedMember == null) || (attackerObjectId <= 0))
+			if ((protectedMember == null) || (attackerObjectId <= 0) || (priority < 0) || (priority > 200))
 			{
 				throw new IllegalArgumentException("Invalid exact Party PvP protection evidence.");
 			}

@@ -33,6 +33,19 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.TacticalD
  */
 public final class PhantomPartyTactics
 {
+	private static final long PVP_FOCUS_HOLD_NANOS = 2_000_000_000L;
+	private static final int PVP_FOCUS_SWITCH_MARGIN = 20;
+	private static final Comparator<PvpProtection> PVP_THREAT_ORDER = Comparator.comparingInt(PvpProtection::priority).reversed()
+		.thenComparingInt(PvpProtection::attackerObjectId).thenComparing(value -> value.protectedMember().stableKey());
+
+	public record PvpFrame(String rosterAuthority, int focusObjectId, long focusSinceNanos, List<Integer> secondaryObjectIds)
+	{
+		public PvpFrame
+		{
+			secondaryObjectIds = List.copyOf(secondaryObjectIds);
+		}
+	}
+
 	private final PhantomCombatService _combat;
 	private final PhantomPartyBackend _backend;
 	private final PhantomPartySupportPolicy _policy;
@@ -184,18 +197,52 @@ public final class PhantomPartyTactics
 		return capabilities.stream().anyMatch(capability -> capability.capabilityKey().equals("combat.tank") && capability.intrinsic() && capability.learned()) ? Optional.of(PhantomCombatMode.MELEE_PHYSICAL) : Optional.empty();
 	}
 
-	public List<TacticalDirective> planPvpProtection(MemberRef helper, int limit)
+	List<PvpProtection> observePvpPressure(MemberRef helper, List<MemberRef> roster)
 	{
-		if ((_backend == null) || (helper == null) || (helper.kind() != MemberKind.PHANTOM) || (limit < 1) || (limit > 8))
+		if ((_backend == null) || (helper == null) || (helper.kind() != MemberKind.PHANTOM))
 		{
 			return List.of();
 		}
-		final List<TacticalDirective> result = new ArrayList<>();
-		for (PvpProtection evidence : _backend.pvpProtection(helper, limit))
+		return _backend.pvpProtection(helper, 9).stream().filter(value -> roster.contains(value.protectedMember())).sorted(PVP_THREAT_ORDER).toList();
+	}
+
+	/** Bound the number of opponents while preserving the exact protected-member evidence for each. */
+	public static List<PvpProtection> limitPvpOpponents(List<PvpProtection> threats, int limit)
+	{
+		final var selected = threats.stream().map(PvpProtection::attackerObjectId).distinct().limit(limit).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		return threats.stream().filter(value -> selected.contains(value.attackerObjectId())).toList();
+	}
+
+	static TacticalDirective protectFromPvp(MemberRef helper, PvpProtection evidence, int focusObjectId)
+	{
+		final int focusPriority = evidence.attackerObjectId() == focusObjectId ? 256 : 0;
+		return new TacticalDirective(DirectiveKind.PROTECT_MEMBER_PVP, helper, evidence.protectedMember(), evidence.attackerObjectId(),
+			"", "", "", 0, 0, "member.attacked.player", 9000 + focusPriority + evidence.priority());
+	}
+
+	public static PvpFrame pvpFrame(String rosterAuthority, PvpFrame previous, long now, List<PvpProtection> threats)
+	{
+		final List<PvpProtection> ordered = threats.stream().sorted(PVP_THREAT_ORDER).toList();
+		if (ordered.isEmpty())
 		{
-			result.add(new TacticalDirective(DirectiveKind.PROTECT_MEMBER_PVP, helper, evidence.protectedMember(), evidence.attackerObjectId(), "", "", "", 0, 0, "member.attacked.player", 9000));
+			return new PvpFrame(rosterAuthority, 0, now, List.of());
 		}
-		return result.stream().sorted(Comparator.comparing(value -> value.targetMember().stableKey())).limit(limit).toList();
+		final var strongest = ordered.getFirst();
+		var focus = strongest;
+		long since = now;
+		if (previous != null && previous.rosterAuthority().equals(rosterAuthority) && now >= previous.focusSinceNanos()
+			&& now - previous.focusSinceNanos() < PVP_FOCUS_HOLD_NANOS)
+		{
+			final var held = ordered.stream().filter(value -> value.attackerObjectId() == previous.focusObjectId()).findFirst().orElse(null);
+			if (held != null && strongest.priority() - held.priority() < PVP_FOCUS_SWITCH_MARGIN)
+			{
+				focus = held;
+				since = previous.focusSinceNanos();
+			}
+		}
+		final int focusObjectId = focus.attackerObjectId();
+		return new PvpFrame(rosterAuthority, focusObjectId, since, ordered.stream().map(PvpProtection::attackerObjectId)
+			.filter(id -> id != focusObjectId).distinct().limit(8).toList());
 	}
 
 	/** Retain a pending native approach/cast until completion within the original action deadline. */

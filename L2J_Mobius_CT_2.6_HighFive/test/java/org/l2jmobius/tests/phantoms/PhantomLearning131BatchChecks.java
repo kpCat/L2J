@@ -101,6 +101,12 @@ public final class PhantomLearning131BatchChecks
 		final var first256 = all.subList(0, 256);
 		final var first = all.getFirst();
 		final var last = all.getLast();
+		rejects(() -> ActionContinuationV4.prepareBatch(root, before.head(), first256, NATIVE_SHA), "First import accepted a prefix of the drained episode");
+		final var movedWindow = new ArrayList<>(all);
+		final var shifted = settlement(last.episode(), last.episode().startedNanos() + 1, last.episode().settledNanos() + 1, last.episode().eventKeys());
+		check(shifted.sha256().equals(last.episode().sha256()) && !shifted.equals(last.episode()), "Fixture must preserve the relative episode JSON hash");
+		movedWindow.set(256, sample(BASE_COUNT + BATCH_COUNT, shifted, "TRAIN", 220));
+		rejects(() -> ActionContinuationV4.prepareBatch(root, before.head(), movedWindow, NATIVE_SHA), "Distinct native time windows shared the same episode ID");
 		final var changedTail = new ArrayList<>(all);
 		changedTail.set(256, sample(BASE_COUNT + BATCH_COUNT, last.episode(), "TRAIN", 900));
 		final var changedDuplicate = new ArrayList<>(all);
@@ -113,6 +119,15 @@ public final class PhantomLearning131BatchChecks
 		final String target = child(PREPARE_CRASH, "prepare-crash", root, before.head());
 		check(ActionContinuationV4.load(root).head().equals(before.head()), "A prepared chunk advanced HEAD after a crash");
 		rejects(() -> ActionContinuationV4.prepareBatch(root, before.head(), changedTail, NATIVE_SHA), "Changed source reused a prepared batch");
+		final var shiftedBatch = new ArrayList<ActionFeedbackV4>();
+		for (int index = BASE_COUNT + 1; index <= BASE_COUNT + BATCH_COUNT; index++)
+		{
+			var shiftedSample = sample(index, shifted, "TRAIN", 220 + index % 61);
+			check(shiftedSample.fingerprint().equals(all.get(shiftedBatch.size()).fingerprint()), "Fixture must preserve the original action fingerprint");
+			shiftedBatch.add(shiftedSample);
+		}
+		rejects(() -> ActionContinuationV4.prepareBatch(root, before.head(), shiftedBatch, NATIVE_SHA), "A consistent absolute time shift reused a prepared batch");
+		rejects(() -> ActionContinuationV4.verifyPreparedBatch(root, before.head(), target, shiftedBatch, NATIVE_SHA), "Cold verification accepted a shifted native window");
 		final var retried = ActionContinuationV4.prepareBatch(root, before.head(), all, NATIVE_SHA);
 		check(retried.head().equals(target) && retried.sequence() == 2 && retried.globalUpdates() == 4097, "Shuffled pre-commit retry changed candidate or lost the tail");
 		ActionContinuationV4.verifyPreparedBatch(root, before.head(), target, all, NATIVE_SHA);
@@ -143,6 +158,16 @@ public final class PhantomLearning131BatchChecks
 		rejects(() -> ActionContinuationV4.commit(root, before.head(), prefix.head()), "Missing input pin let legacy commit publish a prefix");
 		check(ActionContinuationV4.load(root).head().equals(before.head()), "Input pin failure changed HEAD");
 		Files.write(batchPin, originalPin);
+		final Path chunkPin;
+		try (var files = Files.list(root))
+		{
+			chunkPin = files.filter(path -> path.getFileName().toString().startsWith("prepared-")).filter(path -> readPin(path).equals(target)).findFirst().orElseThrow();
+		}
+		final byte[] originalChunkPin = Files.readAllBytes(chunkPin);
+		Files.delete(chunkPin);
+		rejects(() -> ActionContinuationV4.verifyPreparedBatch(root, before.head(), target, all, NATIVE_SHA), "Unpublished final chunk verified");
+		Files.write(chunkPin, originalChunkPin);
+		ActionContinuationV4.verifyPreparedBatch(root, before.head(), target, all, NATIVE_SHA);
 
 		child(0, "cold", root, target);
 		child(COMMIT_CRASH, "commit-crash", root, before.head(), target);
@@ -161,9 +186,28 @@ public final class PhantomLearning131BatchChecks
 			check(sample.fingerprint().equals(committed.events().get(sample.row().eventKey())), "A source event was lost");
 		}
 		check(ActionContinuationV4.commitBatch(root, before.head(), target, all, NATIVE_SHA).head().equals(target), "Commit retry changed HEAD");
+		rejects(() -> ActionContinuationV4.commitBatch(root, before.head(), target, shiftedBatch, NATIVE_SHA), "Commit retry accepted a shifted native window");
 		check(ActionContinuationV4.prepareBatch(root, target, all, NATIVE_SHA).head().equals(target), "Exact replay received new credit");
+		check(ActionContinuationV4.prepareBatch(root, target, List.of(first), NATIVE_SHA).head().equals(target), "Exact single-action replay changed HEAD");
 		final var changedHistory = List.of(sample(BASE_COUNT + 1, first.episode(), "TRAIN", 900));
 		rejects(() -> ActionContinuationV4.prepareBatch(root, target, changedHistory, NATIVE_SHA), "Changed historical bytes passed after rollover");
+		final var extendedKeys = new ArrayList<>(first.episode().eventKeys());
+		extendedKeys.add(key(BASE_COUNT + BATCH_COUNT + 1));
+		final var extended = settlement(first.episode(), first.episode().startedNanos(), first.episode().settledNanos(), extendedKeys);
+		final var fabricatedTail = List.of(sample(BASE_COUNT + BATCH_COUNT + 1, extended, "TRAIN", 200));
+		rejects(() -> ActionContinuationV4.prepareBatch(root, target, fabricatedTail, NATIVE_SHA), "New credit was appended to a published episode");
+	}
+
+	private static String readPin(Path path)
+	{
+		try { return Files.readString(path); }
+		catch (java.io.IOException failure) { throw new java.io.UncheckedIOException(failure); }
+	}
+
+	private static TacticalEpisodeV3 settlement(TacticalEpisodeV3 old, long started, long settled, List<String> keys)
+	{
+		return new TacticalEpisodeV3(old.id(), old.ownerNonce(), old.scope(), started, settled, old.reason(), old.actors(), old.kills(), keys,
+			old.exactObservedDamage(), old.usefulObservedHeal(), old.exactObservedMp(), old.observedDeaths());
 	}
 
 	private static void checkLegacyCommit(Path root) throws Exception

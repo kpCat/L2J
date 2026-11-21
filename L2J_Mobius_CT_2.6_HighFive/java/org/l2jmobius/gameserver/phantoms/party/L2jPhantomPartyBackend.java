@@ -1196,7 +1196,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	@Override
 	public List<PvpProtection> pvpProtection(MemberRef helper, int limit)
 	{
-		if ((helper == null) || (helper.kind() != MemberKind.PHANTOM) || (limit < 1) || (limit > 8))
+		if ((helper == null) || (helper.kind() != MemberKind.PHANTOM) || (limit < 1) || (limit > 9))
 		{
 			return List.of();
 		}
@@ -1211,26 +1211,27 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final TreeMap<String, PvpProtection> evidence = new TreeMap<>();
 			for (Player protectedPlayer : party.getMembers())
 			{
-				if ((protectedPlayer == helperPlayer) || protectedPlayer.isDead() || protectedPlayer.isAlikeDead() || (protectedPlayer.getInstanceId() != helperPlayer.getInstanceId()))
+				if (protectedPlayer.isAlikeDead() || (protectedPlayer.getInstanceId() != helperPlayer.getInstanceId()))
 				{
 					continue;
 				}
 				for (int attackerObjectId : protectedPlayer.recentPlayerAttackers(limit))
 				{
 					final Player attacker = World.getInstance().getPlayer(attackerObjectId);
-					if ((attacker == null) || attacker.isDead() || attacker.isAlikeDead() || (attacker.getInstanceId() != helperPlayer.getInstanceId()) || (attacker.getParty() == party))
+					if ((attacker == null) || !attacker.isSpawned() || attacker.isAlikeDead() || attacker.isInvisible() || attacker.isInvul()
+						|| (attacker.getInstanceId() != helperPlayer.getInstanceId()) || (attacker.getParty() == party)
+						|| helperPlayer.getWorldRegion() == null || !helperPlayer.getWorldRegion().isSurroundingRegion(attacker.getWorldRegion()))
 					{
 						continue;
 					}
 					final boolean currentAttack = (attacker.getTarget() == protectedPlayer) || (attacker.hasAI() && (attacker.getAI().getAttackTarget() == protectedPlayer));
 					if (currentAttack)
 					{
-						final PvpProtection item = new PvpProtection(reference(protectedPlayer), attacker.getObjectId());
+						final int vulnerability = 100 - percent(protectedPlayer.getCurrentHp(), protectedPlayer.getMaxHp());
+						final int exposed = (4 - percent(attacker.getCurrentHp() + attacker.getCurrentCp(), attacker.getMaxHp() + attacker.getMaxCp()) / 25) * 5;
+						final int castPressure = protectedPlayer.isCastingNow() ? 20 : 0;
+						final PvpProtection item = new PvpProtection(reference(protectedPlayer), attacker.getObjectId(), vulnerability + exposed + castPressure);
 						evidence.put(item.protectedMember().stableKey() + ':' + item.attackerObjectId(), item);
-						if (evidence.size() > limit)
-						{
-							evidence.pollLastEntry();
-						}
 					}
 				}
 			}

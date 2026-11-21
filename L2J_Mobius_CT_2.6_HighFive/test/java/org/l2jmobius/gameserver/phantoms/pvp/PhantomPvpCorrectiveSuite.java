@@ -3,10 +3,14 @@
  */
 package org.l2jmobius.gameserver.phantoms.pvp;
 
+import java.util.List;
+
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge.MessageKind;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge.Request;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PvpTacticalView;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpContext.Snapshot;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Candidate;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Counterpart;
@@ -47,6 +51,25 @@ public final class PhantomPvpCorrectiveSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		registry.add("131-party-focus-only-reorders-lawful-reactive-sources", _ ->
+		{
+			final var view = new PvpTacticalView(200, List.of(300), List.of());
+			final var focused = pvpTarget(200, true, false, true);
+			final var direct = pvpTarget(100, true, false, true);
+			final int directPriority = PhantomPvpContext.tacticalPriority(view, Source.ACTUAL_ATTACK, direct, true);
+			PhantomAssertions.assertTrue(PhantomPvpContext.tacticalPriority(view, Source.PARTY_DEFENSE, focused, true) < directPriority, "A lawful common focus did not rank ahead of a separate attacker.");
+			PhantomAssertions.assertTrue(PhantomPvpContext.tacticalPriority(view, Source.PARTY_DEFENSE, pvpTarget(300, true, false, true), true) > directPriority, "A secondary displaced a current direct attacker.");
+			PhantomAssertions.assertTrue(PhantomPvpContext.tacticalPriority(view, Source.PARTY_DEFENSE, focused, false) > directPriority, "Group focus bypassed the canonical admission check.");
+			for (var denied : List.of(pvpTarget(200, false, false, true), pvpTarget(200, true, true, true), pvpTarget(200, true, false, false)))
+			{
+				PhantomAssertions.assertTrue(PhantomPvpContext.tacticalPriority(view, Source.PARTY_DEFENSE, denied, true) > directPriority, "Group focus elevated a neutral, protected or unreachable target.");
+			}
+			for (var proactive : List.of(Source.FARMING_ESCALATION, Source.REVENGE, Source.CLAN_WAR))
+			{
+				PhantomAssertions.assertTrue(PhantomPvpContext.tacticalPriority(view, proactive, focused, true) > directPriority, "Group focus changed the priority of a non-reactive cause.");
+			}
+		});
+
 		registry.add("126-party-defense-cancels-on-lost-exact-authority", _ ->
 		{
 			final long now = 20 * SECOND;
@@ -153,6 +176,12 @@ public final class PhantomPvpCorrectiveSuite implements PhantomTestSuite
 	private static PhantomPvpPolicy policy(PhantomTestContext context)
 	{
 		return PhantomPvpPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/pvp/pvp-policy-v1.xml"));
+	}
+
+	private static PvpTargetSnapshot pvpTarget(int objectId, boolean autoAttackable, boolean invulnerable, boolean reachable)
+	{
+		return new PvpTargetSnapshot(objectId, 12, 0, 76, 2, 2, 100, true, true, true, false, false, false, true,
+			false, false, false, false, false, false, false, false, false, false, autoAttackable, invulnerable, reachable);
 	}
 
 	private static Candidate candidate(Source source, Counterpart counterpart, String authorityHash, long now)

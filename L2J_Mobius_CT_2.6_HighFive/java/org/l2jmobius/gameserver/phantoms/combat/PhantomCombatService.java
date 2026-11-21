@@ -876,7 +876,7 @@ public final class PhantomCombatService
 			{
 				return Optional.empty();
 			}
-			if (generation == 0 && pendingPartySupport(session, now()) != null)
+			if (pendingPartySupport(session, now()) != null)
 			{
 				return Optional.empty();
 			}
@@ -920,6 +920,19 @@ public final class PhantomCombatService
 		synchronized (_monitor)
 		{
 			return _state == ServiceState.RUNNING && matchesPartySupportHandoff(generation, targetObjectId, support);
+		}
+	}
+
+	public void abandonPartySupportHandoff(long generation, int targetObjectId, ExternalActionRequest support)
+	{
+		synchronized (_monitor)
+		{
+			final var session = _sessions.get(support.profileId());
+			if (session != null && session._generation == generation && session._request.targetObjectId() == targetObjectId
+				&& session._partySupportYield == support)
+			{
+				session._partySupportYield = null;
+			}
 		}
 	}
 
@@ -1158,6 +1171,10 @@ public final class PhantomCombatService
 			{
 				publishedLease = new ExternalActionLease(this, operation, actorLease);
 				operation._lease = publishedLease;
+				if (supportGeneration > 0)
+				{
+					_sessions.get(request.profileId())._partySupportYield = null;
+				}
 				_actorLeases++;
 				_metrics.externalAcquired();
 			}

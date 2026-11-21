@@ -38,6 +38,80 @@ try{
 }
 Assert-Check (@(Get-ChildItem -LiteralPath $campaign -Force).Count -eq 1) 'preflight is read only'
 
+function Write-PreflightPin([string]$Path,[string]$Content) {
+    $null=New-Item -ItemType Directory -Force -Path (Split-Path $Path -Parent)
+    [IO.File]::WriteAllText($Path,$Content,$encoding)
+    return (Get-FileHash -LiteralPath $Path).Hash.ToLowerInvariant()
+}
+
+function Publish-PreflightInput {
+    $properties=($executionPlan.Keys|ForEach-Object { $_+'='+([string]$executionPlan[$_]).Replace('\','\\') }) -join "`n"
+    $body.executionSha=Write-PreflightPin (Join-Path $campaign 'execution.properties') ($properties+"`n")
+    $manifestSha=Write-PreflightPin $manifest ($body|ConvertTo-Json -Depth 8)
+    $null=Write-PreflightPin (Join-Path $campaign 'authorization.json') (@{schema='TASK131_LAUNCH_AUTHORITY_V1';authority='OWNER_TASK131_GOAL'
+        scope='OWNED_TEST131';manifestSha=$manifestSha;authorityRef='DB-free contract fixture'}|ConvertTo-Json)
+}
+
+function Assert-PreflightRefused([string]$Message,[string]$Name) {
+    Publish-PreflightInput
+    try{
+        $null=& $scriptPath -Action Preflight -Manifest $manifest
+        throw 'UNEXPECTED_PIN_PREFLIGHT_SUCCESS'
+    }catch{
+        Assert-Check ($_.Exception.Message -match $Message) $Name
+    }
+}
+
+# Only bytes and paths are exercised. The owned SQL directory is deliberately absent.
+$runtimeRoot=$body.runtimeRoot
+$body.javaSha=(Get-FileHash -LiteralPath ((Get-Command java.exe -CommandType Application|Select-Object -First 1).Source)).Hash.ToLowerInvariant()
+$body.safetyReviewSha=Write-PreflightPin (Join-Path $campaign 'safety-review024.json') (@{schema='TASK131_SAFETY_REVIEW024_V1'
+    scope='HISTORICAL_024_LINEAGE_ONLY';latch='PAUSED_SAFETY_REVIEW';latchSha='3ab3ac9453d631a07261938e11526cfb45cf45dcfcccc1b940642ddd130c7da9'
+    checkpointSha='90e66051a80f5c36c0c4c727089708f13a8f29cd6a11a1b36712e6084132add6';proofSha='4e0be150b671f0ad68ddb1b0719695b5dc6cc55bbeaff8adb10c6506dddec414'}|ConvertTo-Json)
+$body.gameJarSha=Write-PreflightPin (Join-Path $runtimeRoot 'libs/GameServer.jar') 'DB-free JAR pin'
+foreach($dependency in @('HikariCP-7.0.2.jar','mysql-connector-j-9.5.0.jar','slf4j-api-2.0.17.jar','slf4j-simple-2.0.17.jar')){
+    $body.dependencyShas[$dependency]=Write-PreflightPin (Join-Path $runtimeRoot ('libs/'+$dependency)) ('DB-free '+$dependency)
+}
+$classRoot=Join-Path $campaign 'native-classes'
+$adapterPath='org/l2jmobius/tests/phantoms/PhantomLearning131Native.class'
+$factoryPath='org/l2jmobius/gameserver/phantoms/PhantomLearning131Factory.class'
+$adapterSha=Write-PreflightPin (Join-Path $classRoot $adapterPath) 'DB-free adapter pin'
+$factorySha=Write-PreflightPin (Join-Path $classRoot $factoryPath) 'DB-free factory pin'
+$body.classPinsSha=Write-PreflightPin (Join-Path $campaign 'class-pins.tsv') "$adapterSha`t$adapterPath`n$factorySha`t$factoryPath`n"
+$jdbc="URL=jdbc:mysql://127.0.0.1:33331/l2jmobiush5_phantom_test_131?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000`nLogin=task131_runtime`nDriver=com.mysql.cj.jdbc.Driver`nBackupDatabase=false`n"
+$ini=@{
+    'game/config/Server.ini'="GameserverHostname=127.0.0.1`nGameserverPort=33332`nLoginHost=127.0.0.1`nLoginPort=33333`n"
+    'game/config/Database.ini'=$jdbc
+    'game/config/Custom/PhantomPlayers.ini'="EnablePhantomSystem=False`nLearningMode=OFF`n"
+    'game/config/General.ini'="LogItems=True`nLogItemsSmallLog=False`nLogItemsIdsOnly=False`n"
+    'game/config/Player.ini'="AutoLoot=False`n"
+    'login/config/Server.ini'="LoginserverHostname=127.0.0.1`nLoginserverPort=2106`nLoginHostname=127.0.0.1`nLoginPort=33333`n"
+    'game/log.cfg'='DB-free log config pin'
+}
+foreach($file in $ini.Keys){$body.configShas[$file]=Write-PreflightPin (Join-Path $runtimeRoot $file) $ini[$file]}
+$body.jdbcSha=$body.configShas.'game/config/Database.ini'
+$body.policySha=Write-PreflightPin (Join-Path $runtimeRoot 'game/config/Custom/PhantomPlayers.n01.ini') "EnablePhantomSystem=True`nLearningMode=OFF`n"
+$executionPlan=[ordered]@{schema='TRAINING_EXECUTION131_V1';phase='N01';sourceCommit=$body.sourceCommit;campaignId='n01';sqlLane=$body.sqlLane
+    jdbcSha=$body.jdbcSha;gameJarSha=$body.gameJarSha;maxEpisodes=4;drainSeconds=10;runtimeRoot=$runtimeRoot;gameJar=(Join-Path $runtimeRoot 'libs/GameServer.jar')
+    fixtureSha=$body.fixtureSha;sceneSha=('b'*64);sceneScopeSha=('c'*64);enabledPhantomIniSha=$body.policySha;observeSeconds=5;maxCyclesPerActor=3
+    factoryClassSha=$factorySha;adapterClassSha=$adapterSha}
+Assert-PreflightRefused 'sql-task131' 'distinct fixture, scenes and canonical factory pins reach the absent SQL boundary'
+$body.fixtureSha=$executionPlan.sceneSha
+Assert-PreflightRefused '^TRAINING131_N01_POLICY_FIXTURE_DRIFT$' 'scenes SHA cannot replace the fixture SHA'
+$body.fixtureSha=$executionPlan.fixtureSha
+$body.configShas.'game/config/Database.ini'=Write-PreflightPin (Join-Path $runtimeRoot 'game/config/Database.ini') ($jdbc.Replace('l2jmobiush5_phantom_test_131','foreign_schema'))
+$executionPlan.jdbcSha=$body.jdbcSha=$body.configShas.'game/config/Database.ini'
+Assert-PreflightRefused '^TRAINING131_RUNTIME_CONFIG_SCOPE$' 'a correctly hashed wrong JDBC schema is refused before SQL'
+$body.configShas.'game/config/Database.ini'=Write-PreflightPin (Join-Path $runtimeRoot 'game/config/Database.ini') $jdbc
+$executionPlan.jdbcSha=$body.jdbcSha=$body.configShas.'game/config/Database.ini'
+$master='game/config/Custom/PhantomPlayers.ini'
+foreach($different in @("EnablePhantomSystem=True`nLearningMode=OFF`n","EnablePhantomSystem=False`nLearningMode=TRAIN`n")){
+    $body.configShas[$master]=Write-PreflightPin (Join-Path $runtimeRoot $master) $different
+    Assert-PreflightRefused '^TRAINING131_RUNTIME_CONFIG_SCOPE$' 'a correctly hashed active master or learning config is refused'
+}
+$body.configShas[$master]=Write-PreflightPin (Join-Path $runtimeRoot $master) $ini[$master]
+Publish-PreflightInput
+
 $body.quota.maxEpisodes=5
 [IO.File]::WriteAllText($manifest,($body|ConvertTo-Json -Depth 8),$encoding)
 try{
@@ -107,7 +181,7 @@ $executable=Join-Path $sandbox 'java.exe'
 $argumentText=('-XX:ActiveProcessorCount=4 -Xms512m -Xmx4g -Djava.util.logging.config.file=log.cfg -Dphantom.learning131.nonce='+$nonce+
     ' -cp "'+($classpath -join ';')+'" org.l2jmobius.tests.phantoms.PhantomLearning131Native --train "'+
     (Join-Path $train 'execution.properties')+'" "'+(Join-Path $boot 'launch131.properties')+'"')
-$owner=[ordered]@{schema='TRAINING_PROCESS131_V1';pid=131;created=$now.ToFileTimeUtc();executable=$executable;javaSha=$sha
+$owner=[ordered]@{schema='TRAINING_PROCESS131_V1';pid=131;created=$now.ToFileTimeUtc();executable=$executable;javaSha=$body.javaSha
     arguments=$argumentText;commandLine=('"'+$executable+'" '+$argumentText);controllerPid=132;controllerCreated=$now.ToFileTimeUtc()
     nonce=$nonce;reservationSha=$reservedSha}
 $ownerSha=Write-FixtureReceipt 'process.json' $owner

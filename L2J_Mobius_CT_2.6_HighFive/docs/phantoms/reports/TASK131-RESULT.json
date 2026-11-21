@@ -52,27 +52,28 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "aggregate-v4-reviewed.log",
+    "aggregateLog": "aggregate-v5-reviewed.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
     "comparison": "OFFLINE_READER_AND_NEGATIVE_CONTROLS",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 165,
+    "regressionTestsPassed": 167,
     "contractGroupsPassed": 11,
     "jarExitCode": 0,
-    "jarSha256": "cb376493118b4b7852c15031d09c2478f1407434be209885ffdb4b429b1e2359",
-    "jarLog": "jar-v4-reviewed.log"
+    "jarSha256": "7eb743704c6f844647d82825539c332c7e47a6a7d6deb7df8047751b834eba54",
+    "loginJarSha256": "64e90e79ed7d7aeb7d1ecdb22fa978c785f0e5b431db57f31da01fd39d820bb7",
+    "jarLog": "jar-v5-reviewed.log"
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v3.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v4.json"
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v4.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v5.json"
   },
   "testReadiness": {
-    "iterationParent": "81442d736cd785afce17230d7a255407fef4b7e7",
+    "iterationParent": "b1bc7ced4e66a390dfa0554b173f96ff59583aea",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -132,7 +133,7 @@
     },
     "n01Adapter": {
       "entryPoint": "org.l2jmobius.tests.phantoms.PhantomLearning131Native",
-      "sourceSha256": "d58689ebc6cae048cf584066733799a6251e44901a00fc00fecc34eb72a83141",
+      "sourceSha256": "b84a0298091430175f8f94f76ddba08255108eb4f30db03d6f9655d277022936",
       "nativeEvidenceContinuityTestsPassed": 14,
       "incompleteR4Preflight": "REJECTED_INCOMPLETE_SCENE_SET",
       "changedFixturePreflight": "REJECTED_PIN_MISMATCH",
@@ -142,18 +143,26 @@
     "campaignController": {
       "script": "tools/phantom-runtime/training/TrainingCombat131.ps1",
       "controlContract": "PASS",
-      "controlContractLog": "controller-v4-reviewed.log",
+      "controlContractLog": "controller-v5-reviewed.log",
       "nativeLaunch": "NOT_RUN",
       "trainTuningAuditAdapter": "PENDING"
     },
+    "n01RuntimePreparer": {
+      "script": "tools/phantom-runtime/Initialize-Task131N01Runtime.ps1",
+      "incompleteR4Preflight": "REJECTED_INCOMPLETE_SCENE_SET",
+      "incompleteR4Prepare": "REJECTED_INCOMPLETE_SCENE_SET",
+      "incompleteR4Attest": "REJECTED_INCOMPLETE_SCENE_SET",
+      "fullCandidate": "NOT_CREATED"
+    },
+    "g0OffReceipt": "off-and-protected-v5.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,verify-native-runtime.log,n01-setup-r4/n01-scenes.tsv",
-      "reason": "Три пригодные сцены N01, дополнительная SQL-подготовка четвёртой отклонена автопроверкой"
+      "evidence": "S024,off-and-protected-v5.json,n01-setup-r4/n01-scenes.tsv",
+      "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
       "phase": "P1",
@@ -177,7 +186,7 @@
       "phase": "P2–P3",
       "status": "UNKNOWN",
       "evidence": "D2,D3,N06–N10",
-      "reason": "Текущая execution authority передана PvP, native составы и PK не проверены"
+      "reason": "Групповой фокус ранжирует законные реактивные цели, native составы, роли и PK открыты"
     },
     "G5": {
       "phase": "P3",
@@ -284,8 +293,8 @@
     "D2": {
       "phase": "P2",
       "status": "UNKNOWN",
-      "evidence": "aggregate-v2.log",
-      "reason": "Владение передаётся одному точному запросу после drain, партийный PvP в TEST открыт"
+      "evidence": "focused-v5-reviewed/d2.log",
+      "reason": "Terminal удерживает точный резерв при временном отказе в lease, партийный PvP в TEST открыт"
     },
     "D3": {
       "phase": "P2",
@@ -314,8 +323,8 @@
     "D7": {
       "phase": "P4",
       "status": "PASS",
-      "evidence": "aggregate-pass.log",
-      "reason": "Офлайн 257, rollover, killed writer, cold load и replay"
+      "evidence": "aggregate-v5-reviewed.log",
+      "reason": "Офлайн 257, rollover, полный эпизод, prepared receipts, абсолютные времена, cold load и replay"
     },
     "D8": {
       "phase": "P4",

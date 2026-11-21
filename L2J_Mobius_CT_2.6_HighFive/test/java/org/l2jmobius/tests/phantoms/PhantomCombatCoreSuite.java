@@ -588,6 +588,13 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			if (foreign != null) { foreign.close(); }
 			PhantomAssertions.assertTrue(foreign == null, "An unrelated action took the actor after the urgent handoff drained.");
 			PhantomAssertions.assertTrue(fixture.service.consumeTerminal(1).isEmpty(), "A generic terminal consumer removed a pending party handoff.");
+			PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation, 100, owner).isEmpty(),
+				"An exact terminal consumer removed a pending party handoff.");
+			fixture.backend.reject = true;
+			PhantomAssertions.assertEquals(PhantomCombatService.ExternalActionStatus.REJECTED_ACTOR,
+				fixture.service.acquirePartySupportHandoff(generation, 100, support).status(), "Transient actor rejection was not reported.");
+			fixture.backend.reject = false;
+			PhantomAssertions.assertTrue(fixture.service.partySupportHandoffReady(generation, 100, support), "Transient acquisition failure discarded the exact handoff.");
 			final var lease = fixture.service.acquirePartySupportHandoff(generation, 100, support).lease();
 			PhantomAssertions.assertTrue(lease != null, "Party support was blocked after the old session drained.");
 			PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation, 100, owner).isPresent(), "The old session did not drain.");

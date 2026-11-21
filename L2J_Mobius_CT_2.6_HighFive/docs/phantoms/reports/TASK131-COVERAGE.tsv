@@ -1,9 +1,9 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024,verify-native-runtime.log,n01-setup-r4/n01-scenes.tsv	Три пригодные сцены N01, дополнительная SQL-подготовка четвёртой отклонена автопроверкой
+G0	P0	UNKNOWN	S024,off-and-protected-v5.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
 G1	P1	UNKNOWN	TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14	Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
 G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE и AREA/AURA с точной областью, фактические исходы и tactical frame открыты
-G4	P2–P3	UNKNOWN	D2,D3,N06–N10	Текущая execution authority передана PvP, native составы и PK не проверены
+G4	P2–P3	UNKNOWN	D2,D3,N06–N10	Групповой фокус ранжирует законные реактивные цели, native составы, роли и PK открыты
 G5	P3	UNKNOWN	D9,N11–N13	Solo Return и групповой Party Recall подключены, native прибытие и расходы остаются открытыми
 G6	P4–P5	NOT_RUN	D5,D6,D7,N15	Нет завершённой A→B→A и доказанных native divergences
 G7	P5	NOT_RUN	D8,Q,N16	Нет 32 целостных matched blocks, Q не вычислен по native данным
@@ -21,12 +21,12 @@ R7	P5	NOT_RUN	D8,Q	Математика офлайн, sealed native evaluation �
 R8	P4–P5	UNKNOWN	D7,D9,N15	Добавлены управление квотами и native N01 entrypoint, запуск фаз и durable restart не проверены
 R9	P2–P6	UNKNOWN	D10,N14,N16	Проверены отдельные пути композиции, native wiring профилирование не проверено
 D1	P1	UNKNOWN	offense-v3-checks.log,pvp-v3-red.log,pvp-v3-green.log	Готовность и контекст применены до лимита, native ON/OFF открыта
-D2	P2	UNKNOWN	aggregate-v2.log	Владение передаётся одному точному запросу после drain, партийный PvP в TEST открыт
+D2	P2	UNKNOWN	focused-v5-reviewed/d2.log	Terminal удерживает точный резерв при временном отказе в lease, партийный PvP в TEST открыт
 D3	P2	UNKNOWN	party-actions-v4-contracts.log,build/area-control/green.log	DB-free проверки нового AoE и штатного списка целей, race расходов и живые PvP negatives открыты
 D4	P1–P2	UNKNOWN	aggregate-v2.log	Обычный PvE и Party используют фактически изученные навыки, native WAIT_GROUP_DAMAGE остаётся открытым
 D5	P4	UNKNOWN	frozen-v3-green.log	Frozen выбор DAMAGE и HEAL и replay проверены офлайн, разведение реальных фаз открыто
 D6	P4	UNKNOWN	frozen-v3-green.log	Контракт HEAL связывает полезный HP, MP и точного владельца, поток native записей ещё не собран
-D7	P4	PASS	aggregate-pass.log	Офлайн 257, rollover, killed writer, cold load и replay
+D7	P4	PASS	aggregate-v5-reviewed.log	Офлайн 257, rollover, полный эпизод, prepared receipts, абсолютные времена, cold load и replay
 D8	P4	UNKNOWN	TRAINING_EVALUATION131_MATH_CHECKS_PASS	Офлайн отклонены отсутствие independent boot proof и подмена, полный native AUDIT не запускался
 D9	P3–P5	UNKNOWN	TRAINING131_CONTROL_CHECKS_PASS	Офлайн удержание квоты и неизменяемый статус проверены, устойчивость живой кампании открыта
 D10	P6	NOT_RUN	NONE	Native workload и structural fixture не выполнены

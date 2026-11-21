@@ -203,8 +203,7 @@ public final class ActionContinuationV4
 		}
 		if (fresh.isEmpty()) { return before; }
 		String batchSha = hash(encode(out -> { map(out, events); map(out, episodes); }));
-		String inputSha = hash((before.head + nativeSha + batchSha).getBytes(StandardCharsets.US_ASCII));
-		Path pending = root.resolve("prepared-" + inputSha + ".seal");
+		Path pending = preparedPin(root, before.head, nativeSha, batchSha);
 		if (Files.exists(pending))
 		{
 			State old = state(root, Files.readString(pending)); var s = seal(root, old.head);
@@ -247,24 +246,52 @@ public final class ActionContinuationV4
 		return root.resolve("train-batch-" + hash((expectedHead + nativeSha).getBytes(StandardCharsets.US_ASCII)) + ".seal");
 	}
 
+	private static Path preparedPin(Path root, String previous, String nativeSha, String batchSha)
+	{
+		return root.resolve("prepared-" + hash((previous + nativeSha + batchSha).getBytes(StandardCharsets.US_ASCII)) + ".seal");
+	}
+
 	private static TrainBatch trainBatch(State before, List<ActionFeedbackV4> samples, String nativeSha) throws IOException
 	{
 		digest(nativeSha);
 		require(samples != null && !samples.isEmpty(), "sealed TRAIN batch required");
 		var events = new TreeMap<String, String>();
 		var fresh = new TreeMap<String, ActionFeedbackV4>();
+		var settlements = new TreeMap<String, TacticalEpisodeV3>();
+		var freshEpisodeKeys = new HashMap<String, Set<String>>();
 		for (var sample : samples)
 		{
 			require(sample != null && sample.row().split().equals("TRAIN"), "TRAIN split required");
-			String priorSplit = before.episodes.get(sample.episodeId());
+			var episode = sample.episode();
+			var seen = settlements.putIfAbsent(episode.id(), episode);
+			require(seen == null || seen.equals(episode), "different settlements for one TRAIN episode");
+			String priorSplit = before.episodes.get(episode.id());
 			require(priorSplit == null || priorSplit.equals("TRAIN"), "historical episode split changed");
 			String key = sample.row().eventKey(), fingerprint = sample.fingerprint();
 			String duplicate = events.putIfAbsent(key, fingerprint), prior = before.events.get(key);
 			require(duplicate == null || duplicate.equals(fingerprint), "duplicate batch source changed");
 			require(prior == null || prior.equals(fingerprint), "historical source changed");
-			if (prior == null && duplicate == null) { fresh.put(key, sample); }
+			if (prior == null && duplicate == null)
+			{
+				require(priorSplit == null, "new event in an already published TRAIN episode");
+				fresh.put(key, sample);
+				freshEpisodeKeys.computeIfAbsent(episode.id(), _ -> new HashSet<>()).add(key);
+			}
 		}
-		String inputSha = hash(encode(out -> { out.writeUTF(before.head); out.writeUTF(nativeSha); map(out, events); }));
+		for (var entry : freshEpisodeKeys.entrySet())
+		{
+			var expectedKeys = settlements.get(entry.getKey()).eventKeys();
+			require(entry.getValue().size() == expectedKeys.size() && entry.getValue().containsAll(expectedKeys), "incomplete settled TRAIN episode");
+		}
+		String inputSha = hash(encode(out -> {
+			out.writeUTF(before.head); out.writeUTF(nativeSha); map(out, events);
+			out.writeInt(settlements.size());
+			for (var episode : settlements.values())
+			{
+				// The legacy episode JSON hashes duration alone. Pin its original native clock window here.
+				out.writeUTF(episode.id()); out.writeLong(episode.startedNanos()); out.writeLong(episode.settledNanos());
+			}
+		}));
 		return new TrainBatch(List.copyOf(fresh.values()), inputSha);
 	}
 
@@ -303,6 +330,9 @@ public final class ActionContinuationV4
 			require(chunk.nativeSha.equals(nativeSha) && chunk.trainBatchSha.equals(batch.inputSha) && chunk.train == end - start
 				&& chunk.events.equals(events) && chunk.episodes.equals(episodes)
 				&& chunk.batchSha.equals(hash(encode(out -> { map(out, events); map(out, episodes); }))), "prepared TRAIN chunk changed");
+			Path published = preparedPin(root, chunk.previous, chunk.nativeSha, chunk.batchSha);
+			require(Files.isRegularFile(published, LinkOption.NOFOLLOW_LINKS) && Files.size(published) == 64
+				&& Files.readString(published, StandardCharsets.US_ASCII).equals(cursor), "missing or changed prepared TRAIN chunk pointer");
 			cursor = chunk.previous;
 			end = start;
 		}

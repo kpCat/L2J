@@ -282,6 +282,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	public record PvpProtectionEvidence(TacticalDirective directive, long partyGeneration, String authorityHash)
 	{
 	}
+
+	public record PvpTacticalView(int focusObjectId, List<Integer> secondaryObjectIds, List<PvpProtectionEvidence> protection)
+	{
+		public PvpTacticalView
+		{
+			secondaryObjectIds = List.copyOf(secondaryObjectIds);
+			protection = List.copyOf(protection);
+		}
+	}
 	public enum ContentBindingOutcome
 	{
 		BOUND,
@@ -1654,24 +1663,49 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	public List<PvpProtectionEvidence> pvpProtection(long helperProfileId, int limit)
 	{
-		if ((_state != State.RUNNING) || (limit < 1) || (limit > 8))
+		return pvpTacticalView(helperProfileId, limit, _clock.getAsLong()).protection();
+	}
+
+	public PvpTacticalView pvpTacticalView(long helperProfileId, int limit, long logicalNanos)
+	{
+		return pvpTacticalView(helperProfileId, limit, logicalNanos, 0);
+	}
+
+	public PvpTacticalView pvpTacticalView(long helperProfileId, int limit, long logicalNanos, int ownedTargetObjectId)
+	{
+		final PvpTacticalView empty = new PvpTacticalView(0, List.of(), List.of());
+		if ((_state != State.RUNNING) || (limit < 1) || (limit > 8) || logicalNanos < 0 || ownedTargetObjectId < 0)
 		{
-			return List.of();
+			return empty;
 		}
 		final StoredPartyState stored = _claims.get(helperProfileId);
 		final MemberRef helper = _backend.currentMember(helperProfileId).orElse(null);
 		if ((stored == null) || (helper == null) || (helper.kind() != MemberKind.PHANTOM) || !Set.of(StateStatus.LEADER, StateStatus.MEMBER).contains(stored.state().status()))
 		{
-			return List.of();
+			return empty;
 		}
+		final PartyState authority = stored.state();
 		final PartySnapshot canonical = _backend.observe(helper).orElse(null);
-		if ((canonical == null) || !canonical.members().contains(helper) || (canonical.members().size() > 9))
+		if (canonical == null || !canonical.members().contains(helper) || !canonical.leader().equals(authority.leader())
+			|| !sameRoster(roster(authority), canonical.members()))
 		{
-			return List.of();
+			return empty;
 		}
-		final long generation = stored.state().groupGeneration();
-		final long revision = stored.state().membershipRevision();
-		return _tactics.planPvpProtection(helper, limit).stream().filter(directive -> canonical.members().contains(directive.targetMember())).map(directive -> new PvpProtectionEvidence(directive, generation, PhantomPartyModel.sha256(stored.state().groupId() + '|' + generation + '|' + revision + '|' + directive.targetMember().stableKey() + '|' + directive.targetObjectId()))).toList();
+		final long generation = authority.groupGeneration();
+		final String rosterAuthority = PhantomPartyModel.sha256(authority.groupId() + '|' + generation + '|' + authority.leader().stableKey()
+			+ '|' + authority.objectiveMode() + '|' + authority.objectiveRef() + '|' + roster(authority).stream().map(MemberRef::stableKey).sorted().toList());
+		final var threats = _tactics.observePvpPressure(helper, canonical.members());
+		final GroupRuntime group = _groups.get(authority.groupId());
+		final var frame = group == null || threats.isEmpty() ? PhantomPartyTactics.pvpFrame(rosterAuthority, null, logicalNanos, threats)
+			: group.pvpFrame.updateAndGet(previous -> PhantomPartyTactics.pvpFrame(rosterAuthority, previous, logicalNanos, threats));
+		final var others = threats.stream().filter(value -> !value.protectedMember().equals(helper))
+			.filter(value -> ownedTargetObjectId == 0 || value.attackerObjectId() == ownedTargetObjectId)
+			.sorted(Comparator.comparing(value -> value.attackerObjectId() != frame.focusObjectId())).toList();
+		final var protection = PhantomPartyTactics.limitPvpOpponents(others, limit).stream()
+			.map(value -> PhantomPartyTactics.protectFromPvp(helper, value, frame.focusObjectId()))
+			.map(directive -> new PvpProtectionEvidence(directive, generation, PhantomPartyModel.sha256(rosterAuthority
+				+ '|' + directive.targetMember().stableKey() + '|' + directive.targetObjectId()))).toList();
+		return new PvpTacticalView(frame.focusObjectId(), frame.secondaryObjectIds(), protection);
 	}
 	public boolean reconcileTerminalRoute(long leaderProfileId, String expectedRouteId)
 	{
@@ -3657,10 +3691,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	private void cancelTacticalCombat(TacticalCombatClaim claim)
 	{
-		claim.support().set(null);
+		final var pending = claim.support().getAndSet(null);
 		final PhantomCombatService combat = _tactics.combatOwner();
 		if (combat != null)
 		{
+			if (pending != null)
+			{
+				combat.abandonPartySupportHandoff(claim.generation(), claim.targetObjectId(), pending.request());
+			}
 			combat.cancelContentSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.operationKey());
 		}
 		if (!releaseTacticalCombat(claim) && (_state == State.RUNNING))
@@ -3720,8 +3758,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private void dispatchSupportHandoff(TacticalCombatClaim claim)
 	{
 		final var pending = claim.support().get();
-		if (pending == null || !_tactics.combatOwner().partySupportHandoffReady(claim.generation(), claim.targetObjectId(), pending.request())
-			|| !claim.support().compareAndSet(pending, null))
+		final var combat = _tactics.combatOwner();
+		if (pending == null || !combat.partySupportHandoffReady(claim.generation(), claim.targetObjectId(), pending.request()))
 		{
 			return;
 		}
@@ -3730,14 +3768,21 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (!committedClaim(current) || target == null || pending.request().ownershipToken().isCancelled()
 			|| !_tactics.stillNeedsUrgentSupport(pending.directive(), target))
 		{
+			combat.abandonPartySupportHandoff(claim.generation(), claim.targetObjectId(), pending.request());
+			claim.support().compareAndSet(pending, null);
 			return;
 		}
 		_routes.cancelFollow(current.state().groupId(), current.state().groupGeneration(), claim.profileId());
-		_tactics.dispatchSupportHandoff(pending.directive(), pending.request(), claim.generation(), claim.targetObjectId(), holdsMovement(claim.profileId())).ifPresent(lease ->
+		final var acquired = _tactics.dispatchSupportHandoff(pending.directive(), pending.request(), claim.generation(), claim.targetObjectId(), holdsMovement(claim.profileId()));
+		acquired.ifPresent(lease ->
 		{
 			_tacticalActions.put(claim.profileId(), lease);
 			_tacticalReleases.offer(claim.profileId());
 		});
+		if (!combat.partySupportHandoffReady(claim.generation(), claim.targetObjectId(), pending.request()))
+		{
+			claim.support().compareAndSet(pending, null);
+		}
 	}
 
 	private StoredPartyState sanitizeAfterRestart(StoredPartyState stored)
@@ -4780,6 +4825,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private volatile FarmSourceView farmSource;
 		private volatile NativePartyView nativeLifetime;
 		private volatile MemberRef farmPuller;
+		private final java.util.concurrent.atomic.AtomicReference<PhantomPartyTactics.PvpFrame> pvpFrame = new java.util.concurrent.atomic.AtomicReference<>();
 		private final AtomicInteger farmTargetPage = new AtomicInteger();
 		private final AtomicLong farmCombatAdmission = new AtomicLong();
 		private final AtomicLong farmAttemptSequence = new AtomicLong();

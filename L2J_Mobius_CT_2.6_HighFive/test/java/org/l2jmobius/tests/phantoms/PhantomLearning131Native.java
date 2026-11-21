@@ -156,7 +156,7 @@ public final class PhantomLearning131Native
 		check("127.0.0.1".equals(value(server, "GameserverHostname")) && n(server, "GameserverPort") == 33332 && "127.0.0.1".equals(value(server, "LoginHost"))
 			&& n(server, "LoginPort") == 33333, "OWN_GAME_PORTS");
 		final var bootConfig = properties(physical(game.resolve("config/Custom/PhantomPlayers.ini"), true));
-		check("false".equalsIgnoreCase(value(bootConfig, "EnablePhantomSystem")), "BOOT_MASTER_OFF");
+		check("false".equalsIgnoreCase(value(bootConfig, "EnablePhantomSystem")) && "OFF".equals(value(bootConfig, "LearningMode")), "BOOT_MASTER_OFF");
 		final Path enabled = physical(game.resolve("config/Custom/PhantomPlayers.n01.ini"), true);
 		final String enabledSha = pin(enabled, value(fields, "enabledPhantomIniSha"));
 		final var settings = PhantomPlayersConfig.read(enabled);
@@ -188,6 +188,7 @@ public final class PhantomLearning131Native
 		check(jsonScalar(manifestBody, "schema").equals("TRAINING_COMBAT131_V1") && jsonScalar(manifestBody, "phase").equals("N01") && jsonScalar(manifestBody, "campaignId").equals("n01")
 			&& jsonScalar(manifestBody, "executionSha").equalsIgnoreCase(scope.executionSha()) && jsonScalar(manifestBody, "sourceCommit").equals(scope.sourceCommit())
 			&& jsonScalar(manifestBody, "fixtureSha").equalsIgnoreCase(scope.fixtureSha()) && jsonScalar(manifestBody, "gameJarSha").equalsIgnoreCase(scope.gameJarSha())
+			&& jsonScalar(manifestBody, "policySha").equalsIgnoreCase(scope.enabledConfigSha())
 			&& jsonScalar(manifestBody, "jdbcSha").equalsIgnoreCase(scope.jdbcSha()) && jsonScalar(manifestBody, "sqlLane").equals(scope.sql().getParent().getFileName().toString()), "CAMPAIGN_BYTES_SCOPE");
 		final var deadline = Instant.parse(value(fields, "deadlineUtc"));
 		final var now = Instant.now();
