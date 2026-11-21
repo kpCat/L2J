@@ -16,6 +16,8 @@ $entry131='org.l2jmobius.tests.phantoms.PhantomLearning131Native'
 $factory131='org.l2jmobius.gameserver.phantoms.PhantomLearning131Factory'
 $sqlSchema131='l2jmobiush5_phantom_test_131'
 $dependencies131=@('HikariCP-7.0.2.jar','mysql-connector-j-9.5.0.jar','slf4j-api-2.0.17.jar','slf4j-simple-2.0.17.jar')
+[string[]]$runtimeConfigs131=@('game/config/Server.ini','game/config/Database.ini','game/config/Custom/PhantomPlayers.ini',
+    'game/config/General.ini','game/config/Player.ini','login/config/Server.ini','game/log.cfg')
 
 function Assert-131($Condition,[string]$Reason) {
     if(!$Condition){throw ('TRAINING131_'+$Reason)}
@@ -304,17 +306,9 @@ function Get-131Boundary($Context) {
     $cp+=@($classRoot)
     Assert-131Sha (Join-Path $classRoot ($entry131.Replace('.','\')+'.class')) $executionPlan['adapterClassSha']
     Assert-131Sha (Join-Path $classRoot ($factory131.Replace('.','\')+'.class')) $executionPlan['factoryClassSha']
-    $runtimeConfigs=@('game/config/Server.ini','game/config/Database.ini','game/config/Custom/PhantomPlayers.ini',
-        'game/config/General.ini','game/config/Player.ini','login/config/Server.ini','game/log.cfg')
-    Assert-131Fields $Context.Body.configShas $runtimeConfigs
-    foreach($name in $runtimeConfigs){Assert-131Sha (Join-Path $runtime $name) $Context.Body.configShas.$name}
-    Assert-131 ($Context.Body.configShas.'game/config/Database.ini' -ceq $Context.Body.jdbcSha) 'GAME_JDBC_PIN'
-    Assert-131Ini (Join-Path $runtime 'game/config/Database.ini') ([ordered]@{
-        URL=('jdbc:mysql://127.0.0.1:33331/'+$sqlSchema131+'?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000')
-        Login='task131_runtime';Driver='com.mysql.cj.jdbc.Driver';BackupDatabase='false'
-    }) -ExactValues
-    Assert-131Ini (Join-Path $runtime 'game/config/Server.ini') ([ordered]@{GameserverHostname='127.0.0.1';GameserverPort='33332';LoginHost='127.0.0.1';LoginPort='33333'})
-    Assert-131Ini (Join-Path $runtime 'login/config/Server.ini') ([ordered]@{LoginserverHostname='127.0.0.1';LoginserverPort='2106';LoginHostname='127.0.0.1';LoginPort='33333'})
+    Assert-131Fields $Context.Body.configShas $runtimeConfigs131
+    foreach($name in $runtimeConfigs131){Assert-131Sha (Join-Path $runtime $name) $Context.Body.configShas.$name}
+    Assert-131RuntimeEndpoints $Context
     Assert-131MasterOff $Context
     if($Context.Body.phase -ceq 'N01'){
         Assert-131Ini (Join-Path $runtime 'game/config/General.ini') ([ordered]@{LogItems='True';LogItemsSmallLog='False';LogItemsIdsOnly='False'})
@@ -337,6 +331,109 @@ function Get-131Boundary($Context) {
     if($Context.Body.phase -cin @('TRAIN','TUNING')){Assert-131Sha (Join-Path $proof.Root 'n01-learned-offense.tsv') $executionPlan['learnedWitnessSha']}
     Assert-131PortsFree
     return @{Java=$java;JavaSha=$javaSha;Classpath=($cp -join ';');Execution=$execution;AuthoritySha=$authoritySha;Sql=$proof;Game=(Join-Path $runtime 'game')}
+}
+
+function Assert-131RuntimeEndpoints($Context) {
+    $runtime=$Context.Body.runtimeRoot
+    Assert-131 ($Context.Body.configShas.'game/config/Database.ini' -ceq $Context.Body.jdbcSha) 'GAME_JDBC_PIN'
+    Assert-131Ini (Join-Path $runtime 'game/config/Database.ini') ([ordered]@{
+        URL=('jdbc:mysql://127.0.0.1:33331/'+$sqlSchema131+'?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000')
+        Login='task131_runtime';Driver='com.mysql.cj.jdbc.Driver';BackupDatabase='false'
+    }) -ExactValues
+    Assert-131Ini (Join-Path $runtime 'game/config/Server.ini') ([ordered]@{GameserverHostname='127.0.0.1';GameserverPort='33332';LoginHost='127.0.0.1';LoginPort='33333'})
+    Assert-131Ini (Join-Path $runtime 'login/config/Server.ini') ([ordered]@{LoginserverHostname='127.0.0.1';LoginserverPort='2106';LoginHostname='127.0.0.1';LoginPort='33333'})
+}
+
+function Get-131AuditConfigSha($Context) {
+    Assert-131Fields $Context.Body.configShas $runtimeConfigs131
+    [string[]]$names=$runtimeConfigs131.Clone()
+    [Array]::Sort($names,[StringComparer]::Ordinal)
+    $pins=foreach($name in $names){
+        $hash=$Context.Body.configShas.$name
+        Assert-131Sha (Join-Path $Context.Body.runtimeRoot $name) $hash
+        "$name`t$hash"
+    }
+    $canonical="TRAINING_AUDIT_RUNTIME_CONFIG131_V1`n"+($pins -join "`n")+"`n"
+    $algorithm=[Security.Cryptography.SHA256]::Create()
+    try{return [BitConverter]::ToString($algorithm.ComputeHash($utf131.GetBytes($canonical))).Replace('-','').ToLowerInvariant()}
+    finally{$algorithm.Dispose()}
+}
+
+function Read-131AuditInput($Context) {
+    Assert-131Sha $Context.Manifest $Context.Sha
+    $execution=Get-131Path $Context 'execution.properties'
+    $evaluation=Get-131Path $Context 'evaluation.tsv'
+    Assert-131 ((Test-Path -LiteralPath $execution -PathType Leaf) -and (Test-Path -LiteralPath $evaluation -PathType Leaf)) 'AUDIT_PREFLIGHT_INPUT_ABSENT'
+    Assert-131Sha $execution $Context.Body.executionSha
+    $inputPins=Read-131Properties $execution
+    Assert-131Sha $execution $Context.Body.executionSha
+    Assert-131 ($inputPins.Count -eq 2 -and $inputPins['schema'] -ceq 'TRAINING_AUDIT_PREFLIGHT131_V1' -and
+        $inputPins['evaluationManifestSha'] -cmatch '^[a-f0-9]{64}$') 'AUDIT_EXECUTION_PIN'
+    Assert-131Sha $evaluation $inputPins['evaluationManifestSha']
+    return @{Execution=$execution;Evaluation=$evaluation;EvaluationSha=$inputPins['evaluationManifestSha']}
+}
+
+function Get-131AuditPreflight($Context,$State) {
+    $authoritySha=Assert-131Authority $Context
+    $inputPlan=Read-131AuditInput $Context
+    $evaluationSha=$inputPlan.EvaluationSha
+    $arguments=@{Admission=$true;Manifest=$inputPlan.Evaluation;ExpectedManifestSha=$evaluationSha}
+    $prior=$null
+    if($Context.Body.auditBank -eq 2){
+        $firstManifest=Join-Path $campaigns131 'audit-01\campaign.json'
+        Assert-131 (Test-Path -LiteralPath $firstManifest -PathType Leaf) 'AUDIT_PRIOR_BANK_REQUIRED'
+        $prior=Read-131Manifest $firstManifest
+        $null=Assert-131Authority $prior
+        $priorPlan=Read-131AuditInput $prior
+        $arguments['PriorProtocol']=$priorPlan.Evaluation+'.protocol.tsv'
+        $arguments['PriorProtocolSha']=$prior.Body.fixtureSha
+    }
+    $rows=@(& (Join-Path $PSScriptRoot 'TrainingEvaluation131.ps1') @arguments)
+    Assert-131 ($LASTEXITCODE -eq 0) 'AUDIT_EVALUATOR_REFUSED_PREFLIGHT'
+    Assert-131Sha $Context.Manifest $Context.Sha
+    Assert-131Sha $inputPlan.Execution $Context.Body.executionSha
+    Assert-131Sha $inputPlan.Evaluation $evaluationSha
+    if($null -ne $prior){
+        Assert-131Sha $prior.Manifest $prior.Sha
+        Assert-131Sha $priorPlan.Execution $prior.Body.executionSha
+        Assert-131Sha $priorPlan.Evaluation $priorPlan.EvaluationSha
+        Assert-131Sha $arguments.PriorProtocol $arguments.PriorProtocolSha
+    }
+    $configSha=Get-131AuditConfigSha $Context
+    Assert-131Sha (Join-Path $Context.Body.runtimeRoot 'libs/GameServer.jar') $Context.Body.gameJarSha
+    Assert-131RuntimeEndpoints $Context
+    Assert-131MasterOff $Context
+    $metadata=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+    $slots=[Collections.Generic.List[string[]]]::new()
+    foreach($row in $rows){
+        $cells=$row.Split("`t")
+        if($cells[0] -ceq 'meta'){
+            Assert-131 ($cells.Count -eq 3 -and $slots.Count -eq 0 -and !$metadata.ContainsKey($cells[1])) 'AUDIT_ADMISSION_METADATA'
+            $metadata.Add($cells[1],$cells[2])
+        }else{
+            Assert-131 ($cells.Count -eq 4 -and $cells[0] -ceq 'slot') 'AUDIT_ADMISSION_SLOT'
+            $slots.Add($cells)
+        }
+    }
+    $expected=[ordered]@{schema='AUDIT_ADMISSION131_V1';bank=('bank-'+$Context.Body.auditBank);manifestSha=$evaluationSha;protocolSha=$Context.Body.fixtureSha
+        sourceSha=$Context.Body.sourceCommit;jarSha=$Context.Body.gameJarSha;configSha=$configSha;policySha=$Context.Body.policySha;candidateSha=$Context.Body.modelSha}
+    foreach($key in $expected.Keys){Assert-131 ($metadata[$key] -ceq $expected[$key]) 'AUDIT_CAMPAIGN_PIN_DRIFT'}
+    foreach($key in @('splitSha','evaluatorSha','candidateHead','referenceSha','referenceHead')){
+        Assert-131 ($metadata[$key] -cmatch '^[a-f0-9]{64}$') 'AUDIT_ADMISSION_DIGEST'
+    }
+    Assert-131 ($metadata.Count -eq 15 -and (ConvertTo-131Utc $metadata['lockedAt']) -le [DateTime]::UtcNow) 'AUDIT_BANK_NOT_FROZEN'
+    Assert-131 ($slots.Count -eq $Context.Body.scenes.Count) 'AUDIT_ADMISSION_SLOT_COUNT'
+    for($index=0;$index -lt $slots.Count;$index++){
+        $slot=$slots[$index]
+        $scene=$Context.Body.scenes[$index]
+        Assert-131 ($slot[1] -ceq $scene.id -and $slot[2] -ceq [string]$scene.participantCount -and
+            $slot[3] -ceq [string]$scene.deadlineSeconds) 'AUDIT_ADMISSION_SCHEDULE_DRIFT'
+    }
+    $deadline=Get-131AdmissionDeadline $Context $State
+    return [ordered]@{schema='TRAINING_AUDIT_PREFLIGHT131_V1';campaignId=$Context.Scope;manifestSha=$Context.Sha;status='FROZEN_INPUTS_VERIFIED'
+        nativeExecutable=$false;authoritySha=$authoritySha;evaluationManifestSha=$evaluationSha;protocolSha=$metadata['protocolSha'];splitSha=$metadata['splitSha'];
+        evaluatorSha=$metadata['evaluatorSha'];candidateHead=$metadata['candidateHead'];referenceHead=$metadata['referenceHead'];
+        priorProtocolSha=$arguments['PriorProtocolSha'];scheduledSlots=$slots.Count;deadlineUtc=$deadline.ToString('o');boots=$State.Boots}
 }
 
 function Assert-131TrainPlan($Context,$Execution) {
@@ -1000,6 +1097,10 @@ switch ($Action){
         $state131=Get-131State $context131
         Assert-131 ($state131.Status -cin @('READY','PAUSED') -and $state131.Boots -lt $context131.Body.quota.maxBoots -and
             ($state131.Status -ceq 'READY' -or (Test-131Resumable $context131 $state131))) 'PREFLIGHT_STATE_OR_QUOTA'
+        if($context131.Body.phase -ceq 'AUDIT'){
+            Get-131AuditPreflight $context131 $state131 | ConvertTo-Json -Depth 8
+            break
+        }
         $boundary131=Get-131Boundary $context131
         $null=Get-131AdmissionDeadline $context131 $state131
         [ordered]@{schema='TRAINING_PREFLIGHT131_V1';campaignId=$context131.Scope;manifestSha=$context131.Sha;status='READY';sqlPid=$boundary131.Sql.Identity.PID;

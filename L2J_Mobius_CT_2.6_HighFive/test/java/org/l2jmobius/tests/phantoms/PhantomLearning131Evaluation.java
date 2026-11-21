@@ -83,7 +83,7 @@ public final class PhantomLearning131Evaluation
 	record DuelDamageBinding(String episodeId, String sha, long started, long scoredEpoch, long opponentEpoch) { }
 	record HealBinding(String episodeId, String sha, long started, Map<Integer, Long> playerEpochs, Set<Integer> scoredPlayers) { }
 	record ModelArmBinding(String episodeId, String sha, long started, String modelSha, Map<Integer, Long> scoredEpochs) { }
-	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt) { }
+	private record Audit(Document manifest, Map<String, Block> blocks, Map<Integer, BigDecimal> prices, Instant lockedAt, Set<String> encounters) { }
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, String modelProofSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
 	private record Binding(Document document, Slot slot, long started, Map<Integer, Participant> participants) { }
@@ -125,6 +125,13 @@ public final class PhantomLearning131Evaluation
 			System.out.println("EVAL131_FROZEN_PLAN_OK bank=" + schedule.getFirst().bank() + " blocks=" + BANK_SIZE + " slots=" + schedule.size());
 			return;
 		}
+		if ((args.length == 4 || args.length == 6) && args[0].equals("--admission"))
+		{
+			final Path prior = args.length == 6 ? Path.of(args[4]) : null;
+			final String priorSha = args.length == 6 ? digest(args[5]) : null;
+			for (String row : admissionPlan(Path.of(args[1]), digest(args[2]), digest(args[3]), prior, priorSha)) { System.out.println(row); }
+			return;
+		}
 		if (args.length != 4)
 		{
 			throw new IllegalArgumentException("EVAL131_ARGUMENTS");
@@ -137,9 +144,7 @@ public final class PhantomLearning131Evaluation
 	{
 		final Protocol protocol = readProtocol(protocolPath, expectedSha);
 		final var arms = new ArrayList<ScheduledArm>();
-		final var blocks = protocol.blocks().values().stream().sorted(Comparator.comparing((Block block) -> block.plan().stratum())
-			.thenComparingInt(block -> block.plan().index())).toList();
-		for (Block block : blocks)
+		for (Block block : orderedBlocks(protocol.blocks()))
 		{
 			for (int position = 0; position < block.plan().order().size(); position++)
 			{
@@ -147,6 +152,64 @@ public final class PhantomLearning131Evaluation
 			}
 		}
 		return List.copyOf(arms);
+	}
+
+	/** Return the controller's frozen slot order and budget after verifying the independent bank and C/R archive. */
+	static List<String> admissionPlan(Path path, String manifestSha, String evaluatorSha) throws IOException
+	{
+		return admissionPlan(path, manifestSha, evaluatorSha, null, null);
+	}
+
+	static List<String> admissionPlan(Path path, String manifestSha, String evaluatorSha, Path priorPath, String priorSha) throws IOException
+	{
+		final Audit audit = readAudit(path, evaluatorSha);
+		final Document manifest = audit.manifest();
+		require(manifest.sha().equals(digest(manifestSha)), "ADMISSION_MANIFEST_PIN");
+		require(!audit.lockedAt().isAfter(Instant.now()), "ADMISSION_BANK_NOT_FROZEN");
+		final String bank = manifest.get("bank");
+		if (bank.equals("bank-2"))
+		{
+			require(priorPath != null && priorSha != null, "ADMISSION_PRIOR_BANK_REQUIRED");
+			final Protocol prior = readProtocol(priorPath, priorSha);
+			require(prior.bank().equals("bank-1") && prior.frozenAt().isBefore(Instant.parse(manifest.get("trainStartedAt"))), "ADMISSION_PRIOR_BANK_PIN");
+			require(Collections.disjoint(audit.encounters(), prior.encounterFingerprints()), "ADMISSION_BANK_REUSE");
+		}
+		else { require(bank.equals("bank-1") && priorPath == null && priorSha == null, "ADMISSION_BANK_SCOPE"); }
+		verifyModelArchive(path, manifest);
+		final var rows = new ArrayList<String>();
+		rows.add(row("meta", "schema", "AUDIT_ADMISSION131_V1"));
+		rows.add(row("meta", "manifestSha", manifest.sha()));
+		for (String key : List.of("bank", "protocolSha", "splitSha", "sourceSha", "jarSha", "configSha", "policySha", "evaluatorSha",
+			"candidateSha", "candidateHead", "referenceSha", "referenceHead", "lockedAt"))
+		{
+			rows.add(row("meta", key, manifest.get(key)));
+		}
+		for (Block block : orderedBlocks(audit.blocks()))
+		{
+			final var plan = block.plan();
+			final boolean pvp = plan.stratum() == Stratum.DUEL_PVP || plan.stratum() == Stratum.GROUP_PVP;
+			final int actors = plan.scene().initialRosterSize() + (pvp ? block.opponentSize() : 0);
+			final long budgetSeconds = 1 + (block.deadline() - 1) / 1_000_000_000L;
+			for (int position = 0; position < plan.order().size(); position++)
+			{
+				final String scene = plan.id() + "-" + position;
+				require(scene.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,79}") && budgetSeconds < 28_800, "ADMISSION_SCENE_BOUNDS");
+				rows.add(row("slot", scene, actors, budgetSeconds));
+			}
+		}
+		return List.copyOf(rows);
+	}
+
+	private static List<Block> orderedBlocks(Map<String, Block> blocks)
+	{
+		return blocks.values().stream().sorted(Comparator.comparing((Block block) -> block.plan().stratum())
+			.thenComparingInt(block -> block.plan().index())).toList();
+	}
+
+	private static void verifyModelArchive(Path path, Document manifest) throws IOException
+	{
+		ActionContinuationV4.verifyAuditModelOrder(modelArchive(path), manifest.get("referenceHead"), manifest.get("candidateHead"),
+			manifest.get("referenceSha"), manifest.get("candidateSha"));
 	}
 
 	static int run(Path manifest, Path originals, Path output, String evaluatorSha) throws IOException
@@ -223,7 +286,7 @@ public final class PhantomLearning131Evaluation
 		}
 		require(splitNames.size() == 2, "SPLIT_COVERAGE");
 		require(Collections.disjoint(seenEncounters, protocol.encounterFingerprints()), "SPLIT_LEAKAGE_OR_DUPLICATE_SCENE");
-		return new Audit(manifest, protocol.blocks(), protocol.prices(), locked);
+		return new Audit(manifest, protocol.blocks(), protocol.prices(), locked, protocol.encounterFingerprints());
 	}
 
 	private static Protocol readProtocol(Path path, String expectedSha) throws IOException
@@ -379,8 +442,7 @@ public final class PhantomLearning131Evaluation
 				verifyEffectSides(auditRows, binding.participants());
 				if (!modelOrderVerified && (binding.slot().arm() == Arm.C || binding.slot().arm() == Arm.R) && !occurrence.modelProofSha().equals("NONE"))
 				{
-					ActionContinuationV4.verifyAuditModelOrder(modelArchive(manifestPath), manifest.get("referenceHead"), manifest.get("candidateHead"),
-						manifest.get("referenceSha"), manifest.get("candidateSha"));
+					verifyModelArchive(manifestPath, manifest);
 					modelOrderVerified = true;
 				}
 					verifyModelArm(manifestPath, manifest, directory, occurrence, binding, auditRows, window);

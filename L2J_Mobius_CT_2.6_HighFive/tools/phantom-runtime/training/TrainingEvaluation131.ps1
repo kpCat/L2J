@@ -1,8 +1,13 @@
 [CmdletBinding(DefaultParameterSetName = 'Evaluate')]
 param(
-    [Parameter(Mandatory = $true, ParameterSetName = 'Evaluate')][string]$Manifest,
+    [Parameter(Mandatory = $true, ParameterSetName = 'Evaluate')]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Admission')][string]$Manifest,
     [Parameter(Mandatory = $true, ParameterSetName = 'Evaluate')][string]$EvidenceRoot,
     [Parameter(Mandatory = $true, ParameterSetName = 'Evaluate')][string]$Output,
+    [Parameter(Mandatory = $true, ParameterSetName = 'Admission')][switch]$Admission,
+    [Parameter(Mandatory = $true, ParameterSetName = 'Admission')][string]$ExpectedManifestSha,
+    [Parameter(ParameterSetName = 'Admission')][string]$PriorProtocol,
+    [Parameter(ParameterSetName = 'Admission')][string]$PriorProtocolSha,
     [Parameter(Mandatory = $true, ParameterSetName = 'Fingerprint')][switch]$Fingerprint
 )
 
@@ -34,6 +39,14 @@ if ($PSCmdlet.ParameterSetName -eq 'Evaluate') {
     foreach ($candidatePath in @($Manifest, $EvidenceRoot, $Output)) {
         if (![IO.Path]::IsPathRooted($candidatePath)) { throw 'TASK131 evaluation paths must be absolute.' }
     }
+}
+if ($PSCmdlet.ParameterSetName -eq 'Admission' -and (!$Admission -or ![IO.Path]::IsPathRooted($Manifest) -or
+    $ExpectedManifestSha -cnotmatch '^[a-f0-9]{64}$')) {
+    throw 'TASK131 admission requires the absolute frozen manifest and its SHA-256.'
+}
+if (($PSBoundParameters.ContainsKey('PriorProtocol') -or $PSBoundParameters.ContainsKey('PriorProtocolSha')) -and
+    (![IO.Path]::IsPathRooted($PriorProtocol) -or $PriorProtocolSha -cnotmatch '^[a-f0-9]{64}$')) {
+    throw 'TASK131 admission requires both the absolute prior protocol and its SHA-256.'
 }
 
 # Launcher environment options could change the compiled closure or inject runtime code outside it.
@@ -131,7 +144,13 @@ try {
                 Write-Output $evaluatorSha
             } else {
                 $classPath = (@($classes) + $jarPaths) -join $separator
-                & $java -classpath $classPath org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation $Manifest $EvidenceRoot $Output $evaluatorSha
+                $evaluationArguments = if ($PSCmdlet.ParameterSetName -eq 'Admission') {
+                    '--admission', $Manifest, $ExpectedManifestSha, $evaluatorSha
+                    if ($PriorProtocol) { $PriorProtocol, $PriorProtocolSha }
+                } else {
+                    @($Manifest, $EvidenceRoot, $Output, $evaluatorSha)
+                }
+                & $java -classpath $classPath org.l2jmobius.tests.phantoms.PhantomLearning131Evaluation @evaluationArguments
                 $exitCode = $LASTEXITCODE
             }
         }

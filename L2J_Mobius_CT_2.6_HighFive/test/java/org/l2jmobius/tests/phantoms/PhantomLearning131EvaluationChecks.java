@@ -52,6 +52,15 @@ public final class PhantomLearning131EvaluationChecks
 
 	public static void main(String[] args) throws Exception
 	{
+		if (args.length == 3 && args[0].equals("--admission-fixture"))
+		{
+			final Path root = Path.of(args[1]);
+			check(root.isAbsolute() && root.getParent() != null && root.equals(root.normalize()) && root.getParent().equals(root.getParent().toRealPath())
+				&& args[2].matches("[a-f0-9]{64}"), "A fresh physical offline fixture directory is required");
+			Files.createDirectory(root);
+			checkAuditAdmission(root.resolve("evaluation.tsv"), args[2]);
+			return;
+		}
 		scoreObjectives();
 		matchedBootstrapAndStockControl();
 		incompleteAndMisattributedBlocks();
@@ -518,6 +527,7 @@ public final class PhantomLearning131EvaluationChecks
 
 			frozenPlan(manifest);
 			checkFrozenSchedule(manifest, temporary);
+			checkAuditAdmission(temporary.resolve("admission.tsv"), TEST_EVALUATOR_SHA);
 			final var missingOrigin = temporary.resolve("no-origins.tsv");
 			check(PhantomLearning131Evaluation.run(manifest, evidence, missingOrigin, TEST_EVALUATOR_SHA) == 2
 				&& Files.readString(missingOrigin).contains("UNKNOWN"), "complete frozen plan without independent origin remains unknown");
@@ -542,6 +552,80 @@ public final class PhantomLearning131EvaluationChecks
 					Files.delete(path);
 				}
 			}
+		}
+	}
+
+	private static void checkAuditAdmission(Path manifest, String evaluatorSha) throws Exception
+	{
+		frozenPlan(manifest);
+		final var archive = Files.createDirectory(manifest.resolveSibling(manifest.getFileName() + ".lineage"));
+		final var bootstrap = ActionContinuationV4.initialize(archive, PhantomLearning131FrozenChecks.checkpoint());
+		final var samples = PhantomLearning131FrozenChecks.historySamples("8".repeat(64), 1, 1);
+		final var reference = ActionContinuationV4.prepareBatch(archive, bootstrap.head(), samples, "1".repeat(64));
+		PhantomLearning131FrozenChecks.cold(archive, reference.head());
+		ActionContinuationV4.commitBatch(archive, bootstrap.head(), reference.head(), samples, "1".repeat(64));
+		final var successor = PhantomLearning131FrozenChecks.historySamples("9".repeat(64), 2, 1);
+		final var candidate = ActionContinuationV4.prepareBatch(archive, reference.head(), successor, "2".repeat(64));
+		PhantomLearning131FrozenChecks.cold(archive, candidate.head());
+		ActionContinuationV4.commitBatch(archive, reference.head(), candidate.head(), successor, "2".repeat(64));
+		final var pinned = Files.readString(manifest)
+			.replace("evaluatorSha\t" + TEST_EVALUATOR_SHA, "evaluatorSha\t" + evaluatorSha)
+			.replace("candidateSha\t" + "3".repeat(64), "candidateSha\t" + candidate.model().sha256())
+			.replace("candidateHead\t" + "7".repeat(64), "candidateHead\t" + candidate.head())
+			.replace("referenceSha\t" + "4".repeat(64), "referenceSha\t" + reference.model().sha256())
+			.replace("referenceHead\t" + "8".repeat(64), "referenceHead\t" + reference.head())
+			.replace("opponent.A1\t" + "4".repeat(64), "opponent.A1\t" + reference.model().sha256());
+		Files.writeString(manifest, pinned);
+		final String pin = digest(manifest);
+		final var rows = PhantomLearning131Evaluation.admissionPlan(manifest, pin, evaluatorSha);
+		final var slots = rows.stream().filter(line -> line.startsWith("slot\t")).toList();
+		check(rows.contains("meta\tschema\tAUDIT_ADMISSION131_V1") && rows.contains("meta\tmanifestSha\t" + pin)
+			&& slots.size() == 128 && slots.getFirst().endsWith("\t1\t1") && slots.stream().anyMatch(line -> line.endsWith("\t18\t1")),
+			"Launch plan pins all four strata and the exact managed roster/deadline, including 9x9");
+		try
+		{
+			PhantomLearning131Evaluation.admissionPlan(manifest, "0".repeat(64), evaluatorSha);
+			throw new AssertionError("Preflight admitted another frozen manifest digest");
+		}
+		catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_ADMISSION_MANIFEST_PIN"), "launch pins frozen manifest bytes"); }
+		Files.writeString(manifest, pinned.replace("candidateHead\t" + candidate.head(), "candidateHead\t" + bootstrap.head()));
+		try
+		{
+			PhantomLearning131Evaluation.admissionPlan(manifest, digest(manifest), evaluatorSha);
+			throw new AssertionError("Preflight admitted an imported root in place of the committed candidate");
+		}
+		catch (IllegalArgumentException refused) { check(refused.getMessage().contains("AUDIT reference/candidate"), "launch reuses cold checkpoint lineage validation"); }
+		Files.writeString(manifest, pinned);
+		checkAuditBankSeparation(manifest, pinned, evaluatorSha);
+		check(ActionContinuationV4.load(archive).head().equals(candidate.head()) && !Files.exists(manifest.resolveSibling(manifest.getFileName() + ".origins.tsv")),
+			"AUDIT preflight does not write a model, boot origin or result");
+	}
+
+	private static void checkAuditBankSeparation(Path manifest, String pinned, String evaluatorSha) throws Exception
+	{
+		final Path protocol = manifest.resolveSibling(manifest.getFileName() + ".protocol.tsv"), splits = manifest.resolveSibling(manifest.getFileName() + ".splits.tsv");
+		final String firstProtocol = Files.readString(protocol), firstSplits = Files.readString(splits);
+		final String firstProtocolSha = digest(protocol), firstSplitSha = digest(splits);
+		final Path prior = Files.writeString(manifest.resolveSibling(manifest.getFileName() + ".prior-fixture.tsv"), firstProtocol, java.nio.file.StandardOpenOption.CREATE_NEW);
+		try
+		{
+			Files.writeString(protocol, firstProtocol.replace("bank\tbank-1", "bank\tbank-2"));
+			final String protocolSha = digest(protocol);
+			Files.writeString(splits, firstSplits.replace("bank\tbank-1", "bank\tbank-2").replace(firstProtocolSha, protocolSha));
+			Files.writeString(manifest, pinned.replace("bank\tbank-1", "bank\tbank-2").replace(firstProtocolSha, protocolSha).replace(firstSplitSha, digest(splits)));
+			try
+			{
+				PhantomLearning131Evaluation.admissionPlan(manifest, digest(manifest), evaluatorSha, prior, firstProtocolSha);
+				throw new AssertionError("Renamed bank reused all original holdout encounters");
+			}
+			catch (IllegalArgumentException refused) { check(refused.getMessage().equals("EVAL131_ADMISSION_BANK_REUSE"), "bank two must use disjoint encounters"); }
+		}
+		finally
+		{
+			Files.writeString(manifest, pinned);
+			Files.writeString(protocol, firstProtocol);
+			Files.writeString(splits, firstSplits);
+			Files.delete(prior);
 		}
 	}
 

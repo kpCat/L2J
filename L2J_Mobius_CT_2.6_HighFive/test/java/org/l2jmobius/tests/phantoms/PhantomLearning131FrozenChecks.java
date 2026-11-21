@@ -139,7 +139,7 @@ public final class PhantomLearning131FrozenChecks
 		try (var stream = Files.list(root)) { return stream.sorted().toList(); }
 	}
 
-	private static List<ActionFeedbackV4> historySamples(String episodeId, int first, int count)
+	static List<ActionFeedbackV4> historySamples(String episodeId, int first, int count)
 	{
 		final var self = new Entity(Role.SELF, 101, 1, 0, 0, Map.of(), List.of(), List.of(), List.of(), List.of());
 		final var enemy = new Entity(Role.ENEMY, 102, 2, 0, 0, Map.of(Field.MAX_HP, Fact.known(800)), List.of(), List.of(), List.of(), List.of());
@@ -160,7 +160,7 @@ public final class PhantomLearning131FrozenChecks
 		}).toList();
 	}
 
-	private static void cold(Path root, String head) throws Exception
+	static void cold(Path root, String head) throws Exception
 	{
 		final String executable = ProcessHandle.current().info().command().orElseThrow();
 		final Process process = new ProcessBuilder(executable, "-cp", System.getProperty("java.class.path"), PhantomLearning131FrozenChecks.class.getName(),

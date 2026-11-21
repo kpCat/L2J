@@ -327,4 +327,84 @@ $null=Write-PreflightPin $reviewPath ($review | ConvertTo-Json -Depth 4)
 $report=& $scriptPath -Action Report -Manifest $trainManifest | ConvertFrom-Json
 Assert-Check ($report.resumable -and $report.completed -eq 3 -and $report.remaining -eq 1 -and $report.boots -eq 1) 'accepted review opens only the existing remaining quota'
 
-Write-Output "TRAINING131_CONTROL_CHECKS_PASS GS=0 LS=0 SQL=0 artifacts=$sandbox"
+$auditSandbox=Join-Path $taskLogs ('control-contract-audit-'+[guid]::NewGuid().ToString('N'))
+$auditTraining=Join-Path $auditSandbox 'HighFive\tools\phantom-runtime\training'
+$auditTask=Join-Path $auditSandbox '.phantom-local\logs\TASK131'
+$null=New-Item -ItemType Directory -Path $auditTraining
+Copy-Item -LiteralPath (Join-Path $training 'TrainingCombat131.ps1'),(Join-Path $training 'TrainingOwner.ps1') -Destination $auditTraining
+Copy-Item -LiteralPath (Join-Path (Split-Path $training -Parent) 'G0SqlIdentity.ps1') -Destination (Split-Path $auditTraining -Parent)
+$auditController=Join-Path $auditTraining 'TrainingCombat131.ps1'
+$auditRoot=Join-Path $auditTask 'campaigns\audit-01'
+$auditManifest=Join-Path $auditRoot 'campaign.json'
+$audit=[ordered]@{}
+foreach($key in $body.Keys){$audit[$key]=$body[$key]}
+$audit.campaignId='audit-01'
+$audit.phase='AUDIT'
+$audit.cycle=0
+$audit.auditBank=1
+$audit.runtimeRoot=Join-Path $auditTask 'native-runtime'
+$audit.modelSha='b'*64
+$audit.quota=@{maxBoots=1;maxEpisodes=128;bootSeconds=30;drainSeconds=10;deadlineUtc=[DateTime]::UtcNow.AddMinutes(9).ToString('o')}
+$audit.scenes=@(0..127|ForEach-Object {@{id="audit-slot-$_";participantCount=1;deadlineSeconds=1}})
+$audit.safetyReviewSha=Write-PreflightPin (Join-Path $auditRoot 'safety-review024.json') (Get-Content -LiteralPath (Join-Path $campaign 'safety-review024.json') -Raw)
+$auditPin=Write-PreflightPin $auditManifest ($audit|ConvertTo-Json -Depth 8)
+$null=Write-PreflightPin (Join-Path $auditRoot 'authorization.json') (@{schema='TASK131_LAUNCH_AUTHORITY_V1';authority='OWNER_TASK131_GOAL'
+    scope='OWNED_TEST131';manifestSha=$auditPin;authorityRef='DB-free AUDIT preflight fixture'}|ConvertTo-Json)
+try{
+    $null=& $auditController -Action Preflight -Manifest $auditManifest
+    throw 'UNEXPECTED_MISSING_AUDIT_PLAN_SUCCESS'
+}catch{
+    Assert-Check ($_.Exception.Message -ceq 'TRAINING131_AUDIT_PREFLIGHT_INPUT_ABSENT') 'AUDIT preflight reaches the frozen input boundary'
+}
+Assert-Check (@(Get-ChildItem -LiteralPath $auditRoot -Force).Count -eq 3) 'AUDIT preflight cannot reserve a boot or change files'
+
+# Exercise the controller's actual metadata and slot checks using a bounded offline verifier response.
+$audit.configShas=[ordered]@{}
+$audit.gameJarSha=Write-PreflightPin (Join-Path $audit.runtimeRoot 'libs/GameServer.jar') 'DB-free AUDIT JAR pin'
+[string[]]$configNames=@($ini.Keys)
+[Array]::Sort($configNames,[StringComparer]::Ordinal)
+$configLines=foreach($name in $configNames){
+    $audit.configShas[$name]=Write-PreflightPin (Join-Path $audit.runtimeRoot $name) $ini[$name]
+    "$name`t$($audit.configShas[$name])"
+}
+$audit.jdbcSha=$audit.configShas.'game/config/Database.ini'
+$hash=[Security.Cryptography.SHA256]::Create()
+try{$configSha=[BitConverter]::ToString($hash.ComputeHash($encoding.GetBytes("TRAINING_AUDIT_RUNTIME_CONFIG131_V1`n"+($configLines -join "`n")+"`n"))).Replace('-','').ToLowerInvariant()}
+finally{$hash.Dispose()}
+$evaluation=Join-Path $auditRoot 'evaluation.tsv'
+$evaluationSha=Write-PreflightPin $evaluation 'DB-free evaluator handoff fixture'
+$audit.executionSha=Write-PreflightPin (Join-Path $auditRoot 'execution.properties') "schema=TRAINING_AUDIT_PREFLIGHT131_V1`nevaluationManifestSha=$evaluationSha`n"
+$null=Write-PreflightPin (Join-Path $auditTraining 'TrainingEvaluation131.ps1') @'
+param([switch]$Admission,[string]$Manifest,[string]$ExpectedManifestSha)
+if(!$Admission -or (Get-FileHash -LiteralPath $Manifest).Hash.ToLowerInvariant() -cne $ExpectedManifestSha){exit 1}
+Get-Content -LiteralPath ($Manifest+'.admission-witness.tsv')
+exit 0
+'@
+$admissionMeta=[ordered]@{schema='AUDIT_ADMISSION131_V1';bank='bank-1';manifestSha=$evaluationSha;protocolSha=$audit.fixtureSha;sourceSha=$audit.sourceCommit
+    jarSha=$audit.gameJarSha;configSha=$configSha;policySha=$audit.policySha;candidateSha=$audit.modelSha;splitSha=('c'*64);evaluatorSha=('d'*64)
+    candidateHead=('e'*64);referenceSha=('f'*64);referenceHead=('1'*64);lockedAt=$now.AddMinutes(-1).ToString('o')}
+$admissionRows=@($admissionMeta.Keys|ForEach-Object {"meta`t$_`t$($admissionMeta[$_])"})+
+    @($audit.scenes|ForEach-Object {"slot`t$($_.id)`t$($_.participantCount)`t$($_.deadlineSeconds)"})
+$null=Write-PreflightPin ($evaluation+'.admission-witness.tsv') (($admissionRows -join "`n")+"`n")
+
+function Publish-AuditContractManifest {
+    $pin=Write-PreflightPin $auditManifest ($audit|ConvertTo-Json -Depth 8)
+    $null=Write-PreflightPin (Join-Path $auditRoot 'authorization.json') (@{schema='TASK131_LAUNCH_AUTHORITY_V1';authority='OWNER_TASK131_GOAL'
+        scope='OWNED_TEST131';manifestSha=$pin;authorityRef='DB-free AUDIT preflight fixture'}|ConvertTo-Json)
+}
+Publish-AuditContractManifest
+$planned=& $auditController -Action Preflight -Manifest $auditManifest | ConvertFrom-Json
+Assert-Check ($planned.status -ceq 'FROZEN_INPUTS_VERIFIED' -and !$planned.nativeExecutable -and $planned.scheduledSlots -eq 128 -and $planned.boots -eq 0) 'AUDIT preflight is explicit about its verified inputs and unavailable native runner'
+try{
+    $null=& $auditController -Action Start -Manifest $auditManifest
+    throw 'UNEXPECTED_AUDIT_START_SUCCESS'
+}catch{Assert-Check ($_.Exception.Message -ceq 'TRAINING131_NATIVE_ADAPTER_PHASE_UNAVAILABLE') 'verified inputs cannot open the native AUDIT gate'}
+$audit.scenes[0].participantCount=2
+Publish-AuditContractManifest
+try{
+    $null=& $auditController -Action Preflight -Manifest $auditManifest
+    throw 'UNEXPECTED_AUDIT_SLOT_DRIFT_SUCCESS'
+}catch{Assert-Check ($_.Exception.Message -ceq 'TRAINING131_AUDIT_ADMISSION_SCHEDULE_DRIFT') 'campaign cannot change a frozen slot roster'}
+Assert-Check (!(Test-Path -LiteralPath (Join-Path $auditRoot 'boots'))) 'neither read-only AUDIT path consumes a boot'
+
+Write-Output "TRAINING131_CONTROL_CHECKS_PASS GS=0 LS=0 SQL=0 artifacts=$sandbox auditArtifacts=$auditSandbox"
