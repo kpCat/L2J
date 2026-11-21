@@ -49,6 +49,8 @@ import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthorit
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
+import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -74,12 +76,14 @@ public final class PhantomCombat131Fixture
 	private static final int ANCHOR_RADIUS = 1200;
 	private static final String HEADER = "status\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tskillId\tskillLevel\tweapon\tshotItem\tshots\tadena\tanchor\tnpcId\tspawn\tpreflightObjectId\tx\ty\tz\texp\tsp";
 	private static final String SCENE_HEADER = "profileId\tactorObjectId\tgoalId\tgoalRevision\tplanIdentity\tanchor\tx\ty\tz\tnpcId\tnpcLevel\tspawnKey\trespawnMinMs\trespawnMaxMs\tpreflightObjectId\tpreflightInstanceId\tpreflightGeneration\tqualifyingTargets\tknowledgeSha256\ttopologySha256\tprogressionSha256\tcommerceSha256";
+	static final String OFFENSE_HEADER = "profileId\tobjectId\tclass\tlevel\tskillId\tskillLevel\tprovenance\tfixtureSha\tsceneScopeSha";
 
 	private record Admission(Path game, Path sql, Path ini, Instant deadline) { }
 	private record Birth(long profile, long seed) { }
 	private record Scene(String anchor, PhantomTopologyPoint point, int npcId, int npcLevel, String spawn, int respawnMin, int respawnMax,
 		PlayerNativeEvidence.Target preflightTarget, Skill skill, PhantomHistoricalBackgroundPlanner.Result plan, int qualifyingTargets) { }
-	private record Actor(long profile, int object, String account, PlayerClass profession, int level, Skill skill, int weapon, int shot, long shots, long adena, long exp, long sp, Scene scene) { }
+	private record Actor(long profile, int object, String account, PlayerClass profession, int level, Skill skill, int weapon, int shot,
+		long shots, long adena, long exp, long sp, Scene scene, List<Skill> learnedDamage) { }
 
 	private enum Role
 	{
@@ -237,9 +241,23 @@ public final class PhantomCombat131Fixture
 		final long qualified = roster.stream().filter(actor -> actor.scene() != null).count();
 		if (qualified == roster.size())
 		{
-			Files.writeString(admission.sql().resolve("n01-scene-scope.properties"), "stage=SETUP_CANDIDATES\nfixtureSha256=" + sha256(receipt)
+			final Path scope = admission.sql().resolve("n01-scene-scope.properties");
+			final String fixtureSha = sha256(receipt);
+			Files.writeString(scope, "stage=SETUP_CANDIDATES\nfixtureSha256=" + fixtureSha
 				+ "\nsceneSha256=" + sha256(scenes) + "\nprofiles=" + String.join(",", roster.stream().map(actor -> Long.toString(actor.profile())).toList())
 				+ "\nnextBootMustBindNativeTargets=true\n", StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+			final String scopeSha = sha256(scope);
+			final var known = new StringBuilder(OFFENSE_HEADER).append('\n');
+			for (var actor : roster)
+			{
+				for (Skill skill : actor.learnedDamage())
+				{
+					final var fields = List.of(actor.profile(), actor.object(), actor.profession().getId(), actor.level(), skill.getId(), skill.getLevel(),
+						"STORED_CLASS_DAMAGE", fixtureSha.toLowerCase(Locale.ROOT), scopeSha.toLowerCase(Locale.ROOT));
+					known.append(String.join("\t", fields.stream().map(Object::toString).toList())).append('\n');
+				}
+			}
+			Files.writeString(admission.sql().resolve("n01-learned-offense.tsv"), known.toString(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
 		}
 		System.out.println("TASK131_N01_SETUP_STORED actors=4 sceneCandidates=" + qualified + " worldPlayers=0");
 	}
@@ -379,7 +397,8 @@ public final class PhantomCombat131Fixture
 			check(new PhantomBackgroundTransaction().captureBaseline(capture.state(), plan.goal(), capture.context()).status() == PhantomBackgroundTransaction.Status.SUCCESS, "PRODUCTION_BASELINE_CAPTURE");
 			final Skill skill = scene == null ? minimumSkill(actor, role, null) : scene.skill();
 			check(skill != null, "NATIVE_LEARNED_OFFENSIVE_SKILL");
-			return new Actor(id, object, actor.getAccountName(), profession, level, skill, weapon, shot, actor.getInventory().getInventoryItemCount(shot, -1), actor.getAdena(), actor.getExp(), actor.getSp(), scene);
+			return new Actor(id, object, actor.getAccountName(), profession, level, skill, weapon, shot, actor.getInventory().getInventoryItemCount(shot, -1),
+				actor.getAdena(), actor.getExp(), actor.getSp(), scene, learnedDamage(actor, role, skill));
 		}
 		finally
 		{
@@ -426,6 +445,22 @@ public final class PhantomCombat131Fixture
 				&& PhantomNativeCombatCapability.magicLevelReady(PhantomNativeCombatCapability.mechanics(skill), actor.getLevel(), target == null ? 0 : target.getLevel())
 				&& skill.checkCondition(actor, target, false) && (target == null || skill.checkCondition(actor, target, true)))
 			.min(Comparator.comparingInt(Skill::getId)).orElse(null);
+	}
+
+	private static List<Skill> learnedDamage(Player actor, Role role, Skill baseline)
+	{
+		final var mode = role.magic ? PhantomCombatMode.RANGED_MAGIC : PhantomCombatMode.MELEE_PHYSICAL;
+		final var tree = SkillTreeData.getInstance();
+		return actor.getAllSkills().stream().filter(skill -> skill.isDamage() && skill.getAffectRange() == 0 && skill.getFlyType() == null
+			&& skill.getHpConsume() == 0 && skill.getItemConsumeCount() == 0 && skill.getChargeConsumeCount() == 0 && skill.getMaxSoulConsumeCount() == 0
+			&& skill.getCastRange() > 0 && actor.getStat().getMpConsume(skill) > 0 && L2jCombatBackend.supportsPveSkill(actor, skill, mode))
+			.filter(skill ->
+			{
+				final var learned = tree.getClassSkill(skill.getId(), skill.getLevel(), actor.getPlayerClass());
+				return learned != null && learned.getGetLevel() <= actor.getLevel();
+			})
+			.sorted(Comparator.comparing((Skill skill) -> skill.getId() != baseline.getId()).thenComparingInt(Skill::getId))
+			.limit(16).sorted(Comparator.comparingInt(Skill::getId)).toList();
 	}
 
 	private static Scene scene(long profile, Player actor, Role role, long seed, PhantomBackgroundSuite.ProductionAuthorityFixture source,
@@ -560,6 +595,17 @@ public final class PhantomCombat131Fixture
 					check(rows.getInt(9) == point.x() && rows.getInt(10) == point.y() && rows.getInt(11) == point.z(), "DURABLE_SCENE_PLACEMENT");
 				}
 				check(!rows.next(), "DURABLE_ACTOR_SINGLE_ROW");
+			}
+		}
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement(
+			"SELECT skill_id,skill_level FROM character_skills WHERE charId=? AND class_index=0"))
+		{
+			query.setInt(1, actor.object());
+			try (var rows = query.executeQuery())
+			{
+				final var stored = new java.util.HashMap<Integer, Integer>();
+				while (rows.next()) { stored.put(rows.getInt(1), rows.getInt(2)); }
+				check(actor.learnedDamage().stream().allMatch(skill -> stored.getOrDefault(skill.getId(), 0) == skill.getLevel()), "DURABLE_LEARNED_DAMAGE_RANKS");
 			}
 		}
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement(

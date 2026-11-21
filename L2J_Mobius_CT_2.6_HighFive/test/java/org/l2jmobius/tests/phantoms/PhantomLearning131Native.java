@@ -2,6 +2,7 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -70,6 +71,7 @@ import org.l2jmobius.gameserver.phantoms.learning.ActionValueV4;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
@@ -104,11 +106,14 @@ public final class PhantomLearning131Native
 	}
 	private record TrainScene(long profile, int seconds, ActionExplorationV4.Plan plan) { }
 	private record Training(int cycle, String planSha, String policySha, String head, String opponentSha, ActionValueV4 model, List<TrainScene> episodes) { }
-	private record Launch(Path root, String manifestSha, String boot, String nonce, Instant deadline) { }
+	private record Launch(Path root, String manifestSha, String boot, String nonce, Instant deadline, int prior,
+		Map<Long, StoredActor> previousStore) { }
 	private record Bound(Scene scene, Player player, PlayerNativeEvidence sensor, PlayerNativeEvidence.Snapshot initial, Target stock) { }
 	private record Award(Target target, Target next, long cycle, long damage, long kill, long reward, long settled, long exp, long sp) { }
 	private record Loot(int object, int item, long count) { }
 	private record Totals(long exp, long sp, long shots, long wallet) { }
+	private record StoredActor(int objectId, String backgroundSha, Totals totals) { }
+	private static final String STORE_HEADER = "profileId\tactorObjectId\tbackgroundSha\texp\tsp\tshots\tadena";
 	private enum Status { COMPLETED, PAUSED, STOPPED, UNKNOWN }
 
 	public static void main(String[] args)
@@ -148,14 +153,15 @@ public final class PhantomLearning131Native
 		final Path fixture = physical(sql.resolve("n01-fixture.tsv"), true), scenes = physical(sql.resolve("n01-scenes.tsv"), true);
 		final String fixtureSha = pin(fixture, value(fields, "fixtureSha")), sceneSha = pin(scenes, value(fields, "sceneSha"));
 		final List<Scene> cohort = scenes(fixture, scenes);
-		final Training training = phase.equals("TRAIN") ? training(task, execution.getParent(), fields, cohort) : null;
-		check(training != null || n(fields, "maxEpisodes") == 4, "N01_EPISODE_COUNT");
 		final Path sceneScope = physical(sql.resolve("n01-scene-scope.properties"), true);
-		pin(sceneScope, value(fields, "sceneScopeSha"));
+		final String sceneScopeSha = pin(sceneScope, value(fields, "sceneScopeSha"));
 		final var sealed = properties(sceneScope);
 		check("SETUP_CANDIDATES".equals(value(sealed, "stage")) && fixtureSha.equalsIgnoreCase(value(sealed, "fixtureSha256"))
 			&& sceneSha.equalsIgnoreCase(value(sealed, "sceneSha256")) && "true".equals(value(sealed, "nextBootMustBindNativeTargets"))
 			&& String.join(",", cohort.stream().map(scene -> Long.toString(scene.profile())).toList()).equals(value(sealed, "profiles")), "COMPLETE_FIXTURE_SEAL");
+		final Training training = phase.equals("TRAIN")
+			? training(task, execution.getParent(), fields, cohort, sql, fixtureSha, sceneSha, sceneScopeSha) : null;
+		check(training != null || n(fields, "maxEpisodes") == 4, "N01_EPISODE_COUNT");
 
 		final Path runtime = physical(Path.of(value(fields, "runtimeRoot")), false);
 		check(runtime.getParent().equals(task) && runtime.getFileName().toString().matches("native-runtime(?:-r[1-9][0-9]*)?"), "OWN_RUNTIME_ROOT");
@@ -188,7 +194,8 @@ public final class PhantomLearning131Native
 		return new Scope(execution, task, runtime, game, jar, sql, campaign, jarSha, source, sha(execution), fixtureSha, sceneSha, enabledSha, jdbcSha, maxCycles, seconds, drainSeconds, cohort, training);
 	}
 
-	private static Training training(Path task, Path campaign, Properties fields, List<Scene> cohort) throws Exception
+	private static Training training(Path task, Path campaign, Properties fields, List<Scene> cohort, Path sql,
+		String fixtureSha, String sceneSha, String sceneScopeSha) throws Exception
 	{
 		final int cycle = n(fields, "cycle");
 		check(cycle >= 1 && cycle <= 6 && campaign.equals(task.resolve("campaigns/train-%02d".formatted(cycle)))
@@ -212,22 +219,55 @@ public final class PhantomLearning131Native
 		final var scheduleRows = table(schedule, header, 3);
 		final int maximum = n(fields, "maxEpisodes");
 		check(maximum >= 1 && maximum <= 4 && scheduleRows.size() == maximum, "TRAIN_NATIVE_SCENE_COUNT");
+		final Path witness = physical(sql.resolve("n01-learned-offense.tsv"), true);
+		final String learnedSha = pin(witness, value(fields, "learnedWitnessSha"));
+		final var learned = learnedOffense(witness, cohort, fixtureSha, sceneScopeSha);
+		pin(witness, learnedSha);
 		final var selection = new ArrayList<TrainScene>();
 		for (var entry : scheduleRows)
 		{
 			final String episode = entry[0];
 			final long profile = Long.parseLong(entry[1]);
 			final int seconds = Integer.parseInt(entry[2]);
-			check(episode.matches("[a-f0-9]{64}") && seconds >= 5 && seconds <= 180 && cohort.stream().anyMatch(actor -> actor.profile() == profile)
+			final var actor = cohort.stream().filter(scene -> scene.profile() == profile).findFirst().orElse(null);
+			check(episode.matches("[a-f0-9]{64}") && seconds >= 5 && seconds <= 180 && actor != null
 				&& selection.stream().noneMatch(scene -> scene.profile() == profile || scene.plan().episode().equals(episode)), "TRAIN_SOLO_SCENE_SCOPE");
 			final String key = "episode." + episode + ".";
+			final String sourceSha = TacticalObservationV3.hash(("TASK131_SOLO_SOURCE_V1\n" + fixtureSha + "\n" + sceneSha + "\n"
+				+ sceneScopeSha + "\n" + learnedSha + "\n" + profile + "\n" + actor.planIdentity() + "\n").getBytes(StandardCharsets.UTF_8));
+			final String sceneId = TacticalObservationV3.hash(("TASK131_SOLO_TRAIN_V1\n" + campaign.getFileName() + "\n" + sourceSha + "\n"
+				+ head + "\n" + learner + "\n" + opponent + "\n").getBytes(StandardCharsets.UTF_8));
+			final List<String> skills = List.of(value(policy, key + "skills").split(",", -1));
+			final var ranks = learned.get(profile);
+			check(sourceSha.equals(value(fields, key + "sourceSha")) && sceneId.equals(episode) && ranks != null
+				&& skills.equals(ranks.entrySet().stream().map(rank -> rank.getKey() + ":" + rank.getValue()).toList())
+				&& ranks.getOrDefault(actor.skill(), 0) == actor.rank(), "TRAIN_LEARNED_SOURCE_PIN");
 			final var plan = new ActionExplorationV4.Plan(2, "EPSILON_V2", Long.parseLong(value(policy, key + "seed")), n(policy, key + "cap"),
-				Double.parseDouble(value(policy, key + "epsilon")), "TRAIN", episode, value(fields, key + "sourceSha"), learner,
-				List.of(value(policy, key + "skills").split(",", -1)));
+				Double.parseDouble(value(policy, key + "epsilon")), "TRAIN", episode, sourceSha, learner, skills);
 			check(plan.sha256().equals(value(fields, key + "policySha")), "TRAIN_EPISODE_POLICY_PIN");
 			selection.add(new TrainScene(profile, seconds, plan));
 		}
 		return new Training(cycle, scheduleSha, policySha, head, opponent, model, List.copyOf(selection));
+	}
+
+	private static Map<Long, java.util.TreeMap<Integer, Integer>> learnedOffense(Path witness, List<Scene> cohort, String fixtureSha, String scopeSha) throws Exception
+	{
+		final var rows = smallText(witness).lines().toList();
+		check(!rows.isEmpty() && rows.size() <= 65 && rows.getFirst().equals(PhantomCombat131Fixture.OFFENSE_HEADER), "TRAIN_LEARNED_WITNESS_FORMAT");
+		final Map<Long, java.util.TreeMap<Integer, Integer>> learned = new HashMap<>();
+		for (String row : rows.subList(1, rows.size()))
+		{
+			final String[] values = row.split("\t", -1);
+			check(values.length == 9 && values[6].equals("STORED_CLASS_DAMAGE") && values[7].equals(fixtureSha) && values[8].equals(scopeSha), "TRAIN_LEARNED_WITNESS_PIN");
+			final long profile = Long.parseLong(values[0]);
+			final int object = Integer.parseInt(values[1]), profession = Integer.parseInt(values[2]), level = Integer.parseInt(values[3]);
+			final int skill = Integer.parseInt(values[4]), rank = Integer.parseInt(values[5]);
+			check(skill > 0 && rank > 0 && cohort.stream().anyMatch(actor -> actor.profile() == profile && actor.actor() == object
+				&& actor.profession() == profession && actor.level() == level), "TRAIN_LEARNED_ACTOR_SCOPE");
+			final var current = learned.computeIfAbsent(profile, _ -> new java.util.TreeMap<>());
+			check(current.size() < 16 && current.putIfAbsent(skill, rank) == null, "TRAIN_LEARNED_SLOT");
+		}
+		return learned;
 	}
 
 	private static Launch launch(Scope scope, Path supplied) throws Exception
@@ -240,10 +280,11 @@ public final class PhantomLearning131Native
 		check(physical(Path.of("").toAbsolutePath().normalize(), false).equals(scope.game()), "OWN_GAME_WORKING_DIRECTORY");
 		final var fields = properties(path);
 		final String nonce = value(fields, "nonce"), boot = value(fields, "bootId"), manifest = value(fields, "manifestSha");
+		final int prior = n(fields, "lastCompleted");
 		check("TRAINING_LAUNCH131_V1".equals(value(fields, "schema")) && scope.phase().equals(value(fields, "phase")) && scope.campaign().equals(value(fields, "campaignId"))
 			&& scope.executionSha().equalsIgnoreCase(value(fields, "executionSha")) && nonce.matches("[0-9a-f]{32}") && nonce.equals(System.getProperty("phantom.learning131.nonce"))
 			&& root.getFileName().toString().equals(boot) && root.equals(Path.of(value(fields, "bootRoot"))) && manifest.matches("(?i)[a-f0-9]{64}")
-			&& n(fields, "lastCompleted") == 0, "BOOT_LAUNCH_BINDING");
+			&& (scope.training() == null ? prior == 0 : prior >= 0 && prior < scope.training().episodes().size()), "BOOT_LAUNCH_BINDING");
 		final Path manifestPath = physical(campaign.resolve("campaign.json"), true);
 		pin(manifestPath, manifest);
 		final String manifestBody = smallText(manifestPath);
@@ -264,24 +305,33 @@ public final class PhantomLearning131Native
 		check(info.startInstant().filter(observed -> Math.abs(java.time.Duration.between(observed, started).toMillis()) < 2).isPresent()
 			&& info.command().orElse("").toLowerCase(Locale.ROOT).endsWith("\\mariadbd.exe")
 			&& Arrays.equals(info.arguments().orElse(new String[0]), new String[] {"--defaults-file=" + physical(scope.sql().resolve("owned-server.ini"), true), "--console"}), "OWN_SQL_PROCESS");
-		final var launch = new Launch(root, manifest.toLowerCase(Locale.ROOT), boot, nonce, deadline);
-		verifyLauncherClaim(launch, path);
-		return launch;
+		final var pending = new Launch(root, manifest.toLowerCase(Locale.ROOT), boot, nonce, deadline, prior, Map.of());
+		final String reservationSha = verifyLauncherClaim(pending, path);
+		if (scope.training() == null) { return pending; }
+		final var prefix = PhantomLearning131Fit.completedPrefix(root, pending.manifestSha(), reservationSha);
+		check(prefix.completed() == prior && prefix.episodeIds().equals(scope.training().episodes().stream().limit(prior).map(v -> v.plan().episode()).toList()), "TRAIN_RESUME_CURSOR");
+		final var checkpoint = prefix.store() == null ? Map.<Long, StoredActor>of() : readTrainStore(prefix.store(), prefix.storeSha(), scope.scenes());
+		check(prior == 0 || !checkpoint.isEmpty(), "TRAIN_RESUME_STORE_REQUIRED");
+		return new Launch(root, pending.manifestSha(), boot, nonce, deadline, prior, checkpoint);
 	}
 
-	private static void verifyLauncherClaim(Launch launch, Path launchFile) throws Exception
+	private static String verifyLauncherClaim(Launch launch, Path launchFile) throws Exception
 	{
 		final Path reservation = physical(launch.root().resolve("reserved.json"), true);
+		final String reservationSha = sha(reservation);
 		final String declared = smallText(reservation);
 		check(jsonScalar(declared, "schema").equals("TRAINING_RESERVED131_V1") && jsonScalar(declared, "nonce").equals(launch.nonce())
 			&& jsonScalar(declared, "bootId").equals(launch.boot()) && jsonScalar(declared, "manifestSha").equalsIgnoreCase(launch.manifestSha())
-			&& jsonScalar(declared, "launchSha").equalsIgnoreCase(sha(launchFile)), "LAUNCH_RESERVATION");
+			&& jsonScalar(declared, "launchSha").equalsIgnoreCase(sha(launchFile))
+			&& jsonScalar(declared, "lastCompleted").equals(Integer.toString(launch.prior())), "LAUNCH_RESERVATION");
 		final var claim = launch.root().resolve("process.json");
 		final Instant awakeUntil = earliest(Instant.now().plusSeconds(8), launch.deadline());
 		while (!Files.exists(claim, LinkOption.NOFOLLOW_LINKS) && Instant.now().isBefore(awakeUntil) && request(launch) == null) { Thread.sleep(20); }
 		final var process = smallText(physical(claim, true));
 		check(jsonScalar(process, "schema").equals("TRAINING_PROCESS131_V1") && jsonScalar(process, "nonce").equals(launch.nonce())
-			&& jsonScalar(process, "pid").equals(Long.toString(ProcessHandle.current().pid())) && jsonScalar(process, "reservationSha").equalsIgnoreCase(sha(reservation)), "LAUNCHER_PROCESS_ATTESTATION");
+			&& jsonScalar(process, "pid").equals(Long.toString(ProcessHandle.current().pid())) && jsonScalar(process, "reservationSha").equalsIgnoreCase(reservationSha)
+			&& sha(reservation).equals(reservationSha), "LAUNCHER_PROCESS_ATTESTATION");
+		return reservationSha;
 	}
 
 	private static List<Scene> scenes(Path fixture, Path instances) throws IOException
@@ -335,7 +385,7 @@ public final class PhantomLearning131Native
 		boolean bootAttempted = false, enabledRuntime = false;
 		Status terminal = Status.UNKNOWN;
 		String reason = "NATIVE_INCOMPLETE";
-		int completed = 0;
+		int completed = launch.prior();
 		final Binding binding = new Binding(scope, launch);
 		try
 		{
@@ -343,7 +393,7 @@ public final class PhantomLearning131Native
 			GameServer.main(new String[0]);
 			check(!PhantomPlayersConfig.isEnabled() && !PhantomSystem.hasConfiguredInstance() && Instant.now().isBefore(launch.deadline()), "BOOT_OWNER_OR_DEADLINE");
 			try (Connection database = DatabaseFactory.getConnection()) { verifyDatabase(scope, database); }
-			verifySetup(scope, enabled);
+			verifySetup(scope, enabled, launch, binding.admitted);
 			writeNew(launch.root().resolve("n01-binding.tsv"), BIND_HEADER + "\n");
 			writeNew(launch.root().resolve("n01-native-cycles.tsv"), CYCLE_HEADER + "\n");
 			try (var drops = new DropAudit(scope.scenes()); var resource = PlayerNativeEvidence.observeResourceWrites(binding::resource))
@@ -356,7 +406,7 @@ public final class PhantomLearning131Native
 					enabledRuntime = training == null
 						? PhantomLearning131Factory.start(settings, binding, inspection -> verifyConfigured(scope, inspection), binding::permitsTarget)
 						: PhantomLearning131Factory.startEpisodeLearning(settings, binding, inspection -> verifyConfigured(scope, inspection), binding::permitsTarget,
-							training.tactical(), training.damage(), training::eligible, training::permitsSkill);
+							training.tactical(), training.damage(), training::eligible, training::permitsSkill, binding.admitted);
 					check(enabledRuntime && PhantomSystem.operatorStatus().runtimeState() == PhantomSystem.State.RUNNING, "PRODUCTION_SCHEDULER_START");
 					final var outcome = training == null ? observe(scope, launch, binding, drops, resource)
 						: observeTraining(scope, launch, binding, training, settlements);
@@ -391,15 +441,15 @@ public final class PhantomLearning131Native
 				{
 					check(completed == 0 || java.util.stream.Stream.of(bindingSha, cyclesSha, costsSha, lootSha).noneMatch("NONE"::equals), "COMPLETED_RECEIPTS_ABSENT");
 					writeNew(seal, line("schema", "N01_DRAIN131_V1") + line("status", status) + line("reason", reason) + line("worldOwnedPlayers", 0)
-						+ line("durableStoredActors", stored) + line("minRequiredCycles", CYCLES_REQUIRED) + line("completed", completed)
+						+ line("durableStoredActors", stored.size()) + line("minRequiredCycles", CYCLES_REQUIRED) + line("completed", completed)
 						+ line("manifestSha", launch.manifestSha()) + line("bootId", launch.boot()) + line("jarSha", scope.gameJarSha()) + line("bindingSha", bindingSha)
 						+ line("cyclesSha", cyclesSha) + line("costsSha", costsSha) + line("lootSha", lootSha));
 				}
 				else
 				{
-					completed = settlements.size();
-					check(stored == scope.scenes().size() && (status != Status.COMPLETED || completed == scope.training().episodes().size()), "TRAIN_DURABLE_CLOSURE");
-					publishTraining(scope, launch, status, settlements, seal);
+					completed = launch.prior() + settlements.size();
+					check(stored.size() == scope.scenes().size() && (status != Status.COMPLETED || completed == scope.training().episodes().size()), "TRAIN_DURABLE_CLOSURE");
+					publishTraining(scope, launch, status, settlements, stored, seal);
 				}
 				writeNew(launch.root().resolve("drain131.properties"), line("schema", "NATIVE_DRAIN131_V1") + line("nonce", launch.nonce())
 					+ line("manifestSha", launch.manifestSha()) + line("bootId", launch.boot()) + line("pid", ProcessHandle.current().pid())
@@ -419,19 +469,21 @@ public final class PhantomLearning131Native
 	private static Outcome observeTraining(Scope scope, Launch launch, Binding binding, PhantomLearning131Capture capture,
 		List<PhantomLearning131Capture.Settlement> settlements) throws Exception
 	{
-		final Instant readyUntil = earliest(launch.deadline().minusSeconds(scope.seconds() + scope.drainSeconds()), Instant.now().plusSeconds(45));
-		while (binding.bound.size() != scope.scenes().size() || binding.bound.values().stream().anyMatch(actor -> World.getInstance().getPlayer(actor.scene().actor()) != actor.player()))
+		final var pending = scope.training().episodes().subList(launch.prior(), scope.training().episodes().size());
+		final int seconds = pending.stream().mapToInt(TrainScene::seconds).sum();
+		final Instant readyUntil = earliest(launch.deadline().minusSeconds(seconds + scope.drainSeconds()), Instant.now().plusSeconds(45));
+		while (binding.bound.size() != binding.admitted.size() || binding.bound.values().stream().anyMatch(actor -> World.getInstance().getPlayer(actor.scene().actor()) != actor.player()))
 		{
 			final var requested = request(launch);
-			if (requested != null) { return new Outcome(requested, settlements.size()); }
+			if (requested != null) { return new Outcome(requested, launch.prior() + settlements.size()); }
 			check(Instant.now().isBefore(readyUntil) && binding.refusal.get() == null, "TRAIN_ROSTER_NOT_READY");
 			Thread.sleep(25);
 		}
-		final Instant observeUntil = earliest(Instant.now().plusSeconds(scope.seconds()), launch.deadline().minusSeconds(scope.drainSeconds()));
-		for (var slot : scope.training().episodes())
+		final Instant observeUntil = earliest(Instant.now().plusSeconds(seconds), launch.deadline().minusSeconds(scope.drainSeconds()));
+		for (var slot : pending)
 		{
 			final var requested = request(launch);
-			if (requested != null) { return new Outcome(requested, settlements.size()); }
+			if (requested != null) { return new Outcome(requested, launch.prior() + settlements.size()); }
 			final var actor = binding.bound.get(slot.profile());
 			final var player = actor.player();
 			check(World.getInstance().getPlayer(actor.scene().actor()) == player && !player.isInParty()
@@ -464,7 +516,7 @@ public final class PhantomLearning131Native
 					while (Instant.now().isBefore(cutoff))
 					{
 						final var control = request(launch);
-						if (control != null) { return new Outcome(control, settlements.size()); }
+						if (control == Status.STOPPED) { return new Outcome(control, launch.prior() + settlements.size()); }
 						check(binding.refusal.get() == null && !deaths.foreign(), "TRAIN_FOREIGN_DEATH_OR_BINDING");
 						final Frame frame = trainFrame(actor);
 						final var facts = frame.receipts();
@@ -523,7 +575,7 @@ public final class PhantomLearning131Native
 				events.stream().mapToDouble(TacticalReceiptV3::actualMp).sum(), died ? 1 : 0);
 			settlements.add(capture.settle(episode, settled, launch.nonce()));
 		}
-		return new Outcome(Status.COMPLETED, settlements.size());
+		return new Outcome(Status.COMPLETED, launch.prior() + settlements.size());
 	}
 
 	private static Frame trainFrame(Bound actor)
@@ -573,10 +625,20 @@ public final class PhantomLearning131Native
 		}
 	}
 
-	private static void publishTraining(Scope scope, Launch launch, Status status, List<PhantomLearning131Capture.Settlement> settlements, Path seal) throws Exception
+	private static void publishTraining(Scope scope, Launch launch, Status status, List<PhantomLearning131Capture.Settlement> settlements,
+		Map<Long, StoredActor> stored, Path seal) throws Exception
 	{
 		final var originals = Files.createDirectory(launch.root().resolve("episodes"));
 		final var training = scope.training();
+		final Path store = launch.root().resolve("train-store131.tsv");
+		final var storeRows = new StringBuilder(STORE_HEADER).append('\n');
+		for (var entry : stored.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList())
+		{
+			final var actor = entry.getValue();
+			final var totals = actor.totals();
+			storeRows.append(row(entry.getKey(), actor.objectId(), actor.backgroundSha(), totals.exp(), totals.sp(), totals.shots(), totals.wallet()));
+		}
+		writeNew(store, storeRows.toString());
 		final var rows = new StringBuilder(row("meta", "schema", "NATIVE_TRAIN_BOOT131_V1"))
 			.append(row("meta", "phase", "TRAIN")).append(row("meta", "status", status == Status.COMPLETED ? "DRAINED" : status.name()))
 			.append(row("meta", "bootId", launch.boot())).append(row("meta", "nonce", launch.nonce()))
@@ -584,13 +646,31 @@ public final class PhantomLearning131Native
 			.append(row("meta", "manifestSha", launch.manifestSha())).append(row("meta", "sourceCommit", scope.sourceCommit()))
 			.append(row("meta", "jarSha", scope.gameJarSha())).append(row("meta", "expectedHead", training.head()))
 			.append(row("meta", "learnerSha", training.model().sha256())).append(row("meta", "opponentSha", training.opponentSha()))
-			.append(row("meta", "cycle", training.cycle()));
+			.append(row("meta", "cycle", training.cycle())).append(row("meta", "storeSha", sha(store)));
 		for (var settlement : settlements)
 		{
 			final var original = PhantomLearning131Capture.publishTrain(originals, launch.boot(), settlement);
 			rows.append(row("episode", original.episodeId(), original.sealSha()));
 		}
 		writeNew(seal, rows.toString());
+	}
+
+	private static Map<Long, StoredActor> readTrainStore(Path store, String expected, List<Scene> scenes) throws Exception
+	{
+		pin(store, expected);
+		final Map<Long, StoredActor> rows = new HashMap<>();
+		for (String[] entry : table(store, STORE_HEADER, 7))
+		{
+			final long profile = Long.parseLong(entry[0]);
+			final int object = Integer.parseInt(entry[1]);
+			final var totals = new Totals(Long.parseLong(entry[3]), Long.parseLong(entry[4]), Long.parseLong(entry[5]), Long.parseLong(entry[6]));
+			check(entry[2].matches("[a-f0-9]{64}") && totals.exp() >= 0 && totals.sp() >= 0 && totals.shots() >= 0 && totals.wallet() >= 0
+				&& scenes.stream().anyMatch(scene -> scene.profile() == profile && scene.actor() == object)
+				&& rows.putIfAbsent(profile, new StoredActor(object, entry[2], totals)) == null, "TRAIN_STORE_ROW");
+		}
+		check(rows.size() == scenes.size(), "TRAIN_STORE_ROSTER");
+		pin(store, expected);
+		return Map.copyOf(rows);
 	}
 
 	private static void verifyBeforeBoot(Scope scope) throws Exception
@@ -623,7 +703,7 @@ public final class PhantomLearning131Native
 		}
 	}
 
-	private static void verifySetup(Scope scope, Path enabled) throws Exception
+	private static void verifySetup(Scope scope, Path enabled, Launch launch, Set<Long> admitted) throws Exception
 	{
 		final var settings = PhantomPlayersConfig.read(enabled);
 		final var profiles = PhantomProfileRepository.open();
@@ -638,10 +718,16 @@ public final class PhantomLearning131Native
 			for (var scene : scope.scenes())
 			{
 				final var entry = entries.stream().filter(row -> row.profile().profileId() == scene.profile()).findFirst().orElseThrow();
-				check(entry.profile().characterObjectId() == scene.actor() && entry.state().reservedAccount().equals(scene.account()) && entry.state().state() == PhantomPopulationState.State.READY
+				check(entry.profile().characterObjectId() == scene.actor() && entry.state().reservedAccount().equals(scene.account())
 					&& World.getInstance().findObject(scene.actor()) == null && authority.authority().hashes().equals(scene.hashes()), "READY_AUTHORITY_SCOPE");
+				if (!launch.previousStore().isEmpty())
+				{
+					check(launch.previousStore().get(scene.profile()).equals(storedActor(profiles, scene, durable(scene, false))), "TRAIN_COLD_STORE_DRIFT");
+					if (!admitted.contains(scene.profile())) { continue; }
+				}
+				check(entry.state().state() == PhantomPopulationState.State.READY, "ACTOR_NOT_READY_FOR_FRESH_SCENE");
 			final var window = catalog.evaluate(entry.state().scheduleTemplate(), now, settings.populationTimeZone(), entry.state().schedulePhaseMinutes());
-				check(window.state().requiresMaterialization() && window.nextBoundary().isAfter(now.plusSeconds(scope.seconds() + scope.drainSeconds())), "READY_CALENDAR_RANGE");
+				check(window.state().requiresMaterialization() && window.nextBoundary().isAfter(launch.deadline()), "READY_CALENDAR_RANGE");
 				final var goal = goals.load(scene.profile()).orElseThrow().goal();
 				check(goal.goalId() == scene.goal() && goal.revision() == scene.revision() && goal.validSources().size() == 1
 					&& goal.validSources().getFirst().key().equals(scene.npc() + "@" + scene.anchor()), "PERSISTED_SCENE_GOAL");
@@ -651,6 +737,12 @@ public final class PhantomLearning131Native
 					&& durable(scene, true).equals(new Totals(scene.initialExp(), scene.initialSp(), scene.stockShots(), scene.stockAdena())), "PERSISTED_SCENE_BASELINE");
 			}
 		}
+	}
+
+	private static StoredActor storedActor(PhantomProfileRepository profiles, Scene scene, Totals totals)
+	{
+		final var payload = profiles.findComponent(scene.profile(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload();
+		return new StoredActor(scene.actor(), TacticalObservationV3.hash(payload), totals);
 	}
 
 	private static PhantomBackgroundState background(PhantomProfileRepository profiles, long profile)
@@ -683,9 +775,9 @@ public final class PhantomLearning131Native
 		}
 	}
 
-	private static int drain(Scope scope, Launch launch, Binding binding, boolean started) throws Exception
+	private static Map<Long, StoredActor> drain(Scope scope, Launch launch, Binding binding, boolean started) throws Exception
 	{
-		final FutureTask<Integer> task = new FutureTask<>(() ->
+		final FutureTask<Map<Long, StoredActor>> task = new FutureTask<>(() ->
 		{
 			if (started || PhantomSystem.hasConfiguredInstance())
 			{
@@ -694,6 +786,7 @@ public final class PhantomLearning131Native
 			}
 			check(DatabaseFactory.isInitialized(), "DURABLE_DATABASE_NOT_OPEN");
 			final var profiles = PhantomProfileRepository.open();
+			final Map<Long, StoredActor> stores = new HashMap<>();
 			for (var scene : scope.scenes())
 			{
 				check(World.getInstance().getPlayer(scene.actor()) == null && World.getInstance().findObject(scene.actor()) == null
@@ -707,9 +800,15 @@ public final class PhantomLearning131Native
 					check(totals.exp() >= Math.addExact(scene.initialExp(), award.expGained()) && totals.sp() >= Math.addExact(scene.initialSp(), award.spGained())
 						&& totals.shots() <= scene.stockShots(), "DURABLE_NATIVE_REWARD_AND_COST");
 				}
+				final var storedActor = storedActor(profiles, scene, totals);
+				if (scope.training() != null && !binding.admitted.contains(scene.profile()) && !launch.previousStore().isEmpty())
+				{
+					check(storedActor.equals(launch.previousStore().get(scene.profile())), "TRAIN_EXCLUDED_ACTOR_CHANGED");
+				}
 				check(state.identity().characterObjectId() == scene.actor() && state.state() != PhantomBackgroundState.State.MATERIALIZED, "DURABLE_BACKGROUND_CLOSURE");
+				stores.put(scene.profile(), storedActor);
 			}
-			return scope.scenes().size();
+			return Map.copyOf(stores);
 		});
 		Thread.startVirtualThread(task);
 		final long remaining = Math.max(1, java.time.Duration.between(Instant.now(), launch.deadline()).toMillis());
@@ -728,6 +827,7 @@ public final class PhantomLearning131Native
 		private final ConcurrentLinkedQueue<ResourceWrite> resources = new ConcurrentLinkedQueue<>();
 		private final AtomicInteger resourceRows = new AtomicInteger();
 		private final boolean training;
+		private final Set<Long> admitted;
 		private volatile Bound trainingActor;
 		private volatile boolean closed;
 
@@ -735,6 +835,9 @@ public final class PhantomLearning131Native
 		{
 			this.launch = launch;
 			training = scope.training() != null;
+			admitted = training
+				? scope.training().episodes().stream().skip(launch.prior()).map(TrainScene::profile).collect(java.util.stream.Collectors.toUnmodifiableSet())
+				: scope.scenes().stream().map(Scene::profile).collect(java.util.stream.Collectors.toUnmodifiableSet());
 			for (Scene scene : scope.scenes()) { scenes.put(scene.profile(), scene); actors.put(scene.actor(), scene); }
 		}
 
@@ -742,6 +845,7 @@ public final class PhantomLearning131Native
 		{
 			if (closed) { throw new AdmissionRejectedException("TASK131_N01_ADMISSION_CLOSED"); }
 			final Scene scene = scenes.get(profile);
+			if (scene != null && scene.actor() == actor && !admitted.contains(profile)) { throw new AdmissionRejectedException("TASK131_TRAIN_OUTSIDE_REMAINING_ROSTER"); }
 			if (scene == null || scene.actor() != actor || bound.containsKey(profile)) { reject("UNEXPECTED_OR_REPEAT_PROFILE"); }
 		}
 

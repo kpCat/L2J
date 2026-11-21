@@ -962,6 +962,7 @@ public class Player extends Playable
 	
 	private boolean _canRevive = true;
 	private int _reviveRequested = 0;
+	private long _nativeCorpseGeneration;
 	private double _revivePower = 0;
 	private boolean _revivePet = false;
 	
@@ -11676,7 +11677,41 @@ public class Player extends Playable
 		restoreExp(revivePower);
 	}
 	
+	@Override
+	public void setDead(boolean dead)
+	{
+		if (dead && isNativeWorkManaged())
+		{
+			synchronized (this)
+			{
+				if (!isDead()) { _nativeCorpseGeneration++; }
+				super.setDead(true);
+			}
+			return;
+		}
+		super.setDead(dead);
+	}
+
+	public synchronized long nativeCorpseGeneration()
+	{
+		return isDead() ? _nativeCorpseGeneration : 0;
+	}
+
 	public void reviveRequest(Player reviver, boolean pet, int power)
+	{
+		if (isNativeWorkManaged() && hasHeadlessOutboundSession())
+		{
+			// Serialize publication of the single native proposal for a headless recipient.
+			synchronized (this)
+			{
+				reviveRequestNative(reviver, pet, power);
+			}
+			return;
+		}
+		reviveRequestNative(reviver, pet, power);
+	}
+
+	private void reviveRequestNative(Player reviver, boolean pet, int power)
 	{
 		if (isResurrectionBlocked())
 		{
@@ -11712,6 +11747,11 @@ public class Player extends Playable
 				final ConfirmDlg dlg = new ConfirmDlg(SystemMessageId.YOUR_CHARM_OF_COURAGE_IS_TRYING_TO_RESURRECT_YOU_WOULD_YOU_LIKE_TO_RESURRECT_NOW.getId());
 				dlg.addTime(60000);
 				sendPacket(dlg);
+				return;
+			}
+			if (!pet && org.l2jmobius.gameserver.phantoms.combat.PhantomAreaControl131.permitsResurrectionAnswer(this, reviver))
+			{
+				reviveAnswer(1);
 				return;
 			}
 			

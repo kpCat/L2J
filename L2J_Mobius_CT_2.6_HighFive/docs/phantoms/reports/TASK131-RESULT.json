@@ -52,30 +52,34 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "aggregate-v6-reviewed.log",
+    "aggregateLog": "ant-combat-v7-reviewed.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
     "comparison": "OFFLINE_READER_AND_NEGATIVE_CONTROLS",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 169,
+    "regressionTestsPassed": 170,
     "contractGroupsPassed": 12,
     "jarExitCode": 0,
-    "jarSha256": "7b16845fb6d297db09fa9a426fbdab75861c7aac9823e6fe4dcc13e27162c40c",
-    "loginJarSha256": "f305e6da0da860b414669b79ae86b46786d23bbe678f720e0fcdbd40bd17555c",
-    "jarLog": "jar-v6-reviewed.log",
-    "fitIngressLog": "v6-PhantomLearning131FitChecks.log",
-    "scopedAutoUseLog": "v6-PhantomScopedOffense131Checks.log"
+    "jarSha256": "e039641a1daf129c7cc3f5444a123e7e0cb7a0a56efe1384c16f7b8a1dfc3e32",
+    "loginJarSha256": "e0c9b45c1b61aad7316f33e50bdb2f30cf01ce5d3e2c22af5617258c4dd32043",
+    "jarLog": "jar-v7-reviewed.log",
+    "fitIngressLog": "v7-PhantomLearning131FitChecks.log",
+    "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
+    "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
+    "partyTacticsPassed": 19,
+    "worldCoordination130Passed": 81
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v5.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v6.json"
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v6.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v7.json",
+    "exactPathCount": 22
   },
   "testReadiness": {
-    "iterationParent": "0471fb0ddd0ca6b3ddb2cfb5a1f6aeba365ec07a",
+    "iterationParent": "3454c1de4e326670e4ec8f26a80aa6c39acec9fd",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -135,7 +139,7 @@
     },
     "n01Adapter": {
       "entryPoint": "org.l2jmobius.tests.phantoms.PhantomLearning131Native",
-      "sourceSha256": "f99e0a72d5ae4e934ba8618089c10fadf8a65d69549e085eb66e8ed43b29e2c1",
+      "sourceSha256": "7de4825aa17ff4e3f149879d9dfd5f0cb6d87167eb97b41b6f857c94f715ace0",
       "nativeEvidenceContinuityTestsPassed": 14,
       "incompleteR4Preflight": "REJECTED_INCOMPLETE_SCENE_SET",
       "changedFixturePreflight": "REJECTED_PIN_MISMATCH",
@@ -145,11 +149,11 @@
     "campaignController": {
       "script": "tools/phantom-runtime/training/TrainingCombat131.ps1",
       "controlContract": "PASS",
-      "controlContractLog": "controller-v6-reviewed.log",
+      "controlContractLog": "controller-v7-reviewed.log",
       "nativeLaunch": "NOT_RUN",
       "trainAdapter": "SOLO_PVE_SOURCES_AND_DB_FREE_CONTRACTS",
       "tuningAuditAdapters": "PENDING",
-      "resumeAfterNativeClaim": "NATIVE_PREFIX_REPLAY_UNAVAILABLE",
+      "resumeAfterNativeClaim": "OFFLINE_PREFIX_AND_STORE_CONTRACT_PASS_NATIVE_NOT_RUN",
       "fitIngress": "OFFLINE_NEGATIVE_CONTROLS_PASS",
       "nativeFit": "NOT_RUN",
       "trainPreflightR4": "REJECTED_INCOMPLETE_SCENE_SET"
@@ -161,14 +165,20 @@
       "incompleteR4Attest": "REJECTED_INCOMPLETE_SCENE_SET",
       "fullCandidate": "NOT_CREATED"
     },
-    "g0OffReceipt": "off-and-protected-v6.json",
+    "soloTrainPreparer": {
+      "script": "tools/phantom-runtime/training/Initialize-Task131SoloTrain.ps1",
+      "incompleteR4Preflight": "REJECTED_INCOMPLETE_SCENE_SET",
+      "incompleteR4Prepare": "REJECTED_INCOMPLETE_SCENE_SET",
+      "fullCandidate": "NOT_CREATED"
+    },
+    "g0OffReceipt": "off-and-protected-v7.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v6.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v7.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -187,7 +197,7 @@
       "phase": "P2–P3",
       "status": "UNKNOWN",
       "evidence": "D2,D3,D4,N04,N05",
-      "reason": "Party PvE получил CLEANSE и AREA/AURA с точной областью, фактические исходы и tactical frame открыты"
+      "reason": "Party PvE получил CLEANSE, AREA/AURA и ограниченное восстановление одной смерти, живые эффекты и tactical frame открыты"
     },
     "G4": {
       "phase": "P2–P3",
@@ -217,7 +227,7 @@
       "phase": "P4–P5",
       "status": "UNKNOWN",
       "evidence": "D7,D9,N13,N15",
-      "reason": "Офлайн проверены controller и FIT для Solo TRAIN, нативный restart и повтор префикса остаются открытыми"
+      "reason": "Офлайн проверены STORE и последовательность Resume для Solo TRAIN, живой перезапуск открыт"
     },
     "G9": {
       "phase": "P2–P6",
@@ -247,7 +257,7 @@
       "phase": "P1–P3",
       "status": "UNKNOWN",
       "evidence": "D2,D3,D4,N02–N05,N08,N09",
-      "reason": "Добавлена срочная поддержка PARTY_DEFENSE после drain с нативными guards, живые роли и исходы открыты"
+      "reason": "Поддержка PARTY_DEFENSE после drain и партийное окно воскрешения покрыты офлайн, живые роли и исходы открыты"
     },
     "R3": {
       "phase": "P2–P3",
@@ -283,7 +293,7 @@
       "phase": "P4–P5",
       "status": "UNKNOWN",
       "evidence": "D7,D9,N15",
-      "reason": "Новая ветвь Solo TRAIN проверена офлайн, TUNING/AUDIT и возобновление после native claim открыты"
+      "reason": "Офлайн проверено восстановление префикса Solo TRAIN, живые Resume и TUNING/AUDIT открыты"
     },
     "R9": {
       "phase": "P2–P6",
@@ -300,7 +310,7 @@
     "D2": {
       "phase": "P2",
       "status": "UNKNOWN",
-      "evidence": "aggregate-v6-reviewed.log",
+      "evidence": "ant-combat-v7-reviewed.log",
       "reason": "Офлайн проверены единственный PvP-владелец и отзыв срочной поддержки до и после передачи, TEST открыт"
     },
     "D3": {
@@ -318,7 +328,7 @@
     "D5": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "aggregate-v6-reviewed.log",
+      "evidence": "ant-combat-v7-reviewed.log",
       "reason": "Frozen выбор и точная область V4 проверены офлайн, живые TRAIN/TUNING/AUDIT ещё открыты"
     },
     "D6": {
@@ -378,8 +388,8 @@
     "N05": {
       "phase": "P3",
       "status": "NOT_RUN",
-      "evidence": "NONE",
-      "reason": "Healer под атакой, потеря роли и recovery"
+      "evidence": "ant-combat-v7-reviewed.log,v7-PhantomAreaControl131Checks.log",
+      "reason": "Проверены офлайн окно для одного тела и точное штатное воскрешение, живой подъём, расход MP и давление на healer открыты"
     },
     "N06": {
       "phase": "P3",
@@ -438,8 +448,8 @@
     "N15": {
       "phase": "P5",
       "status": "NOT_RUN",
-      "evidence": "NONE",
-      "reason": "Native Pause/Resume/Stop, drain и replay, префикс начатого TRAIN пока нельзя возобновить"
+      "evidence": "controller-v7-reviewed.log,v7-PhantomLearning131FitChecks.log",
+      "reason": "Офлайн проверена цепочка закрытий и STORE, живые Pause/Resume/Stop, drain и повтор FIT открыты"
     },
     "N16": {
       "phase": "P5–P6",

@@ -340,6 +340,16 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 
 	@Override
+	public long nativeCorpseGeneration(MemberRef member)
+	{
+		if (member == null || member.kind() != MemberKind.PHANTOM) { return 0; }
+		try (var acquired = observeActor(member))
+		{
+			return acquired == null ? 0 : acquired.player().nativeCorpseGeneration();
+		}
+	}
+
+	@Override
 	public PhantomLearnedEscape.Attempt startLearnedRecall(PartySnapshot party, Map<MemberRef, Long> epochs, BooleanSupplier current)
 	{
 		if (!current.getAsBoolean() || party.members().size() < 2 || !epochs.keySet().equals(Set.copyOf(party.members())))

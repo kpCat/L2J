@@ -52,7 +52,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty;
+import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase;
+import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingRequest;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingResult;
@@ -1911,6 +1913,119 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(generation, combat.find(1).orElseThrow().generation(), "Heal cancelled the damage member's combat generation.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Party support fixture did not drain."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Combat fixture did not drain."); }
+			}
+		});
+		registry.add("131-single-party-corpse-uses-existing-resurrection-owner-or-drains", context ->
+		{
+			for (String boundary : List.of("owned-cast", "never-dispatched", "changed-corpse-epoch", "changed-death-generation"))
+			{
+				final var states = new MemoryPartyStore();
+				final var goals = new MemoryGoalStore();
+				final var backend = new MemoryPartyBackend();
+				backend._farmEnabled = true;
+				final var clock = new AtomicLong(1_000_000_000L);
+				final var epoch = new AtomicLong(System.currentTimeMillis());
+				final var action = new PartyActionLease();
+				action.objectId = 102;
+				final var combat = new PhantomCombatService(id -> id == 2 ? action : null, new PhantomCombatCapabilityResolver(_ -> List.of()),
+					PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, (_, _) -> PhantomCombatService.DispatchResult.rejected());
+				final var leader = backend.add(1, 101);
+				final var support = backend.add(2, 102);
+				goals.put(1, supportTravelRoot(1, 0, "farm.fixture"));
+				goals.put(2, supportTravelRoot(2, 0, "farm.fixture"));
+				final var resurrection = new MemberCapability("combat.resurrection", "native.skill.1016", 450, 1016, 1, "SINGLE_TARGET", true, true, true, "ready", 4500, "test.progression.fixture");
+				final var capabilities = List.of(resurrection, cap("combat.heal", "heal", 450, 1011));
+				final var damage = List.of(cap("combat.melee_damage", "native.weapon", 300, 0));
+				backend._capabilities.put(support, capabilities);
+				backend._capabilities.put(leader, damage);
+				backend.snapshot(leader, member(1, 101, 100, 100, false, 0, damage));
+				backend.snapshot(support, member(2, 102, 100, 100, false, 0, capabilities));
+				final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context),
+					new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+				final var farm = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false, null,
+					org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults(), (_, _, _, _, _) -> false, epoch::get);
+				backend.connect(coordinator);
+				combat.start();
+				coordinator.start();
+				try
+				{
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.formForGoal(1, 129001, 0, "farm.background",
+						ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,2"), List.of()), "Fixture could not form the Party.");
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED,
+						coordinator.invite(1, support, PartyDistributionType.FINDERS_KEEPERS), "Fixture could not invite the resurrection owner.");
+					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+					PhantomAssertions.assertTrue(coordinator.committed(1) && coordinator.committed(2), "Fixture never completed both owned native memberships.");
+					PhantomAssertions.assertEquals(Set.of(leader, support), Set.copyOf(backend.observe(leader).orElseThrow().members()), "Fixture native roster drifted.");
+					final long now = epoch.get();
+					final var initial = new PhantomLogicalParty("A".repeat(64), 1, 1, List.of(new PhantomLogicalParty.Member(1, "damage.melee", 129001, 0),
+						new PhantomLogicalParty.Member(2, "support.healer", 129002, 0)), new PhantomDomainRef("background.farm", "20101@farm.fixture"),
+						"farm.fixture", Phase.AGREED, 0, now, "");
+					final var logical = new PhantomLogicalPartyCoordinator(states);
+					var row = logical.agree(initial).orElseThrow();
+					final var roster = List.of(new PhantomPartyRendezvousState.Participant(leader, backend.materializationEpoch(leader), 129001, 0),
+						new PhantomPartyRendezvousState.Participant(support, backend.materializationEpoch(support), 129002, 0));
+					final String offer = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(initial.groupId() + ":1:" + roster + ":" + now);
+					for (var recipient : roster)
+					{
+						coordinator.saveRendezvous(-1, new PhantomPartyRendezvousState(recipient.actor().profileId(), offer, 1, roster, initial.objective(),
+							now, now + 600000, PhantomPartyRendezvousState.Phase.COMPLETE, 0)).orElseThrow();
+					}
+					for (var phase : List.of(Phase.WAKE_REQUESTED, Phase.ASSEMBLING, Phase.NATIVE_ACTIVE))
+					{
+						row = logical.transition(row, phase, 0, now, "");
+					}
+					farm.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+					backend.snapshot(leader, member(1, 101, 0, 100, true, 0, List.of()));
+					farm.onPulse();
+					PhantomAssertions.assertEquals(Phase.NATIVE_ACTIVE, logical.groupFor(1).orElseThrow().group().phase(), "The first exact leader corpse tore down its lawful resurrection owner.");
+					PhantomAssertions.assertEquals(0, action.casts, "The logical controller issued a parallel native cast.");
+					final Runnable nextProjection = () ->
+					{
+						for (int pulse = 0; pulse < 2; pulse++)
+						{
+							clock.addAndGet(6_000_000_000L);
+							epoch.addAndGet(6000);
+							farm.onPulse();
+						}
+					};
+					if ("owned-cast".equals(boundary))
+					{
+						coordinator.onPulse();
+						PhantomAssertions.assertEquals(1, action.casts, "The canonical Party owner did not start the one pending resurrection.");
+						PhantomAssertions.assertEquals(101, action.support.targetObjectId(), "Resurrection lost its exact corpse target.");
+						backend._capabilities.put(support, List.of());
+						nextProjection.run();
+						PhantomAssertions.assertEquals(Phase.NATIVE_ACTIVE, logical.groupFor(1).orElseThrow().group().phase(), "An active exact cast lost the remaining window when its skill went on reuse.");
+						action.casting = false;
+						backend.snapshot(leader, member(1, 101, 60, 100, false, 0, List.of()));
+						nextProjection.run();
+						PhantomAssertions.assertEquals(Phase.NATIVE_ACTIVE, logical.groupFor(1).orElseThrow().group().phase(), "Living leader failed to retain ordinary Party planning.");
+						PhantomAssertions.assertTrue(coordinator.committed(1) && coordinator.committed(2), "Recovering a corpse dissolved the native Party.");
+						continue;
+					}
+					if ("changed-corpse-epoch".equals(boundary))
+					{
+						backend._nativeEpochs.put(1L, backend.materializationEpoch(leader) + 1);
+					}
+					else if ("changed-death-generation".equals(boundary))
+					{
+						backend.snapshot(leader, member(1, 101, 60, 100, false, 0, List.of()));
+						backend.snapshot(leader, member(1, 101, 0, 100, true, 0, List.of()));
+					}
+					else { clock.addAndGet(31_000_000_000L); epoch.addAndGet(31000); }
+					nextProjection.run();
+					final var drained = logical.groupFor(1).orElseThrow().group();
+					PhantomAssertions.assertEquals(Phase.DRAINING, drained.phase(), "An unfulfilled or stale resurrection window could rearm itself: " + boundary);
+					PhantomAssertions.assertEquals("REPLAN_NATIVE_MEMBER_DEAD", drained.waitReason(), "Canonical death fallback lost its replan cause.");
+					PhantomAssertions.assertEquals(0, action.casts, "A stale or unfulfilled window fabricated resurrection.");
+				}
+				finally
+				{
+					coordinator.beginStop();
+					PhantomAssertions.assertTrue(coordinator.finishStop(), "Party corpse fixture did not drain.");
+					combat.beginStop();
+					PhantomAssertions.assertTrue(combat.finishStop(), "Combat corpse fixture did not drain.");
+				}
 			}
 		});
 		registry.add("131-party-defense-urgent-heal-requires-current-recipient-epoch", context ->
@@ -4341,7 +4456,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(9300L, leg.feeCount(), "The stock fare no longer matches the test witness.");
 			return gatekeeper == null ? null : gatekeeper.get();
 		}
-		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(objectId, 0, 0, hp, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
+		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(objectId, 0, 0, hp, 100, 100, 100, 100, 100, false, false, false, casting, moving, casting && support != null ? support.targetObjectId() : 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
 		@Override public ActionOutcome retreatFrom(int exactTargetObjectId)
 		{
 			PhantomAssertions.assertEquals(901, exactTargetObjectId, "Party retreat lost the exact combat encounter.");
@@ -4383,6 +4498,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private java.util.function.LongPredicate _leaveAdmission = _ -> true;
 		private long _nativeEpoch = 1;
 		private final Map<Long, Long> _nativeEpochs = new LinkedHashMap<>();
+		private final Map<MemberRef, Long> _corpseGenerations = new LinkedHashMap<>();
+		@Override
+		public long nativeCorpseGeneration(MemberRef member)
+		{
+			final var current = _snapshots.get(member);
+			return current != null && current.dead() ? _corpseGenerations.getOrDefault(member, 0L) : 0;
+		}
 		private int _recallDispatches;
 		private java.util.function.BooleanSupplier _recallAuthority;
 		@Override
@@ -4470,7 +4592,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 		private void snapshot(MemberRef member, MemberSnapshot snapshot)
 		{
-			_snapshots.put(member, snapshot);
+			final var previous = _snapshots.put(member, snapshot);
+			if (snapshot.dead() && (previous == null || !previous.dead())) { _corpseGenerations.merge(member, 1L, Long::sum); }
 		}
 
 		private void party(PartySnapshot snapshot)

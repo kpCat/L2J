@@ -117,6 +117,52 @@ public final class PhantomAreaControl131
 			&& dispatch(prepare(caster, skill, recipient, List.of(recipient), null, currentAuthority, currentRecipient, null), false);
 	}
 
+	static boolean supportsSingleResurrection(Skill skill)
+	{
+		if (!active(skill) || skill.getTargetType() != TargetType.PC_BODY || skill.getAffectRange() != 0
+			|| skill.isDamage() || skill.hasNegativeEffect() || skill.isDebuff()) { return false; }
+		for (var scope : EffectScope.values())
+		{
+			final var effects = skill.getEffects(scope);
+			if (scope == EffectScope.GENERAL)
+			{
+				if (effects == null || effects.size() != 1 || effects.getFirst().getEffectType() != EffectType.RESURRECTION
+					|| !"handlers.skill.effects.Resurrection".equals(effects.getFirst().getClass().getName())) { return false; }
+			}
+			else if (effects != null && !effects.isEmpty()) { return false; }
+		}
+		return true;
+	}
+
+	public static boolean castSingleResurrection(Player caster, Skill skill, Player corpse, BooleanSupplier currentAuthority)
+	{
+		if (caster == null || caster == corpse || currentAuthority == null || !ownedHeadlessCorpse(corpse) || !supportsSingleResurrection(skill))
+		{
+			return false;
+		}
+		final var party = caster.getParty();
+		if (party == null || corpse.getParty() != party) { return false; }
+		return dispatch(prepare(caster, skill, corpse, List.of(corpse), null,
+			() -> caster.getParty() == party && corpse.getParty() == party && currentAuthority.getAsBoolean(),
+			target -> target == corpse && ownedHeadlessCorpse(corpse), null), false);
+	}
+
+	/** Called only at creation of the current native proposal, before any dialog can be delivered. */
+	public static boolean permitsResurrectionAnswer(Player corpse, Player reviver)
+	{
+		final var attempt = IMPACT.get();
+		return attempt != null && attempt._effectsEntered && attempt._skill.getTargetType() == TargetType.PC_BODY
+			&& attempt._actor.target() == reviver && attempt._primary == corpse && ownedHeadlessCorpse(corpse)
+			&& corpse.isReviveRequested() && !corpse.isRevivingPet() && attempt.currentTargets(attempt._pinned);
+	}
+
+	private static boolean ownedHeadlessCorpse(Player player)
+	{
+		return player != null && player.isDead() && !player.isResurrectionBlocked() && player.isNativeWorkManaged()
+			&& player.hasHeadlessOutboundSession() && !player.isGM() && !player.isFakePlayer()
+			&& PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) == PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM;
+	}
+
 	private static Attempt prepare(Player caster, Skill skill, Creature primary, List<? extends Creature> approved,
 		AreaDomain domain, BooleanSupplier authority, Predicate<Creature> currentRecipient, Runnable atPublication)
 	{
@@ -242,7 +288,7 @@ public final class PhantomAreaControl131
 		return pinned != null && pinned.spawnGeneration() > 0 && pinned.equals(observed);
 	}
 
-	private record Lifetime(Creature target, int instanceId, PlayerNativeWork.Owner owner, long epoch, PlayerNativeEvidence.Target monsterSpawn)
+	private record Lifetime(Creature target, int instanceId, PlayerNativeWork.Owner owner, long epoch, PlayerNativeEvidence.Target monsterSpawn, long corpseGeneration)
 	{
 		static Lifetime capture(Creature creature)
 		{
@@ -250,13 +296,20 @@ public final class PhantomAreaControl131
 			final var owner = player == null ? null : player.getNativeWorkOwner();
 			if (player != null && player.isNativeWorkManaged() && owner == null) { return null; }
 			final var spawn = creature instanceof Monster monster ? monster.getNativeEvidenceTarget() : null;
-			return new Lifetime(creature, creature.getInstanceId(), owner, owner == null ? 0 : owner.epoch(), spawn);
+			final long corpse = player != null && player.isDead() ? player.nativeCorpseGeneration() : 0;
+			return new Lifetime(creature, creature.getInstanceId(), owner, owner == null ? 0 : owner.epoch(), spawn, corpse);
 		}
 
 		boolean current()
 		{
+			return current(false);
+		}
+
+		boolean current(boolean corpse)
+		{
 			final Player player = target.asPlayer();
-			return target.isSpawned() && !target.isAlikeDead() && !target.isTeleporting() && target.getInstanceId() == instanceId
+			return target.isSpawned() && (corpse ? player != null && corpseGeneration > 0 && corpseGeneration == player.nativeCorpseGeneration()
+				: !target.isAlikeDead()) && !target.isTeleporting() && target.getInstanceId() == instanceId
 				&& World.getInstance().findObject(target.getObjectId()) == target
 				&& (player == null || player.isOnline() && World.getInstance().getPlayer(player.getObjectId()) == player
 					&& player.getNativeWorkOwner() == owner)
@@ -391,7 +444,9 @@ public final class PhantomAreaControl131
 			final Player caster = (Player) _actor.target();
 			final Lifetime lifetime = lifetime(target);
 			final var geo = GeoEngine.getInstance();
-			if (lifetime == null || !lifetime.current() || target.getInstanceId() != _actor.instanceId()
+			final boolean resurrection = _skill.getTargetType() == TargetType.PC_BODY;
+			if (lifetime == null || !lifetime.current(resurrection) || target.getInstanceId() != _actor.instanceId()
+				|| resurrection && !_effectsEntered && target.asPlayer().isReviveRequested()
 				|| !caster.isInSurroundingRegion(target) || !_recipient.test(target)
 				|| !geo.hasGeo(caster.getX(), caster.getY()) || !geo.hasGeo(target.getX(), target.getY())
 				|| !geo.canSeeTarget(caster, target)

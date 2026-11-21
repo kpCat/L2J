@@ -2,6 +2,7 @@
 package org.l2jmobius.tests.phantoms;
 
 import static org.l2jmobius.tests.phantoms.PhantomEvaluationReplayV2.episode;
+import static org.l2jmobius.tests.phantoms.PhantomEvaluationReplayV2.list;
 import static org.l2jmobius.tests.phantoms.PhantomEvaluationReplayV2.map;
 import static org.l2jmobius.tests.phantoms.PhantomEvaluationReplayV2.number;
 import static org.l2jmobius.tests.phantoms.PhantomEvaluationReplayV2.parse;
@@ -18,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +32,7 @@ import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionFeedbackV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionLearningV4;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 
@@ -42,6 +45,15 @@ public final class PhantomLearning131Fit
 
 	private record Seal(Map<String, String> meta, List<String[]> rows) { }
 	private record Batch(Path ledger, String expectedHead, String learnerSha, String nativeSha, List<ActionFeedbackV4> samples) { }
+	private record Location(Path campaign, Path task, int ordinal) { }
+	private record Scene(String id, long profile, String sourceSha, String policySha) { }
+	private record Scope(Path campaign, String manifestSha, String executionSha, String masterSha, String source, String jar, String javaSha,
+		String head, String learner, String opponent, int cycle, int maxBoots, Instant deadline, List<Scene> scenes) { }
+	private record Reservation(Path boot, String id, String sha, String parent, String nonce, int completed, Instant reservedAt, Instant deadline) { }
+	private record Closure(Reservation reservation, Map<String, Object> body, Instant closedAt) { }
+	private record Store(Path path, String sha) { }
+	private record Chain(int completed, List<ActionFeedbackV4> samples, Store store, Set<String> nonces, Instant lastClose) { }
+	record CompletedPrefix(int completed, List<String> episodeIds, Path store, String storeSha) { }
 
 	private PhantomLearning131Fit() { }
 
@@ -86,115 +98,282 @@ public final class PhantomLearning131Fit
 
 	private static Batch readBatch(Path boot, Path origin, String originSha) throws Exception
 	{
-		physical(boot);
-		require(Files.isDirectory(boot, LinkOption.NOFOLLOW_LINKS) && boot.getNameCount() >= 7, "TRAIN_BOOT_PATH");
-		final Path campaign = boot.getParent().getParent();
-		final Path task = campaign.getParent().getParent();
-		final String bootId = leaf(boot);
-		require(bootId.matches("[0-9]{5}") && Integer.parseInt(bootId) > 0 && Integer.parseInt(bootId) <= 12
-			&& leaf(boot.getParent()).equals("boots") && leaf(campaign).matches("train-0[1-6]") && leaf(campaign.getParent()).equals("campaigns")
-			&& leaf(task).equals("TASK131") && leaf(task.getParent()).equals("logs") && leaf(task.getParent().getParent()).equals(".phantom-local"), "TRAIN_BOOT_SCOPE");
-		require(origin.isAbsolute() && task.resolve("fit-pins").equals(origin.getParent()), "INDEPENDENT_ORIGIN_PATH");
+		final Location location = location(boot);
+		require(origin.isAbsolute() && location.task().resolve("fit-pins").equals(origin.getParent()), "INDEPENDENT_ORIGIN_PATH");
 		final var pins = json(checked(origin, originSha, META_LIMIT));
 		require(string(pins, "schema").equals("TRAINING_FIT_ORIGIN131_V1") && string(pins, "phase").equals("TRAIN"), "TRAIN_ORIGIN_SCHEMA");
-		final String manifestSha = hashField(pins, "manifestSha");
 		final String expectedHead = hashField(pins, "expectedHead"), learner = hashField(pins, "learnerSha"), opponent = hashField(pins, "opponentSha");
 		require(hashField(pins, "rollbackHead").equals(expectedHead) && hashField(pins, "rollbackModelSha").equals(learner), "ROLLBACK_PIN");
+		final String closedSha = hashField(pins, "closedSha");
+		final var terminal = json(checked(boot.resolve("closed.json"), closedSha, META_LIMIT));
+		require(string(terminal, "status").equals("COMPLETED"), "TRAIN_NOT_DRAINED");
+		final Scope scope = scope(location, hashField(pins, "manifestSha"));
+		require(expectedHead.equals(scope.head()) && learner.equals(scope.learner()) && opponent.equals(scope.opponent()), "FROZEN_ORIGIN_LINEAGE");
 		final var scenes = map(pins.get("scenes"));
-		require(!scenes.isEmpty() && scenes.size() <= 6, "TRAIN_SCENE_QUOTA");
-		final var manifest = json(checked(campaign.resolve("campaign.json"), manifestSha, META_LIMIT));
-		final int cycle = Math.toIntExact(number(manifest, "cycle"));
-		final String jar = hashField(manifest, "gameJarSha");
-		final String source = string(manifest, "sourceCommit");
-		require(string(manifest, "schema").equals("TRAINING_COMBAT131_V1") && string(manifest, "phase").equals("TRAIN")
-			&& string(manifest, "campaignId").equals(leaf(campaign)) && String.format(Locale.ROOT, "train-%02d", cycle).equals(leaf(campaign))
-			&& number(manifest, "auditBank") == 0 && source.matches("[a-f0-9]{40}") && hashField(manifest, "modelSha").equals(learner), "TRAIN_MANIFEST_PIN");
-
-		final var close = json(checked(boot.resolve("closed.json"), hashField(pins, "closedSha"), META_LIMIT));
-		final String reservationSha = hashField(close, "reservationSha");
-		require(string(close, "schema").equals("TRAINING_CLOSED131_V1") && string(close, "status").equals("COMPLETED") && number(close, "exitCode") == 0
-			&& string(close, "reason").equals("NATIVE_DRAIN_ACK_VERIFIED") && string(close, "control").equals("none")
-			&& hashField(close, "masterSha").equals(hashField(map(manifest.get("configShas")), "game/config/Custom/PhantomPlayers.ini")), "TRAIN_NOT_DRAINED");
-		final var reservation = json(checked(boot.resolve("reserved.json"), reservationSha, META_LIMIT));
-		final String nonce = string(reservation, "nonce");
-		final var launch = properties(checked(boot.resolve("launch131.properties"), hashField(reservation, "launchSha"), META_LIMIT));
-		final var authority = json(checked(campaign.resolve("authorization.json"), hashField(reservation, "authoritySha"), META_LIMIT));
-		require(string(reservation, "schema").equals("TRAINING_RESERVED131_V1") && nonce.matches("[a-f0-9]{32}")
-			&& string(reservation, "bootId").equals(bootId) && number(reservation, "sequence") == Integer.parseInt(bootId)
-			&& hashField(reservation, "manifestSha").equals(manifestSha) && string(authority, "schema").equals("TASK131_LAUNCH_AUTHORITY_V1")
-			&& string(authority, "authority").equals("OWNER_TASK131_GOAL") && string(authority, "scope").equals("OWNED_TEST131")
-			&& hashField(authority, "manifestSha").equals(manifestSha) && "TRAINING_LAUNCH131_V1".equals(launch.getProperty("schema"))
-			&& "TRAIN".equals(launch.getProperty("phase")) && leaf(campaign).equals(launch.getProperty("campaignId")) && nonce.equals(launch.getProperty("nonce"))
-			&& bootId.equals(launch.getProperty("bootId")) && boot.toString().equals(launch.getProperty("bootRoot")) && manifestSha.equals(launch.getProperty("manifestSha"))
-			&& hashField(manifest, "executionSha").equals(launch.getProperty("executionSha")), "TRAIN_LAUNCH_SCOPE");
-		final var execution = properties(checked(campaign.resolve("execution.properties"), hashField(manifest, "executionSha"), META_LIMIT));
-		verifyExecution(execution, leaf(campaign), source, jar, expectedHead, learner, opponent, scenes);
-		final long completed = number(close, "completed"), previous = number(reservation, "lastCompleted");
-		require(previous == 0 && completed <= 6 && completed == scenes.size()
-			&& completed == number(map(manifest.get("quota")), "maxEpisodes") && Long.toString(previous).equals(launch.getProperty("lastCompleted")), "TRAIN_COMPLETION_QUOTA");
-
-		final var process = json(checked(boot.resolve("process.json"), hashField(close, "ownerSha"), META_LIMIT));
-		final long pid = number(process, "pid");
-		final String argumentLine = string(process, "arguments");
-		final var ack = properties(checked(boot.resolve("drain131.properties"), hashField(close, "ackSha"), META_LIMIT));
-		final String nativeSha = hashField(close, "sealSha");
-		final Instant started = Instant.parse(ack.getProperty("startedUtc", ""));
-		final Instant created = windowsTime(number(process, "created"));
-		require(string(process, "schema").equals("TRAINING_PROCESS131_V1") && pid > 0 && string(process, "nonce").equals(nonce)
-			&& hashField(process, "reservationSha").equals(reservationSha) && hashField(process, "javaSha").equals(hashField(manifest, "javaSha"))
-			&& argumentLine.contains(" -Dphantom.learning131.nonce=" + nonce + " ") && argumentLine.contains(" " + NATIVE_CLASS + " --train ")
-			&& string(process, "commandLine").endsWith(argumentLine) && Duration.between(created, started).abs().compareTo(Duration.ofMillis(1)) <= 0
-			&& "NATIVE_DRAIN131_V1".equals(ack.getProperty("schema")) && "COMPLETED".equals(ack.getProperty("status"))
-			&& manifestSha.equals(ack.getProperty("manifestSha")) && nativeSha.equals(ack.getProperty("sealSha")) && nonce.equals(ack.getProperty("nonce"))
-			&& bootId.equals(ack.getProperty("bootId")) && Long.toString(pid).equals(ack.getProperty("pid")) && Long.toString(completed).equals(ack.getProperty("completed")), "TRAIN_PROCESS_DRAIN");
-
-		final var bootSeal = seal(checked(boot.resolve("complete131.tsv"), nativeSha, META_LIMIT), "NATIVE_TRAIN_BOOT131_V1", "phase", "status", "bootId", "nonce",
-			"pid", "processStarted", "manifestSha", "sourceCommit", "jarSha", "expectedHead", "learnerSha", "opponentSha", "cycle");
-		matches(bootSeal, Map.ofEntries(Map.entry("phase", "TRAIN"), Map.entry("status", "DRAINED"), Map.entry("bootId", bootId), Map.entry("nonce", nonce),
-			Map.entry("pid", Long.toString(pid)), Map.entry("manifestSha", manifestSha), Map.entry("sourceCommit", source), Map.entry("jarSha", jar),
-			Map.entry("expectedHead", expectedHead), Map.entry("learnerSha", learner), Map.entry("opponentSha", opponent), Map.entry("cycle", Integer.toString(cycle))));
-		require(started.equals(Instant.parse(bootSeal.meta().get("processStarted"))) && bootSeal.rows().size() == scenes.size(), "TRAIN_BOOT_EVIDENCE");
-
-		final var samples = new ArrayList<ActionFeedbackV4>();
-		final var episodeIds = new HashSet<String>();
-		final var eventIds = new HashSet<String>();
-		for (String[] row : bootSeal.rows())
+		require(scenes.size() == scope.scenes().size(), "TRAIN_SCENE_QUOTA");
+		for (Scene scene : scope.scenes())
 		{
-			require(row.length == 3 && row[0].equals("episode"), "EPISODE_ROW");
-			final String episodeId = digest(row[1]);
-			require(episodeIds.add(episodeId) && scenes.containsKey(episodeId), "UNFROZEN_EPISODE");
-			readEpisode(boot.resolve("episodes").resolve(episodeId), row[2], episodeId, bootId, nonce, learner, map(scenes.get(episodeId)), eventIds, samples);
+			final var pinned = map(scenes.get(scene.id()));
+			require(hashField(pinned, "sourceSha").equals(scene.sourceSha()) && hashField(pinned, "policySha").equals(scene.policySha()), "FROZEN_ORIGIN_EPISODE");
 		}
-		final Path ledger = task.resolve("fit-ledger");
+		final Chain chain = chain(scope, location.ordinal(), closedSha, true);
+		require(chain.completed() == scope.scenes().size() && !chain.samples().isEmpty(), "TRAIN_COMPLETION_QUOTA");
+		final Path ledger = location.task().resolve("fit-ledger");
 		physical(ledger);
 		require(Files.isDirectory(ledger, LinkOption.NOFOLLOW_LINKS), "LEDGER_SCOPE");
 		ActionLearningV4.load(ledger.resolve("candidate-" + learner + ".bin"), learner);
-		ActionLearningV4.load(ledger.resolve("candidate-" + opponent + ".bin"), opponent);
-		return new Batch(ledger, expectedHead, learner, nativeSha, List.copyOf(samples));
+		ActionLearningV4.load(location.campaign().resolve("candidate-" + learner + ".bin"), learner);
+		ActionLearningV4.load(location.campaign().resolve("candidate-" + opponent + ".bin"), opponent);
+		return new Batch(ledger, expectedHead, learner, closedSha, chain.samples());
 	}
 
-	private static void verifyExecution(Properties execution, String campaign, String source, String jar, String expectedHead, String learner,
-		String opponent, Map<String, Object> scenes)
+	/** A next owned reservation pins the previous closure before another GameServer admission. */
+	static CompletedPrefix completedPrefix(Path openBoot, String manifestSha, String reservationSha) throws Exception
 	{
-		final var expected = new HashMap<>(Map.of("schema", "TRAINING_EXECUTION131_V1", "phase", "TRAIN", "campaignId", campaign, "sourceCommit", source,
-			"gameJarSha", jar, "expectedHead", expectedHead, "learnerSha", learner, "opponentSha", opponent, "rollbackHead", expectedHead, "rollbackModelSha", learner));
-		for (var entry : scenes.entrySet())
-		{
-			final String prefix = "episode." + digest(entry.getKey()) + ".";
-			final var scene = map(entry.getValue());
-			expected.put(prefix + "sourceSha", hashField(scene, "sourceSha"));
-			expected.put(prefix + "policySha", hashField(scene, "policySha"));
-		}
-		require(expected.entrySet().stream().allMatch(field -> field.getValue().equals(execution.getProperty(field.getKey())))
-			&& execution.stringPropertyNames().stream().filter(key -> key.startsWith("episode.")).allMatch(expected::containsKey), "FROZEN_EXECUTION_PLAN");
+		final Location location = location(openBoot);
+		final Scope scope = scope(location, digest(manifestSha));
+		require(Files.notExists(openBoot.resolve("closed.json"), LinkOption.NOFOLLOW_LINKS), "RESUME_ALREADY_CLOSED");
+		final Reservation next = reservation(scope, location.ordinal(), digest(reservationSha));
+		final Chain previous = chain(scope, location.ordinal() - 1, next.parent(), false);
+		require(previous.completed() == next.completed() && previous.completed() < scope.scenes().size() && !previous.nonces().contains(next.nonce())
+			&& (previous.lastClose() == null || !next.reservedAt().isBefore(previous.lastClose())), "RESUME_PREFIX_CURSOR");
+		final Store store = previous.store();
+		return new CompletedPrefix(previous.completed(), scope.scenes().subList(0, previous.completed()).stream().map(Scene::id).toList(),
+			store == null ? null : store.path(), store == null ? "NONE" : store.sha());
 	}
 
-	private static void readEpisode(Path root, String sealSha, String episodeId, String bootId, String nonce, String learner,
-		Map<String, Object> scene, Set<String> acceptedEvents, List<ActionFeedbackV4> samples) throws Exception
+	private static Location location(Path boot) throws IOException
+	{
+		physical(boot);
+		require(Files.isDirectory(boot, LinkOption.NOFOLLOW_LINKS) && boot.getNameCount() >= 7 && leaf(boot).matches("[0-9]{5}"), "TRAIN_BOOT_PATH");
+		final Path campaign = boot.getParent().getParent();
+		final Path task = campaign.getParent().getParent();
+		final int ordinal = Integer.parseInt(leaf(boot));
+		require(ordinal > 0 && ordinal <= 12 && leaf(boot.getParent()).equals("boots") && leaf(campaign).matches("train-0[1-6]")
+			&& leaf(campaign.getParent()).equals("campaigns") && leaf(task).equals("TASK131") && leaf(task.getParent()).equals("logs")
+			&& leaf(task.getParent().getParent()).equals(".phantom-local"), "TRAIN_BOOT_SCOPE");
+		return new Location(campaign, task, ordinal);
+	}
+
+	private static Scope scope(Location location, String manifestSha) throws Exception
+	{
+		final Path campaign = location.campaign();
+		final var manifest = json(checked(campaign.resolve("campaign.json"), manifestSha, META_LIMIT));
+		final int cycle = Math.toIntExact(number(manifest, "cycle"));
+		final String jar = hashField(manifest, "gameJarSha"), learner = hashField(manifest, "modelSha");
+		final String source = string(manifest, "sourceCommit");
+		require(string(manifest, "schema").equals("TRAINING_COMBAT131_V1") && string(manifest, "phase").equals("TRAIN")
+			&& string(manifest, "campaignId").equals(leaf(campaign)) && String.format(Locale.ROOT, "train-%02d", cycle).equals(leaf(campaign))
+			&& number(manifest, "auditBank") == 0 && source.matches("[a-f0-9]{40}"), "TRAIN_MANIFEST_PIN");
+		final var quota = map(manifest.get("quota"));
+		final int maxBoots = Math.toIntExact(number(quota, "maxBoots")), maxEpisodes = Math.toIntExact(number(quota, "maxEpisodes"));
+		final var planned = list(manifest.get("scenes"));
+		require(maxBoots >= location.ordinal() && maxBoots <= 12 && maxEpisodes > 0 && maxEpisodes <= 6 && planned.size() == maxEpisodes, "TRAIN_SCENE_QUOTA");
+		final String executionSha = hashField(manifest, "executionSha"), scheduleSha = hashField(manifest, "fixtureSha"), policySha = hashField(manifest, "policySha");
+		final var execution = properties(checked(campaign.resolve("execution.properties"), executionSha, META_LIMIT));
+		final String head = digest(execution.getProperty("expectedHead")), opponent = digest(execution.getProperty("opponentSha"));
+		require(propertiesMatch(execution, Map.ofEntries(Map.entry("schema", "TRAINING_EXECUTION131_V1"), Map.entry("phase", "TRAIN"), Map.entry("campaignId", leaf(campaign)),
+			Map.entry("sourceCommit", source), Map.entry("gameJarSha", jar), Map.entry("learnerSha", learner), Map.entry("rollbackHead", head),
+			Map.entry("rollbackModelSha", learner), Map.entry("trainScenesSha", scheduleSha), Map.entry("policySha", policySha),
+			Map.entry("maxEpisodes", Integer.toString(maxEpisodes)), Map.entry("cycle", Integer.toString(cycle)))), "FROZEN_EXECUTION_PLAN");
+		final var policy = properties(checked(campaign.resolve("policy131.properties"), policySha, META_LIMIT));
+		require(propertiesMatch(policy, Map.of("schema", "TRAIN_POLICY131_V1", "expectedHead", head, "learnerSha", learner, "opponentSha", opponent)), "FROZEN_TRAIN_POLICY");
+		final var schedule = text(checked(campaign.resolve("scenes.tsv"), scheduleSha, META_LIMIT)).lines().toList();
+		require(schedule.size() == planned.size() + 1 && schedule.getFirst().equals("episodeId\tprofileId\tseconds"), "FROZEN_TRAIN_SCHEDULE");
+		final var scenes = new ArrayList<Scene>();
+		final var seen = new HashSet<String>();
+		final var fields = new HashSet<String>();
+		for (int index = 0; index < planned.size(); index++)
+		{
+			final var declared = map(planned.get(index));
+			final String[] row = schedule.get(index + 1).split("\t", -1);
+			final String id = digest(string(declared, "id"));
+			require(row.length == 3 && row[0].equals(id) && seen.add(id) && Long.toString(number(declared, "deadlineSeconds")).equals(row[2]), "FROZEN_EPISODE_ORDER");
+			final long profile = Long.parseLong(row[1]);
+			require(profile > 0, "FROZEN_EPISODE_PROFILE");
+			final String prefix = "episode." + id + ".";
+			fields.add(prefix + "sourceSha"); fields.add(prefix + "policySha");
+			scenes.add(new Scene(id, profile, digest(execution.getProperty(prefix + "sourceSha")), digest(execution.getProperty(prefix + "policySha"))));
+		}
+		require(execution.stringPropertyNames().stream().filter(key -> key.startsWith("episode.")).allMatch(fields::contains), "UNFROZEN_EPISODE");
+		return new Scope(campaign, manifestSha, executionSha, hashField(map(manifest.get("configShas")), "game/config/Custom/PhantomPlayers.ini"),
+			source, jar, hashField(manifest, "javaSha"), head, learner, opponent, cycle, maxBoots, Instant.parse(string(quota, "deadlineUtc")), List.copyOf(scenes));
+	}
+
+	private static Path bootPath(Scope scope, int ordinal)
+	{
+		return scope.campaign().resolve("boots").resolve(String.format(Locale.ROOT, "%05d", ordinal));
+	}
+
+	private static Reservation reservation(Scope scope, int ordinal, String sha) throws Exception
+	{
+		require(ordinal > 0 && ordinal <= scope.maxBoots(), "BOOT_QUOTA");
+		final Path boot = bootPath(scope, ordinal);
+		final String id = leaf(boot);
+		final var reserved = json(checked(boot.resolve("reserved.json"), sha, META_LIMIT));
+		final String nonce = string(reserved, "nonce");
+		final int completed = Math.toIntExact(number(reserved, "lastCompleted"));
+		final String deadlineText = string(reserved, "deadlineUtc");
+		final Instant at = Instant.parse(string(reserved, "reservedUtc")), deadline = Instant.parse(deadlineText);
+		require(string(reserved, "schema").equals("TRAINING_RESERVED131_V1") && nonce.matches("[a-f0-9]{32}") && string(reserved, "bootId").equals(id)
+			&& number(reserved, "sequence") == ordinal && hashField(reserved, "manifestSha").equals(scope.manifestSha())
+			&& completed >= 0 && completed < scope.scenes().size() && at.isBefore(deadline) && !deadline.isAfter(scope.deadline()), "TRAIN_RESERVATION_PIN");
+		final var authority = json(checked(scope.campaign().resolve("authorization.json"), hashField(reserved, "authoritySha"), META_LIMIT));
+		require(string(authority, "schema").equals("TASK131_LAUNCH_AUTHORITY_V1") && string(authority, "authority").equals("OWNER_TASK131_GOAL")
+			&& string(authority, "scope").equals("OWNED_TEST131") && hashField(authority, "manifestSha").equals(scope.manifestSha()), "TRAIN_LAUNCH_AUTHORITY");
+		final var launch = properties(checked(boot.resolve("launch131.properties"), hashField(reserved, "launchSha"), META_LIMIT));
+		require(propertiesMatch(launch, Map.of("schema", "TRAINING_LAUNCH131_V1", "phase", "TRAIN", "campaignId", leaf(scope.campaign()), "bootId", id,
+			"bootRoot", boot.toString(), "manifestSha", scope.manifestSha(), "executionSha", scope.executionSha(), "nonce", nonce,
+			"lastCompleted", Integer.toString(completed), "deadlineUtc", deadlineText)), "TRAIN_LAUNCH_SCOPE");
+		return new Reservation(boot, id, sha, hashField(reserved, "parentSha"), nonce, completed, at, deadline);
+	}
+
+	private static Chain chain(Scope scope, int count, String tail, boolean finalRequired) throws Exception
+	{
+		final var closures = new ArrayList<Closure>();
+		for (int ordinal = count; ordinal >= 1; ordinal--)
+		{
+			final var close = json(checked(bootPath(scope, ordinal).resolve("closed.json"), tail, META_LIMIT));
+			final Reservation reserved = reservation(scope, ordinal, hashField(close, "reservationSha"));
+			final Instant closedAt = Instant.parse(string(close, "closedUtc"));
+			require(string(close, "schema").equals("TRAINING_CLOSED131_V1") && hashField(close, "masterSha").equals(scope.masterSha())
+				&& !closedAt.isBefore(reserved.reservedAt()), "TRAIN_CLOSE_CHAIN");
+			closures.add(new Closure(reserved, close, closedAt));
+			tail = reserved.parent();
+		}
+		require(tail.equals(scope.manifestSha()), "TRAIN_CHAIN_GENESIS");
+		Collections.reverse(closures);
+		final var samples = new ArrayList<ActionFeedbackV4>();
+		final var events = new HashSet<String>();
+		final var nonces = new HashSet<String>();
+		final var processes = new HashSet<String>();
+		int done = 0;
+		Instant priorClose = null;
+		Store store = null;
+		for (int index = 0; index < closures.size(); index++)
+		{
+			final Closure closure = closures.get(index);
+			final Reservation reserved = closure.reservation();
+			final var close = closure.body();
+			final int next = Math.toIntExact(number(close, "completed"));
+			final boolean last = finalRequired && index == closures.size() - 1;
+			require(reserved.completed() == done && nonces.add(reserved.nonce()) && (priorClose == null || !reserved.reservedAt().isBefore(priorClose))
+				&& next >= done && next <= scope.scenes().size()
+				&& string(close, "status").equals(last ? "COMPLETED" : "PAUSED")
+				&& (last ? next == scope.scenes().size() && next > done : next < scope.scenes().size()), "TRAIN_PREFIX_CURSOR");
+			final String control = string(close, "control");
+			require(control.equals("pause") || last && control.equals("none"), "TRAIN_CLOSE_CONTROL");
+			if (control.equals("pause"))
+			{
+				final byte[] expected = (reserved.nonce() + "\n").getBytes(StandardCharsets.US_ASCII);
+				checked(reserved.boot().resolve("pause131.request"), TacticalObservationV3.hash(expected), expected.length);
+			}
+			final String reason = string(close, "reason");
+			if (reason.equals("CONTROL_BEFORE_JAVA") || reason.equals("CONTROL_BEFORE_NATIVE_ADMISSION"))
+			{
+				require(!last && next == done && string(close, "ackSha").equals("NONE") && string(close, "sealSha").equals("NONE")
+					&& Set.of("complete131.tsv", "drain131.properties", "episodes", "train-store131.tsv", "train-java.claim", "n01-java.claim",
+						"n01-binding.tsv", "n01-native-cycles.tsv", "n01-native-costs.tsv", "n01-native-loot.tsv")
+						.stream().allMatch(file -> Files.notExists(reserved.boot().resolve(file), LinkOption.NOFOLLOW_LINKS)), "TRAIN_UNCLAIMED_PAUSE");
+				if (reason.equals("CONTROL_BEFORE_NATIVE_ADMISSION"))
+				{
+					Math.toIntExact(number(close, "exitCode"));
+					process(scope, closure, processes);
+				}
+				else
+				{
+					require(close.containsKey("exitCode") && close.get("exitCode") == null && string(close, "ownerSha").equals("NONE")
+						&& Files.notExists(reserved.boot().resolve("process.json"), LinkOption.NOFOLLOW_LINKS), "TRAIN_UNCLAIMED_PAUSE");
+				}
+			}
+			else
+			{
+				require(reason.equals("NATIVE_DRAIN_ACK_VERIFIED") && number(close, "exitCode") == 0, "TRAIN_NOT_DRAINED");
+				store = readBoot(scope, closure, next, last, processes, events, samples);
+			}
+			done = next;
+			priorClose = closure.closedAt();
+		}
+		return new Chain(done, List.copyOf(samples), store, Set.copyOf(nonces), priorClose);
+	}
+
+	private record OwnedProcess(long pid, Instant created) { }
+
+	private static OwnedProcess process(Scope scope, Closure closure, Set<String> processes) throws Exception
+	{
+		final var reserved = closure.reservation();
+		final var owner = json(checked(reserved.boot().resolve("process.json"), hashField(closure.body(), "ownerSha"), META_LIMIT));
+		final long pid = number(owner, "pid"), createdTicks = number(owner, "created");
+		final String args = string(owner, "arguments");
+		final Instant created = windowsTime(createdTicks);
+		require(pid > 0 && processes.add(pid + ":" + createdTicks) && string(owner, "schema").equals("TRAINING_PROCESS131_V1")
+			&& string(owner, "nonce").equals(reserved.nonce()) && hashField(owner, "reservationSha").equals(reserved.sha()) && hashField(owner, "javaSha").equals(scope.javaSha())
+			&& args.contains(" -Dphantom.learning131.nonce=" + reserved.nonce() + " ") && args.contains(" " + NATIVE_CLASS + " --train ")
+			&& string(owner, "commandLine").endsWith(args)
+			&& !created.isBefore(reserved.reservedAt()) && created.isBefore(reserved.deadline()) && !created.isAfter(closure.closedAt()), "TRAIN_PROCESS_IDENTITY");
+		return new OwnedProcess(pid, created);
+	}
+
+	private static Store readBoot(Scope scope, Closure closure, int next, boolean last,
+		Set<String> processes, Set<String> events, List<ActionFeedbackV4> samples) throws Exception
+	{
+		final var reserved = closure.reservation();
+		final Path boot = reserved.boot();
+		final var close = closure.body();
+		final var process = process(scope, closure, processes);
+		final long pid = process.pid();
+		final String nativeSha = hashField(close, "sealSha");
+		final var ack = properties(checked(boot.resolve("drain131.properties"), hashField(close, "ackSha"), META_LIMIT));
+		final Instant started = Instant.parse(ack.getProperty("startedUtc", ""));
+		require(Duration.between(process.created(), started).abs().compareTo(Duration.ofMillis(1)) <= 0, "TRAIN_PROCESS_IDENTITY");
+		require(propertiesMatch(ack, Map.of("schema", "NATIVE_DRAIN131_V1", "status", last ? "COMPLETED" : "PAUSED", "manifestSha", scope.manifestSha(),
+			"sealSha", nativeSha, "nonce", reserved.nonce(), "bootId", reserved.id(), "pid", Long.toString(pid), "completed", Integer.toString(next))), "TRAIN_PROCESS_DRAIN");
+		final var bootSeal = seal(checked(boot.resolve("complete131.tsv"), nativeSha, META_LIMIT), "NATIVE_TRAIN_BOOT131_V1", "phase", "status",
+			"bootId", "nonce", "pid", "processStarted", "manifestSha", "sourceCommit", "jarSha", "expectedHead", "learnerSha", "opponentSha", "cycle", "storeSha");
+		matches(bootSeal, Map.ofEntries(Map.entry("phase", "TRAIN"), Map.entry("status", last ? "DRAINED" : "PAUSED"), Map.entry("bootId", reserved.id()),
+			Map.entry("nonce", reserved.nonce()), Map.entry("pid", Long.toString(pid)), Map.entry("manifestSha", scope.manifestSha()), Map.entry("sourceCommit", scope.source()),
+			Map.entry("jarSha", scope.jar()), Map.entry("expectedHead", scope.head()), Map.entry("learnerSha", scope.learner()), Map.entry("opponentSha", scope.opponent()),
+			Map.entry("cycle", Integer.toString(scope.cycle()))));
+		require(started.equals(Instant.parse(bootSeal.meta().get("processStarted"))) && bootSeal.rows().size() == next - reserved.completed(), "TRAIN_BOOT_EVIDENCE");
+		final String storeSha = digest(bootSeal.meta().get("storeSha"));
+		final Path store = boot.resolve("train-store131.tsv");
+		final var actors = verifyStore(scope, checked(store, storeSha, META_LIMIT));
+		for (int index = reserved.completed(); index < next; index++)
+		{
+			final String[] row = bootSeal.rows().get(index - reserved.completed());
+			final Scene scene = scope.scenes().get(index);
+			require(row.length == 3 && row[0].equals("episode") && row[1].equals(scene.id()), "TRAIN_EPISODE_PREFIX_ORDER");
+			readEpisode(boot.resolve("episodes").resolve(scene.id()), row[2], scene, actors.get(scene.profile()), reserved.id(), reserved.nonce(), scope.learner(), events, samples);
+		}
+		return new Store(store, storeSha);
+	}
+
+	private static Map<Long, Integer> verifyStore(Scope scope, byte[] bytes) throws IOException
+	{
+		final var rows = text(bytes).lines().toList();
+		require(rows.size() == 5 && rows.getFirst().equals("profileId\tactorObjectId\tbackgroundSha\texp\tsp\tshots\tadena"), "TRAIN_STORE_SHAPE");
+		final var profiles = new HashMap<Long, Integer>();
+		final var actors = new HashSet<Integer>();
+		for (String line : rows.subList(1, rows.size()))
+		{
+			final String[] row = line.split("\t", -1);
+			require(row.length == 7, "TRAIN_STORE_ROW");
+			final long profile = Long.parseLong(row[0]);
+			final int actor = Integer.parseInt(row[1]);
+			digest(row[2]);
+			require(profile > 0 && profiles.putIfAbsent(profile, actor) == null && actor > 0 && actors.add(actor) && Long.parseLong(row[3]) >= 0 && Long.parseLong(row[4]) >= 0
+				&& Long.parseLong(row[5]) >= 0 && Long.parseLong(row[6]) >= 0, "TRAIN_STORE_FACTS");
+		}
+		require(scope.scenes().stream().allMatch(scene -> profiles.containsKey(scene.profile())), "TRAIN_STORE_COHORT");
+		return Map.copyOf(profiles);
+	}
+
+	private static void readEpisode(Path root, String sealSha, Scene scene, int objectId, String bootId, String nonce, String learner,
+		Set<String> acceptedEvents, List<ActionFeedbackV4> samples) throws Exception
 	{
 		final var data = seal(checked(root.resolve("seal131.tsv"), digest(sealSha), META_LIMIT), "NATIVE_TRAIN_EPISODE131_V1", "split", "status",
 			"bootId", "nonce", "episodeId", "sourceSha", "policySha", "startedNanos", "settledNanos", "episodeSha");
-		final String source = hashField(scene, "sourceSha"), policy = hashField(scene, "policySha");
+		final String episodeId = scene.id(), source = scene.sourceSha(), policy = scene.policySha();
 		matches(data, Map.of("split", "TRAIN", "status", "DRAINED", "bootId", bootId, "nonce", nonce, "episodeId", episodeId,
 			"sourceSha", source, "policySha", policy));
 		final String originalEpisode = text(checked(root.resolve("episode131.json"), digest(data.meta().get("episodeSha")), META_LIMIT));
@@ -203,6 +382,9 @@ public final class PhantomLearning131Fit
 			&& settled.ownerNonce().equals(nonce) && settled.settledNanos() == Long.parseLong(data.meta().get("settledNanos"))
 			&& (Set.of("COMPLETED", "FAILED").contains(settled.outcome()) || settled.reason().equals("NATIVE_TIMEOUT"))
 			&& !settled.eventKeys().isEmpty() && data.rows().size() == settled.eventKeys().size(), "EXACT_SETTLED_EPISODE");
+		require(settled.scope().equals("SOLO") && settled.actors().size() == 1 && settled.actors().getFirst().profile() == scene.profile()
+			&& settled.actors().getFirst().objectId() == objectId, "SOLO_EPISODE_ACTOR");
+		final var actor = settled.actors().getFirst();
 		final var paid = new HashSet<String>(settled.eventKeys());
 		for (String[] row : data.rows())
 		{
@@ -213,11 +395,14 @@ public final class PhantomLearning131Fit
 			final var intent = ActionExperimentReceiptV4.Intent.restore(intentBytes);
 			final var plan = intent.decision().plan();
 			require(Arrays.equals(intent.bytes(), intentBytes) && plan.schemaVersion() == 2 && plan.split().equals("TRAIN") && plan.policyId().equals("EPSILON_V2")
-				&& plan.episode().equals(episodeId) && plan.sourceSha().equals(source) && plan.modelSha().equals(learner) && plan.sha256().equals(policy), "FROZEN_TRAIN_INTENT");
+				&& plan.episode().equals(episodeId) && plan.sourceSha().equals(source) && plan.modelSha().equals(learner) && plan.sha256().equals(policy)
+				&& sameActor(actor, intent.decision().observation()), "FROZEN_TRAIN_INTENT");
 			final String rowSha = digest(row[3]), rawSha = digest(row[4]);
 			final byte[] rowBytes = checked(root.resolve(key + ".row.bin"), rowSha, META_LIMIT);
 			final var decoded = TacticalStoreV3.decode(rowBytes);
-			require(decoded.eventKey().equals(key) && Arrays.equals(TacticalStoreV3.encode(decoded), rowBytes), "ORIGINAL_ACTION_ROW");
+			require(decoded.eventKey().equals(key) && Arrays.equals(TacticalStoreV3.encode(decoded), rowBytes) && decoded.contextKey().equals("task131|TRAIN|" + episodeId)
+				&& sameActor(actor, decoded.receipt().attempt().observation())
+				&& decoded.receipt().elapsedNanos() <= settled.settledNanos() - intent.capturedNanos(), "ORIGINAL_ACTION_ROW");
 			final var raw = json(checked(root.resolve(key + ".native.json"), rawSha, META_LIMIT));
 			require(raw.keySet().equals(Set.of("schemaVersion", "format", "nativeRecord", "observationSha")) && number(raw, "schemaVersion") == 6
 				&& string(raw, "format").equals("IMMUTABLE_JAVA_RECORD_TEXT_V1"), "ORIGINAL_NATIVE_WRITER_FORMAT");
@@ -227,6 +412,11 @@ public final class PhantomLearning131Fit
 			samples.add(ActionFeedbackV4.nativeAction(rowBytes, rowSha, settled, intent.owner(), rawSha));
 		}
 		require(paid.isEmpty(), "MISSING_PAID_EVENT");
+	}
+
+	private static boolean sameActor(TacticalEpisodeV3.Actor actor, TacticalObservationV3 observation)
+	{
+		return actor.profile() == observation.profileId() && actor.objectId() == observation.actorObjectId() && actor.epoch() == observation.actorEpoch();
 	}
 
 	private static Instant windowsTime(long ticks)
@@ -279,6 +469,11 @@ public final class PhantomLearning131Fit
 	private static void matches(Seal seal, Map<String, String> expected)
 	{
 		require(expected.entrySet().stream().allMatch(field -> field.getValue().equals(seal.meta().get(field.getKey()))), "NATIVE_SEAL_PIN");
+	}
+
+	private static boolean propertiesMatch(Properties properties, Map<String, String> expected)
+	{
+		return expected.entrySet().stream().allMatch(field -> field.getValue().equals(properties.getProperty(field.getKey())));
 	}
 
 	private static byte[] checked(Path path, String expected, int limit) throws IOException

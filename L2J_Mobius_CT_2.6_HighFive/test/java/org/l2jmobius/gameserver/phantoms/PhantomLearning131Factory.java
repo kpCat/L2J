@@ -3,6 +3,7 @@ package org.l2jmobius.gameserver.phantoms;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -31,7 +32,7 @@ public final class PhantomLearning131Factory
 
 	public static boolean startEpisodeLearning(PhantomPlayersConfig.Settings settings, PhantomMaterializationLifecyclePort observer,
 		Consumer<PhantomSystem.PlanningInspection> inspection, BiPredicate<Player, Creature> targetScope,
-		TacticalPolicyV3 tactical, LearningPolicy damage, BiPredicate<Long, Player> eligible, BiPredicate<Long, Skill> permitsSkill)
+		TacticalPolicyV3 tactical, LearningPolicy damage, BiPredicate<Long, Player> eligible, BiPredicate<Long, Skill> permitsSkill, Set<Long> admittedProfiles)
 	{
 		Objects.requireNonNull(tactical);
 		Objects.requireNonNull(damage);
@@ -63,6 +64,6 @@ public final class PhantomLearning131Factory
 				return new ScopedOffenseChoice(selected, nativeCast -> LearningCastEvidence.dispatch(attempt, actor, target, selected, current, nativeCast));
 			}
 		};
-		return PhantomSystem.startConfiguredForTesting(settings, inspection, observer, targetScope, new PhantomSystem.TestLearning131(damage, tactical, solo));
+		return PhantomSystem.startConfiguredForTesting(settings, inspection, observer, targetScope, new PhantomSystem.TestLearning131(damage, tactical, solo, admittedProfiles));
 	}
 }

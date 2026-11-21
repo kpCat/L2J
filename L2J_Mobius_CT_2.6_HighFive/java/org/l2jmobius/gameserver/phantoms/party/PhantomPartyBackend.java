@@ -92,6 +92,9 @@ public interface PhantomPartyBackend
 	/** Current managed materialization lifetime; zero never authorizes a pre-party reservation. */
 	default long materializationEpoch(MemberRef member) { return 0; }
 
+	/** Positive only for the current canonical corpse in this materialization. */
+	default long nativeCorpseGeneration(MemberRef member) { return 0; }
+
 	default PhantomLearnedEscape.Attempt startLearnedRecall(PartySnapshot party, Map<MemberRef, Long> epochs, BooleanSupplier current)
 	{
 		return null;

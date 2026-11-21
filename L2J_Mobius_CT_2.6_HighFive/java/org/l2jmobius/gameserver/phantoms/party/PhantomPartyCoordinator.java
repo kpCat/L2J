@@ -510,6 +510,78 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return runtime.latestFarmCombat.get() == attempt ? refusal.reason() : "";
 	}
 
+	/** Leave a short interval for the ordinary, exclusive Party resurrection owner to act on one corpse. */
+	boolean holdFarmCorpseRecovery(PhantomLogicalParty group, PartySnapshot party, Map<MemberRef, Long> corpses)
+	{
+		final var stored = _claims.get(party.leader().profileId());
+		if (_state != State.RUNNING || group.phase() != PhantomLogicalParty.Phase.NATIVE_ACTIVE || !committedClaim(stored)
+			|| corpses.size() > 1 || party.members().size() != group.members().size())
+		{
+			return false;
+		}
+		final PartyState authority = stored.state();
+		final var runtime = _groups.get(authority.groupId());
+		if (runtime == null || !authority.realMembers().isEmpty() || !party.leader().equals(authority.leader())
+			|| !sameRoster(authority.phantomMembers(), party.members())) { return false; }
+		final var earlier = runtime.farmResurrection.get();
+		if (corpses.isEmpty())
+		{
+			// Unavailable observation and a replacement epoch cannot renew an old corpse window.
+			if (earlier != null && _backend.memberSnapshot(earlier.corpse()).filter(snapshot -> !snapshot.dead()).isPresent()
+				&& earlier.epochs().get(earlier.corpse()) == _backend.materializationEpoch(earlier.corpse()))
+			{
+				runtime.farmResurrection.compareAndSet(earlier, null);
+			}
+			return false;
+		}
+		final var binding = logicalFarmBinding(authority);
+		if (binding == null || !binding.groupId().equals(group.groupId()) || binding.generation() != group.generation()) { return false; }
+		refreshFarmIntent(runtime, authority);
+		if (!currentFarmIntent(authority)) { return false; }
+
+		final var entry = corpses.entrySet().iterator().next();
+		final var corpse = entry.getKey();
+		final long now = _clock.getAsLong();
+		final long corpseGeneration = _backend.nativeCorpseGeneration(corpse);
+		if (corpseGeneration <= 0) { return false; }
+		final var epochs = new HashMap<MemberRef, Long>();
+		for (var member : party.members())
+		{
+			final long epoch = _backend.materializationEpoch(member);
+			if (epoch <= 0) { return false; }
+			epochs.put(member, epoch);
+		}
+		if (!entry.getValue().equals(epochs.get(corpse)) || earlier != null && (now >= earlier.deadline()
+			|| !earlier.binding().equals(binding) || earlier.partyGeneration() != authority.groupGeneration()
+			|| !earlier.corpse().equals(corpse) || earlier.corpseGeneration() != corpseGeneration || !earlier.epochs().equals(epochs))) { return false; }
+
+		final var observed = snapshots(party.members());
+		final var target = observed.get(corpse);
+		if (target == null || !target.dead() || observed.size() != epochs.size()
+			|| observed.values().stream().filter(MemberSnapshot::dead).count() != 1) { return false; }
+		final boolean resurrection = observed.values().stream().filter(member -> !member.dead() && member.instanceId() == target.instanceId())
+			.anyMatch(caster -> hasCorpseResurrection(authority, caster.ref(), corpse, now));
+		if (!resurrection || _backend.nativeCorpseGeneration(corpse) != corpseGeneration
+			|| epochs.entrySet().stream().anyMatch(epoch -> _backend.materializationEpoch(epoch.getKey()) != epoch.getValue())) { return false; }
+		if (earlier != null) { return runtime.farmResurrection.get() == earlier; }
+		return runtime.farmResurrection.compareAndSet(null, new FarmResurrectionWindow(binding, authority.groupGeneration(),
+			corpse, corpseGeneration, Map.copyOf(epochs), deadline()));
+	}
+
+	private boolean hasCorpseResurrection(PartyState authority, MemberRef caster, MemberRef corpse, long now)
+	{
+		final var lease = _tacticalActions.get(caster.profileId());
+		if (lease != null && lease.kind() == PhantomCombatService.ExternalActionKind.PARTY_SUPPORT
+			&& lease.operationKey().equals(tacticalScope(authority) + "resurrect_member." + caster.profileId()) && !lease.expired(now))
+		{
+			final var actor = lease.actorSnapshot();
+			if (actor != null && actor.currentTargetObjectId() == corpse.characterObjectId() && (actor.casting() || "CAST".equals(actor.intention()))) { return true; }
+		}
+		return _tactics.combatOwner() != null && _backend.capabilities(caster, corpse.characterObjectId()).stream()
+			.anyMatch(skill -> skill.capabilityKey().equals("combat.resurrection") && skill.intrinsic() && skill.learned() && skill.readyNow()
+				&& skill.actionSkillId() > 0 && skill.actionSkillLevel() > 0 && Set.of("SINGLE_TARGET", "ALLY").contains(skill.targetScope()));
+	}
+
 	/** A completed stock rendezvous identifies the native epoch that still owes STORE. */
 	public boolean awaitsFarmStore(long profileId, PhantomLogicalParty group, PhantomGoal root, long now)
 	{
@@ -4904,6 +4976,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private record FarmThreatRefusal(FarmSourceKey key, FarmBinding binding, Map<Long, Long> epochs, String reason) { }
 	private record NativePartyView(long groupGeneration, String manifest, PartySnapshot party, Map<Long, Long> epochs, long sampledNanos, long expiresNanos) { }
 
+	private record FarmResurrectionWindow(FarmBinding binding, long partyGeneration, MemberRef corpse, long corpseGeneration, Map<MemberRef, Long> epochs, long deadline) { }
+
 	private static final class FarmCombatAttempt
 	{
 		private final long sequence;
@@ -4916,6 +4990,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private final String _groupId;
 		private volatile FarmSourceView farmSource;
 		private volatile NativePartyView nativeLifetime;
+		private final java.util.concurrent.atomic.AtomicReference<FarmResurrectionWindow> farmResurrection = new java.util.concurrent.atomic.AtomicReference<>();
 		private volatile MemberRef farmPuller;
 		private final java.util.concurrent.atomic.AtomicReference<PhantomPartyTactics.PvpFrame> pvpFrame = new java.util.concurrent.atomic.AtomicReference<>();
 		private final AtomicInteger farmTargetPage = new AtomicInteger();

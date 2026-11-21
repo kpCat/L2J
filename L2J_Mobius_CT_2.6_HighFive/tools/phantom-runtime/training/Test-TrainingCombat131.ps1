@@ -216,4 +216,78 @@ try{
     Assert-Check ($_.Exception.Message -ceq 'TRAINING131_CLOSE_ACK_DISAGREES') 'an exact PAUSED acknowledgement cannot credit completion'
 }
 
+# Exercise the controller's byte protocol in this disposable directory. No receipt is native evidence.
+$body.campaignId='train-01'
+$body.phase='TRAIN'
+$body.quota.maxEpisodes=2
+$trainIds=@(('b'*64),('d'*64))
+$body.scenes=@($trainIds | ForEach-Object {@{id=$_;participantCount=1;deadlineSeconds=5}})
+$body.executionSha=Write-PreflightPin (Join-Path $train 'execution.properties') (@("expectedHead=$sha","opponentSha=$sha",'') -join [char]10)
+$trainManifestSha=Write-PreflightPin $trainManifest ($body|ConvertTo-Json -Depth 8)
+
+function Write-TrainClosure([int]$Index,[int]$Prior,[string]$Parent,[string]$Status,[string]$Episode) {
+    $bootId='{0:00000}' -f $Index
+    $boot=Join-Path $train ('boots\'+$bootId)
+    $null=New-Item -ItemType Directory -Path $boot
+    $nonce=if($Index -eq 1){'e'*32}else{'f'*32}
+    $stamp=$now.AddSeconds($Index)
+    $launchSha=Write-FixtureReceipt 'launch131.properties' "nonce=$nonce"
+    $reservedSha=Write-FixtureReceipt 'reserved.json' @{schema='TRAINING_RESERVED131_V1';sequence=$Index;bootId=$bootId;manifestSha=$trainManifestSha
+        parentSha=$Parent;lastCompleted=$Prior;nonce=$nonce;authoritySha=$sha;launchSha=$launchSha
+        reservedUtc=$stamp.AddSeconds(-5).ToString('o');deadlineUtc=$stamp.AddSeconds(5).ToString('o')}
+    $classpath=@($libraries|ForEach-Object {Join-Path $body.runtimeRoot ('libs\'+$_)})+@(Join-Path $train 'native-classes')
+    $argumentText=('-XX:ActiveProcessorCount=4 -Xms512m -Xmx4g -Djava.util.logging.config.file=log.cfg -Dphantom.learning131.nonce='+$nonce+
+        ' -Dphantom.learning.train=true -cp "'+($classpath -join ';')+'" org.l2jmobius.tests.phantoms.PhantomLearning131Native --train "'+
+        (Join-Path $train 'execution.properties')+'" "'+(Join-Path $boot 'launch131.properties')+'"')
+    $ownerSha=Write-FixtureReceipt 'process.json' @{schema='TRAINING_PROCESS131_V1';pid=131;created=$stamp.ToFileTimeUtc();executable=$executable;javaSha=$body.javaSha
+        arguments=$argumentText;commandLine=('"'+$executable+'" '+$argumentText);controllerPid=132;controllerCreated=$stamp.ToFileTimeUtc()
+        nonce=$nonce;reservationSha=$reservedSha}
+    $storePath=Join-Path $boot 'train-store131.tsv'
+    $storeSha=Write-FixtureReceipt 'train-store131.tsv' 'controller contract store bytes'
+    $episodeSha=Write-PreflightPin (Join-Path $boot ('episodes\'+$Episode+'\seal131.tsv')) 'controller contract episode bytes'
+    $control=if($Status -ceq 'PAUSED'){'pause'}else{'none'}
+    if($control -ceq 'pause'){$null=Write-FixtureReceipt 'pause131.request' ($nonce+[char]10)}
+    $sealStatus=if($Status -ceq 'COMPLETED'){'DRAINED'}else{$Status}
+    $metadata=[ordered]@{schema='NATIVE_TRAIN_BOOT131_V1';phase='TRAIN';status=$sealStatus;bootId=$bootId;nonce=$nonce;pid='131'
+        processStarted=$stamp.ToString('o');manifestSha=$trainManifestSha;sourceCommit=$body.sourceCommit;jarSha=$body.gameJarSha
+        expectedHead=$sha;learnerSha=$body.modelSha;opponentSha=$sha;cycle='1';storeSha=$storeSha}
+    $sealRows=@($metadata.Keys|ForEach-Object { @('meta',$_,$metadata[$_]) -join [char]9 })
+    $sealRows+=@(@('episode',$Episode,$episodeSha) -join [char]9)
+    $sealSha=Write-FixtureReceipt 'complete131.tsv' (($sealRows -join [char]10)+[char]10)
+    $completed=$Prior+1
+    $ackSha=Write-FixtureReceipt 'drain131.properties' ((@('schema=NATIVE_DRAIN131_V1',"nonce=$nonce","manifestSha=$trainManifestSha","bootId=$bootId",
+        'pid=131',('startedUtc='+$stamp.ToString('o')),"status=$Status","completed=$completed","sealSha=$sealSha") -join [char]10)+[char]10)
+    $closeSha=Write-FixtureReceipt 'closed.json' @{schema='TRAINING_CLOSED131_V1';reservationSha=$reservedSha;status=$Status;completed=$completed
+        nativeMillis=1;exitCode=0;ownerSha=$ownerSha;ackSha=$ackSha;sealSha=$sealSha;control=$control;masterSha=$sha;reason='NATIVE_DRAIN_ACK_VERIFIED'}
+    return @{Close=$closeSha;Store=$storePath}
+}
+
+$paused=Write-TrainClosure 1 0 $trainManifestSha 'PAUSED' $trainIds[0]
+$report=& $scriptPath -Action Report -Manifest $trainManifest | ConvertFrom-Json
+Assert-Check ($report.status -ceq 'PAUSED' -and $report.resumable -and $report.completed -eq 1 -and $report.remaining -eq 1) 'sealed prefix is resumable'
+[IO.File]::WriteAllText($paused.Store,'modified checkpoint',$encoding)
+try{
+    $null=& $scriptPath -Action Report -Manifest $trainManifest
+    throw 'UNEXPECTED_STORE_DRIFT_SUCCESS'
+}catch{Assert-Check ($_.Exception.Message -ceq 'TRAINING131_PIN_DRIFT') 'changed checkpoint bytes are refused'}
+[IO.File]::WriteAllText($paused.Store,'controller contract store bytes',$encoding)
+$null=Write-TrainClosure 2 1 $paused.Close 'COMPLETED' $trainIds[1]
+$report=& $scriptPath -Action Report -Manifest $trainManifest | ConvertFrom-Json
+Assert-Check ($report.status -ceq 'COMPLETED' -and !$report.resumable -and $report.completed -eq 2 -and $report.boots -eq 2) 'new boot closes only its remaining scene'
+
+$lastBoot=Join-Path $train 'boots\00002'
+$lastClose=Join-Path $lastBoot 'closed.json'
+$terminal=Get-Content -Raw -LiteralPath $lastClose | ConvertFrom-Json
+$null=Write-PreflightPin (Join-Path $lastBoot 'stop131.request') (('f'*32)+[char]10)
+$terminal.control='stop'
+$null=Write-PreflightPin $lastClose ($terminal | ConvertTo-Json -Depth 4)
+try{
+    $null=& $scriptPath -Action Report -Manifest $trainManifest
+    throw 'UNEXPECTED_COMPLETED_WITH_STOP_SUCCESS'
+}catch{Assert-Check ($_.Exception.Message -ceq 'TRAINING131_CLOSE_ACK_DISAGREES') 'completed label cannot override accepted stop'}
+$terminal.status='STOPPED'
+$null=Write-PreflightPin $lastClose ($terminal | ConvertTo-Json -Depth 4)
+$report=& $scriptPath -Action Report -Manifest $trainManifest | ConvertFrom-Json
+Assert-Check ($report.status -ceq 'STOPPED' -and !$report.resumable -and $report.completed -eq 2) 'stop preserves settled credit and closes the branch'
+
 Write-Output "TRAINING131_CONTROL_CHECKS_PASS GS=0 LS=0 SQL=0 artifacts=$sandbox"

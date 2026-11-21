@@ -244,7 +244,22 @@ public final class PhantomSystem
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
 	private java.util.function.BiPredicate<Player, org.l2jmobius.gameserver.model.actor.Creature> _testFarmTargetScope = (actor, target) -> true;
 	private TestLearning131 _testLearning131;
-	record TestLearning131(LearningPolicy damage, TacticalPolicyV3 support, PhantomVisibleAutoPlay.SoloOffense soloOffense) { }
+	record TestLearning131(LearningPolicy damage, TacticalPolicyV3 support, PhantomVisibleAutoPlay.SoloOffense soloOffense, java.util.Set<Long> admittedProfiles)
+	{
+		TestLearning131
+		{
+			admittedProfiles = java.util.Set.copyOf(admittedProfiles);
+			if (admittedProfiles.isEmpty() || admittedProfiles.size() > 18 || admittedProfiles.stream().anyMatch(profile -> profile <= 0))
+			{
+				throw new IllegalArgumentException("TASK131 requires an exact nonempty TEST roster");
+			}
+		}
+	}
+
+	private boolean testRosterAllows(long profileId)
+	{
+		return _testLearning131 == null || _testLearning131.admittedProfiles().contains(profileId);
+	}
 	private StartupPartyRecovery _startupPartyRecovery;
 	public record StartupPartyRecovery(java.util.Set<Long> profiles, java.util.concurrent.CompletableFuture<Void> completion)
 	{
@@ -753,7 +768,10 @@ public final class PhantomSystem
 					final long soft = capacity.materializations().stream().filter(entry -> entry.worldPresent() && (_materializationRetention != null) && _materializationRetention.observe(entry.profileId()).reclaimable()).count();
 					return Math.min(8, capacity.availablePermits() + Math.toIntExact(soft));
 				});
-				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology, this::hasAcceptedNativeJourney, profileId -> _populationManager.admissionProfile(profileId).map(profile -> profile.admitted()).orElse(false), this::currentBackgroundMaterializationDemand);
+				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology,
+					profileId -> testRosterAllows(profileId) && hasAcceptedNativeJourney(profileId),
+					profileId -> testRosterAllows(profileId) && _populationManager.admissionProfile(profileId).map(profile -> profile.admitted()).orElse(false),
+					profileId -> testRosterAllows(profileId) && currentBackgroundMaterializationDemand(profileId));
 				_reconcileMaterializationActivity.installPhysicalDemand(this::currentPhysicalDemand);
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
 				_offscreenObservers = new PhantomOffscreenObserverAdmission(_materializationRetention, System::nanoTime);
@@ -1208,6 +1226,7 @@ public final class PhantomSystem
 				}
 				productionWorkSink.install(item ->
 				{
+					if (!testRosterAllows(item.profileId())) { return; }
 					_executionControl.watch(item.profileId());
 					// Party-to-Solo execution transfer does not mean the former native member was stored.
 					if (awaitingLogicalPartyStore(item.profileId())) { return; }

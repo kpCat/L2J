@@ -252,14 +252,16 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			return;
 		}
 		if (group.activityReplanRequired()) { return; }
-		// The first restored member can die before a stock Party exists. Drain that admission
-		// before waking or inviting more members and ignore observations from a closed epoch.
-		if (materialized.stream().anyMatch(actor ->
+		// The first restored member can die before a stock Party exists. Observe only an exact epoch.
+		final var corpses = new java.util.LinkedHashMap<MemberRef, Long>();
+		for (var actor : materialized)
 		{
 			final long epoch = _backend.materializationEpoch(actor);
-			return epoch > 0 && _backend.memberSnapshot(actor).map(MemberSnapshot::dead).orElse(false)
-				&& _backend.materializationEpoch(actor) == epoch;
-		}))
+			if (epoch > 0 && _backend.memberSnapshot(actor).map(MemberSnapshot::dead).orElse(false)
+				&& _backend.materializationEpoch(actor) == epoch) { corpses.put(actor, epoch); }
+		}
+		if (nativeParty != null && _coordinator.holdFarmCorpseRecovery(group, nativeParty, corpses)) { return; }
+		if (!corpses.isEmpty())
 		{
 			_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "REPLAN_NATIVE_MEMBER_DEAD");
 			return;

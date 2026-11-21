@@ -2071,9 +2071,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
-			if (cleanse || partyDefenseSupport)
+			if (cleanse || partyDefenseSupport || resurrection && target.hasHeadlessOutboundSession()
+				&& action.audience() == PhantomPartySupportAction.Audience.PARTY && skill.getTargetType() == TargetType.PC_BODY)
 			{
-				return castScopedPartySupport(action, target, skill, authority, cleanse);
+				return castScopedPartySupport(action, target, skill, authority, cleanse, resurrection);
 			}
 			final SkillUseHolder current = _player.getCurrentSkill();
 			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.CAST) && (_player.getAI().getCastTarget() == target) && (current != null) && (current.getSkillId() == action.skill().skillId()) && (current.getSkillLevel() == action.skill().skillLevel()))
@@ -2088,7 +2089,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				() -> _player.useMagic(skill, false, action.stationary())) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
 		}
 
-		private ActionOutcome castScopedPartySupport(PhantomPartySupportAction action, Player target, Skill skill, java.util.function.BooleanSupplier authority, boolean cleanse)
+		private ActionOutcome castScopedPartySupport(PhantomPartySupportAction action, Player target, Skill skill, java.util.function.BooleanSupplier authority,
+			boolean cleanse, boolean resurrection)
 		{
 			final var party = _player.getParty();
 			final java.util.function.BooleanSupplier current = () -> authority.getAsBoolean() && executionValid() && _player.getParty() == party
@@ -2104,6 +2106,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.UNAVAILABLE;
 			}
 			_player.setTarget(target);
+			if (resurrection)
+			{
+				return PhantomAreaControl131.castSingleResurrection(_player, skill, target, current) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
+			}
 			final java.util.function.BooleanSupplier cast = () -> PhantomAreaControl131.castSingleSupport(_player, skill, target, current,
 				recipient -> recipient == target && (!cleanse || PhantomSupportEffectAuthority.cleanseUrgency(_player, target, skill) > 0));
 			final boolean issued = cleanse ? cast.getAsBoolean()

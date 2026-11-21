@@ -41,6 +41,7 @@ public final class PhantomAreaControl131Checks
 		final var pinnedSpawn = new PlayerNativeEvidence.Target(101, 0, 3);
 		require(PhantomAreaControl131.sameMonsterSpawn(pinnedSpawn, new PlayerNativeEvidence.Target(101, 0, 3)), "same native spawn generation");
 		require(!PhantomAreaControl131.sameMonsterSpawn(pinnedSpawn, new PlayerNativeEvidence.Target(101, 0, 4)), "stock NPC object reuse must not authorize a respawn");
+		require(!PhantomAreaControl131.permitsResurrectionAnswer(null, null), "a request outside an exact scoped effect must not receive an automatic answer");
 		System.out.println("TASK131_D3_EXACT_NATIVE_CAST_RECIPIENTS_PASS");
 		if (args.length == 1 && "--stock".equals(args[0])) { stockSkillShapes(); }
 	}
@@ -73,6 +74,10 @@ public final class PhantomAreaControl131Checks
 			CancelReturnConfig.CANCEL_RETURN_ON = previous;
 		}
 		System.out.println("TASK131_STOCK_EXACT_CLEANSE_SHAPES_PASS");
+		require(PhantomAreaControl131.supportsSingleResurrection(catalog.getSkill(1016, 1)), "stock learned Resurrection is an exact PC_BODY action");
+		require(!PhantomAreaControl131.supportsSingleResurrection(catalog.getSkill(1254, 1)), "Mass Resurrection cannot use the exact single-corpse answer");
+		require(!PhantomAreaControl131.supportsSingleResurrection(cleanse), "an unrelated friendly skill cannot answer a resurrection proposal");
+		System.out.println("TASK131_STOCK_SINGLE_CORPSE_SHAPE_PASS");
 	}
 
 	private static void require(boolean condition, String message)
