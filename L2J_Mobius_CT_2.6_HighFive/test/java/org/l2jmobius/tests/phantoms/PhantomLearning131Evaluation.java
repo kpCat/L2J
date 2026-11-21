@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditOriginals.Fact;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.BlockPlan;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Episode;
@@ -311,7 +312,8 @@ public final class PhantomLearning131Evaluation
 				final boolean retry = ordered.size() == 8 && index < 4;
 				require(occurrence.attempt() == index / 4 && occurrence.position() == index % 4, "EPISODE_ORDER_OR_DUPLICATE_SLOT");
 				final Path directory = originals.resolve("episodes").resolve(occurrence.id());
-				final Document seal = document(directory.resolve("complete131.tsv"), "NATIVE_EPISODE131_V1", "schema", "bindingSha", "eventsSha", "status", "elapsedNanos");
+				final Document seal = document(directory.resolve("complete131.tsv"), "NATIVE_EPISODE131_V2", "schema", "bindingSha", "eventsSha",
+					"paidOriginalsSha", "status", "elapsedNanos");
 				require(seal.sha().equals(occurrence.sealSha()), "EPISODE_SEAL_PIN");
 				final Binding binding = bind(directory, manifest, occurrence, seal);
 				require(occurrence.bootOrder() >= previousBoot && (occurrence.bootOrder() != previousBoot || binding.started() >= previousEnd), "EXECUTED_BLOCK_ORDER");
@@ -319,9 +321,13 @@ public final class PhantomLearning131Evaluation
 				previousEnd = binding.started();
 				final Document evidence = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
 				require(evidence.sha().equals(seal.get("eventsSha")) && evidence.get("episodeId").equals(occurrence.id()) && evidence.get("bindingSha").equals(binding.document().sha()), "RAW_EVENTS_PIN");
+				final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V1", "schema", "episodeId", "bindingSha");
+				require(paid.sha().equals(seal.get("paidOriginalsSha")) && paid.get("episodeId").equals(occurrence.id())
+					&& paid.get("bindingSha").equals(binding.document().sha()), "PAID_ORIGINALS_PIN");
 				if (retry)
 				{
-					require(seal.get("status").equals("PRE_ACTION_INFRA_RETRY") && seal.get("elapsedNanos").equals("0") && evidence.rows().isEmpty(), "RETRY_AFTER_ACTIVITY");
+					require(seal.get("status").equals("PRE_ACTION_INFRA_RETRY") && seal.get("elapsedNanos").equals("0")
+						&& evidence.rows().isEmpty() && paid.rows().isEmpty(), "RETRY_AFTER_ACTIVITY");
 					continue;
 				}
 				require(seal.get("status").equals("DRAINED"), "DRAINED_NATIVE_EPISODE");
@@ -332,6 +338,11 @@ public final class PhantomLearning131Evaluation
 				}
 				final long elapsed = positive(seal.get("elapsedNanos"));
 				previousEnd = Math.addExact(binding.started(), elapsed);
+				final var epochs = new HashMap<Integer, Long>();
+				binding.participants().forEach((object, member) -> epochs.put(object, member.epoch()));
+				final boolean pvp = plan.stratum() == Stratum.DUEL_PVP || plan.stratum() == Stratum.GROUP_PVP;
+				verifyPaidProjection(evidence.rows(), PhantomLearning131AuditOriginals.decode(paid.rows(), occurrence.id()), epochs,
+					binding.started(), previousEnd, pvp);
 				final var raw = new Raw(binding, occurrence.block(), audit.prices());
 				for (String[] event : evidence.rows())
 				{
@@ -341,6 +352,61 @@ public final class PhantomLearning131Evaluation
 			}
 		}
 		return report(audit, origins.sha(), plans, rows);
+	}
+
+	/** Reconstruct the scored damage and deaths from separately sealed paid originals. */
+	static void verifyPaidProjection(List<String[]> events, Map<String, Fact> originals, Map<Integer, Long> roster,
+		long cut, long end, boolean pvp)
+	{
+		final var executions = new HashMap<String, String[]>();
+		final var deaths = new HashMap<String, Fact>();
+		final var usedDamage = new HashSet<String>();
+		final var recipients = new HashSet<Subject>();
+		for (var fact : originals.values())
+		{
+			require(roster.getOrDefault(fact.actor(), 0L) == fact.actorEpoch() && roster.getOrDefault(fact.target(), 0L) == fact.targetEpoch(),
+				"PAID_PARTICIPANT_EPOCH");
+			require(fact.pvp() == pvp && fact.capturedNanos() >= cut && fact.lastNativeWriteNanos() <= end
+				&& fact.lethalNanos() <= end, "PAID_ORIGIN_OR_NATIVE_WINDOW");
+			if (fact.lethalNanos() > 0) { require(deaths.putIfAbsent(fact.lethalKey(), fact) == null, "DUPLICATE_LETHAL_ORIGINAL"); }
+		}
+		for (String[] event : events)
+		{
+			require(event.length >= 7 && "event".equals(event[0]), "PAID_EVENT_SHAPE");
+			switch (event[3])
+			{
+				case "EXECUTED" ->
+				{
+					length(event, 8);
+					require(executions.putIfAbsent(event[6], event) == null, "DUPLICATE_PAID_EXECUTION");
+				}
+				case "DAMAGE" ->
+				{
+					length(event, 9);
+					final var fact = originals.get(event[1]);
+					final var execution = executions.get(event[6]);
+					require(fact != null && execution != null && samePaidEndpoints(event, fact)
+						&& positive(event[2]) == fact.atNanos() && decimal(event[7], true).compareTo(fact.hp()) == 0
+						&& decimal(event[8], true).compareTo(fact.cp()) == 0, "DAMAGE_WITHOUT_MATCHING_PAID_ORIGINAL");
+					require(samePaidEndpoints(execution, fact) && execution[7].equals("skill-" + fact.skillId() + "-" + fact.skillLevel())
+						&& positive(execution[2]) <= fact.atNanos(), "PAID_EXECUTED_SKILL_OR_TARGET");
+					require(usedDamage.add(fact.eventKey()) && recipients.add(new Subject(fact.operationId(), fact.target())), "DUPLICATE_PAID_DAMAGE");
+				}
+				case "DEATH" ->
+				{
+					length(event, 7);
+					final var lethal = deaths.remove(event[1]);
+					require(lethal != null && samePaidEndpoints(event, lethal) && usedDamage.contains(lethal.eventKey())
+						&& positive(event[2]) == lethal.lethalNanos(), "DEATH_WITHOUT_MATCHING_PAID_ORIGINAL");
+				}
+			}
+		}
+		require(usedDamage.size() == originals.size() && deaths.isEmpty(), "INCOMPLETE_PAID_PROJECTION");
+	}
+
+	private static boolean samePaidEndpoints(String[] event, Fact fact)
+	{
+		return event[6].equals(fact.operationId()) && object(event[4]) == fact.actor() && object(event[5]) == fact.target();
 	}
 
 	private static Binding bind(Path directory, Document manifest, Occurrence occurrence, Document seal) throws IOException
@@ -534,8 +600,8 @@ public final class PhantomLearning131Evaluation
 					length(row, 9);
 					final BigDecimal hp = decimal(row[7], true);
 					final BigDecimal cp = decimal(row[8], true);
-					require(friendly != friendlyTarget && hp.signum() + cp.signum() > 0, "DAMAGE_EFFECT");
-					_damageEvents.add(new Subject(operation, target));
+					require(friendly != friendlyTarget && target == action.target() && hp.signum() + cp.signum() > 0
+						&& _damageEvents.add(new Subject(operation, target)), "DAMAGE_EFFECT");
 					if (friendly) { _damageHp = _damageHp.add(hp); _damageCp = _damageCp.add(cp); }
 					else { _receivedHp = _receivedHp.add(hp); _receivedCp = _receivedCp.add(cp); _opponentEffects++; }
 					return friendly && role == Role.DAMAGE;

@@ -1881,9 +1881,13 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 
 		private boolean exactPvpLearningSkill(Skill skill, Player target)
 		{
+			final int castRange = _player.getMagicalAttackRange(skill);
+			final int collisionRange = castRange + _player.getTemplate().getCollisionRadius() + target.getTemplate().getCollisionRadius();
 			return skill.isDamage() && skill.getAffectRange() == 0 && !skill.isChanneling() && !skill.isSimultaneousCast() && skill.getFlyType() == null
-				&& !skill.hasCastPreconditions() && distance(_player, target) <= Math.max(40, _player.getMagicalAttackRange(skill))
-				&& _player.getStat().getMpInitialConsume(skill) + _player.getStat().getMpConsume(skill) > 0;
+				&& skill.getHpConsume() == 0 && skill.getItemConsumeCount() == 0 && skill.getChargeConsumeCount() == 0 && skill.getMaxSoulConsumeCount() == 0
+				&& _player.getInstanceId() == target.getInstanceId() && castRange >= 0 && _player.isInsideRadius2D(target, collisionRange)
+				&& _player.getStat().getMpInitialConsume(skill) + _player.getStat().getMpConsume(skill) > 0
+				&& nativePvpSkillReady(_player, target, skill) && _player.checkDoCastConditions(skill);
 		}
 
 		@Override

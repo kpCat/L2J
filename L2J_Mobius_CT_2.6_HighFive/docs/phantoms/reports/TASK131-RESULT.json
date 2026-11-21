@@ -52,8 +52,8 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v12-reviewed.log",
-    "finalContractLog": "focused-v12-final.log",
+    "aggregateLog": "ant-combat-v13-reviewed.log",
+    "finalContractLog": "v13-PhantomLearning131EvaluationChecks.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -63,14 +63,13 @@
     "regressionTestsPassed": 171,
     "contractGroupsPassed": 17,
     "jarExitCode": 0,
-    "jarSha256": "db3f311bcb694cc951d6a7a04043a8752f5f0908316a07523bc68dafbfbac8f8",
-    "loginJarSha256": "c6922728d2d5e386e6b2e4e7d90fbb5030cb4f57bd77f4af743219e1b7a553cd",
-    "jarLog": "jar-v11-reviewed.log",
-    "jarReuse": "V11_JARS_REVERIFIED_PRODUCTION_SOURCES_UNCHANGED",
+    "jarSha256": "104bc0dab7d7d0d71e905d1bf536db63c263448022a11b0ae3a7dc3f9f85a3e6",
+    "loginJarSha256": "dc040fdf2dbadf4e4155f2315df9d483d31ee3155b5ef7740240f2b58870642d",
+    "jarLog": "jar-v13-reviewed.log",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
-    "auditScheduleLog": "v11-PhantomLearning131EvaluationChecks.log",
+    "auditScheduleLog": "v13-PhantomLearning131EvaluationChecks.log",
     "managedSweepRegressionLog": "v10-native-evidence-continuation022.log",
     "supplyChecksLog": "v9-PhantomSupply074Checks.log",
     "supplyRegressionLog": "v9-supply071.log",
@@ -80,12 +79,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v11.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v12.json",
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v12.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v13.json",
     "exactPathCount": 8
   },
   "testReadiness": {
-    "iterationParent": "381d48806f5c6a0bc8e177fda9913ec2d53cf9bf",
+    "iterationParent": "73f91d35da6779596c52e921a9c442f535da1ba6",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -159,8 +158,8 @@
       "nativeLaunch": "NOT_RUN",
       "trainAdapter": "SOLO_PVE_SOURCES_AND_DB_FREE_CONTRACTS",
       "tuningAdapter": "SOLO_FROZEN_MODEL_SOURCES_AND_DB_FREE_REPLAY_NATIVE_NOT_RUN",
-      "auditAdapter": "FROZEN_SCHEDULE_PVE_PVP_DAMAGE_AND_LINKED_DUEL_DEATH_FRAGMENTS_RUNNER_PENDING",
-      "pvpDamageLearning": "SCOPED_READY_NATIVE_CAST_AND_HP_CP_MP_RECEIPTS_SOURCE_ONLY",
+      "auditAdapter": "FROZEN_SCHEDULE_PAID_ORIGINALS_NATIVE_EPISODE131_V2_RUNNER_PENDING",
+      "pvpDamageLearning": "SCOPED_NATIVE_CAST_CONDITION_AND_COLLISION_RANGE_WITH_TYPED_HP_CP_MP_NATIVE_NOT_RUN",
       "resumeAfterNativeClaim": "OFFLINE_PREFIX_AND_STORE_CONTRACT_PASS_NATIVE_NOT_RUN",
       "fitIngress": "OFFLINE_NEGATIVE_CONTROLS_PASS",
       "nativeFit": "NOT_RUN",
@@ -197,14 +196,14 @@
       "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
       "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "off-and-protected-v12.json",
+    "g0OffReceipt": "off-and-protected-v13.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v12.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v13.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -354,8 +353,8 @@
     "D5": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "ant-combat-v10-reviewed.log,v10-PhantomLearning131FitChecks.log",
-      "reason": "Офлайн проверены frozen replay и раздельные PvP HP CP MP, реальные TRAIN TUNING AUDIT открыты"
+      "evidence": "ant-combat-v13-reviewed.log,v10-PhantomLearning131FitChecks.log",
+      "reason": "Офлайн проверены frozen replay и раздельные PvP HP CP MP, допуск физических навыков использует native условия, живые фазы открыты"
     },
     "D6": {
       "phase": "P4",
@@ -372,8 +371,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v11-PhantomLearning131EvaluationChecks.log",
-      "reason": "Офлайн проверены расписание, привязка DAMAGE и отрицательные контроли связи смерти с оплатой, native AUDIT открыт"
+      "evidence": "v13-PhantomLearning131EvaluationChecks.log",
+      "reason": "Офлайн проверены расписание и сверка DAMAGE и DEATH с оплаченными оригиналами, живые AUDIT и источники остальных эффектов открыты"
     },
     "D9": {
       "phase": "P3–P5",

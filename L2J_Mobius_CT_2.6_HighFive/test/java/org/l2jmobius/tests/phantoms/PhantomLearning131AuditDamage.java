@@ -3,7 +3,6 @@ package org.l2jmobius.tests.phantoms;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -57,7 +56,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	record DuelDamageTotals(int paidDealt, int paidReceived, BigDecimal hpDealt, BigDecimal cpDealt, BigDecimal hpReceived, BigDecimal cpReceived) { }
 	/** Captured paid damage totals, stock deaths and any death rows with exact action attribution. */
 	record DuelEvidence(List<PaidPvpDamage> paidDamage, DuelDamageTotals damageTotals, List<DuelDeath> nativeDeaths,
-		Optional<Outcome> nativeDeathOutcome, boolean allDeathsLinked, List<String> eventRows) { }
+		Optional<Outcome> nativeDeathOutcome, boolean allDeathsLinked, List<String> eventRows, List<String> originalRows) { }
 	private record DuelEvent(long observedNanos, String row) { }
 
 	static long joinedDeathNanos(DuelDeath stock, DuelDeath paid, long damageNanos)
@@ -86,6 +85,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		String bindingSha() { return _bindingSha; }
 		PvpReceipt original() { return _original; }
 		String operationId() { return PhantomLearning131AuditDamage.operationId(_episodeId, _original.owner()); }
+		String originalRow() { return PhantomLearning131AuditOriginals.pvpRow(_original); }
 
 		long damageNanos() { return Math.max(lastWrite(_original.hp()), lastWrite(_original.cp())); }
 
@@ -99,11 +99,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 
 		private static String poolDamage(PvpPoolWrite write)
 		{
-			if (write == null) { return "0"; }
-			final var value = BigDecimal.valueOf(write.delta()).setScale(9, RoundingMode.HALF_EVEN).stripTrailingZeros();
-			final String decimal = value.toPlainString();
-			require(value.signum() > 0 && decimal.matches("[0-9]{1,18}(\\.[0-9]{1,9})?"), "PVP_POOL_OUTSIDE_WIRE_PRECISION");
-			return decimal;
+			return write == null ? "0" : PhantomLearning131AuditOriginals.wireDamage(write.delta()).toPlainString();
 		}
 
 		private static long lastWrite(PvpPoolWrite write) { return write == null ? 0 : write.lastWrite(); }
@@ -291,23 +287,26 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			final var deaths = _stockDeaths.values().stream().sorted(Comparator.comparingLong(DuelDeath::observedNanos)
 				.thenComparingInt(DuelDeath::victim)).toList();
 			final var events = new ArrayList<DuelEvent>();
+			final var originalRows = new ArrayList<String>();
 			int linkedDeaths = 0;
 			for (var original : paid)
 			{
 				require(original.damageNanos() <= settled && original.original().mpLastWrite() <= settled, "NATIVE_WRITE_OUTSIDE_DUEL_WINDOW");
 				events.add(new DuelEvent(original.damageNanos(), original.eventRow()));
+				originalRows.add(original.originalRow());
 				if (original.original().lethal())
 				{
 					final int victim = original.original().attempt().selected().targetObjectId();
 					final DuelDeath stock = _stockDeaths.get(victim);
 					if (stock != null)
 					{
-						final long stamp = joinedDeathNanos(stock, _paidDeaths.get(victim), original.damageNanos());
+						final DuelDeath paidDeath = _paidDeaths.get(victim);
+						final long stamp = joinedDeathNanos(stock, paidDeath, original.damageNanos());
 						require(stamp <= settled, "NATIVE_WRITE_OUTSIDE_DUEL_WINDOW");
-						final String eventKey = TacticalObservationV3.hash(("TASK131_AUDIT_NATIVE_DEATH_V1\n" + original.original().eventKey()
-							+ "\n" + stock.corpseGeneration()).getBytes(StandardCharsets.UTF_8));
+						final String eventKey = PhantomLearning131AuditOriginals.deathKey(original.original().eventKey(), stock.corpseGeneration());
 						events.add(new DuelEvent(stamp, String.join("\t", "event", eventKey, Long.toString(stamp), "DEATH",
 							Integer.toString(stock.killer()), Integer.toString(stock.victim()), original.operationId())));
+						originalRows.add(PhantomLearning131AuditOriginals.deathRow(original.original().eventKey(), stock, paidDeath));
 						linkedDeaths++;
 					}
 				}
@@ -320,7 +319,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			final Optional<Outcome> outcome = deaths.isEmpty() ? Optional.empty()
 				: Optional.of(deaths.size() == 2 ? Outcome.DRAW : _stockDeaths.containsKey(scoredId) ? Outcome.LOSS : Outcome.WIN);
 			return new DuelEvidence(paid, totals, deaths, outcome, linkedDeaths == deaths.size() && linkedDeaths == _paidDeaths.size(),
-				events.stream().sorted(Comparator.comparingLong(DuelEvent::observedNanos)).map(DuelEvent::row).toList());
+				events.stream().sorted(Comparator.comparingLong(DuelEvent::observedNanos)).map(DuelEvent::row).toList(), List.copyOf(originalRows));
 		}
 
 		private static BigDecimal total(List<PaidPvpDamage> damage, Function<PvpReceipt, PvpPoolWrite> pool)
@@ -359,14 +358,14 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		String bindingSha() { return _bindingSha; }
 		TimedAction original() { return _original; }
 		String operationId() { return PhantomLearning131AuditDamage.operationId(_episodeId, _original.row().receipt().owner()); }
+		String originalRow() { return PhantomLearning131AuditOriginals.pveRow(_original); }
 
 		/** A fragment only. A complete AUDIT needs separately observed decision, admission and execution rows. */
 		String eventRow()
 		{
 			final var receipt = _original.row().receipt();
 			final var action = receipt.attempt().selected();
-			final String hp = BigDecimal.valueOf(receipt.actualHp()).stripTrailingZeros().toPlainString();
-			require(hp.matches("[0-9]{1,18}(\\.[0-9]{1,9})?"), "HP_OUTSIDE_WIRE_PRECISION");
+			final String hp = PhantomLearning131AuditOriginals.wireDamage(receipt.actualHp()).toPlainString();
 			// The native target in this slice is a Monster. CP damage is inapplicable.
 			return String.join("\t", "event", receipt.eventKey(), Long.toString(_original.hpFinishedNanos()), "DAMAGE",
 				Integer.toString(action.actorObjectId()), Integer.toString(action.targetObjectId()), operationId(), hp, "0");
