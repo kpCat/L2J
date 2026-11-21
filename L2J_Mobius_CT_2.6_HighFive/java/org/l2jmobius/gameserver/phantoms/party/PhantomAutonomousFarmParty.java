@@ -22,6 +22,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ManagedIn
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.ObjectiveMode;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationPhase;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationKind;
@@ -37,6 +38,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	public static final String OBJECTIVE_NAMESPACE = "farm.party";
 	private static final Set<String> DAMAGE = Set.of("combat.melee_damage", "combat.ranged_physical_damage", "combat.ranged_magic_damage");
 	private static final Set<String> SUPPORT = Set.of("combat.heal", "combat.recharge", "combat.buff", "combat.song", "combat.dance");
+	private static final int MINIMUM_SUPPORT_MP_PERCENT = 15;
 	private final PhantomPartyCoordinator _coordinator;
 	private final PhantomPartyBackend _backend;
 	private final PhantomGoalStore _goals;
@@ -484,8 +486,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			final long profileId = leader.ref().profileId();
 			final var logicalGroup = _logical == null ? null : _logical.knownGroupFor(profileId).map(row -> row.group()).orElse(null);
 			if (logicalGroup != null && logicalGroup.phase() == PhantomLogicalParty.Phase.DRAINING) { continue; }
+			final boolean activeLogicalGroup = logicalGroup != null && logicalGroup.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE && !logicalGroup.activityReplanRequired();
 			final PhantomGoal goal = roots.get(profileId);
-			if (goal == null || !nativeParticipant(leader) || leader.dead()) { continue; }
+			if (goal == null || !nativeParticipant(leader) && !(activeLogicalGroup && exhaustedFarmSupport(leader))) { continue; }
 			final var claim = _coordinator.claim(profileId).orElse(null);
 			// Production new formations require the persisted pre-party agreement below.
 			// Existing native groups keep their independent lifecycle even when seeking is disabled.
@@ -512,13 +515,25 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			final var roster = selected.stream().map(_backend::memberSnapshot).flatMap(java.util.Optional::stream).toList();
 			if (roster.size() != selected.size() || roster.size() < 2
 				|| selected.stream().anyMatch(ref -> _goals.load(ref.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root -> ordinaryIntent(ref.profileId(), root)).isEmpty())) { _coordinator.releaseAutonomousFarm(profileId); continue; }
-			// The logical death projection owns recovery and drain for this exact stock roster.
-			if (logicalGroup != null && logicalGroup.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE && !logicalGroup.activityReplanRequired()
-				&& roster.stream().anyMatch(MemberSnapshot::dead) && logicalGroup.members().size() == selected.size()
-				&& selected.stream().allMatch(member -> logicalGroup.contains(member.profileId())) && _coordinator.committed(profileId)
-				&& _backend.observe(leader.ref()).filter(party -> party.leader().equals(leader.ref())
-					&& party.members().size() == selected.size() && party.members().containsAll(selected)).isPresent()) { continue; }
-			if (roster.stream().anyMatch(member -> !nativeParticipant(member))) { _coordinator.releaseAutonomousFarm(profileId); continue; }
+			final var unavailable = roster.stream().filter(member -> !nativeParticipant(member)).toList();
+			if (!unavailable.isEmpty())
+			{
+				if (activeLogicalGroup && logicalGroup.members().size() == selected.size()
+					&& selected.stream().allMatch(member -> logicalGroup.contains(member.profileId())) && _coordinator.committed(profileId)
+					&& _backend.observe(leader.ref()).filter(party -> party.leader().equals(leader.ref())
+						&& party.members().size() == selected.size() && party.members().containsAll(selected)).isPresent())
+				{
+					// The logical death projection owns resurrection and drain for this stock roster.
+					if (unavailable.stream().anyMatch(MemberSnapshot::dead)) { continue; }
+					if (unavailable.stream().allMatch(PhantomAutonomousFarmParty::exhaustedFarmSupport))
+					{
+						waitForFarm(profileId, leader.ref(), goal, now, "WAIT_GROUP_SUPPORT_MP");
+						continue;
+					}
+				}
+				_coordinator.releaseAutonomousFarm(profileId);
+				continue;
+			}
 			if (leader.casting() || leader.attacking()) { continue; }
 			if (_arrival != null)
 			{
@@ -560,7 +575,11 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 
 	private void waitForFarm(long id, MemberRef leader, PhantomGoal root, long nowNanos)
 	{
-		final String detail = _backend.autonomousFarmWaitReason(leader);
+		waitForFarm(id, leader, root, nowNanos, _backend.autonomousFarmWaitReason(leader));
+	}
+
+	private void waitForFarm(long id, MemberRef leader, PhantomGoal root, long nowNanos, String detail)
+	{
 		final String code = detail.split(":", 2)[0].matches("WAIT_[A-Z0-9_]{1,70}") ? detail.split(":", 2)[0] : "WAIT_GROUP_READINESS";
 		final var row = _logical == null ? null : _logical.knownGroupFor(id).orElse(null);
 		final var group = row == null ? null : row.group();
@@ -1073,12 +1092,23 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 
 	public static boolean support(MemberSnapshot member)
 	{
-		return member.mpPercent() >= 15 && member.capabilities().stream().anyMatch(capability -> SUPPORT.contains(capability.capabilityKey()) && capability.intrinsic() && capability.learned() && capability.readyNow() && capability.actionSkillId() > 0 && capability.actionSkillLevel() > 0 && !"SELF".equals(capability.targetScope()));
+		return member.mpPercent() >= MINIMUM_SUPPORT_MP_PERCENT && member.capabilities().stream().anyMatch(capability -> capability.readyNow() && learnedFarmSupport(capability));
 	}
 
 	public static boolean supportPresent(MemberSnapshot member)
 	{
-		return !member.dead() && member.mpPercent() >= 15 && member.capabilities().stream().anyMatch(capability -> SUPPORT.contains(capability.capabilityKey()) && capability.intrinsic() && capability.learned() && capability.actionSkillId() > 0 && capability.actionSkillLevel() > 0 && !"SELF".equals(capability.targetScope()));
+		return !member.dead() && member.mpPercent() >= MINIMUM_SUPPORT_MP_PERCENT && member.capabilities().stream().anyMatch(PhantomAutonomousFarmParty::learnedFarmSupport);
+	}
+
+	private static boolean exhaustedFarmSupport(MemberSnapshot member)
+	{
+		return !member.dead() && member.mpPercent() < MINIMUM_SUPPORT_MP_PERCENT && member.capabilities().stream().anyMatch(PhantomAutonomousFarmParty::learnedFarmSupport);
+	}
+
+	private static boolean learnedFarmSupport(MemberCapability capability)
+	{
+		return SUPPORT.contains(capability.capabilityKey()) && capability.intrinsic() && capability.learned()
+			&& capability.actionSkillId() > 0 && capability.actionSkillLevel() > 0 && !"SELF".equals(capability.targetScope());
 	}
 
 	public static boolean damageDealer(MemberSnapshot member) { return damage(member) && !prefersSupport(member); }

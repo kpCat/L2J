@@ -2043,6 +2043,125 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				}
 			}
 		});
+		registry.add("131-farm-low-mp-retains-bounded-native-support", context ->
+		{
+			for (String boundary : List.of("recharge-then-pull", "timeout", "skill-lost"))
+			{
+				final var states = new MemoryPartyStore();
+				final var goals = new MemoryGoalStore();
+				final var backend = new MemoryPartyBackend();
+				backend._farmEnabled = true;
+				final var leader = backend.add(1, 101);
+				final var healer = backend.add(2, 102);
+				final var clock = new AtomicLong(1_000_000_000L);
+				final var epoch = new AtomicLong(System.currentTimeMillis());
+				final var action = new PartyActionLease();
+				action.target = new TargetSnapshot(900, 20101, 0, 1000, 1000, false, false, true, true, false, true, true, 50, false, true);
+				final var combat = cooperativeCombat(action, clock, (_, _) -> PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
+				{
+					private boolean cancelled;
+					@Override public boolean cancelIfNotStarted() { if (cancelled) { return false; } cancelled = true; return true; }
+					@Override public PhantomCombatService.DispatchState state() { return cancelled ? PhantomCombatService.DispatchState.CANCELLED : PhantomCombatService.DispatchState.SCHEDULED; }
+				}));
+				final var catalog = currentCatalog(context);
+				final var coordinator = new PhantomPartyCoordinator(states, goals, backend, catalog, new PhantomPartyRouteCoordinator(null, combat),
+					new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+				final var preparation = new PhantomAutonomousFarmParty.RendezvousPreparation()
+				{
+					@Override public boolean prepare(long id, PhantomGoal root, PhantomDomainRef source, long expires, java.util.function.BooleanSupplier current) { return false; }
+					@Override public Optional<PhantomNavigationPoint> nativePartyDestination(PhantomDomainRef anchor)
+					{
+						return anchor.key().equals("farm.fixture") ? Optional.of(new PhantomNavigationPoint(0, 0, 0, 0)) : Optional.empty();
+					}
+				};
+				final var farm = new PhantomAutonomousFarmParty(coordinator, backend, goals, catalog, clock::get, (_, _) -> false, null,
+					org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults(), preparation, epoch::get);
+				goals.put(1, supportTravelRoot(1, 0, "farm.fixture"));
+				goals.put(2, supportTravelRoot(2, 0, "farm.fixture"));
+				final var leadCapabilities = List.of(cap("combat.melee_damage", "native.weapon", 800, 0), cap("combat.recharge", "native.skill.1013", 450, 1013));
+				final var heal = List.of(cap("combat.heal", "native.skill.1011", 450, 1011));
+				final var exhaustedHeal = List.of(new MemberCapability("combat.heal", "native.skill.1011", 450, 1011, 1,
+					"SINGLE_TARGET", true, true, false, "native.unavailable", 450, "test.progression.fixture"));
+				backend.snapshot(leader, member(1, 101, 100, 100, false, 0, leadCapabilities));
+				backend.snapshot(healer, member(2, 102, 100, 100, false, 0, heal));
+				backend._capabilities.put(leader, "recharge-then-pull".equals(boundary) ? leadCapabilities : List.of());
+				backend.connect(coordinator);
+				coordinator.start();
+				try
+				{
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.formForGoal(1, 129001, 0, "farm.background",
+						ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,2"), List.of()), "Fixture could not form the Party.");
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED,
+						coordinator.invite(1, healer, PartyDistributionType.FINDERS_KEEPERS), "Fixture could not invite the healer.");
+					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+					PhantomAssertions.assertTrue(coordinator.committed(1) && coordinator.committed(2), "Fixture has no committed stock owners.");
+					final var logical = new PhantomLogicalPartyCoordinator(states);
+					final long now = epoch.get();
+					final var initial = new PhantomLogicalParty("B".repeat(64), 1, 1, List.of(new PhantomLogicalParty.Member(1, "damage.melee", 129001, 0),
+						new PhantomLogicalParty.Member(2, "support.healer", 129002, 0)), new PhantomDomainRef("background.farm", "20101@farm.fixture"),
+						"farm.fixture", Phase.AGREED, 0, now, "");
+					final var roster = List.of(new PhantomPartyRendezvousState.Participant(leader, backend.materializationEpoch(leader), 129001, 0),
+						new PhantomPartyRendezvousState.Participant(healer, backend.materializationEpoch(healer), 129002, 0));
+					final String offer = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(initial.groupId() + ":1:" + roster + ":" + now);
+					var row = logical.agree(initial).orElseThrow();
+					for (var recipient : roster)
+					{
+						coordinator.saveRendezvous(-1, new PhantomPartyRendezvousState(recipient.actor().profileId(), offer, 1, roster, initial.objective(),
+							now, now + 600000, PhantomPartyRendezvousState.Phase.COMPLETE, 0)).orElseThrow();
+					}
+					for (var phase : List.of(Phase.WAKE_REQUESTED, Phase.ASSEMBLING, Phase.NATIVE_ACTIVE)) { row = logical.transition(row, phase, 0, now, ""); }
+					farm.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+					backend._farmTarget = java.util.OptionalInt.of(900);
+					backend.snapshot(healer, member(2, 102, 100, 10, false, 0, "skill-lost".equals(boundary) ? List.of() : exhaustedHeal));
+					farm.onPulse();
+					if ("skill-lost".equals(boundary))
+					{
+						PhantomAssertions.assertTrue(backend.observe(healer).isEmpty(), "Actual loss of a learned role was held as temporary MP depletion.");
+						continue;
+					}
+					PhantomAssertions.assertEquals(Set.of(leader, healer), backend.observe(leader).map(party -> Set.copyOf(party.members())).orElseGet(Set::of),
+						"Next-pull validation dissolved the stock Party while its living learned healer was out of MP: " + boundary);
+					PhantomAssertions.assertFalse(coordinator.hasOwnedFarmEncounter(1), "An offered next pull took the group before low-MP recovery.");
+					PhantomAssertions.assertEquals(0, action.casts, "Next-pull validation cast Recharge outside the Party tactics owner.");
+					coordinator.onPulse();
+					if ("recharge-then-pull".equals(boundary))
+					{
+						PhantomAssertions.assertEquals(1, action.casts, "Existing Party tactics did not submit one Recharge.");
+						PhantomAssertions.assertEquals(healer.characterObjectId(), action.support.targetObjectId(), "Recharge missed the exact exhausted healer.");
+						PhantomAssertions.assertEquals("combat.recharge", action.support.capabilityKey(), "The owner dispatched a different action in place of Recharge.");
+						action.casting = false;
+						backend.snapshot(healer, member(2, 102, 100, 50, false, 0, heal));
+						coordinator.onPulse();
+					}
+					for (int pulse = 0; pulse < 14; pulse++)
+					{
+						clock.addAndGet(6_000_000_000L); epoch.addAndGet(6000);
+						coordinator.onPulse();
+						farm.onPulse();
+						if ("recharge-then-pull".equals(boundary) && coordinator.hasOwnedFarmEncounter(1)) { break; }
+					}
+					final var after = logical.groupFor(1).orElseThrow().group();
+					if ("timeout".equals(boundary))
+					{
+						PhantomAssertions.assertEquals(Phase.DRAINING, after.phase(), "Unrecovered support MP kept the team beyond the existing readiness deadline.");
+						PhantomAssertions.assertEquals("REPLAN_GROUP_SUPPORT_MP", after.waitReason(), "Readiness drain lost its low-MP cause.");
+						PhantomAssertions.assertTrue(backend.observe(healer).isEmpty(), "Readiness drain did not release the stock Party.");
+						PhantomAssertions.assertEquals(0, action.casts, "Missing skill capability fabricated a Recharge.");
+					}
+					else
+					{
+						PhantomAssertions.assertEquals(Phase.NATIVE_ACTIVE, after.phase(), "Recovered support retained a stale low-MP deadline.");
+						PhantomAssertions.assertTrue(coordinator.committed(1) && coordinator.committed(2), "Recovered member lost stock Party ownership.");
+						PhantomAssertions.assertTrue(coordinator.hasOwnedFarmEncounter(1), "Recovered support did not return to the ordinary next-pull owner.");
+					}
+				}
+				finally
+				{
+					coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Party MP fixture did not drain.");
+					combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Combat MP fixture did not drain.");
+				}
+			}
+		});
 		registry.add("131-party-defense-urgent-heal-requires-current-recipient-epoch", context ->
 		{
 			for (boolean replacedRecipient : List.of(false, true))

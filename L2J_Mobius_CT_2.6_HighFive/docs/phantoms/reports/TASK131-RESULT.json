@@ -52,38 +52,39 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v10-reviewed.log",
+    "aggregateLog": "ant-combat-v11-reviewed.log",
+    "finalContractLog": "contract-v11-final.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
     "comparison": "OFFLINE_READER_AND_NEGATIVE_CONTROLS",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 170,
-    "contractGroupsPassed": 15,
+    "regressionTestsPassed": 171,
+    "contractGroupsPassed": 16,
     "jarExitCode": 0,
-    "jarSha256": "29c1ea2d403729b4447dd64072beef087976302e0070f5ee6311ce679d001f8c",
-    "loginJarSha256": "4e182268362219d2c369fdc547fef7e4576cf6b292e86be8cf6abfe7299d1907",
-    "jarLog": "jar-v10-reviewed.log",
+    "jarSha256": "db3f311bcb694cc951d6a7a04043a8752f5f0908316a07523bc68dafbfbac8f8",
+    "loginJarSha256": "c6922728d2d5e386e6b2e4e7d90fbb5030cb4f57bd77f4af743219e1b7a553cd",
+    "jarLog": "jar-v11-reviewed.log",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
-    "auditScheduleLog": "v10-PhantomLearning131EvaluationChecks.log",
+    "auditScheduleLog": "v11-PhantomLearning131EvaluationChecks.log",
     "managedSweepRegressionLog": "v10-native-evidence-continuation022.log",
     "supplyChecksLog": "v9-PhantomSupply074Checks.log",
     "supplyRegressionLog": "v9-supply071.log",
-    "partyTacticsPassed": 19,
+    "partyTacticsPassed": 20,
     "worldCoordination130Passed": 81
   },
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v9.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v10.json",
-    "exactPathCount": 22
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v10.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v11.json",
+    "exactPathCount": 10
   },
   "testReadiness": {
-    "iterationParent": "3b28ec3944489308221dd26b5e689292021c29e8",
+    "iterationParent": "406c725ce5e0ab2b4aa61d646a6f34bae4224183",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -157,7 +158,7 @@
       "nativeLaunch": "NOT_RUN",
       "trainAdapter": "SOLO_PVE_SOURCES_AND_DB_FREE_CONTRACTS",
       "tuningAdapter": "SOLO_FROZEN_MODEL_SOURCES_AND_DB_FREE_REPLAY_NATIVE_NOT_RUN",
-      "auditAdapter": "FROZEN_SCHEDULE_AND_PVE_PVP_DAMAGE_FRAGMENTS_RUNNER_PENDING",
+      "auditAdapter": "FROZEN_SCHEDULE_PVE_PVP_DAMAGE_AND_LINKED_DUEL_DEATH_FRAGMENTS_RUNNER_PENDING",
       "pvpDamageLearning": "SCOPED_READY_NATIVE_CAST_AND_HP_CP_MP_RECEIPTS_SOURCE_ONLY",
       "resumeAfterNativeClaim": "OFFLINE_PREFIX_AND_STORE_CONTRACT_PASS_NATIVE_NOT_RUN",
       "fitIngress": "OFFLINE_NEGATIVE_CONTROLS_PASS",
@@ -182,21 +183,24 @@
     },
     "n06DuelSetup": {
       "entryPoint": "PhantomCombat131Fixture SETUP_DUEL",
-      "fixtureSourceSha256": "4525aac3ddfa261488be5e9c4fed361f8d121512e0bfc19175f42259363c56f2",
+      "fixtureSourceSha256": "1916036b629c0690326a897526c742b704a74ad219474b36dd07f3503b738749",
+      "bindingSourceSha256": "c5ec2609dea2e3ea14bdc80589078220a998f6c198de68ee283194af55144013",
       "plannedActors": 4,
       "level": 76,
       "plannedMirroredArms": 2,
       "nativeSetup": "NOT_RUN",
+      "testBinding": "SHA256_PINNED_RECEIPT_AND_EXACT_MIRRORED_ARM",
+      "nativeCombat": "NOT_RUN",
       "runtimeAuthority": "PENDING"
     },
-    "g0OffReceipt": "off-and-protected-v10.json",
+    "g0OffReceipt": "off-and-protected-v11.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v10.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v11.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -215,7 +219,7 @@
       "phase": "P2–P3",
       "status": "UNKNOWN",
       "evidence": "D2,D3,D4,N04,N05",
-      "reason": "Party PvE получил CLEANSE, AREA/AURA и ограниченное восстановление одной смерти, живые эффекты и tactical frame открыты"
+      "reason": "Party PvE получил CLEANSE, AREA/AURA и ограниченное окно смерти или дефицита MP, живые эффекты и tactical frame открыты"
     },
     "G4": {
       "phase": "P2–P3",
@@ -364,8 +368,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v10-PhantomLearning131EvaluationChecks.log",
-      "reason": "Офлайн проверены расписание и привязка двух сторон для фрагмента DAMAGE, native AUDIT открыт"
+      "evidence": "v11-PhantomLearning131EvaluationChecks.log",
+      "reason": "Офлайн проверены расписание, привязка DAMAGE и отрицательные контроли связи смерти с оплатой, native AUDIT открыт"
     },
     "D9": {
       "phase": "P3–P5",
@@ -406,14 +410,14 @@
     "N05": {
       "phase": "P3",
       "status": "NOT_RUN",
-      "evidence": "member-corpse-red,member-corpse-green",
-      "reason": "Офлайн проверены окно для погибшего участника, выход и истечение срока, живой подъём и расходы открыты"
+      "evidence": "member-corpse-red,member-corpse-green,ant-combat-v11-reviewed.log",
+      "reason": "Офлайн проверены окна смерти и дефицита MP, точный Recharge, выход и тайм-аут, живые эффекты и расходы открыты"
     },
     "N06": {
       "phase": "P3",
       "status": "NOT_RUN",
-      "evidence": "ant-combat-v10-reviewed.log",
-      "reason": "Проверен контракт зеркальной подготовки PvP 1×1, нативные допуск, размещение и исход открыты"
+      "evidence": "ant-combat-v11-reviewed.log",
+      "reason": "Офлайн проверены зеркальная fixture по SHA и отказы для чужого участника и незапечатанной пары, native бой открыт"
     },
     "N07": {
       "phase": "P3",

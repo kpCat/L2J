@@ -1,8 +1,8 @@
 ID	Phase	Status	Evidence	Notes
-G0	P0	UNKNOWN	S024,off-and-protected-v10.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
+G0	P0	UNKNOWN	S024,off-and-protected-v11.json,n01-setup-r4/n01-scenes.tsv	Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения
 G1	P1	UNKNOWN	TASK131-CLASS-COVERAGE.tsv,D1,D4,N02,N03,N14	Каталог 103 классов сверён офлайн, AoE, cleanse, summon и другие игровые пути требуют закрытия
 G2	P3	NOT_RUN	N01	Три native цикла с вознаграждениями не выполнены
-G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE, AREA/AURA и ограниченное восстановление одной смерти, живые эффекты и tactical frame открыты
+G3	P2–P3	UNKNOWN	D2,D3,D4,N04,N05	Party PvE получил CLEANSE, AREA/AURA и ограниченное окно смерти или дефицита MP, живые эффекты и tactical frame открыты
 G4	P2–P3	UNKNOWN	D2,D3,N06–N10	Групповой фокус ранжирует законные реактивные цели, native составы, роли и PK открыты
 G5	P3	UNKNOWN	D9,N11–N13	Solo Return и групповой Party Recall подключены, native прибытие и расходы остаются открытыми
 G6	P4–P5	NOT_RUN	D5,D6,D7,N15	Нет завершённой A→B→A и доказанных native divergences
@@ -27,15 +27,15 @@ D4	P1–P2	UNKNOWN	aggregate-v2.log	Обычный PvE и Party использу
 D5	P4	UNKNOWN	ant-combat-v10-reviewed.log,v10-PhantomLearning131FitChecks.log	Офлайн проверены frozen replay и раздельные PvP HP CP MP, реальные TRAIN TUNING AUDIT открыты
 D6	P4	UNKNOWN	frozen-v3-green.log	Контракт HEAL связывает полезный HP, MP и точного владельца, поток native записей ещё не собран
 D7	P4	PASS	aggregate-v5-reviewed.log	Офлайн 257, rollover, полный эпизод, prepared receipts, абсолютные времена, cold load и replay
-D8	P4	UNKNOWN	v10-PhantomLearning131EvaluationChecks.log	Офлайн проверены расписание и привязка двух сторон для фрагмента DAMAGE, native AUDIT открыт
+D8	P4	UNKNOWN	v11-PhantomLearning131EvaluationChecks.log	Офлайн проверены расписание, привязка DAMAGE и отрицательные контроли связи смерти с оплатой, native AUDIT открыт
 D9	P3–P5	UNKNOWN	TRAINING131_CONTROL_CHECKS_PASS	Офлайн удержание квоты и неизменяемый статус проверены, устойчивость живой кампании открыта
 D10	P6	NOT_RUN	NONE	Native workload и structural fixture не выполнены
 N01	P3	NOT_RUN	n01-setup-r4/n01-scenes.tsv	Три площадки SETUP с респавном, боевые циклы и награды ещё не измерены
 N02	P3	NOT_RUN	NONE	Механические варианты native
 N03	P3	NOT_RUN	v10-native-evidence-continuation022.log	Офлайн проверен один путь Sweep для Phantom, нативные предметы и отказ повторной выдачи открыты
 N04	P3	NOT_RUN	NONE	Party PvE, роли, AoE и CC
-N05	P3	NOT_RUN	member-corpse-red,member-corpse-green	Офлайн проверены окно для погибшего участника, выход и истечение срока, живой подъём и расходы открыты
-N06	P3	NOT_RUN	ant-combat-v10-reviewed.log	Проверен контракт зеркальной подготовки PvP 1×1, нативные допуск, размещение и исход открыты
+N05	P3	NOT_RUN	member-corpse-red,member-corpse-green,ant-combat-v11-reviewed.log	Офлайн проверены окна смерти и дефицита MP, точный Recharge, выход и тайм-аут, живые эффекты и расходы открыты
+N06	P3	NOT_RUN	ant-combat-v11-reviewed.log	Офлайн проверены зеркальная fixture по SHA и отказы для чужого участника и незапечатанной пары, native бой открыт
 N07	P3	NOT_RUN	NONE	PvP 1×2 и 2×2
 N08	P3	NOT_RUN	NONE	PvP 3×5
 N09	P3	NOT_RUN	NONE	PvP 9×9

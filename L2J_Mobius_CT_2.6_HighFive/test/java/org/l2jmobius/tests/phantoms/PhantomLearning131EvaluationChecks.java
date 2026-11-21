@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 
+import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Arm;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.BlockPlan;
 import org.l2jmobius.tests.phantoms.TrainingEvaluation131.Episode;
@@ -31,8 +32,29 @@ public final class PhantomLearning131EvaluationChecks
 		scoreObjectives();
 		matchedBootstrapAndStockControl();
 		incompleteAndMisattributedBlocks();
+		duelDeathJoin();
 		untrustedEvidenceIsNeverAResult();
 		System.out.println("TRAINING_EVALUATION131_MATH_CHECKS_PASS");
+	}
+
+	private static void duelDeathJoin()
+	{
+		final var paid = new DuelDeath(42, 102, 91, 2, 115);
+		final var stock = new DuelDeath(42, 102, 91, 2, 118);
+		check(PhantomLearning131AuditDamage.joinedDeathNanos(stock, paid, 110) == 118,
+			"a native death becomes available only at the later exact witness");
+		for (var mismatched : List.of(new DuelDeath(42, 102, 91, 3, 118), new DuelDeath(42, 102, 92, 2, 118), new DuelDeath(42, 102, 91, 2, 109)))
+		{
+			try
+			{
+				PhantomLearning131AuditDamage.joinedDeathNanos(mismatched, paid, 110);
+				throw new AssertionError("An unrelated corpse, actor epoch or earlier notification cannot prove a death");
+			}
+			catch (IllegalStateException refused)
+			{
+				check(refused.getMessage().equals("AUDIT_DAMAGE131_UNBOUND_NATIVE_DEATH"), "a false death join is refused");
+			}
+		}
 	}
 
 	private static void untrustedEvidenceIsNeverAResult() throws Exception

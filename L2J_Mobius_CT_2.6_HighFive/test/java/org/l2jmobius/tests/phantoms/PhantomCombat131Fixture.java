@@ -2,6 +2,8 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -39,6 +41,7 @@ import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.effects.EffectType;
@@ -61,6 +64,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
@@ -85,6 +89,12 @@ public final class PhantomCombat131Fixture
 	private static final String SCENE_HEADER = "profileId\tactorObjectId\tgoalId\tgoalRevision\tplanIdentity\tanchor\tx\ty\tz\tnpcId\tnpcLevel\tspawnKey\trespawnMinMs\trespawnMaxMs\tpreflightObjectId\tpreflightInstanceId\tpreflightGeneration\tqualifyingTargets\tknowledgeSha256\ttopologySha256\tprogressionSha256\tcommerceSha256";
 	static final String OFFENSE_HEADER = "profileId\tobjectId\tclass\tlevel\tskillId\tskillLevel\tprovenance\tfixtureSha\tsceneScopeSha";
 	private static final String DUEL_ARENA = "gludin_pvp";
+	private static final String DUEL_RECEIPT = "n06-duel-fixture.tsv";
+	private static final int DUEL_RECEIPT_LIMIT = 64 * 1024;
+	private static final int DUEL_LEVEL = 76;
+	private static final int DUEL_WEST_X = -88000;
+	private static final int DUEL_EAST_X = -87840;
+	private static final int DUEL_Y = 142220;
 	private static final String DUEL_PROOF_HEADER = "status\tarm\tside\topeningSide\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tweapon\tshotItem\tshots\tadena\tarena\tinstanceId\tstartX\tstartY\tstartZ\tstoredX\tstoredY\tstoredZ\tlearnedPvpRanks\tcontrolRanks";
 
 	private record Admission(Path game, Path sql, Path ini, Instant deadline, boolean duel) { }
@@ -93,7 +103,34 @@ public final class PhantomCombat131Fixture
 		PlayerNativeEvidence.Target preflightTarget, Skill skill, PhantomHistoricalBackgroundPlanner.Result plan, int qualifyingTargets) { }
 	private record Actor(long profile, int object, String account, PlayerClass profession, int level, Skill skill, int weapon, int shot,
 		long shots, long adena, long exp, long sp, Scene scene, PhantomTopologyPoint storedPoint, List<Skill> learnedOffense) { }
-	static record DuelIdentity(int arm, String side, long profile, int object, String account, String role, int profession, List<SelectedSkill> skills) { }
+	static record DuelIdentity(int arm, String side, long profile, int object, String account, String role, int profession, List<SelectedSkill> skills)
+	{
+		DuelIdentity { skills = List.copyOf(skills); }
+	}
+	static record DuelSlot(DuelIdentity identity, String openingSide, int level, int weapon, int shotItem, long shots, long adena,
+		PhantomTopologyPoint start, PhantomTopologyPoint stored, List<SelectedSkill> controlRanks)
+	{
+		DuelSlot { controlRanks = List.copyOf(controlRanks); }
+	}
+	static final class DuelFixture
+	{
+		private final String _sha256;
+		private final List<DuelSlot> _slots;
+
+		private DuelFixture(String sha256, List<DuelSlot> slots)
+		{
+			_sha256 = sha256;
+			_slots = List.copyOf(slots);
+		}
+
+		String sha256() { return _sha256; }
+		List<DuelSlot> slots() { return _slots; }
+		List<DuelSlot> arm(int arm)
+		{
+			check(arm == 1 || arm == 2, "DUEL_ARM_NUMBER");
+			return _slots.subList((arm - 1) * 2, arm * 2);
+		}
+	}
 
 	private enum Role
 	{
@@ -209,7 +246,7 @@ public final class PhantomCombat131Fixture
 		}
 	}
 
-	private static Path physical(Path path, boolean file) throws IOException
+	static Path physical(Path path, boolean file) throws IOException
 	{
 		final Path normalized = path.toAbsolutePath().normalize();
 		for (Path part = normalized; part != null; part = part.getParent())
@@ -299,7 +336,7 @@ public final class PhantomCombat131Fixture
 		final var goals = new PhantomGoalStateStore(profiles);
 		final var identities = new ArrayList<DuelIdentity>(4);
 		final var proof = new StringBuilder(DUEL_PROOF_HEADER).append('\n');
-		final int level = 76;
+		final int level = DUEL_LEVEL;
 		boolean controlAvailable = false;
 		int ordinal = 0;
 		for (int arm = 1; arm <= 2; arm++)
@@ -329,7 +366,7 @@ public final class PhantomCombat131Fixture
 		verifyDuelAccounts(identities);
 		check(Instant.now().isBefore(admission.deadline()) && !PhantomPlayersConfig.isEnabled() && World.getInstance().getPlayers().isEmpty()
 			&& population.loadManagedAfter(0, 5).size() == identities.size(), "DUEL_ROSTER_AND_WORLD_CLOSURE");
-		Files.writeString(admission.sql().resolve("n06-duel-fixture.tsv"), proof, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+		Files.writeString(admission.sql().resolve(DUEL_RECEIPT), proof, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
 		System.out.println("TASK131_N06_SETUP_STORED actors=4 mirroredArms=2 worldPlayers=0");
 	}
 
@@ -373,8 +410,8 @@ public final class PhantomCombat131Fixture
 	private static List<PhantomTopologyPoint> duelArena()
 	{
 		final var geo = GeoEngine.getInstance();
-		final var west = duelPoint(geo, -88000);
-		final var east = duelPoint(geo, -87840);
+		final var west = duelPoint(geo, DUEL_WEST_X);
+		final var east = duelPoint(geo, DUEL_EAST_X);
 		check(Math.abs(west.z() - east.z()) <= 32 && geo.canSeeTarget(west.x(), west.y(), west.z(), east.x(), east.y(), east.z(), 0)
 			&& geo.canSeeTarget(east.x(), east.y(), east.z(), west.x(), west.y(), west.z(), 0)
 			&& geo.canMoveToTarget(west.x(), west.y(), west.z(), east.x(), east.y(), east.z(), 0)
@@ -388,7 +425,7 @@ public final class PhantomCombat131Fixture
 
 	private static PhantomTopologyPoint duelPoint(GeoEngine geo, int x)
 	{
-		final int y = 142220;
+		final int y = DUEL_Y;
 		check(geo.hasGeo(x, y), "DUEL_ARENA_GEODATA");
 		final int z = geo.getHeight(x, y, -3500);
 		final var zones = ZoneManager.getInstance();
@@ -408,6 +445,120 @@ public final class PhantomCombat131Fixture
 			identity.role(), identity.profession(), actor.level(), actor.weapon(), actor.shot(), actor.shots(), actor.adena(), DUEL_ARENA, start.instanceId(),
 			start.x(), start.y(), start.z(), stored.x(), stored.y(), stored.z(), ranks, controls);
 		return String.join("\t", fields.stream().map(Object::toString).toList()) + "\n";
+	}
+
+	static DuelFixture readDuelFixture(Path receipt, String expectedSha) throws IOException
+	{
+		final Path file = physical(receipt, true);
+		check(file.getFileName().toString().equals(DUEL_RECEIPT) && expectedSha.matches("(?i)[0-9a-f]{64}"), "DUEL_RECEIPT_SCOPE");
+		final byte[] bytes;
+		try (var stream = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) { bytes = stream.readNBytes(DUEL_RECEIPT_LIMIT + 1); }
+		check(bytes.length <= DUEL_RECEIPT_LIMIT, "DUEL_RECEIPT_BOUND");
+		final String sha = TacticalObservationV3.hash(bytes);
+		check(sha.equalsIgnoreCase(expectedSha), "DUEL_RECEIPT_SHA");
+		final String text = StandardCharsets.US_ASCII.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
+		final String[] rows = text.split("\n", -1);
+		check(rows.length == 6 && rows[0].equals(DUEL_PROOF_HEADER) && rows[5].isEmpty(), "DUEL_RECEIPT_SHAPE");
+		final var slots = new ArrayList<DuelSlot>(4);
+		for (int index = 1; index <= 4; index++) { slots.add(readDuelSlot(rows[index])); }
+		validateDuelRoster(slots.stream().map(DuelSlot::identity).toList());
+		for (int index = 0; index < slots.size(); index++)
+		{
+			final DuelSlot slot = slots.get(index), mirrored = slots.get(3 - index);
+			check(slot.shotItem() == mirrored.shotItem() && slot.controlRanks().equals(mirrored.controlRanks())
+				&& slot.start().equals(slots.get((index + 2) % 4).start()), "DUEL_MIRROR_EQUIPMENT_CONTROL_AND_PLACEMENT");
+		}
+		check(Math.abs(slots.get(0).start().z() - slots.get(1).start().z()) <= 32 && slots.stream().anyMatch(slot -> !slot.controlRanks().isEmpty()),
+			"DUEL_RECEIPT_SLOPE_AND_CONTROL");
+		return new DuelFixture(sha, slots);
+	}
+
+	private static DuelSlot readDuelSlot(String row)
+	{
+		final String[] cell = row.split("\t", -1);
+		check(cell.length == 24 && cell[0].equals("SETUP_DUEL_STORED") && cell[3].equals("A") && cell[14].equals(DUEL_ARENA), "DUEL_RECEIPT_ROW");
+		final var identity = new DuelIdentity(duelInt(cell[1]), cell[2], duelNumber(cell[4]), duelInt(cell[5]), cell[6], cell[7], duelInt(cell[8]), duelRanks(cell[22]));
+		final Role role = Role.valueOf(identity.role());
+		final var profession = PlayerClass.getPlayerClass(identity.profession());
+		final int level = duelInt(cell[9]), weapon = duelInt(cell[10]), shot = duelInt(cell[11]);
+		final long shots = duelNumber(cell[12]), adena = duelNumber(cell[13]);
+		check(profession != null && profession.level() == 3 && profession.isMage() == role.magic && level == DUEL_LEVEL
+			&& weapon == setupWeapon(role, level) && shot == duelShotItem(role) && shots == SHOTS && adena == ADENA, "DUEL_RECEIPT_STOCK");
+		final int instance = duelInt(cell[15]);
+		final var start = new PhantomTopologyPoint(duelInt(cell[16]), duelInt(cell[17]), duelInt(cell[18]), instance);
+		final var stored = new PhantomTopologyPoint(duelInt(cell[19]), duelInt(cell[20]), duelInt(cell[21]), instance);
+		check(instance == 0 && start.x() == (identity.side().equals("A") ? DUEL_WEST_X : DUEL_EAST_X) && start.y() == DUEL_Y
+			&& start.z() >= -3752 && start.z() <= -352, "DUEL_RECEIPT_START");
+		final var controlRanks = duelRanks(cell[23]);
+		check(identity.skills().containsAll(controlRanks), "DUEL_RECEIPT_CONTROL_RANKS");
+		return new DuelSlot(identity, cell[3], level, weapon, shot, shots, adena, start, stored, controlRanks);
+	}
+
+	private static List<SelectedSkill> duelRanks(String text)
+	{
+		if (text.isEmpty()) { return List.of(); }
+		final var result = new ArrayList<SelectedSkill>();
+		int previous = 0;
+		for (String textRank : text.split(",", -1))
+		{
+			final String[] rank = textRank.split(":", -1);
+			check(rank.length == 2 && result.size() < PhantomNativeCombatCapability.MAXIMUM_SKILLS, "DUEL_RECEIPT_RANK_SHAPE");
+			final int id = duelInt(rank[0]);
+			check(id > previous, "DUEL_RECEIPT_RANK_ORDER");
+			result.add(new SelectedSkill(id, duelInt(rank[1])));
+			previous = id;
+		}
+		return List.copyOf(result);
+	}
+
+	private static int duelInt(String text) { return Math.toIntExact(duelNumber(text)); }
+
+	private static long duelNumber(String text)
+	{
+		final long value = Long.parseLong(text);
+		check(Long.toString(value).equals(text), "DUEL_RECEIPT_CANONICAL_NUMBER");
+		return value;
+	}
+
+	/** Read-only pre-cut check. The runner supplies the profile from its materialization binding. */
+	static void verifyDuelMaterialized(DuelSlot slot, long profile, Player actor)
+	{
+		final var identity = slot.identity();
+		final var owner = actor.getNativeWorkOwner();
+		check(profile == identity.profile() && actor.getObjectId() == identity.object() && actor.getAccountName().equals(identity.account())
+			&& actor.getClient() == null && !actor.isGM() && !actor.isAlikeDead() && !actor.isInParty()
+			&& owner != null && owner.player() == actor && owner.isCurrent() && PlayerNativeWork.observationEvidence(actor) != null
+			&& actor.getActiveClass() == identity.profession() && actor.getBaseClass() == identity.profession() && actor.getClassIndex() == 0
+			&& actor.getLevel() == slot.level(), "DUEL_MATERIALIZED_IDENTITY");
+		final Role role = Role.valueOf(identity.role());
+		final var weapon = actor.getActiveWeaponItem();
+		check(weapon != null && weapon.getId() == slot.weapon() && weapon.getCrystalType().getLevel() <= actor.getExpertiseLevel()
+			&& shotItem(actor, role) == slot.shotItem() && actor.getInventory().getInventoryItemCount(slot.shotItem(), -1) == slot.shots()
+			&& actor.getAdena() == slot.adena(), "DUEL_MATERIALIZED_WEAPON_AND_BUDGET");
+		for (int itemId : setupEquipment(role, slot.weapon()))
+		{
+			check(actor.getInventory().getItems().stream().filter(item -> item.getId() == itemId && item.isEquipped() && item.getEnchantLevel() == 0).count() == 1,
+				"DUEL_MATERIALIZED_EQUIPMENT");
+		}
+		final var learned = learnedDuelOffense(actor, role);
+		check(learned.stream().map(skill -> new SelectedSkill(skill.getId(), skill.getLevel())).toList().equals(identity.skills())
+			&& learned.stream().filter(PhantomCombat131Fixture::duelControl).map(skill -> new SelectedSkill(skill.getId(), skill.getLevel())).toList().equals(slot.controlRanks()),
+			"DUEL_MATERIALIZED_LEARNED_RANKS");
+	}
+
+	static void verifyDuelArena(DuelFixture fixture)
+	{
+		final var points = duelArena();
+		check(fixture.slots().stream().allMatch(slot -> slot.start().equals(points.get(slot.identity().side().equals("A") ? 0 : 1))), "DUEL_ARENA_CHANGED_SINCE_SETUP");
+	}
+
+	static void verifyDuelAtStart(DuelSlot slot, long profile, Player actor)
+	{
+		verifyDuelMaterialized(slot, profile, actor);
+		final var start = slot.start();
+		check(actor.getX() == start.x() && actor.getY() == start.y() && actor.getZ() == start.z() && actor.getInstanceId() == start.instanceId()
+			&& actor.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PVP) && !actor.isInvul()
+			&& duelPoint(GeoEngine.getInstance(), start.x()).equals(start), "DUEL_MATERIALIZED_START");
 	}
 
 	private static PlayerClass minimumClass(Role role, int level)
@@ -515,8 +666,8 @@ public final class PhantomCombat131Fixture
 			}
 			check(actor.getActiveClass() == profession.getId() && actor.getLevel() == level, "NATIVE_CLASS_LEVEL");
 			learn(actor);
-			final int weapon = level == 52 ? role.level52Weapon : role.magic ? 6366 : 6580;
-			for (int idToEquip : role.magic ? new int[] {weapon, 2406, 2415} : new int[] {weapon, 2381, 2417})
+			final int weapon = setupWeapon(role, level);
+			for (int idToEquip : setupEquipment(role, weapon))
 			{
 				final var owned = actor.getInventory().getItemByItemId(idToEquip);
 				actor.getInventory().equipItem(owned == null ? actor.addItem(ItemProcessType.REWARD, idToEquip, 1, actor, false) : owned);
@@ -525,6 +676,7 @@ public final class PhantomCombat131Fixture
 			actor.refreshOverloaded();
 			check(actor.getActiveWeaponItem().getId() == weapon && actor.getActiveWeaponItem().getCrystalType().getLevel() <= actor.getExpertiseLevel(), "NATIVE_EQUIPMENT_GRADE");
 			final int shot = shotItem(actor, role);
+			check(!duel || shot == duelShotItem(role), "DUEL_NATIVE_SHOT_CATALOG_CHANGED");
 			final long existing = actor.getInventory().getInventoryItemCount(shot, -1);
 			check(existing <= SHOTS && actor.getAdena() <= ADENA, "SETUP_BUDGET");
 			if (existing < SHOTS) { actor.addItem(ItemProcessType.REWARD, shot, SHOTS - existing, actor, false); }
@@ -576,6 +728,21 @@ public final class PhantomCombat131Fixture
 			previous = levels;
 		}
 		throw failure("NATIVE_LEARNING_FIXED_POINT");
+	}
+
+	private static int setupWeapon(Role role, int level)
+	{
+		return level == 52 ? role.level52Weapon : role.magic ? 6366 : 6580;
+	}
+
+	private static int[] setupEquipment(Role role, int weapon)
+	{
+		return role.magic ? new int[] {weapon, 2406, 2415} : new int[] {weapon, 2381, 2417};
+	}
+
+	private static int duelShotItem(Role role)
+	{
+		return role.magic ? 2514 : 1467;
 	}
 
 	private static int shotItem(Player actor, Role role)

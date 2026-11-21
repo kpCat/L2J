@@ -1,17 +1,24 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.tests.phantoms;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 
 import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131;
 import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131.Offense;
 import org.l2jmobius.gameserver.phantoms.combat.CombatDecisionPolicy131.OffenseContext;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
+import org.l2jmobius.tests.phantoms.PhantomCombat131Fixture.DuelFixture;
 import org.l2jmobius.tests.phantoms.PhantomCombat131Fixture.DuelIdentity;
 
 public final class PhantomCombat131Checks
 {
-	public static void main(String[] args)
+	public static void main(String[] args) throws IOException
 	{
 		PhantomCombatCoreSuite.testReadySkillBeyondLoadoutBound();
 		System.out.println("TASK131_D1_READY_SKILL_BOUND_PASS");
@@ -27,6 +34,79 @@ public final class PhantomCombat131Checks
 		System.out.println("TASK131_D3_PARTY_AREA_OWNER_PASS");
 		testDuelSetupRoster();
 		System.out.println("TASK131_N06_SETUP_ROSTER_CONTRACT_PASS");
+		testDuelReceipt();
+		System.out.println("TASK131_N06_SETUP_RECEIPT_CONTRACT_PASS");
+	}
+
+	private static void testDuelReceipt() throws IOException
+	{
+		final Path scratch = Files.createTempDirectory(Path.of("."), "task131-n06-receipt-");
+		final Path receipt = scratch.resolve("n06-duel-fixture.tsv");
+		final Path cut = scratch.resolve("cut.tsv");
+		final String header = "status\tarm\tside\topeningSide\tprofileId\tobjectId\taccount\trole\tclass\tlevel\tweapon\tshotItem\tshots\tadena\tarena\tinstanceId\tstartX\tstartY\tstartZ\tstoredX\tstoredY\tstoredZ\tlearnedPvpRanks\tcontrolRanks\n";
+		final String contents = header
+			+ "SETUP_DUEL_STORED\t1\tA\tA\t1\t110\towned_a\tMAGE\t94\t76\t6366\t2514\t2000\t50000\tgludin_pvp\t0\t-88000\t142220\t-3500\t10000\t10000\t-3000\t10:12,11:18\t11:18\n"
+			+ "SETUP_DUEL_STORED\t1\tB\tA\t2\t120\towned_b\tPHYSICAL\t88\t76\t6580\t1467\t2000\t50000\tgludin_pvp\t0\t-87840\t142220\t-3500\t10001\t10000\t-3000\t20:9,21:14\t\n"
+			+ "SETUP_DUEL_STORED\t2\tA\tA\t3\t130\towned_c\tPHYSICAL\t88\t76\t6580\t1467\t2000\t50000\tgludin_pvp\t0\t-88000\t142220\t-3500\t10002\t10000\t-3000\t20:9,21:14\t\n"
+			+ "SETUP_DUEL_STORED\t2\tB\tA\t4\t140\towned_d\tMAGE\t94\t76\t6366\t2514\t2000\t50000\tgludin_pvp\t0\t-87840\t142220\t-3500\t10003\t10000\t-3000\t10:12,11:18\t11:18\n";
+		try
+		{
+			final String sha = writeReceipt(receipt, contents);
+			final var fixture = PhantomCombat131Fixture.readDuelFixture(receipt, sha);
+			PhantomAssertions.assertEquals(sha, fixture.sha256(), "Receipt bytes were not pinned.");
+			PhantomAssertions.assertEquals(140, fixture.arm(2).getLast().identity().object(), "The mirrored arm did not retain its independent actor.");
+			PhantomAssertions.assertEquals(-87840, fixture.arm(2).getLast().start().x(), "Planned stock positions were not retained.");
+			testUnboundDuel(fixture, cut, sha);
+			final String drifted = contents.replace("\towned_d\t", "\towned_e\t");
+			writeReceipt(receipt, drifted);
+			rejectDuelReceipt(receipt, sha);
+			PhantomAssertions.assertEquals("owned_d", fixture.arm(2).getLast().identity().account(), "A file edit mutated the admitted receipt data.");
+			for (String malformed : List.of(contents.replace("\t-87840\t142220\t", "\t-87839\t142220\t"),
+				contents.replace("\t6366\t2514\t", "\t6366\t2515\t"),
+				contents.replace("10:12,11:18\t11:18", "10:12,10:18\t10:18")))
+			{
+				rejectDuelReceipt(receipt, writeReceipt(receipt, malformed));
+			}
+		}
+		finally
+		{
+			Files.deleteIfExists(cut);
+			Files.deleteIfExists(receipt);
+			Files.delete(scratch);
+		}
+	}
+
+	private static void testUnboundDuel(DuelFixture fixture, Path cut, String sha)
+	{
+		final var duel = new PhantomCombat131Duel(fixture, 1, Instant.now().plusSeconds(30));
+		PhantomAssertions.assertTrue(!duel.openingLanded(), "An unbound arm cannot have a native hit.");
+		final var otherArm = fixture.arm(2).getFirst().identity();
+		final var chosen = fixture.arm(1).getFirst().identity();
+		try
+		{
+			PhantomAssertions.assertThrows(RuntimeException.class, () -> duel.beforeMaterialize(otherArm.profile(), otherArm.object()),
+				"A mirrored arm participant entered the currently selected duel.");
+			PhantomAssertions.assertThrows(RuntimeException.class, () -> duel.sealAtStart(cut, sha, "boot1", "N06A"),
+				"A duel cut succeeded without both materialized owners.");
+			PhantomAssertions.assertFalse(Files.exists(cut), "A rejected duel cut wrote an artifact.");
+		}
+		finally { duel.close(); }
+		PhantomAssertions.assertThrows(RuntimeException.class, () -> duel.beforeMaterialize(chosen.profile(), chosen.object()),
+			"The closed duel admitted a participant again.");
+	}
+
+	private static String writeReceipt(Path path, String content) throws IOException
+	{
+		final byte[] bytes = content.getBytes(StandardCharsets.US_ASCII);
+		Files.write(path, bytes);
+		return TacticalObservationV3.hash(bytes);
+	}
+
+	private static void rejectDuelReceipt(Path receipt, String sha) throws IOException
+	{
+		try { PhantomCombat131Fixture.readDuelFixture(receipt, sha); }
+		catch (IllegalArgumentException | IllegalStateException expected) { return; }
+		throw new AssertionError("Inconsistent N06 setup receipt was accepted.");
 	}
 
 	private static void testDuelSetupRoster()
