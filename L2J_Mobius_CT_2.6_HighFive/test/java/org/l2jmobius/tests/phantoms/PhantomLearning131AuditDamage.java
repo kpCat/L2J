@@ -4,7 +4,11 @@ package org.l2jmobius.tests.phantoms;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -147,6 +151,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	static final class PvpCapture implements AutoCloseable
 	{
 		private final DuelDamageBinding _binding;
+		private final Path _bindingFile;
 		private final DuelParticipant _scored;
 		private final DuelParticipant _opponent;
 		private final int _instance;
@@ -164,10 +169,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		private boolean _closed;
 		private boolean _invalid;
 
-		private PvpCapture(DuelDamageBinding binding, DuelParticipant scored, DuelParticipant opponent,
+		private PvpCapture(DuelDamageBinding binding, Path bindingFile, DuelParticipant scored, DuelParticipant opponent,
 			Map<LearningPolicy, LearningPolicy.Observer> delegates)
 		{
 			_binding = binding;
+			_bindingFile = bindingFile;
 			_scored = scored;
 			_opponent = opponent;
 			_instance = scored.player().getInstanceId();
@@ -304,14 +310,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 				&& target == victim.player().getObjectId() && targetEpoch == victim.epoch() && instance == _instance;
 		}
 
-		List<PaidPvpDamage> afterDrain(TacticalEpisodeV3.NativeDrain drain) throws Exception
-		{
-			final var evidence = afterDrainEvidence(drain);
-			require(!evidence.paidDamage().isEmpty(), "INVALID_OR_EMPTY_NATIVE_DUEL");
-			return evidence.paidDamage();
-		}
-
-		DuelEvidence afterDrainEvidence(TacticalEpisodeV3.NativeDrain drain) throws Exception
+		String sealAfterDrain(TacticalEpisodeV3.NativeDrain drain, long combatEnd) throws Exception
 		{
 			synchronized (this)
 			{
@@ -322,7 +321,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			{
 				drain.finish();
 				require(_scored.drained() && _opponent.drained(), "NATIVE_DUEL_NOT_DRAINED");
-				return finished(System.nanoTime());
+				final long settled = System.nanoTime();
+				final DuelEvidence evidence = finished(settled);
+				require(evidence.allDeathsLinked() && !evidence.paidDamage().isEmpty(), "INVALID_OR_EMPTY_NATIVE_DUEL");
+				return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), true, combatEnd, settled,
+					evidence.eventRows(), evidence.originalRows());
 			}
 			finally { close(); }
 		}
@@ -456,6 +459,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	}
 
 	private final SoloDamageBinding _binding;
+	private final Path _bindingFile;
 	private final long _profileId;
 	private final Player _actor;
 	private final Monster _target;
@@ -472,10 +476,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	private boolean _closed;
 	private boolean _invalid;
 
-	private PhantomLearning131AuditDamage(SoloDamageBinding binding, long profileId, Player actor, Monster target,
+	private PhantomLearning131AuditDamage(SoloDamageBinding binding, Path bindingFile, long profileId, Player actor, Monster target,
 		TacticalPolicyV3 ownedPolicy, Consumer<TacticalReceiptV3> existingPaidObserver)
 	{
 		_binding = binding;
+		_bindingFile = bindingFile;
 		_profileId = profileId;
 		_actor = actor;
 		_target = target;
@@ -498,7 +503,8 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	{
 		requireOwnedBoot(nonce);
 		final var sealed = PhantomLearning131Evaluation.duelDamageBinding(planned, binding, bindingSha, scored.getObjectId(), opponent.getObjectId());
-		final var capture = new PvpCapture(sealed,
+		requireUnusedEpisode(binding, sealed.episodeId());
+		final var capture = new PvpCapture(sealed, binding,
 			new DuelParticipant(scoredProfile, scored, sealed.scoredEpoch(), scored.getNativeWorkOwner()),
 			new DuelParticipant(opponentProfile, opponent, sealed.opponentEpoch(), opponent.getNativeWorkOwner()), ownedObservers);
 		require(ACTIVE_DUEL.compareAndSet(null, capture), "NATIVE_DUEL_OBSERVER_BUSY");
@@ -520,7 +526,8 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	{
 		requireOwnedBoot(nonce);
 		final var sealed = PhantomLearning131Evaluation.soloDamageBinding(planned, binding, bindingSha, actor.getObjectId(), target.getObjectId());
-		final var capture = new PhantomLearning131AuditDamage(sealed, profileId, actor, target, ownedPolicy, existingPaidObserver);
+		requireUnusedEpisode(binding, sealed.episodeId());
+		final var capture = new PhantomLearning131AuditDamage(sealed, binding, profileId, actor, target, ownedPolicy, existingPaidObserver);
 		require(ACTIVE.compareAndSet(null, capture), "NATIVE_TIMING_OBSERVER_BUSY");
 		try
 		{
@@ -592,7 +599,7 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 		}
 	}
 
-	List<PaidDamage> afterDrain(TacticalEpisodeV3.NativeDrain drain) throws Exception
+	String sealAfterDrain(TacticalEpisodeV3.NativeDrain drain, long combatEnd) throws Exception
 	{
 		synchronized (this)
 		{
@@ -604,7 +611,11 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 			drain.finish();
 			require(!_owner.isCurrent() && PlayerNativeWork.observationEvidence(_actor) == null
 				&& World.getInstance().findObject(_actor.getObjectId()) == null, "NATIVE_ACTOR_NOT_DRAINED");
-			return finished(System.nanoTime());
+			final long settled = System.nanoTime();
+			final var originals = finished(settled);
+			return sealClosedDamage(_bindingFile, _binding.episodeId(), _binding.sha(), false, combatEnd, settled,
+				originals.stream().flatMap(damage -> damage.eventRows().stream()).toList(),
+				originals.stream().flatMap(damage -> damage.originalRows().stream()).toList());
 		}
 		finally { close(); }
 	}
@@ -651,6 +662,77 @@ final class PhantomLearning131AuditDamage implements AutoCloseable
 	{
 		return TacticalObservationV3.hash(("TASK131_AUDIT_NATIVE_OPERATION_V1\n" + episodeId + "\n" + owner.generation() + "\n" + owner.operationKey())
 			.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static Path requireUnusedEpisode(Path binding, String episodeId) throws IOException
+	{
+		PhantomLearning131Native.taskRoot(binding);
+		PhantomLearning131Native.physical(binding, true);
+		final Path directory = binding.getParent();
+		require(binding.getFileName().toString().equals("binding131.tsv") && directory.getFileName().toString().equals(episodeId)
+			&& directory.getParent().getFileName().toString().equals("episodes"), "NATIVE_AUDIT_EPISODE_PATH");
+		for (String output : List.of("events131.tsv", "paid131.tsv", "complete131.pending", "complete131.tsv"))
+		{
+			final Path path = directory.resolve(output);
+			if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) { throw new FileAlreadyExistsException(path.toString()); }
+		}
+		return directory;
+	}
+
+	/** Write the completed paid projection once, with its seal published after both originals. */
+	static String sealClosedDamage(Path binding, String episodeId, String bindingSha, boolean pvp, long combatEnd, long settled,
+		List<String> eventRows, List<String> originalRows) throws IOException
+	{
+		final Path directory = requireUnusedEpisode(binding, episodeId);
+		final var events = eventRows.stream().map(row -> row.split("\t", -1))
+			.sorted(Comparator.comparingLong((String[] row) -> Long.parseLong(row[2]))
+				.thenComparingInt(row -> paidEventOrder(row[3])).thenComparing(row -> row[1])).toList();
+		final var paid = originalRows.stream().map(row -> row.split("\t", -1)).toList();
+		final var window = PhantomLearning131Evaluation.verifyClosedDamage(binding, episodeId, bindingSha, pvp, combatEnd, settled, events, paid);
+		final String identity = meta("episodeId", episodeId) + meta("bindingSha", bindingSha);
+		final String evidence = meta("schema", "NATIVE_EVENTS131_V1") + identity + rows(events);
+		final String originals = meta("schema", "NATIVE_PAID131_V3") + identity + rows(paid);
+		final String eventsSha = contentSha(evidence), paidSha = contentSha(originals);
+		final String seal = meta("schema", "NATIVE_EPISODE131_V3") + meta("bindingSha", bindingSha) + meta("eventsSha", eventsSha)
+			+ meta("paidOriginalsSha", paidSha) + meta("status", "DRAINED")
+			+ meta("combatElapsedNanos", window.combatElapsed()) + meta("settledElapsedNanos", window.settledElapsed());
+		writeNew(directory.resolve("events131.tsv"), evidence);
+		writeNew(directory.resolve("paid131.tsv"), originals);
+		PhantomLearning131Evaluation.verifyPersistedDamage(binding, episodeId, bindingSha, pvp, window.combatElapsed(), window.settledElapsed(), eventsSha, paidSha);
+		final Path pending = directory.resolve("complete131.pending");
+		writeNew(pending, seal);
+		Files.move(pending, directory.resolve("complete131.tsv"));
+		final String sha = contentSha(seal);
+		PhantomLearning131Evaluation.verifySealedDamage(binding, episodeId, sha, pvp);
+		return sha;
+	}
+
+	private static int paidEventOrder(String kind)
+	{
+		return switch (kind)
+		{
+			case "DECISION" -> 0;
+			case "ADMITTED" -> 1;
+			case "EXECUTED" -> 2;
+			case "DAMAGE" -> 3;
+			case "DEATH" -> 4;
+			case "KILL_CREDIT" -> 5;
+			default -> throw new IllegalArgumentException("TASK131_NATIVE_AUDIT_DAMAGE_KIND");
+		};
+	}
+
+	private static String rows(List<String[]> rows)
+	{
+		final var text = new StringBuilder();
+		for (String[] row : rows) { text.append(String.join("\t", row)).append('\n'); }
+		return text.toString();
+	}
+
+	private static String meta(String name, Object value) { return "meta\t" + name + '\t' + value + '\n'; }
+	private static String contentSha(String text) { return TacticalObservationV3.hash(text.getBytes(StandardCharsets.UTF_8)); }
+	private static void writeNew(Path path, String text) throws IOException
+	{
+		Files.writeString(path, text, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
 	}
 
 	private static String deathEvent(NativeTerminal terminal, String operationId, long generation)

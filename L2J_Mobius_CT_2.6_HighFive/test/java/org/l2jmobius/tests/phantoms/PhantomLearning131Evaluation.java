@@ -71,6 +71,7 @@ public final class PhantomLearning131Evaluation
 	private record Occurrence(String boot, int bootOrder, String id, String sealSha, int attempt, int position, Block block) { }
 	private record Participant(long epoch, Side side, Role role) { }
 	private record Binding(Document document, Slot slot, long started, Map<Integer, Participant> participants) { }
+	private record EpisodeDocuments(Document events, Document paid) { }
 	private record Evaluation(Episode episode, EpisodeWindow window, String boot, Raw raw) { }
 	record EpisodeWindow(long started, long combatElapsed, long settledElapsed)
 	{
@@ -331,18 +332,13 @@ public final class PhantomLearning131Evaluation
 				final boolean retry = ordered.size() == 8 && index < 4;
 				require(occurrence.attempt() == index / 4 && occurrence.position() == index % 4, "EPISODE_ORDER_OR_DUPLICATE_SLOT");
 				final Path directory = originals.resolve("episodes").resolve(occurrence.id());
-				final Document seal = document(directory.resolve("complete131.tsv"), "NATIVE_EPISODE131_V3", "schema", "bindingSha", "eventsSha",
-					"paidOriginalsSha", "status", "combatElapsedNanos", "settledElapsedNanos");
-				require(seal.sha().equals(occurrence.sealSha()), "EPISODE_SEAL_PIN");
+				final Document seal = readEpisodeSeal(directory, occurrence.sealSha());
 				final Binding binding = bind(directory, manifest, occurrence, seal);
 				require(occurrence.bootOrder() >= previousBoot && (occurrence.bootOrder() != previousBoot || binding.started() >= previousEnd), "EXECUTED_BLOCK_ORDER");
 				previousBoot = occurrence.bootOrder();
 				previousEnd = binding.started();
-				final Document evidence = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
-				require(evidence.sha().equals(seal.get("eventsSha")) && evidence.get("episodeId").equals(occurrence.id()) && evidence.get("bindingSha").equals(binding.document().sha()), "RAW_EVENTS_PIN");
-				final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V3", "schema", "episodeId", "bindingSha");
-				require(paid.sha().equals(seal.get("paidOriginalsSha")) && paid.get("episodeId").equals(occurrence.id())
-					&& paid.get("bindingSha").equals(binding.document().sha()), "PAID_ORIGINALS_PIN");
+				final var documents = readEpisodeDocuments(directory, occurrence.id(), binding.document().sha(), seal.get("eventsSha"), seal.get("paidOriginalsSha"));
+				final Document evidence = documents.events(), paid = documents.paid();
 				if (retry)
 				{
 					require(seal.get("status").equals("PRE_ACTION_INFRA_RETRY") && seal.get("combatElapsedNanos").equals("0")
@@ -358,10 +354,8 @@ public final class PhantomLearning131Evaluation
 				}
 				final var window = new EpisodeWindow(binding.started(), positive(seal.get("combatElapsedNanos")), positive(seal.get("settledElapsedNanos")));
 				previousEnd = window.settledEnd();
-				final var epochs = new HashMap<Integer, Long>();
-				binding.participants().forEach((object, member) -> epochs.put(object, member.epoch()));
 				final boolean pvp = plan.stratum() == Stratum.DUEL_PVP || plan.stratum() == Stratum.GROUP_PVP;
-				verifyPaidProjection(evidence.rows(), PhantomLearning131AuditOriginals.decode(paid.rows(), occurrence.id()), epochs, window, pvp);
+				verifyPaidProjection(evidence.rows(), PhantomLearning131AuditOriginals.decode(paid.rows(), occurrence.id()), epochs(binding.participants()), window, pvp);
 				final var raw = new Raw(binding, occurrence.block(), audit.prices(), window);
 				for (String[] event : evidence.rows())
 				{
@@ -371,6 +365,70 @@ public final class PhantomLearning131Evaluation
 			}
 		}
 		return report(audit, origins.sha(), plans, rows);
+	}
+
+	private static Document readEpisodeSeal(Path directory, String sealSha) throws IOException
+	{
+		final Document seal = document(directory.resolve("complete131.tsv"), "NATIVE_EPISODE131_V3", "schema", "bindingSha", "eventsSha",
+			"paidOriginalsSha", "status", "combatElapsedNanos", "settledElapsedNanos");
+		require(seal.sha().equals(sealSha) && seal.rows().isEmpty(), "EPISODE_SEAL_PIN");
+		return seal;
+	}
+
+	private static EpisodeDocuments readEpisodeDocuments(Path directory, String id, String bindingSha, String eventsSha, String paidSha) throws IOException
+	{
+		final Document events = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
+		require(events.sha().equals(eventsSha) && events.get("episodeId").equals(id) && events.get("bindingSha").equals(bindingSha), "RAW_EVENTS_PIN");
+		final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V3", "schema", "episodeId", "bindingSha");
+		require(paid.sha().equals(paidSha) && paid.get("episodeId").equals(id) && paid.get("bindingSha").equals(bindingSha), "PAID_ORIGINALS_PIN");
+		return new EpisodeDocuments(events, paid);
+	}
+
+	static EpisodeWindow verifyClosedDamage(Path path, String episodeId, String bindingSha, boolean pvp, long combatEnd, long settled,
+		List<String[]> events, List<String[]> paid) throws IOException
+	{
+		final Document binding = readBinding(path);
+		require(binding.get("episodeId").equals(episodeId) && binding.sha().equals(bindingSha), "EPISODE_BINDING_PIN");
+		final long started = positive(binding.get("startNanos"));
+		final var window = new EpisodeWindow(started, Math.subtractExact(combatEnd, started), Math.subtractExact(settled, started));
+		verifyClosedDamage(binding, episodeId, pvp, window, events, paid);
+		return window;
+	}
+
+	static void verifySealedDamage(Path path, String episodeId, String sealSha, boolean pvp) throws IOException
+	{
+		final Document seal = readEpisodeSeal(path.getParent(), sealSha);
+		require(seal.get("status").equals("DRAINED"), "DRAINED_NATIVE_EPISODE");
+		verifyPersistedDamage(path, episodeId, seal.get("bindingSha"), pvp, positive(seal.get("combatElapsedNanos")),
+			positive(seal.get("settledElapsedNanos")), seal.get("eventsSha"), seal.get("paidOriginalsSha"));
+	}
+
+	static void verifyPersistedDamage(Path path, String episodeId, String bindingSha, boolean pvp, long combatElapsed, long settledElapsed,
+		String eventsSha, String paidSha) throws IOException
+	{
+		final Document binding = readBinding(path);
+		require(binding.get("episodeId").equals(episodeId) && binding.sha().equals(bindingSha), "EPISODE_BINDING_PIN");
+		final EpisodeDocuments originals = readEpisodeDocuments(path.getParent(), episodeId, bindingSha, eventsSha, paidSha);
+		final var window = new EpisodeWindow(positive(binding.get("startNanos")), combatElapsed, settledElapsed);
+		verifyClosedDamage(binding, episodeId, pvp, window, originals.events().rows(), originals.paid().rows());
+	}
+
+	private static void verifyClosedDamage(Document binding, String episodeId, boolean pvp, EpisodeWindow window,
+		List<String[]> events, List<String[]> paid)
+	{
+		final var originals = PhantomLearning131AuditOriginals.decode(paid, episodeId);
+		require(!originals.isEmpty(), "NO_PAID_NATIVE_ORIGINALS");
+		final var operations = new HashSet<String>();
+		originals.values().forEach(fact -> operations.add(fact.operationId()));
+		require(events.stream().allMatch(row -> row.length >= 7 && operations.contains(row[6])), "UNBOUND_CLOSED_DAMAGE_EVENT");
+		verifyPaidProjection(events, originals, epochs(participants(binding, Side.valueOf(binding.get("side")))), window, pvp);
+	}
+
+	private static Map<Integer, Long> epochs(Map<Integer, Participant> roster)
+	{
+		final var epochs = new HashMap<Integer, Long>();
+		roster.forEach((object, member) -> epochs.put(object, member.epoch()));
+		return epochs;
 	}
 
 	/** Reconstruct native cast stages, damage and deaths from separately sealed paid originals. */

@@ -122,7 +122,7 @@ public final class PhantomLearning131EvaluationChecks
 		}
 	}
 
-	private static void paidPveOriginalRoundTrip()
+	private static void paidPveOriginalRoundTrip() throws Exception
 	{
 		final String episode = "1".repeat(64), event = "2".repeat(64);
 		final var self = new TacticalObservationV3.Entity(TacticalObservationV3.Role.SELF, 42, 7, 0, 0, Map.of(),
@@ -167,8 +167,82 @@ public final class PhantomLearning131EvaluationChecks
 		final String[] damage = {"event", event, "1045", "DAMAGE", "42", "102", npc.operationId(), "800", "0"};
 		final String[] death = {"event", npc.lethalKey(), "1050", "DEATH", "42", "102", npc.operationId()};
 		final String[] credit = {"event", npc.killCreditKey(), "1060", "KILL_CREDIT", "42", "102", npc.operationId()};
-		PhantomLearning131Evaluation.verifyPaidProjection(paidEvents(npc, damage, death, credit), Map.of(event, npc),
+		final var events = paidEvents(npc, damage, death, credit);
+		PhantomLearning131Evaluation.verifyPaidProjection(events, Map.of(event, npc),
 			Map.of(42, 7L, 102, 91L), new EpisodeWindow(1000, 54, 90), false);
+		closedDamageSeal(episode, events.stream().map(row -> String.join("\t", row)).toList(),
+			List.of(String.join("\t", fatalRow), String.join("\t", terminal), String.join("\t", cast)));
+	}
+
+	private static void closedDamageSeal(String episode, List<String> events, List<String> originals) throws Exception
+	{
+		final Path reports = Path.of(System.getProperty("phantom.test.reports", ".")).toRealPath();
+		final Path scratch = Files.createTempDirectory(reports, "task131-closed-damage-");
+		try
+		{
+			final Path directory = Files.createDirectories(scratch.resolve(".phantom-local/logs/TASK131/episodes").resolve(episode));
+			final String metadata = meta("schema", "NATIVE_BINDING131_V1", "manifestSha", "a".repeat(64), "bootId", "boot-01", "blockId", "solo-01",
+				"episodeId", episode, "attempt", "0", "position", "0", "arm", "C", "side", "LEFT", "sceneId", "solo", "fixtureSha", "b".repeat(64),
+				"opponentSha", "c".repeat(64), "policySha", "d".repeat(64), "modelSha", "e".repeat(64), "startNanos", "1000");
+			final Path binding = Files.writeString(directory.resolve("binding131.tsv"), metadata + "actor\t42\t7\tLEFT\tDAMAGE\nactor\t102\t91\tRIGHT\tOPPONENT\n");
+			final String bindingSha = digest(binding);
+			try
+			{
+				PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, bindingSha, false, 1049, 1090, events, originals);
+				throw new AssertionError("A late death must prevent publishing completed evidence");
+			}
+			catch (IllegalArgumentException refused)
+			{
+				check(refused.getMessage().equals("EVAL131_PAID_ORIGIN_OR_NATIVE_WINDOW"), "the combat cutoff must govern paid completion");
+			}
+			final var unbound = new ArrayList<>(events);
+			final String[] orphan = events.getFirst().split("\t", -1);
+			orphan[6] = "f".repeat(64);
+			unbound.add(String.join("\t", orphan));
+			try
+			{
+				PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, bindingSha, false, 1054, 1090, unbound, originals);
+				throw new AssertionError("Unattributed actions cannot enter the damage-only seal");
+			}
+			catch (IllegalArgumentException refused)
+			{
+				check(refused.getMessage().equals("EVAL131_UNBOUND_CLOSED_DAMAGE_EVENT"), "only operations with paid originals may be sealed here");
+			}
+			final Path seal = directory.resolve("complete131.tsv");
+			check(Files.notExists(seal) && Files.notExists(directory.resolve("events131.tsv")), "a refused episode never writes originals or a seal");
+			final String sealed = PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, bindingSha, false, 1054, 1090, events.reversed(), originals);
+			PhantomLearning131Evaluation.verifySealedDamage(binding, episode, sealed, false);
+			check(digest(seal).equals(sealed) && digest(binding).equals(bindingSha) && Files.notExists(directory.resolve("complete131.pending"))
+				&& Files.readString(seal).contains("meta\tcombatElapsedNanos\t54\n") && Files.readString(seal).contains("meta\tsettledElapsedNanos\t90\n"),
+				"the published seal pins a complete sorted projection and both native clocks");
+			try
+			{
+				PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, bindingSha, false, 1054, 1090, events, originals);
+				throw new AssertionError("A sealed episode must never be published again");
+			}
+			catch (java.nio.file.FileAlreadyExistsException refused)
+			{
+				check(digest(seal).equals(sealed), "a repeated publication preserves the original seal");
+			}
+			final Path paid = directory.resolve("paid131.tsv");
+			Files.writeString(paid, Files.readString(paid).replace("meta\tschema\tNATIVE_PAID131_V3", "meta\tschema\tNATIVE_PAID131_V2"));
+			try
+			{
+				PhantomLearning131Evaluation.verifySealedDamage(binding, episode, sealed, false);
+				throw new AssertionError("Replacing the original after publication must break independent readback");
+			}
+			catch (IllegalArgumentException refused)
+			{
+				check(refused.getMessage().equals("EVAL131_SCHEMA_OR_FIELDS"), "the reader independently checks the paid originals");
+			}
+		}
+		finally
+		{
+			try (var paths = Files.walk(scratch))
+			{
+				for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) { Files.delete(path); }
+			}
+		}
 	}
 
 	private static void rejectsPaidOriginals(List<String[]> rows, String episodeId)

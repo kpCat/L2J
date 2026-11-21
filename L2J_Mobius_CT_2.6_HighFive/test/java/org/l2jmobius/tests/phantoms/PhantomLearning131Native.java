@@ -1335,7 +1335,7 @@ public final class PhantomLearning131Native
 		return raw;
 	}
 
-	private static Path taskRoot(Path path)
+	static Path taskRoot(Path path)
 	{
 		for (Path part = path.getParent(); part != null; part = part.getParent())
 		{
@@ -1344,7 +1344,7 @@ public final class PhantomLearning131Native
 		throw failure("TASK_ROOT");
 	}
 
-	private static Path physical(Path input, boolean file) throws IOException
+	static Path physical(Path input, boolean file) throws IOException
 	{
 		check(input.isAbsolute() && input.normalize().equals(input), "NONCANONICAL_ARTIFACT_PATH");
 		for (Path part = input; part != null; part = part.getParent())
