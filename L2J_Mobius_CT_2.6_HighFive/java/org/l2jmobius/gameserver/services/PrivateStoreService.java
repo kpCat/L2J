@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.network.holders.TradeList;
 import org.l2jmobius.gameserver.network.holders.TradeList.MutationMode;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService;
 
 /** Packet-independent owner of canonical private-store transactions. */
 public final class PrivateStoreService
@@ -130,8 +131,23 @@ public final class PrivateStoreService
 
 	private Result mutate(Direction direction, Player actor, Player owner, TradeList list, String requestHash, MutationMode mode, String expectedListingHash, String expectedRequestHash, Mutation mutation)
 	{
+		// Both a dedicated merchant callback and stock offline closure can call Player STORE.
+		// The order must also hold while an existing offline shop is being adopted.
+		synchronized (owner)
+		{
+			return mutateListing(direction, actor, owner, list, requestHash, mode, expectedListingHash, expectedRequestHash, mutation);
+		}
+	}
+
+	private Result mutateListing(Direction direction, Player actor, Player owner, TradeList list, String requestHash, MutationMode mode, String expectedListingHash, String expectedRequestHash, Mutation mutation)
+	{
 		synchronized (list)
 		{
+			final PrivateStoreType storeType = owner.getPrivateStoreType();
+			final boolean matchingStore = direction == Direction.BUY_FROM_SELL_STORE
+				? storeType == PrivateStoreType.SELL || storeType == PrivateStoreType.PACKAGE_SELL
+				: storeType == PrivateStoreType.BUY;
+			if (!matchingStore || World.getInstance().getPlayer(owner.getObjectId()) != owner) { return Result.REJECTED; }
 			final String beforeHash = listingHash(list);
 			if ((expectedListingHash != null) && (!expectedListingHash.equals(beforeHash) || !expectedRequestHash.equals(requestHash)))
 			{
@@ -139,6 +155,7 @@ public final class PrivateStoreService
 			}
 			// Reject an unsafe owner listing before a durable pair observer begins observing effects.
 			final OwnerObserver ownerAdmission = _ownerObservers.get(owner.getObjectId());
+			if (ownerAdmission == null && PhantomOfflineMerchantService.ownsNative(owner)) { return Result.REJECTED; }
 			if (ownerAdmission != null && !ownerAdmission.beforeTransaction(owner, list)) { return Result.REJECTED; }
 			final Observer observer = _observers.get(new Key(direction, actor.getObjectId(), owner.getObjectId()));
 			if ((observer != null) && !observer.beforeMutation(direction, actor, owner, list, beforeHash, requestHash, mode))
@@ -179,10 +196,9 @@ public final class PrivateStoreService
 				{
 					observer.afterMutation(direction, actor, owner, list, beforeHash, listingHash(list), success);
 				}
-				final OwnerObserver ownerObserver = _ownerObservers.get(owner.getObjectId());
-				if (ownerObserver != null)
+				if (ownerAdmission != null)
 				{
-					ownerObserver.afterTransaction(owner, list, success);
+					ownerAdmission.afterTransaction(owner, list, success);
 				}
 			}
 		}

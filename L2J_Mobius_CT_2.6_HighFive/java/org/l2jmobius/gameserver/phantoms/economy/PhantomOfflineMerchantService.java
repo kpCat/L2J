@@ -307,7 +307,10 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 				role = role.withStage(Stage.READY); save(role);
 			}
 			if (role.stage() != Stage.READY) { throw new IllegalStateException("Merchant bootstrap not settled."); }
-			if (_craftProvision != null && !observed(new PhantomNavigationPoint(role.x(), role.y(), role.z(), 0))) { _craftProvision.qualify(_server.profileId(), role, player, lease); }
+			if (_craftProvision != null && !observed(new PhantomNavigationPoint(role.x(), role.y(), role.z(), 0)))
+			{
+				synchronized (player) { _craftProvision.qualify(_server.profileId(), role, player, lease); }
+			}
 			player.abortAttack(); player.abortCast(); player.stopMove(null); player.setAutoPlaying(false); player.getAI().setIntention(Intention.IDLE); player.getAI().stopAITask();
 			player.setOnlineStatus(true, false);
 			if (!restored)
@@ -396,6 +399,16 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 	}
 	private void refreshListing(Role role, Player player, long now)
 	{
+		// Native STORE owns Player before reading the manufacture list. Keep the same
+		// order for qualification, listing replacement and all enclosed STORE calls.
+		synchronized (player)
+		{
+			refreshListingWithStoreLock(role, player, now);
+		}
+	}
+
+	private void refreshListingWithStoreLock(Role role, Player player, long now)
+	{
 		if (_stopping || !ownsNative(player) || World.getInstance().getPlayer(player.getObjectId()) != player || RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
 		if (_craftProvision != null && !observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))) { _craftProvision.qualify(_server.profileId(), role, player, _leases.get(role.ordinal())); }
 		synchronized (player.getSellList())
@@ -461,7 +474,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 			&& ownsNative(player) && World.getInstance().getPlayer(player.getObjectId()) == player && player.getAccessLevel().getLevel() == 0 && player.getClient() == null && !player.hasHeadlessOutboundSession()
 			&& player.getNativeWorkOwner() == null && !player.isInParty() && player.getClanId() == 0 && player.getClassIndex() == 0 && !player.isChangingClass() && !player.isAlikeDead()
 			&& !player.isCrafting() && !RecipeManager.getInstance().isMakingItem(player) && !player.isProcessingTransaction() && !player.hasPendingOwnedStore() && player.isInsideZone(ZoneId.PEACE) && player.getInstanceId() == 0
-			&& Thread.holdsLock(player.getSellList()) && Thread.holdsLock(player.getBuyList()) && Thread.holdsLock(player.getManufactureItems())
+			&& Thread.holdsLock(player) && Thread.holdsLock(player.getSellList()) && Thread.holdsLock(player.getBuyList()) && Thread.holdsLock(player.getManufactureItems())
 			&& !observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()));
 	}
 	private void open(Role role, Player player, long now)
@@ -670,11 +683,20 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 		if (_owners.values().stream().anyMatch(player -> RecipeManager.getInstance().isMakingItem(player))) { return false; }
 		for (var player : _owners.values())
 		{
-			synchronized (player.getSellList()) { synchronized (player.getBuyList()) { synchronized (player.getManufactureItems())
+			synchronized (player)
 			{
-				if (RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return false; }
-				player.storeMe();
-			} } }
+				synchronized (player.getSellList())
+				{
+					synchronized (player.getBuyList())
+					{
+						synchronized (player.getManufactureItems())
+						{
+							if (RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return false; }
+							player.storeMe();
+						}
+					}
+				}
+			}
 		}
 		for (var player : _newActors.values()) { player.stopAllTasks(); }
 		return true;
