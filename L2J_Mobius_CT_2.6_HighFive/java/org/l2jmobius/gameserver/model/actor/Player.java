@@ -629,6 +629,7 @@ public class Player extends Playable
 	private byte _pvpFlag;
 	// Bounded native damage facts, distinct from NPC hate. No Player references or scheduled work.
 	private final Map<Integer, Long> _recentPlayerAttackers = new LinkedHashMap<>();
+	private volatile int _nativeDeathKillerObjectId;
 	
 	/** The Fame of this Player */
 	private int _fame;
@@ -5844,8 +5845,15 @@ public class Player extends Playable
 		{
 			DecayTaskManager.getInstance().add(this);
 		}
+		final Player killerPlayer = killer == null ? null : killer.asPlayer();
+		_nativeDeathKillerObjectId = killerPlayer == null ? -1 : killerPlayer.getObjectId();
 		
 		return true;
+	}
+
+	public int nativeDeathKillerObjectId()
+	{
+		return _nativeDeathKillerObjectId;
 	}
 	
 	private void onDieDropItem(Creature killer)
@@ -11625,6 +11633,10 @@ public class Player extends Playable
 	public void doRevive()
 	{
 		super.doRevive();
+		if (!isDead())
+		{
+			_nativeDeathKillerObjectId = 0;
+		}
 		
 		// Stop decay task.
 		DecayTaskManager.getInstance().cancel(this);

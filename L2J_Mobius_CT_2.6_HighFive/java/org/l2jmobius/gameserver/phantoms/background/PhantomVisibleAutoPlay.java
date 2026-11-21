@@ -203,6 +203,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final Session replaced;
 			synchronized (owner(profileId))
 			{
+				if (!_permitsNewRoots.test(profileId)) { return false; }
 				replaced = _sessions.put(profileId, session);
 				if (replaced != null) { replaced._current.set(false); }
 			}
@@ -258,7 +259,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private boolean yieldAfterCurrentTarget(long profileId, long deadlineEpochMillis, boolean executionYield)
 	{
 		if (!executionYield && deadlineEpochMillis <= System.currentTimeMillis()) { return false; }
-		final Session session = _sessions.get(profileId);
+		final Session session;
+		synchronized (owner(profileId)) { session = _sessions.get(profileId); }
 		if (session == null || !session._current.get()) { return true; }
 		if (!session._commandGate.compareAndSet(false, true)) { return false; }
 		try
@@ -282,6 +284,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					|| session._yieldTarget != null && !session._yieldTarget.isAlikeDead())) { return false; }
 				if (player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow()) { return false; }
 				if (session._loot.tick(player, _clock.getAsLong())) { return false; }
+				if (session._engagement != null) { session._engagement.stopMovement(player, session._epoch); }
+				stopResourceRetreat(session, player);
 				stop(profileId, session);
 				return true;
 			}

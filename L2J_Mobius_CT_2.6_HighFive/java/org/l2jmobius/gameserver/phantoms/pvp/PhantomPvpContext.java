@@ -124,6 +124,13 @@ public final class PhantomPvpContext
 			&& PhantomNativeTravelActions.safePveWalkSegment(actor, waypoint.x(), waypoint.y(), waypoint.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(actor, Monster.class, 1200)), Set.of());
 	}
 
+	boolean defeatedByCounterpart(PhantomPvpModel.Encounter encounter)
+	{
+		final var lifetime = _materialization.find(encounter.profileId()).orElse(null);
+		final Player actor = lifetime == null || !lifetime.worldPresent() ? null : World.getInstance().getPlayer(lifetime.characterObjectId());
+		return actor != null && actor.isDead() && actor.nativeDeathKillerObjectId() == encounter.counterpart().currentObjectId();
+	}
+
 	private Player retreatActor(long profileId)
 	{
 		final var lifetime = _materialization.find(profileId).orElse(null);

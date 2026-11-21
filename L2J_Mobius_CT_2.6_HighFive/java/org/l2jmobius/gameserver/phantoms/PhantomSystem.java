@@ -180,6 +180,7 @@ import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftStore;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpContext;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpPolicy;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpService;
+import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpService.FarmYield;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpStore;
 
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
@@ -590,9 +591,9 @@ public final class PhantomSystem
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> localityPreparationCandidate(_populationManager, profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, backgroundPlanner, _backgroundService, _materializationService);
-				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime,
+				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> !pvpHoldsOrdinaryFarm(profileId) && (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime,
 					_testFarmTargetScope, _testLearning131 == null ? null : _testLearning131.soloOffense());
-				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
+				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> !pvpHoldsOrdinaryFarm(profileId) && ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				final var supplyLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				final var productionComposition = PhantomMaterializationLifecyclePort.chain(_visibleFarmTravel, PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)))));
@@ -983,7 +984,7 @@ public final class PhantomSystem
 					pvpSocial,
 					new PhantomPvpRetreatCoordinator(_navigationService, _topologyService, _combatService),
 					org.l2jmobius.gameserver.phantoms.pvp.PhantomKarmaRecoveryPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/high-five-karma-recovery-v1.xml").toPath()),
-					new org.l2jmobius.gameserver.phantoms.pvp.L2jPhantomKarmaRecoveryContext(_materializationService));
+					new org.l2jmobius.gameserver.phantoms.pvp.L2jPhantomKarmaRecoveryContext(_materializationService), this::preparePvpFarmYield);
 				if (!_pvpService.start())
 				{
 					throw new IllegalStateException("Phantom PvP service could not enter the running state.");
@@ -3657,6 +3658,23 @@ public final class PhantomSystem
 
 	private boolean soloExecution(long id)
 	{ return _executionAdmission != null && (_historicalBackgroundService == null || !_historicalBackgroundService.activityPending(id)) && _executionAdmission.permits(id, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)); }
+	private boolean pvpHoldsOrdinaryFarm(long id)
+	{
+		return _pvpService != null && _pvpService.holdsOrdinaryFarm(id);
+	}
+
+	private FarmYield preparePvpFarmYield(long id, Runnable holdFarm)
+	{
+		if (_partyCoordinator.blocksBackground(id)) { return FarmYield.READY; }
+		if (!soloExecution(id) || !_materializationRetention.permitsNewActions(id) || _phantomStoreService.blocksDecision(id) || hasAcceptedNativeJourney(id)) { return FarmYield.UNAVAILABLE; }
+		try (var observation = _materializationService.tryAcquireObservation(id).orElse(null))
+		{
+			if (observation == null || observation.player().isAlikeDead() || observation.player().isInStoreMode() || observation.player().hasPendingOwnedStore()) { return FarmYield.UNAVAILABLE; }
+		}
+		holdFarm.run();
+		return _visibleAutoPlay.prepareExecutionYield(id, System.currentTimeMillis()) && _visibleFarmTravel.yieldForPreparation(id) ? FarmYield.READY : FarmYield.DRAINING;
+	}
+
 	private PhantomDomainRef executionPartyOwner(long id)
 	{
 		final var group = _logicalParties == null ? null : _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);

@@ -550,7 +550,7 @@ public final class PhantomCombatService
 						else if (pvpRequest != null)
 						{
 							final PvpTargetSnapshot target = lease.pvpTargetSnapshot(request.targetObjectId());
-							validTarget = (target != null) && target.validFor(actor, _policy.maximumAcquisitionDistance());
+							validTarget = (target != null) && target.validFor(actor, _policy.maximumAcquisitionDistance()) && (pvpRequest.forceUse() || target.autoAttackable());
 						}
 						else
 						{
@@ -913,6 +913,14 @@ public final class PhantomCombatService
 	public Optional<PhantomCombatSessionSnapshot> consumeTerminal(long profileId)
 	{
 		return consumeTerminal(profileId, 0, 0, null);
+	}
+
+	public Optional<PhantomCombatSessionSnapshot> consumePvpTerminal(long profileId, int targetObjectId, String authorityHash)
+	{
+		synchronized (_monitor)
+		{
+			return matchesPvpSession(profileId, targetObjectId, authorityHash) ? consumeTerminal(profileId) : Optional.empty();
+		}
 	}
 
 	public Optional<PhantomCombatSessionSnapshot> consumeContentTerminal(long profileId, long generation, int targetObjectId, String operationOwner)
@@ -1951,12 +1959,14 @@ public final class PhantomCombatService
 	private void processPvp(PhantomCombatSession session, ActorSnapshot actor, boolean stockPvp)
 	{
 		final PvpTargetSnapshot target = session._actorLease.pvpTargetSnapshot(session._request.targetObjectId());
-		if ((target != null) && (target.dead() || target.alikeDead()))
+		if (target != null && target.dead())
 		{
-			finish(session, PhantomCombatResult.VICTORY);
+			final int killer = session._actorLease.pvpDeathKillerObjectId(target.objectId());
+			if (killer == 0) { requeue(session); }
+			else { finish(session, killer == actor.objectId() ? PhantomCombatResult.VICTORY : PhantomCombatResult.TARGET_LOST); }
 			return;
 		}
-		if ((target == null) || !target.validFor(actor, _policy.maximumAcquisitionDistance()))
+		if ((target == null) || !target.validFor(actor, _policy.maximumAcquisitionDistance()) || (!session._pvpRequest.forceUse() && !target.autoAttackable()))
 		{
 			finish(session, PhantomCombatResult.TARGET_LOST);
 			return;
@@ -2032,7 +2042,7 @@ public final class PhantomCombatService
 			if (outcome == ActionOutcome.ALREADY_OWNED) { return; }
 		}
 		if (learned != null || !session._loadout.normalAttackFallback()) { return; }
-		final ActionOutcome outcome = session._actorLease.attackPvp(ownerObjectId, tacticalTargetObjectId, session._pvpRequest.authorityHash());
+		final ActionOutcome outcome = session._actorLease.attackPvp(ownerObjectId, tacticalTargetObjectId, session._pvpRequest.forceUse(), session._pvpRequest.authorityHash());
 		if (outcome == ActionOutcome.ISSUED)
 		{
 			session._ownedAction = session._ownedAction.withSelectedSkill(null);

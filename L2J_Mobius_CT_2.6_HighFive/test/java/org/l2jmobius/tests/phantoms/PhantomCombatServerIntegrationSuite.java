@@ -4287,7 +4287,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final Player target = preparePvpTarget();
 		final double initialHp = target.getCurrentHp();
 		final double initialCp = target.getCurrentCp();
-		final PhantomCombatService.StartResult started = _combat.startPvpSession(pvpRequest(target, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, PhantomCombatMode.MELEE_PHYSICAL, false));
+		final PhantomCombatService.StartResult started = _combat.startPvpSession(pvpRequest(target, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.REVENGE, PhantomCombatMode.MELEE_PHYSICAL, true));
 		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, started.status(), "Real Player physical PvP was not accepted.");
 		await(() -> _player.hasAI() && (_player.getAI().getIntention() == Intention.ATTACK) && (_player.getAI().getAttackTarget() == target), "Canonical target.onForcedAttack did not establish the exact Player attack.");
 		PhantomAssertions.assertTrue((target.getCurrentHp() <= initialHp) && (target.getCurrentCp() <= initialCp), "Canonical physical PvP fabricated target HP or CP.");

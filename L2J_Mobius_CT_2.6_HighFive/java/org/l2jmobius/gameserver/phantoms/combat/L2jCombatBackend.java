@@ -374,6 +374,13 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public int pvpDeathKillerObjectId(int targetObjectId)
+		{
+			final Player target = World.getInstance().getPlayer(targetObjectId);
+			return target != null && target.isDead() ? target.nativeDeathKillerObjectId() : -1;
+		}
+
+		@Override
 		public PvpLinkedServitorSnapshot pvpLinkedServitorSnapshot(int ownerObjectId)
 		{
 			final WorldObject object = World.getInstance().findObject(ownerObjectId);
@@ -1392,7 +1399,9 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				}
 				final boolean currentAttack = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(attacker, protectedPlayer);
 				final PvpTargetSnapshot target = pvpTargetSnapshot(attacker.getObjectId());
-				if (currentAttack && (target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+				// A solo victim can use recent paid damage after the attacker changes selection.
+				// Keep the stricter current-target witness for defense of another Party member.
+				if ((currentAttack || protectedPlayer == _player && !_player.isInParty()) && (target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
 				{
 					observations.put(attacker.getObjectId(), new ThreatObservation(attacker.getObjectId(), 1));
 					if (observations.size() > limit)
@@ -1828,6 +1837,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome attackPvp(int ownerObjectId, int tacticalTargetObjectId, String authorityHash)
 		{
+			return attackPvp(ownerObjectId, tacticalTargetObjectId, true, authorityHash);
+		}
+
+		@Override
+		public ActionOutcome attackPvp(int ownerObjectId, int tacticalTargetObjectId, boolean forceUse, String authorityHash)
+		{
 			if ((authorityHash == null) || !authorityHash.matches("[0-9A-F]{64}"))
 			{
 				return ActionOutcome.REJECTED;
@@ -1843,12 +1858,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final Creature target = pvpActionTarget(owner, tacticalTargetObjectId, snapshot);
-			if (target == null || target.isInvul())
+			if (target == null || target.isInvul() || (!forceUse && !target.isAutoAttackable(_player)))
 			{
 				return ActionOutcome.REJECTED;
 			}
 			_player.setTarget(target);
-			if (coordinateServitor(target, true))
+			if (coordinateServitor(target, forceUse))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}

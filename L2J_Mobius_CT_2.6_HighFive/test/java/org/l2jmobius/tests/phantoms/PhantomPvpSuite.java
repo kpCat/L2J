@@ -144,7 +144,9 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(Decision.ENGAGE, engage.decision(), "Persisted warning and delay did not authorize engagement.");
 			PhantomAssertions.assertTrue(engage.forceUse(), "Exact proactive neutral target did not retain force authority.");
 			final Candidate reactive = candidate(Source.ACTUAL_ATTACK, now);
-			PhantomAssertions.assertEquals(Decision.ENGAGE, policy.decide(reactive, risk(100, 100, false), encounter(reactive, Stage.OBSERVE, "", 0, 0, 0), now).decision(), "Reactive attack did not bypass warning.");
+			final Encounter observedAttack = encounter(reactive, Stage.OBSERVE, "", 0, 0, 0);
+			PhantomAssertions.assertEquals(Decision.WAIT, policy.decide(reactive, risk(100, 100, false), observedAttack, now).decision(), "Reactive combat gained forced authority against a neutral player.");
+			PhantomAssertions.assertEquals(Decision.ENGAGE, policy.decide(reactive, risk(100, 100, true), observedAttack, now).decision(), "A native auto-attackable opponent still required a warning.");
 			PhantomAssertions.assertEquals(Decision.RETREAT, policy.decide(reactive, risk(10, 20, true), encounter(reactive, Stage.OBSERVE, "", 0, 0, 0), now).decision(), "Low effective pool did not retreat.");
 			PhantomAssertions.assertEquals(Decision.COOLDOWN, policy.decide(proactive, risk(100, 100, false), encounter(proactive, Stage.WARN, "receipt", now - (6 * SECOND), 1, 0), now).decision(), "Per-pair proactive budget was exceeded.");
 		});
@@ -224,6 +226,26 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(1, fixture.lease.pvpCasts, "Skill PvP did not reach explicit backend path.");
 				PhantomAssertions.assertTrue(fixture.lease.lastForceUse, "Exact proactive forceUse was lost.");
 				PhantomAssertions.assertEquals(0, fixture.lease.legacyCasts, "Skill PvP weakened or reused legacy monster cast.");
+			}
+		});
+		registry.add("131-real-killer-is-required-for-victory-and-exact-drain", _ ->
+		{
+			for (int killer : List.of(10, 11, -1))
+			{
+				try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
+				{
+					PhantomAssertions.assertTrue(fixture.start(Source.ACTUAL_ATTACK, false).accepted(), "Valid flagged target did not start.");
+					fixture.lease.pvpTarget = target(false, false, true);
+					fixture.lease.deathKiller = 0;
+					fixture.dispatcher.runNext();
+					PhantomAssertions.assertTrue(fixture.service.consumePvpTerminal(1, 100, HASH).isEmpty(), "Native death handling did not finish before the result.");
+					fixture.lease.deathKiller = killer;
+					fixture.dispatcher.runNext();
+					PhantomAssertions.assertTrue(fixture.service.consumePvpTerminal(1, 101, HASH).isEmpty(), "A foreign PvP owner consumed the terminal.");
+					final var terminal = fixture.service.consumePvpTerminal(1, 100, HASH).orElseThrow();
+					PhantomAssertions.assertEquals(killer == 10 ? PhantomCombatResult.VICTORY : PhantomCombatResult.TARGET_LOST, terminal.result(), "Death was attributed to the wrong combat owner.");
+					PhantomAssertions.assertFalse(fixture.service.hasClaim(1), "Terminal cleanup retained the old combat claim.");
+				}
 			}
 		});
 		registry.add("131-party-defense-urgent-support-reserves-and-drains", _ ->
@@ -781,7 +803,12 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 	private static PvpTargetSnapshot target(boolean sameParty, boolean peaceRestricted, boolean dead)
 	{
-		return new PvpTargetSnapshot(100, 89, 0, 80, 4, 4, 10, true, true, true, false, dead, dead, true, peaceRestricted, sameParty, false, false, false, false, false, false, false, false, false);
+		return target(sameParty, peaceRestricted, dead, false);
+	}
+
+	private static PvpTargetSnapshot target(boolean sameParty, boolean peaceRestricted, boolean dead, boolean autoAttackable)
+	{
+		return new PvpTargetSnapshot(100, 89, 0, 80, 4, 4, 10, true, true, true, false, dead, dead, true, peaceRestricted, sameParty, false, false, false, false, false, false, false, false, autoAttackable);
 	}
 
 	private static final class CombatFixture implements AutoCloseable
@@ -840,7 +867,8 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private Runnable archivedRead = () -> { };
 		private int learnedRank = 1;
 		private SelectedSkill lastPvpSkill;
-		private PvpTargetSnapshot pvpTarget = target(false, false, false);
+		private PvpTargetSnapshot pvpTarget = target(false, false, false, true);
+		private int deathKiller = -1;
 		private List<ThreatObservation> playerAttackers = List.of();
 		private List<Integer> warEnemies = List.of();
 		private final Set<Integer> pvpReads = new java.util.HashSet<>();
@@ -896,6 +924,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 			pvpReads.add(targetObjectId);
 			return targetObjectId == 100 ? pvpTarget : null;
 		}
+		@Override public int pvpDeathKillerObjectId(int targetObjectId) { return targetObjectId == 100 ? deathKiller : -1; }
 		@Override public List<ThreatObservation> observedPlayerAttackers(int objectId, int limit) { return playerAttackers.stream().limit(limit).toList(); }
 		@Override public List<Integer> declaredWarEnemies(int limit) { return warEnemies.stream().limit(limit).toList(); }
 

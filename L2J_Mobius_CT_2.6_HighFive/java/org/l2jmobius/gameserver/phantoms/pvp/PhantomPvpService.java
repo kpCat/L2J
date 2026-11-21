@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.BiFunction;
 import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -58,6 +59,13 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		FAILED
 	}
 
+	public enum FarmYield
+	{
+		READY,
+		DRAINING,
+		UNAVAILABLE
+	}
+
 	public record ServiceSnapshot(State state, int trackedProfiles, int readyProfiles, int activeOwnerships, int claims, boolean pulseOwned, long pulses, long processed, long encounters, long warnings, long helps, long engagements, long retreats, long cooldowns, long failures, long karmaRecoveryObserved, long karmaProactiveSuppressed, long karmaYieldPulses, long karmaUnsafe, long karmaXpDebtBlocked)
 	{
 		public static ServiceSnapshot inactive()
@@ -67,6 +75,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	}
 
 	private static final int MAXIMUM_TRACKED_PROFILES = 2048;
+	private static final System.Logger LOGGER = System.getLogger(PhantomPvpService.class.getName());
 	private static final long NANOS_PER_SECOND = 1_000_000_000L;
 	private static final long NANOS_PER_MINUTE = 60 * NANOS_PER_SECOND;
 	private final PhantomPvpPolicy _policy;
@@ -79,8 +88,10 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private final PhantomKarmaRecoveryPolicy _karmaRecoveryPolicy;
 	private final PhantomKarmaRecoveryContextPort _karmaRecoveryContext;
 	private final LongSupplier _clock;
+	private final BiFunction<Long, Runnable, FarmYield> _prepareOrdinaryFarmYield;
 	private final ArrayBlockingQueue<Long> _ready = new ArrayBlockingQueue<>(MAXIMUM_TRACKED_PROFILES);
 	private final Set<Long> _membership = ConcurrentHashMap.newKeySet();
+	private final Set<Long> _ordinaryFarmHolds = ConcurrentHashMap.newKeySet();
 	private final Map<Long, Ownership> _ownerships = new ConcurrentHashMap<>();
 	private final Map<Long, PhantomPvpContext.RetreatRecovery> _tacticalRecoveries = new ConcurrentHashMap<>();
 	private final AtomicBoolean _pulseOwner = new AtomicBoolean();
@@ -118,6 +129,16 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 
 	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, LongSupplier clock)
 	{
+		this(policy, store, context, combat, conversation, social, retreat, karmaRecoveryPolicy, karmaRecoveryContext, clock, null);
+	}
+
+	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, BiFunction<Long, Runnable, FarmYield> prepareOrdinaryFarmYield)
+	{
+		this(policy, store, context, combat, conversation, social, retreat, karmaRecoveryPolicy, karmaRecoveryContext, PhantomPvpService::epochNanos, Objects.requireNonNull(prepareOrdinaryFarmYield));
+	}
+
+	private PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, LongSupplier clock, BiFunction<Long, Runnable, FarmYield> prepareOrdinaryFarmYield)
+	{
 		_policy = Objects.requireNonNull(policy);
 		_store = Objects.requireNonNull(store);
 		_context = Objects.requireNonNull(context);
@@ -128,6 +149,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		_karmaRecoveryPolicy = Objects.requireNonNull(karmaRecoveryPolicy);
 		_karmaRecoveryContext = Objects.requireNonNull(karmaRecoveryContext);
 		_clock = Objects.requireNonNull(clock);
+		_prepareOrdinaryFarmYield = prepareOrdinaryFarmYield;
 	}
 
 	public boolean start()
@@ -170,10 +192,12 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 				catch (RuntimeException exception)
 				{
 					_failures.increment();
+					if (!_combat.hasClaim(profileId)) { _ordinaryFarmHolds.remove(profileId); }
 				}
 				finally
 				{
 					_claims.decrementAndGet();
+					if (!_membership.contains(profileId)) { _ordinaryFarmHolds.remove(profileId); }
 					if ((_state == State.RUNNING) && _membership.contains(profileId) && !_ready.offer(profileId))
 					{
 						_failures.increment();
@@ -218,7 +242,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 						return;
 					}
 				}
-				final Optional<PhantomCombatSessionSnapshot> terminal = _combat.consumeTerminal(profileId);
+				final Optional<PhantomCombatSessionSnapshot> terminal = _combat.consumePvpTerminal(profileId, targetObjectId, encounter.authorityHash());
 				if (terminal.isEmpty())
 				{
 					return;
@@ -235,6 +259,16 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 				return;
 			}
 		}
+		if (_ordinaryFarmHolds.contains(profileId) && (stored == null || stored.encounter().stage() != Stage.RETREAT))
+		{
+			if (stored != null)
+			{
+				final Encounter previous = stored.encounter();
+				_combat.consumePvpTerminal(profileId, previous.counterpart().currentObjectId(), previous.authorityHash());
+			}
+			// Disengage may be durable before the last issued native command has drained.
+			if (_combat.hasClaim(profileId)) { return; }
+		}
 		if ((stored != null) && (stored.encounter().stage() == Stage.RETREAT))
 		{
 			final RetreatResult result = _retreat.advance(profileId, stored.encounter().authorityHash());
@@ -243,6 +277,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 				return;
 			}
 			final var completed = save(stored, cooldown(stored.encounter(), now, result.reasonKey()));
+			_ordinaryFarmHolds.remove(profileId);
 			if (completed != null && "pvp.retreat.tactical_arrived".equals(result.reasonKey())) { _context.retreatRecovery(completed.encounter()).ifPresent(witness -> _tacticalRecoveries.put(profileId, witness)); }
 			return;
 		}
@@ -253,6 +288,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		final Snapshot observed = _context.observeAvailable(profileId, now, candidate -> cooled == null || !blocksTacticalRecoveryCooldown(cooled, candidate, now, arrivalWitness, currentRecovery)).orElse(null);
 		if (observed == null)
 		{
+			_ordinaryFarmHolds.remove(profileId);
 			if ((stored != null) && (stored.encounter().expiresLogicalNanos() <= now) && !terminal(stored.encounter().stage()))
 			{
 				save(stored, cooldown(stored.encounter(), now, "pvp.authority.expired"));
@@ -261,6 +297,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		}
 		if ((stored != null) && (blocksActivePairCooldown(stored.encounter(), observed.candidate(), now) || blocksFailedRetreatRetry(_policy, stored.encounter(), observed.candidate(), observed.risk(), now)))
 		{
+			_ordinaryFarmHolds.remove(profileId);
 			return;
 		}
 		if ((stored == null) || !sameAuthority(stored.encounter(), observed.candidate()) || terminal(stored.encounter().stage()))
@@ -290,12 +327,14 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		}
 		if (recovery.decision() == PhantomKarmaRecoveryPolicy.Decision.SUPPRESS_PROACTIVE)
 		{
+			_ordinaryFarmHolds.remove(profileId);
 			_karmaProactiveSuppressed.increment();
 			save(stored, cooldown(stored.encounter(), now, "pvp.karma_recovery.proactive_suppressed"));
 			return;
 		}
 		if (recovery.decision() == PhantomKarmaRecoveryPolicy.Decision.YIELD)
 		{
+			_ordinaryFarmHolds.remove(profileId);
 			_karmaYieldPulses.increment();
 			return;
 		}
@@ -312,6 +351,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			}
 		}
 		final Outcome outcome = _policy.decide(observed.candidate(), observed.risk(), stored.encounter(), now);
+		if (outcome.decision() != Decision.ENGAGE && outcome.decision() != Decision.RETREAT) { _ordinaryFarmHolds.remove(profileId); }
 		switch (outcome.decision())
 		{
 			case WAIT:
@@ -412,6 +452,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			return;
 		}
 		final Encounter encounter = stored.encounter();
+		if (!prepareOrdinaryFarmYield(encounter)) { return; }
 		final int engagements = encounter.proactiveEngagements() + (encounter.source().proactive() && (encounter.stage() != Stage.ENGAGE) ? 1 : 0);
 		final Encounter engaging = encounter.withStage(Stage.ENGAGE, encounter.warningReceiptId(), encounter.helpReceiptId(), engagements, encounter.warningLogicalNanos(), 0, "pvp.combat.admitted");
 		final StoredEncounter updated = save(stored, engaging);
@@ -426,11 +467,18 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		if (result.accepted())
 		{
 			_engagements.increment();
+			if (_ordinaryFarmHolds.contains(updated.profileId()))
+			{
+				LOGGER.log(System.Logger.Level.INFO, "Phantom solo combat engaged profile={0} targetObjectId={1} source={2} forceUse={3}",
+					updated.profileId(), encounter.counterpart().currentObjectId(), encounter.source(), forceUse);
+			}
 			return;
 		}
 		_ownerships.remove(updated.profileId(), ownership);
 		if ((result.status() == PhantomCombatService.StartStatus.REJECTED_CAPACITY) || (result.status() == PhantomCombatService.StartStatus.REJECTED_EXISTING))
 		{
+			// No command was admitted. Preserve the warning and the original budget for the next pulse.
+			save(updated, encounter);
 			return;
 		}
 		if (result.status() == PhantomCombatService.StartStatus.SUPPLY_REQUIRED) { retreat(updated, now, "pvp.supply.required"); return; }
@@ -440,14 +488,12 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private void retreat(StoredEncounter stored, long now, String reason)
 	{
 		cancelOwned(stored.encounter());
-		if (_combat.matchesPvpSession(stored.profileId(), stored.encounter().counterpart().currentObjectId(), stored.encounter().authorityHash()))
-		{
-			_combat.consumeTerminal(stored.profileId());
-		}
+		_combat.consumePvpTerminal(stored.profileId(), stored.encounter().counterpart().currentObjectId(), stored.encounter().authorityHash());
 		if (_combat.hasClaim(stored.profileId()))
 		{
 			return;
 		}
+		if (!prepareOrdinaryFarmYield(stored.encounter())) { return; }
 		final StoredEncounter updated = save(stored, stored.encounter().withStage(Stage.RETREAT, stored.encounter().warningReceiptId(), stored.encounter().helpReceiptId(), stored.encounter().proactiveEngagements(), stored.encounter().warningLogicalNanos(), 0, reason));
 		if (updated == null)
 		{
@@ -473,12 +519,17 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private void handleCombatTerminal(StoredEncounter stored, PhantomCombatSessionSnapshot terminal, long now)
 	{
 		final Encounter encounter = stored.encounter();
+		if (_ordinaryFarmHolds.contains(stored.profileId()))
+		{
+			LOGGER.log(System.Logger.Level.INFO, "Phantom solo combat ended profile={0} targetObjectId={1} source={2} result={3}",
+				stored.profileId(), encounter.counterpart().currentObjectId(), encounter.source(), terminal.result());
+		}
 		final SubjectRef subject = subject(encounter.counterpart());
 		if (terminal.result().victory())
 		{
 			social(stored.profileId(), subject, EventKind.KILL_CAUSED, encounter, encounter.authorityHash(), now, "kill");
 		}
-		else if (terminal.result() == PhantomCombatResult.PLAYER_DEAD)
+		else if (terminal.result() == PhantomCombatResult.PLAYER_DEAD && _context.defeatedByCounterpart(encounter))
 		{
 			social(stored.profileId(), subject, EventKind.DEATH_SUFFERED, encounter, encounter.authorityHash(), now, "death");
 		}
@@ -694,6 +745,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private void remove(long profileId)
 	{
 		_membership.remove(profileId);
+		_ordinaryFarmHolds.remove(profileId);
 		_tacticalRecoveries.remove(profileId);
 		final StoredEncounter stored = _store.load(profileId).orElse(null);
 		if (stored != null)
@@ -736,11 +788,26 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			}
 		}
 		_ownerships.clear();
+		_ordinaryFarmHolds.clear();
 		_tacticalRecoveries.clear();
 		_ready.clear();
 		_retreat.finishStop();
 		_state = State.STOPPED;
 		return true;
+	}
+
+	public boolean holdsOrdinaryFarm(long profileId)
+	{
+		return _ordinaryFarmHolds.contains(profileId);
+	}
+
+	private boolean prepareOrdinaryFarmYield(Encounter encounter)
+	{
+		if (_prepareOrdinaryFarmYield == null || encounter.source() == Source.PARTY_DEFENSE || encounter.source() == Source.CLAN_WAR) { return true; }
+		final long profileId = encounter.profileId();
+		final FarmYield result = _prepareOrdinaryFarmYield.apply(profileId, () -> _ordinaryFarmHolds.add(profileId));
+		if (result == FarmYield.UNAVAILABLE) { _ordinaryFarmHolds.remove(profileId); }
+		return result == FarmYield.READY;
 	}
 
 	public ServiceSnapshot snapshot()

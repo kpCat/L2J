@@ -71,6 +71,12 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return null;
 	}
 
+	/** 0 while native death handling is pending, -1 for a death without a player killer. */
+	default int pvpDeathKillerObjectId(int targetObjectId)
+	{
+		return -1;
+	}
+
 	default PvpLinkedServitorSnapshot pvpLinkedServitorSnapshot(int ownerObjectId)
 	{
 		return null;
@@ -358,6 +364,11 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	default ActionOutcome attackPvp(int ownerObjectId, int tacticalTargetObjectId, String authorityHash)
 	{
 		return attackPvp(tacticalTargetObjectId, authorityHash);
+	}
+
+	default ActionOutcome attackPvp(int ownerObjectId, int tacticalTargetObjectId, boolean forceUse, String authorityHash)
+	{
+		return attackPvp(ownerObjectId, tacticalTargetObjectId, authorityHash);
 	}
 
 	default ActionOutcome castPvp(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash)

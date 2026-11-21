@@ -130,6 +130,10 @@ public final class PhantomPvpPolicy
 		}
 		if (!candidate.source().proactive())
 		{
+			if (candidate.source() == PhantomPvpModel.Source.ACTUAL_ATTACK && !risk.targetAutoAttackable())
+			{
+				return new Outcome(Decision.WAIT, "reactive-awaiting-native-flag", false);
+			}
 			return new Outcome(candidate.source() == PhantomPvpModel.Source.PARTY_DEFENSE ? Decision.HELP : Decision.ENGAGE, "reactive-source", false);
 		}
 		if ((risk.forcedPkRiskBasisPoints() > _limits.forcedPkMaximumRiskBasisPoints()) || (encounter.proactiveEngagements() >= _limits.maxProactiveEngagementsPerPair()))
