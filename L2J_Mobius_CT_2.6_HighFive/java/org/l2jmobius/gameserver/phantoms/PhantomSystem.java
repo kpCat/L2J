@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongFunction;
 
 import org.l2jmobius.gameserver.config.NpcConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
@@ -43,6 +44,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionDecision;
@@ -192,6 +194,7 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStat
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager.AdmissionProfileSnapshot;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney;
@@ -591,7 +594,8 @@ public final class PhantomSystem
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> localityPreparationCandidate(_populationManager, profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, backgroundPlanner, _backgroundService, _materializationService);
-				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> !pvpHoldsOrdinaryFarm(profileId) && (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime,
+				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
+					this::permitsNewOrdinaryFarmActions, profileId -> !pvpHoldsOrdinaryFarm(profileId) && (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime,
 					_testFarmTargetScope, _testLearning131 == null ? null : _testLearning131.soloOffense());
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> !pvpHoldsOrdinaryFarm(profileId) && ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
@@ -3661,6 +3665,25 @@ public final class PhantomSystem
 	private boolean pvpHoldsOrdinaryFarm(long id)
 	{
 		return _pvpService != null && _pvpService.holdsOrdinaryFarm(id);
+	}
+
+	private boolean permitsNewOrdinaryFarmActions(long profileId)
+	{
+		return permitsNewOrdinaryFarmActions(profileId, pvpHoldsOrdinaryFarm(profileId), _materializationRetention,
+			id -> _populationManager.admissionProfile(id).orElse(null), this::currentPhysicalDemand);
+	}
+
+	static boolean permitsNewOrdinaryFarmActions(long profileId, boolean pvpHeld, PhantomMaterializationRetentionPolicy retention,
+		LongFunction<AdmissionProfileSnapshot> populationAdmission, LongFunction<PhantomPhysicalDemand> physicalDemand)
+	{
+		if (pvpHeld || retention == null) { return false; }
+		if (retention.permitsNewActions(profileId)) { return true; }
+
+		// Ambient population admission can sustain native Solo farm without a human observer.
+		final var demand = physicalDemand.apply(profileId);
+		if (demand == null || demand.kind() != PhantomPhysicalDemand.Kind.AMBIENT_TARGET || demand.sourceProfileId() != profileId) { return false; }
+		final var admission = populationAdmission.apply(profileId);
+		return admission != null && demand.ordinaryAdmission(admission.calendarOnline(), admission.admitted(), System.currentTimeMillis());
 	}
 
 	private FarmYield preparePvpFarmYield(long id, Runnable holdFarm)

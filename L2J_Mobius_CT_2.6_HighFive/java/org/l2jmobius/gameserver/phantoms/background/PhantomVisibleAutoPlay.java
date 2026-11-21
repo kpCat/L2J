@@ -67,6 +67,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private final Supplier<PhantomDecisionEngine> _decision;
 	private final LongPredicate _permitsOrdinary;
 	private final LongPredicate _permitsNewRoots;
+	private final LongPredicate _permitsHistoricalIdleRest;
 	private final java.util.function.BiPredicate<Player, Creature> _targetScope;
 	private final SoloOffense _soloOffense;
 
@@ -110,12 +111,19 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots,
 		LongSupplier clock, java.util.function.BiPredicate<Player, Creature> targetScope, SoloOffense soloOffense)
 	{
+		this(materialization, decision, permitsOrdinary, permitsNewRoots, permitsNewRoots, clock, targetScope, soloOffense);
+	}
+
+	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots,
+		LongPredicate permitsHistoricalIdleRest, LongSupplier clock, java.util.function.BiPredicate<Player, Creature> targetScope, SoloOffense soloOffense)
+	{
 		_materialization = Objects.requireNonNull(materialization, "materialization");
 		// This native retreat path needs no knowledge/catalog query and shares the existing actor lease.
 		_recoveryBackend = new L2jCombatBackend(_materialization, () -> null);
 		_decision = Objects.requireNonNull(decision, "decision");
 		_permitsOrdinary = Objects.requireNonNull(permitsOrdinary, "permitsOrdinary");
 		_permitsNewRoots = Objects.requireNonNull(permitsNewRoots, "permitsNewRoots");
+		_permitsHistoricalIdleRest = Objects.requireNonNull(permitsHistoricalIdleRest, "permitsHistoricalIdleRest");
 		_clock = Objects.requireNonNull(clock);
 		_targetScope = Objects.requireNonNull(targetScope);
 		_soloOffense = soloOffense;
@@ -124,7 +132,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	/** Let a canonical low-HP idle recover before current-resource farm admission, without creating a farm session. */
 	void prepareHistoricalIdleRest(long profileId, PhantomGoal goal, int objectId, long epoch, java.util.function.BooleanSupplier claimCurrent)
 	{
-		if (!PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal) || !_permitsNewRoots.test(profileId)
+		if (!PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal) || !_permitsHistoricalIdleRest.test(profileId)
 			|| !current(profileId, goal, PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE)) { return; }
 		final var snapshot = _materialization.find(profileId).orElse(null);
 		if (snapshot == null || snapshot.state() != State.ACTIVE || !snapshot.worldPresent() || snapshot.characterObjectId() != objectId || snapshot.materializedAtNanos() != epoch) { return; }
@@ -133,7 +141,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			if (action == null) { return; }
 			final Player player = action.player();
 			// Claim reads may wait on SQL; sample native work only after they have returned.
-			if (!claimCurrent.getAsBoolean() || !_permitsNewRoots.test(profileId) || !current(profileId, goal, PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE)) { return; }
+			if (!claimCurrent.getAsBoolean() || !_permitsHistoricalIdleRest.test(profileId) || !current(profileId, goal, PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE)) { return; }
 			final var session = _sessions.get(profileId);
 			if (player.getObjectId() != objectId || !player.hasHeadlessOutboundSession() || !player.isOnline() || player.isAlikeDead() || player.isSitting()
 				|| session != null && session._current.get() || nativeProgress(player, epoch) == null) { return; }
