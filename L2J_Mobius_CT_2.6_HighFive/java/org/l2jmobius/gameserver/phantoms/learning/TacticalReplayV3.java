@@ -35,6 +35,8 @@ final class TacticalReplayV3
 		{
 			if (!Set.of("TRAIN", "TUNING", "AUDIT").contains(split) || contextKey == null || contextKey.isBlank() || contextKey.length() > 256
 				|| contextKey.chars().anyMatch(v -> v < 32) || failure == null) { throw new IllegalArgumentException("Invalid failure replay row"); }
+			if (failure.choice().observation().stockSelection() instanceof TacticalObservationV3.StockSoloSelection)
+			{ throw new IllegalArgumentException("Archived Solo evidence cannot enter the durable V3 failure ledger"); }
 		}
 	}
 	static String spot(String context)

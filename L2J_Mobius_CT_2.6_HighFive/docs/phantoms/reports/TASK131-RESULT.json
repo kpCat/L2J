@@ -52,9 +52,9 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v28-final.log",
-    "aggregateScope": "Final v28 sources, DB-free contracts and affected combat regressions.",
-    "finalContractLog": "ant-combat-v28-final.log",
+    "aggregateLog": "ant-combat-v29-final.log",
+    "aggregateScope": "Final v29 sources, DB-free contracts and affected combat regressions.",
+    "finalContractLog": "ant-combat-v29-final.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -64,9 +64,9 @@
     "regressionTestsPassed": 173,
     "contractGroupsPassed": 17,
     "jarExitCode": 0,
-    "jarSha256": "f9c68d4a7bb2d3f6c9351499c4028bdcfef593da822686757aa01b763ce9cb97",
-    "loginJarSha256": "cd75644d69b5f0d1b6ca7314ad74fa63566af8980294e7ea11c2ebb6bfa03d5e",
-    "jarLog": "jar-v28-final.log",
+    "jarSha256": "a5d8a7399e394fd27d949aa483cedb020ab422ea7eb20838f2301cb657b8f0b8",
+    "loginJarSha256": "59406fbc4a95b4755095d579b5e54d7b9b4fdfc8498c806b1707fe1b7a1ffcca",
+    "jarLog": "jar-v29-final.log",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
@@ -78,7 +78,7 @@
     "stockHealScriptCompileLog": "v18-stock-heal-javac.log",
     "stockHealScriptClassSha256": "22a5cc089b0695fb6788788c8f2052668d21889a2b441d7b09d34e590d533588",
     "auditFrozenDispatchContractLog": "v19-PhantomLearning131EvaluationChecks.log",
-    "auditEvaluatorCliLog": "v28-evaluator-cli-reviewed.log",
+    "auditEvaluatorCliLog": "v29-evaluator-cli-reviewed.log",
     "auditNpcAggroNegativeLog": "v23-aggro-red.log",
     "auditNpcAggroContractLog": "v23-final-evaluation-checks.log",
     "stockAggroScriptCompileLog": "v23-stock-getaggro-reviewed-javac.log",
@@ -114,12 +114,18 @@
       "PhantomVisibleAutoPlay.java": "c72c5fc1accb74b4908af17048dd2f75d24dc599",
       "PhantomNativeCombatCapability.java": "11b653f8a54b5e7a79f514aedd079179135e3fbb"
     },
+    "auditStockSoloPaidRedLog": "v29-solo-paid-red.log",
+    "auditStockSoloFailureRedLog": "v29-solo-failure-red.log",
+    "auditPaidCutRedLog": "v29-paid-cut-red.log",
+    "auditPaidCutContractLog": "ant-combat-v29-final.log",
+    "legacyDamageCodecLog": "v29-legacy-damage-codec.log",
+    "legacyFailureCodecLog": "v29-legacy-failure-codec.log",
     "learnedEscapeContractLog": "v24-learned-escape-reviewed.log",
     "auditControllerPreflightLog": "v22-controller-wire-final.log",
     "auditControllerFullPreflightLog": "v22-controller-e2e-final.log",
     "auditControllerReusedBankLog": "v22-controller-reused-bank.log",
     "auditRechargeNegativeLog": "v21-recharge-red.log",
-    "auditEvaluatorFingerprint": "c7383ec2a362984ca82aab4663dc098192600eec68f9f5563fdb1f22036c7bac",
+    "auditEvaluatorFingerprint": "ce46cd1e397efd18c904bfd410b4345a96f8b0b40f20954caf8ed2a28674cbd6",
     "auditGroupScopeNegativeLog": "v20-group-pvp-red.log",
     "auditCrossSideNegativeLog": "v20-paid-side-red.log",
     "nativeEvidenceRegressionLog": "v23-native-evidence-reviewed.log",
@@ -133,12 +139,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v27.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v28.json",
-    "exactPathCount": 20
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v28.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v29.json",
+    "exactPathCount": 8
   },
   "testReadiness": {
-    "iterationParent": "d2be5283d389a97845d8dbbdac2e115c51a9954d",
+    "iterationParent": "4a0236159af00bafd8e63b230207a5aff8c8269c",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -251,14 +257,14 @@
       "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
       "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "end-off-v28.json",
+    "g0OffReceipt": "end-off-v29.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,end-off-v28.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,end-off-v29.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -426,8 +432,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "ant-combat-v28-final.log,v28-stock-solo-writer-final.log,ant-combat-v27-final.log",
-      "reason": "Офлайн проверены архивные снимки одноцелевого DAMAGE общего PvE, PvP и видимого AutoUse Solo, полный S и живой C/H/S/R открыты"
+      "evidence": "ant-combat-v29-final.log,v29-solo-paid-red.log,v29-paid-cut-red.log",
+      "reason": "Офлайн проверены оплаченный оригинал AutoUse Solo для S и атрибуция DAMAGE до конца дренирования, полный S и живой C/H/S/R открыты"
     },
     "D9": {
       "phase": "P3–P5",

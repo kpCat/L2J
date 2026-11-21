@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.learning.ActionContinuationV4;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExperimentReceiptV4.Intent;
@@ -96,8 +97,14 @@ public final class PhantomLearning131EvaluationChecks
 		check(bounds.combatEnd() == 200 && bounds.settledEnd() == 240, "The combat cutoff must survive the drain");
 		check(bounds.offset("DEATH", 195) == 95 && bounds.offset("KILL_CREDIT", 224) == 124 && bounds.offset("CC_END", 227) == 127,
 			"Already earned credit and closure can arrive after the native outcome was committed");
-		expectOutsideCombat(bounds, "EXECUTED", 201);
-		expectOutsideCombat(bounds, "DEATH", 201);
+		check(bounds.offset("EXECUTED", 201) == 101 && bounds.offset("DAMAGE", 202) == 102 && bounds.offset("DEATH", 203) == 103,
+			"An earned cast may execute and settle its exact effect during drain");
+		check(bounds.inCombat(bounds.offset("DEATH", 200)) && !bounds.inCombat(bounds.offset("DEATH", 201)),
+			"Only a death by the cutoff can affect the score");
+		check(bounds.combatDeaths(Map.of(42, bounds.offset("DEATH", 200), 102, bounds.offset("DEATH", 201))).equals(Set.of(42)),
+			"A late reciprocal kill remains in drain and cannot turn a scored loss into a draw");
+		expectOutsideCombat(bounds, "ADMITTED", 201);
+		expectOutsideCombat(bounds, "DEATH", 241);
 		expectOutsideCombat(bounds, "KILL_CREDIT", 241);
 	}
 
@@ -189,6 +196,23 @@ public final class PhantomLearning131EvaluationChecks
 		final String[] impossibleExecution = cast.clone();
 		impossibleExecution[13] = "1041";
 		rejectsPaidOriginals(List.of(wire, impossibleExecution), episode);
+		final var selection = new TacticalObservationV3.StockSoloSelection(1, List.of(1148, 1230), 0, new SelectedSkill(1230, 4));
+		final var soloObservation = new TacticalObservationV3(observation.decisionId(), observation.capturedNanos(), observation.profileId(),
+			observation.actorObjectId(), observation.actorEpoch(), observation.partyIdentity(), observation.entities(), selection);
+		final var solo = new TacticalReceiptV3(event, new TacticalReceiptV3.Attempt(soloObservation, List.of(attempt.selected()),
+			attempt.selected(), attempt.selected(), 0), 800, 740, 60, 4, 60, TacticalReceiptV3.reward(60, 800, 4, 60), receipt.owner());
+		final var soloRow = new TacticalStoreV3.Row("AUDIT", "task131|AUDIT|" + episode, solo);
+		final byte[] archived = TacticalStoreV3.encode(soloRow);
+		check(java.util.Arrays.equals(archived, TacticalStoreV3.encode(TacticalStoreV3.decode(archived))), "Solo S paid original must be canonical");
+		final var soloTrace = new NativeCastTrace(event, 42, 7, 102, 91, 0, 1230, 4, 1230, 4, 1002, 1005, 1010,
+			TacticalObservationV3.hash(soloObservation.bytes()));
+		final var soloWire = PhantomLearning131AuditOriginals.pveRow(new TimedAction(soloRow, 0, 1040, 1050, 1010, 1020, false));
+		final var soloPaid = PhantomLearning131AuditOriginals.decode(List.of(soloWire.split("\t", -1),
+			PhantomLearning131AuditOriginals.castRow(soloTrace).split("\t", -1)), episode).get(event);
+		check(soloPaid.trace().equals(soloTrace) && soloPaid.hp().intValueExact() == 60, "The evaluator must join the real singleton paid envelope");
+		refuse(() -> new TacticalStoreV3.Row("TRAIN", "task131|TRAIN|" + episode, solo), "Solo S must not enter TRAIN");
+		refuse(() -> TacticalStoreV3.validateDataset(List.of(soloRow)), "Solo S cannot become a V3 dataset row");
+		refuse(soloRow::example, "Solo S cannot become a model example");
 
 		final var fatal = new TacticalReceiptV3(event, attempt, 800, 0, 800, 4, 60, TacticalReceiptV3.reward(800, 800, 4, 60),
 			new SourceOwner(5, "Combat/1/5/1"));
@@ -235,14 +259,17 @@ public final class PhantomLearning131EvaluationChecks
 			{
 				check(refused.getMessage().equals("EVAL131_DAMAGE_EFFECT_SIDE"), "A paid original cannot override the pinned sides");
 			}
+			final var lateDamage = PhantomLearning131Evaluation.verifyClosedDamage(binding, episode, bindingSha, false, 1008, 1090,
+				events.stream().map(row -> row.split("\t", -1)).toList(), originals.stream().map(row -> row.split("\t", -1)).toList());
+			check(lateDamage.combatEnd() == 1008 && lateDamage.settledEnd() == 1090, "The paid cast starts before cutoff and executes after it");
 			try
 			{
-				PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, bindingSha, false, 1049, 1090, events, originals);
-				throw new AssertionError("A late death must prevent publishing completed evidence");
+				PhantomLearning131AuditDamage.sealClosedDamage(binding, episode, bindingSha, false, 1004, 1090, events, originals);
+				throw new AssertionError("A late admission must prevent publishing completed evidence");
 			}
 			catch (IllegalArgumentException refused)
 			{
-				check(refused.getMessage().equals("EVAL131_PAID_ORIGIN_OR_NATIVE_WINDOW"), "the combat cutoff must govern paid completion");
+				check(refused.getMessage().equals("EVAL131_PAID_ORIGIN_OR_NATIVE_WINDOW"), "the combat cutoff must govern cast admission");
 			}
 			final var unbound = new ArrayList<>(events);
 			final String[] orphan = events.getFirst().split("\t", -1);
@@ -557,6 +584,9 @@ public final class PhantomLearning131EvaluationChecks
 		final String[] deathRow = {"event", death, "118", "DEATH", "42", "102", operation};
 		final var complete = paidEvents(fact, damageRow, deathRow);
 		PhantomLearning131Evaluation.verifyPaidProjection(complete, originals, roster, new EpisodeWindow(90, 30, 30), true);
+		PhantomLearning131Evaluation.verifyPaidProjection(complete, originals, roster, new EpisodeWindow(90, 9, 30), true);
+		refuse(() -> PhantomLearning131Evaluation.verifyPaidProjection(complete, originals, roster, new EpisodeWindow(90, 9, 27), true),
+			"A native PvP death past settlement cannot enter even the drain");
 
 		rejectsPaidProjection(changedField(complete, 3, 5, "103"), originals, roster);
 		rejectsPaidProjection(changedField(complete, 3, 7, "61"), originals, roster);

@@ -4,6 +4,7 @@ package org.l2jmobius.gameserver.phantoms.learning;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.*;
 
 /** Failed/unknown native-shaped fixtures remain non-trainable and never enter SQL. */
@@ -33,6 +34,14 @@ public final class Learning004FailureChecks
 		final byte[] context = TacticalReplayV3.packContexts(window.samples(), "c".repeat(64));
 		check(TacticalReplayV3.unpackContexts(context, "c".repeat(64)).equals(window.samples()), "replay selected keys changed after cold restore");
 		reject(() -> TacticalReplayV3.unpackContexts(context, "d".repeat(64)), "failure replay attached to different frozen dataset");
+		final var stock = new StockSoloSelection(0, List.of(a.skillId()), 0, new SelectedSkill(a.skillId(), a.skillLevel()));
+		final var soloObservation = new TacticalObservationV3(7, 123, 1000, 100, 10, "solo:100", List.of(self, target), stock);
+		final var solo = new TacticalFailureV3("d".repeat(64), new TacticalReceiptV3.Attempt(soloObservation, List.of(a), a, a, 0),
+			"NO_NATIVE_TASK", false, null, null, 1, unknown.owner());
+		for (String split : List.of("TRAIN", "TUNING", "AUDIT"))
+		{
+			reject(() -> new TacticalReplayV3.FailureRow(split, "task131|" + split + "|solo", solo), "Archived Solo failure reached the durable V3 ledger");
+		}
 		System.out.println("LEARNING004_FAILURE codec=PASS reward=NULL trainable=FALSE unknown=PRESERVED outcomeSpotReplay=PASS DB_CONNECTIONS=0");
 	}
 	private static void check(boolean condition, String message) { if (!condition) { throw new AssertionError(message); } }

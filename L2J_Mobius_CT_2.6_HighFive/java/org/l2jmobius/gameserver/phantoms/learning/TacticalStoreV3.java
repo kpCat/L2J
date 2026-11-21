@@ -29,6 +29,8 @@ public final class TacticalStoreV3
     public static final String ACTION_SPACE = hash("LegalActionV3/" + LegalActionV3.VERSION + "/HEAL/" + Arrays.toString(LegalActionV3.Family.values()) + '/' + LegalActionV3.FINGERPRINT);
     public static final String NORMALIZATION = hash(TacticalObservationV3.SCHEMA + "/state128/action64/paired-mask/clip[-1,1]/reward[-1,1]");
     public static final String COMBAT_ACTION_SPACE = hash(ACTION_SPACE + "/receipt-v5/native-DAMAGE+HEAL/useful-hp-fraction-exact-mp-elapsed/v1");
+    private static final int SOLO_AUDIT_ROW_VERSION = 6;
+    private static final String SOLO_AUDIT_ACTION_SPACE = hash(COMBAT_ACTION_SPACE + "/receipt-v6/TASK131-STOCK-SOLO-AUDIT/single-selection");
     private static final int MAGIC = 0x54563352, ROW_VERSION = 4, MAX_ROW = 600000, MAX_DATASET = 64 * 1024 * 1024;
     private final TrainingStore _guard;
     private final Path _root;
@@ -43,7 +45,18 @@ public final class TacticalStoreV3
             if (!Set.of("TRAIN", "TUNING", "AUDIT").contains(split) || contextKey == null || contextKey.isBlank()
                 || contextKey.length() > 256 || contextKey.chars().anyMatch(v -> v < 32) || receipt == null)
             { throw new IllegalArgumentException("Invalid native split/context"); }
-            validateReceipt(receipt);
+            final boolean soloAudit = soloAuditOnly(receipt);
+            if (soloAudit)
+            {
+                final var attempt = receipt.attempt();
+                final var action = attempt.selected();
+                final var stock = (TacticalObservationV3.StockSoloSelection) attempt.observation().stockSelection();
+                if (!split.equals("AUDIT") || !contextKey.matches("task131\\|AUDIT\\|[A-Za-z0-9][A-Za-z0-9_-]{0,95}")
+                    || attempt.modelVersion() != 0 || attempt.offered().size() != 1 || action.family() != LegalActionV3.Family.DAMAGE
+                    || !action.equals(attempt.baseline()) || action.skillId() != stock.selected().skillId() || action.skillLevel() != stock.selected().skillLevel())
+                { throw new IllegalArgumentException("Invalid TASK131 archived Solo evidence row"); }
+            }
+            validateReceipt(receipt, soloAudit ? 1 : 2);
         }
         public String eventKey() { return receipt.eventKey(); }
         public long actorProfile() { return receipt.attempt().observation().profileId(); }
@@ -51,6 +64,7 @@ public final class TacticalStoreV3
         public String cohort() { return hash(actorProfile() + ":" + contextKey); }
         public TacticalModelV3.Example example()
         {
+            if (soloAuditOnly(receipt)) { throw new IllegalArgumentException("Archived Solo evidence cannot become a model example"); }
             final var attempt = receipt.attempt();
             return new TacticalModelV3.Example(attempt.observation().state(), attempt.selected().features(attempt.observation()), receipt.reward());
         }
@@ -860,11 +874,16 @@ public final class TacticalStoreV3
         }
     }
 
-    private static void validateReceipt(TacticalReceiptV3 receipt)
+    private static boolean soloAuditOnly(TacticalReceiptV3 receipt)
+    {
+        return receipt.attempt().observation().stockSelection() instanceof TacticalObservationV3.StockSoloSelection;
+    }
+
+    private static void validateReceipt(TacticalReceiptV3 receipt, int minimumActions)
     {
         final var attempt = receipt.attempt();
         final var observation = attempt.observation();
-        if (observation.capturedNanos() <= 0 || attempt.modelVersion() < 0 || attempt.offered().size() < 2
+        if (observation.capturedNanos() <= 0 || attempt.modelVersion() < 0 || attempt.offered().size() < minimumActions
             || receipt.owner() == null || receipt.owner().generation() <= 0 || receipt.owner().operationKey() == null
             || receipt.owner().operationKey().isBlank() || receipt.owner().operationKey().length() > 128
             || Math.abs(receipt.reward()) > 1 || receipt.beforeHp() < 0
@@ -891,7 +910,9 @@ public final class TacticalStoreV3
         {
             final var buffer = new ByteArrayOutputStream(); final var out = new DataOutputStream(buffer);
             final boolean heal = row.receipt().attempt().selected().family() == LegalActionV3.Family.HEAL;
-            out.writeInt(MAGIC); out.writeInt(heal ? ROW_VERSION : 5); out.writeUTF(TacticalObservationV3.SCHEMA); out.writeUTF(heal ? ACTION_SPACE : COMBAT_ACTION_SPACE);
+            final boolean soloAudit = soloAuditOnly(row.receipt());
+            out.writeInt(MAGIC); out.writeInt(soloAudit ? SOLO_AUDIT_ROW_VERSION : heal ? ROW_VERSION : 5); out.writeUTF(TacticalObservationV3.SCHEMA);
+            out.writeUTF(soloAudit ? SOLO_AUDIT_ACTION_SPACE : heal ? ACTION_SPACE : COMBAT_ACTION_SPACE);
             out.writeUTF(row.split()); out.writeUTF(row.contextKey()); out.writeUTF(row.eventKey());
             final var receipt = row.receipt(); final var attempt = receipt.attempt(); final byte[] observation = attempt.observation().bytes();
             out.writeInt(observation.length); out.write(observation); out.writeInt(attempt.offered().size());
@@ -914,12 +935,16 @@ public final class TacticalStoreV3
             final var in = new DataInputStream(new ByteArrayInputStream(bytes));
             if (in.readInt() != MAGIC) { throw new IllegalArgumentException("Native receipt magic"); }
             final int version = in.readInt();
-            if (version != ROW_VERSION && version != 5 || !TacticalObservationV3.SCHEMA.equals(in.readUTF()) || !(version == ROW_VERSION ? ACTION_SPACE : COMBAT_ACTION_SPACE).equals(in.readUTF()))
+            final boolean soloAudit = version == SOLO_AUDIT_ROW_VERSION;
+            final String actionSpace = soloAudit ? SOLO_AUDIT_ACTION_SPACE : version == ROW_VERSION ? ACTION_SPACE : COMBAT_ACTION_SPACE;
+            if (!soloAudit && version != ROW_VERSION && version != 5 || !TacticalObservationV3.SCHEMA.equals(in.readUTF()) || !actionSpace.equals(in.readUTF()))
             { throw new IllegalArgumentException("Native receipt schema"); }
             final String split = in.readUTF(), context = in.readUTF(), key = in.readUTF();
             final int length = in.readInt(); if (length <= 0 || length > 524288 || length > in.available()) { throw new IllegalArgumentException("Native observation size"); }
             final var observation = TacticalObservationV3.restore(in.readNBytes(length));
-            final int count = in.readInt(); if (count < 2 || count > 16) { throw new IllegalArgumentException("Native action bound"); }
+            final int count = in.readInt();
+            if (soloAudit != (observation.stockSelection() instanceof TacticalObservationV3.StockSoloSelection)
+                || (soloAudit ? count != 1 : count < 2 || count > 16)) { throw new IllegalArgumentException("Native action bound"); }
             final var offered = new ArrayList<LegalActionV3>();
             for (int i = 0; i < count; i++) { offered.add(LegalActionV3.read(in)); }
             final int chosen = in.readInt(), baseline = in.readInt();
@@ -942,6 +967,7 @@ public final class TacticalStoreV3
         final var keys = new HashSet<String>(); final var actions = new HashSet<String>();
         for (Row row : rows)
         {
+            if (row != null && soloAuditOnly(row.receipt())) { throw new IllegalArgumentException("Archived Solo evidence cannot become a dataset row"); }
             if (row == null || !keys.add(row.eventKey()) || !actions.add(row.actionKey())) { throw new IllegalArgumentException("Duplicate native event/action"); }
             final String actorSplit = actors.putIfAbsent(row.actorProfile(), row.split()), contextSplit = contexts.putIfAbsent(row.contextKey(), row.split());
             if (actorSplit != null && !actorSplit.equals(row.split()) || contextSplit != null && !contextSplit.equals(row.split()))
@@ -997,7 +1023,9 @@ public final class TacticalStoreV3
     {
         if (receipt != null && receipt.owner() != null && "CONTRACT_FIXTURE".equals(receipt.owner().operationKey()))
         { throw new IllegalArgumentException("Synthetic contract receipt cannot become NATIVE_HEAL"); }
-        final Row row = new Row(split, contextKey, receipt); final byte[] bytes = encode(row); final String sha = TacticalObservationV3.hash(bytes);
+        final Row row = new Row(split, contextKey, receipt);
+        if (soloAuditOnly(row.receipt())) { throw new IllegalArgumentException("Archived Solo evidence cannot enter the training store"); }
+        final byte[] bytes = encode(row); final String sha = TacticalObservationV3.hash(bytes);
         return transaction(connection ->
         {
             try (var query = connection.prepareStatement("SELECT receipt_sha FROM phantom_tactical_v3_events WHERE event_key=? FOR UPDATE"))

@@ -102,12 +102,22 @@ public final class PhantomLearning131Evaluation
 
 		long combatEnd() { return started + combatElapsed; }
 		long settledEnd() { return started + settledElapsed; }
+		boolean inCombat(long offset) { return offset >= 0 && offset <= combatElapsed; }
+		Set<Integer> combatDeaths(Map<Integer, Long> deathOffsets)
+		{
+			return deathOffsets.entrySet().stream().filter(entry -> inCombat(entry.getValue()))
+				.map(Map.Entry::getKey).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		}
 
 		long offset(String kind, long stamp)
 		{
 			final long offset = Math.subtractExact(stamp, started);
 			require(offset >= 0 && offset <= settledElapsed, "OUTSIDE_NATIVE_SETTLEMENT");
-			require(offset <= combatElapsed || kind.equals("KILL_CREDIT") || kind.equals("CC_END") || kind.equals("ESCAPE_ARRIVAL"), "OUTSIDE_NATIVE_COMBAT");
+			require(inCombat(offset) || switch (kind)
+			{
+				case "EXECUTED", "DAMAGE", "DEATH", "KILL_CREDIT", "CC_END", "ESCAPE_ARRIVAL" -> true;
+				default -> false;
+			}, "OUTSIDE_NATIVE_COMBAT");
 			return offset;
 		}
 	}
@@ -909,8 +919,8 @@ public final class PhantomLearning131Evaluation
 				&& paidOperations.putIfAbsent(fact.operationId(), fact) == null, "PAID_CAST_ORIGINAL");
 			require(roster.getOrDefault(fact.actor(), 0L) == fact.actorEpoch() && roster.getOrDefault(fact.target(), 0L) == fact.targetEpoch(),
 				"PAID_PARTICIPANT_EPOCH");
-			require(fact.pvp() == pvp && fact.capturedNanos() >= window.started() && fact.atNanos() <= window.combatEnd()
-				&& fact.lethalNanos() <= window.combatEnd() && fact.lastNativeWriteNanos() <= window.settledEnd()
+			require(fact.pvp() == pvp && fact.capturedNanos() >= window.started() && trace.admittedNanos() <= window.combatEnd()
+				&& fact.atNanos() <= window.settledEnd() && fact.lethalNanos() <= window.settledEnd() && fact.lastNativeWriteNanos() <= window.settledEnd()
 				&& fact.lastWitnessNanos() <= window.settledEnd() && fact.killCreditNanos() <= window.settledEnd(), "PAID_ORIGIN_OR_NATIVE_WINDOW");
 			if (fact.lethalNanos() > 0) { require(deaths.putIfAbsent(fact.lethalKey(), fact) == null, "DUPLICATE_LETHAL_ORIGINAL"); }
 			if (fact.killCreditNanos() > 0) { require(credits.putIfAbsent(fact.killCreditKey(), fact) == null, "DUPLICATE_KILL_CREDIT_ORIGINAL"); }
@@ -1139,6 +1149,10 @@ public final class PhantomLearning131Evaluation
 		private BigDecimal _damageCp = BigDecimal.ZERO;
 		private BigDecimal _receivedHp = BigDecimal.ZERO;
 		private BigDecimal _receivedCp = BigDecimal.ZERO;
+		private BigDecimal _drainDamageHp = BigDecimal.ZERO;
+		private BigDecimal _drainDamageCp = BigDecimal.ZERO;
+		private BigDecimal _drainReceivedHp = BigDecimal.ZERO;
+		private BigDecimal _drainReceivedCp = BigDecimal.ZERO;
 		private BigDecimal _heal = BigDecimal.ZERO;
 		private BigDecimal _overheal = BigDecimal.ZERO;
 		private BigDecimal _mpTransfer = BigDecimal.ZERO;
@@ -1151,6 +1165,8 @@ public final class PhantomLearning131Evaluation
 		private int _buffs;
 		private int _executed;
 		private int _opponentExecuted;
+		private int _drainExecuted;
+		private int _drainOpponentExecuted;
 		private int _opponentEffects;
 		private final EpisodeWindow _window;
 
@@ -1195,7 +1211,12 @@ public final class PhantomLearning131Evaluation
 					_actions.put(operation, new Action(source, target, action.role(), action.selected(), prior + 1));
 					if (prior == 1)
 					{
-						if (friendly) { _executed++; } else { _opponentExecuted++; }
+						if (_window.inCombat(offset))
+						{
+							if (friendly) { _executed++; } else { _opponentExecuted++; }
+						}
+						else if (friendly) { _drainExecuted++; }
+						else { _drainOpponentExecuted++; }
 					}
 				}
 				case "UNKNOWN" ->
@@ -1259,6 +1280,12 @@ public final class PhantomLearning131Evaluation
 					final BigDecimal cp = decimal(row[8], true);
 					require(friendly != friendlyTarget && target == action.target() && hp.signum() + cp.signum() > 0
 						&& _damageEvents.add(new Subject(operation, target)), "DAMAGE_EFFECT");
+					if (!_window.inCombat(offset))
+					{
+						if (friendly) { _drainDamageHp = _drainDamageHp.add(hp); _drainDamageCp = _drainDamageCp.add(cp); }
+						else { _drainReceivedHp = _drainReceivedHp.add(hp); _drainReceivedCp = _drainReceivedCp.add(cp); }
+						return false;
+					}
 					if (friendly) { _damageHp = _damageHp.add(hp); _damageCp = _damageCp.add(cp); }
 					else { _receivedHp = _receivedHp.add(hp); _receivedCp = _receivedCp.add(cp); _opponentEffects++; }
 					return friendly && role == Role.DAMAGE;
@@ -1356,15 +1383,16 @@ public final class PhantomLearning131Evaluation
 		private Episode finish(Occurrence occurrence)
 		{
 			require(_control.isEmpty() && _paid.compareTo(_block.budget()) <= 0, "DRAIN_CONTROL_OR_BUDGET");
-			if (_executed == 0) { throw new Incomplete("NO_NATIVE_EXECUTION"); }
+			if (_executed + _drainExecuted == 0) { throw new Incomplete("NO_NATIVE_EXECUTION"); }
 			final Scene scene = _block.plan().scene();
-			final int deaths = scoredCount(_deaths.keySet());
+			final Set<Integer> combatDeaths = _window.combatDeaths(_deaths);
+			final int ownCombatDeaths = scoredCount(combatDeaths);
 			final int escaped = scoredCount(_escaped.keySet());
-			final boolean ownOut = deaths + escaped == scene.initialRosterSize();
-			final boolean opponentOut = _deaths.size() - deaths + _escaped.size() - escaped == _block.opponentSize();
+			final boolean ownOut = ownCombatDeaths + escaped == scene.initialRosterSize();
+			final boolean opponentOut = combatDeaths.size() - ownCombatDeaths + _escaped.size() - escaped == _block.opponentSize();
 			final int progress = switch (scene.objective())
 			{
-				case PVE_KILLS -> _creditedMobs.size();
+				case PVE_KILLS -> Math.toIntExact(_creditedMobs.stream().filter(combatDeaths::contains).count());
 				case PVP_WIN -> 0;
 				case ESCAPE -> Math.min(escaped, scene.requiredProgress());
 			};
@@ -1377,19 +1405,21 @@ public final class PhantomLearning131Evaluation
 			final long elapsed = _window.combatElapsed();
 			require(outcome == Outcome.TIMEOUT ? elapsed >= _block.deadline() : elapsed <= _block.deadline(), "TERMINAL_DEADLINE");
 			final long objectiveElapsed = objectiveElapsed(scene, outcome);
-			return new Episode(_block.plan().id(), occurrence.id(), occurrence.position(), _binding.slot(), outcome, progress, deaths, _paid.doubleValue(), objectiveElapsed);
+			// Outcome is frozen at the cutoff. Survival accounts for every witnessed casualty of this episode.
+			return new Episode(_block.plan().id(), occurrence.id(), occurrence.position(), _binding.slot(), outcome, progress,
+				scoredCount(_deaths.keySet()), _paid.doubleValue(), objectiveElapsed);
 		}
 
 		private long objectiveElapsed(Scene scene, Outcome outcome)
 		{
 			if (outcome == Outcome.WIN && scene.objective() == Objective.PVE_KILLS)
 			{
-				return _creditedMobs.stream().mapToLong(_deaths::get).sorted().skip(scene.requiredProgress() - 1L).findFirst().orElseThrow();
+				return _creditedMobs.stream().mapToLong(_deaths::get).filter(_window::inCombat).sorted().skip(scene.requiredProgress() - 1L).findFirst().orElseThrow();
 			}
 			if (outcome == Outcome.WIN && scene.objective() == Objective.PVP_WIN)
 			{
 				return java.util.stream.Stream.concat(_deaths.entrySet().stream(), _escaped.entrySet().stream())
-					.filter(entry -> !scored(entry.getKey())).mapToLong(Map.Entry::getValue).max().orElseThrow();
+					.filter(entry -> !scored(entry.getKey())).mapToLong(Map.Entry::getValue).filter(_window::inCombat).max().orElseThrow();
 			}
 			return _objectiveAt >= 0 ? _objectiveAt : _window.combatElapsed();
 		}
@@ -1472,6 +1502,7 @@ public final class PhantomLearning131Evaluation
 			"objectiveElapsedNanos", "terminalElapsedNanos", "settledElapsedNanos", "damageHP", "damageCP", "receivedHP", "receivedCP", "effectiveHeal", "overheal", "mpTransfer",
 			"controlTargetNanos", "interrupts", "brokenCC", "aggroEffects", "buffEffects", "ownExecuted", "opponentExecuted", "opponentEffects", "score"));
 		result.add(row("columns", "role", "episodeId", "role", "samples", "unknown"));
+		result.add(row("columns", "drain", "episodeId", "damageHP", "damageCP", "receivedHP", "receivedCP", "ownExecuted", "opponentExecuted", "ownDeaths", "opponentDeaths", "killCreditsForDrainDeaths"));
 		for (Evaluation evaluation : evaluations)
 		{
 			final Episode episode = evaluation.episode();
@@ -1482,6 +1513,12 @@ public final class PhantomLearning131Evaluation
 				raw._damageHp.toPlainString(), raw._damageCp.toPlainString(), raw._receivedHp.toPlainString(), raw._receivedCp.toPlainString(), raw._heal.toPlainString(),
 				raw._overheal.toPlainString(), raw._mpTransfer.toPlainString(), raw._controlNanos, raw._interrupts, raw._brokenControl, raw._aggro, raw._buffs,
 				raw._executed, raw._opponentExecuted, raw._opponentEffects, TrainingEvaluation131.score(scene, episode)));
+			final var drainDeaths = new HashSet<>(raw._deaths.keySet());
+			drainDeaths.removeAll(evaluation.window().combatDeaths(raw._deaths));
+			final int ownDrainDeaths = raw.scoredCount(drainDeaths);
+			result.add(row("drain", episode.episodeId(), raw._drainDamageHp.toPlainString(), raw._drainDamageCp.toPlainString(),
+				raw._drainReceivedHp.toPlainString(), raw._drainReceivedCp.toPlainString(), raw._drainExecuted, raw._drainOpponentExecuted,
+				ownDrainDeaths, drainDeaths.size() - ownDrainDeaths, raw._creditedMobs.stream().filter(drainDeaths::contains).count()));
 			for (Role role : EnumSet.complementOf(EnumSet.of(Role.OPPONENT)))
 			{
 				result.add(row("role", episode.episodeId(), role, raw._samples.getOrDefault(role, Set.of()).size(), raw._unknown.getOrDefault(role, 0)));
