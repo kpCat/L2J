@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpReceipt;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
@@ -76,7 +77,8 @@ public final class PhantomLearning131EvaluationChecks
 	{
 		final String episode = "3".repeat(64), event = "4".repeat(64);
 		final var self = new TacticalObservationV3.Entity(TacticalObservationV3.Role.SELF, 42, 7, 0, 0, Map.of(),
-			List.of(), List.of(), List.of(new TacticalObservationV3.Ability(1230, 4, 20, 4, 500, 0, 300, true)), List.of());
+			List.of(), List.of(), List.of(new TacticalObservationV3.Ability(1230, 4, 20, 4, 500, 0, 300, true),
+				new TacticalObservationV3.Ability(1148, 4, 20, 4, 500, 0, 300, true)), List.of());
 		final var enemy = new TacticalObservationV3.Entity(TacticalObservationV3.Role.ENEMY, 102, 91, 0, 0,
 			Map.of(TacticalObservationV3.Field.MAX_CP, TacticalObservationV3.Fact.known(400),
 				TacticalObservationV3.Field.MAX_HP, TacticalObservationV3.Fact.known(800)), List.of(), List.of(), List.of(), List.of());
@@ -87,29 +89,35 @@ public final class PhantomLearning131EvaluationChecks
 		final var paid = new PvpReceipt(event, attempt, null, new PvpPoolWrite(100, 60, 1040, 1050), 4, 1010, 1020, 50, 0, false,
 			new SourceOwner(5, "Combat/1/5/1"));
 		final String[] wire = PhantomLearning131AuditOriginals.pvpRow(paid).split("\t", -1);
-		final var fact = PhantomLearning131AuditOriginals.decode(Collections.singletonList(wire), episode).get(event);
+		final var trace = new NativeCastTrace(event, 42, 7, 102, 91, 0, 1230, 4, 1148, 4, 1002, 1005, 1010,
+			TacticalObservationV3.hash(observation.bytes()));
+		final String[] cast = PhantomLearning131AuditOriginals.castRow(trace).split("\t", -1);
+		final var fact = PhantomLearning131AuditOriginals.decode(List.of(wire, cast), episode).get(event);
 		check(fact != null && fact.hp().signum() == 0 && fact.cp().compareTo(new BigDecimal("40")) == 0 && fact.atNanos() == 1050
-			&& fact.actorEpoch() == 7 && fact.targetEpoch() == 91 && fact.lethalNanos() == 0, "a CP-only cast must stay CP-only after replay");
+			&& fact.actorEpoch() == 7 && fact.targetEpoch() == 91 && fact.lethalNanos() == 0 && fact.trace().equals(trace),
+			"a CP-only cast must retain its native stages after replay");
+		final String[] otherLearnedBaseline = cast.clone();
+		otherLearnedBaseline[9] = "1230";
+		rejectsPaidOriginals(List.of(wire, otherLearnedBaseline), episode);
 
 		final var lethal = new PvpReceipt(event, attempt, new PvpPoolWrite(100, 0, 1040, 1050), null, 4, 1010, 1020, 70, 0, true,
 			new SourceOwner(5, "Combat/1/5/1"));
 		final String[] lethalRow = PhantomLearning131AuditOriginals.pvpRow(lethal).split("\t", -1);
 		try
 		{
-			PhantomLearning131AuditOriginals.decode(Collections.singletonList(lethalRow), episode);
+			PhantomLearning131AuditOriginals.decode(List.of(lethalRow, cast), episode);
 			throw new AssertionError("A known lethal cast was allowed to lose its stock death witness");
 		}
 		catch (IllegalArgumentException refused)
 		{
 			final String[] terminal = PhantomLearning131AuditOriginals.terminalRow(new NativeTerminal(event, 42, 7, 102, 91, 0, 2, 1060, 0, 0, 1050)).split("\t", -1);
 			final String[] stock = PhantomLearning131AuditOriginals.stockRow(event, new DuelDeath(42, 102, 91, 2, 1080)).split("\t", -1);
-			final var confirmed = PhantomLearning131AuditOriginals.decode(List.of(lethalRow, terminal, stock), episode).get(event);
+			final var confirmed = PhantomLearning131AuditOriginals.decode(List.of(lethalRow, terminal, stock, cast), episode).get(event);
 			check(confirmed != null && confirmed.lethalNanos() == 1060 && confirmed.lastWitnessNanos() == 1080 && confirmed.lastNativeWriteNanos() == 1050,
 				"The late PvP callback must preserve the earlier verified death");
-			final String[] executed = {"event", "a".repeat(64), "1010", "EXECUTED", "42", "102", confirmed.operationId(), "skill-1230-4"};
 			final String[] damage = {"event", event, "1050", "DAMAGE", "42", "102", confirmed.operationId(), "100", "0"};
 			final String[] death = {"event", confirmed.lethalKey(), "1060", "DEATH", "42", "102", confirmed.operationId()};
-			PhantomLearning131Evaluation.verifyPaidProjection(List.of(executed, damage, death), Map.of(event, confirmed),
+			PhantomLearning131Evaluation.verifyPaidProjection(paidEvents(confirmed, damage, death), Map.of(event, confirmed),
 				Map.of(42, 7L, 102, 91L), new EpisodeWindow(1000, 70, 90), true);
 		}
 	}
@@ -131,10 +139,21 @@ public final class PhantomLearning131EvaluationChecks
 		final var original = new TimedAction(new TacticalStoreV3.Row("AUDIT", "task131|AUDIT|" + episode, receipt), 0, 1040, 1050,
 			1010, 1020, false);
 		final String[] wire = PhantomLearning131AuditOriginals.pveRow(original).split("\t", -1);
-		final var fact = PhantomLearning131AuditOriginals.decode(Collections.singletonList(wire), episode).get(event);
+		final var trace = new NativeCastTrace(event, 42, 7, 102, 91, 0, 1230, 4, 1148, 4, 1002, 1005, 1010,
+			TacticalObservationV3.hash(observation.bytes()));
+		final String[] cast = PhantomLearning131AuditOriginals.castRow(trace).split("\t", -1);
+		final var fact = PhantomLearning131AuditOriginals.decode(List.of(wire, cast), episode).get(event);
 		check(fact != null && fact.hp().compareTo(new BigDecimal("60")) == 0 && fact.cp().signum() == 0 && fact.atNanos() == 1050
-			&& fact.skillId() == 1230 && fact.skillLevel() == 4 && fact.targetEpoch() == 91 && fact.lethalNanos() == 0,
+			&& fact.skillId() == 1230 && fact.skillLevel() == 4 && fact.targetEpoch() == 91 && fact.lethalNanos() == 0 && fact.trace().equals(trace),
 			"the canonical paid PvE original must recover exactly the witnessed action");
+		rejectsPaidOriginals(Collections.singletonList(wire), episode);
+		rejectsPaidOriginals(List.of(wire, cast, cast), episode);
+		final String[] otherObservation = cast.clone();
+		otherObservation[14] = "9".repeat(64);
+		rejectsPaidOriginals(List.of(wire, otherObservation), episode);
+		final String[] impossibleExecution = cast.clone();
+		impossibleExecution[13] = "1041";
+		rejectsPaidOriginals(List.of(wire, impossibleExecution), episode);
 
 		final var fatal = new TacticalReceiptV3(event, attempt, 800, 0, 800, 4, 60, TacticalReceiptV3.reward(800, 800, 4, 60),
 			new SourceOwner(5, "Combat/1/5/1"));
@@ -142,50 +161,77 @@ public final class PhantomLearning131EvaluationChecks
 			0, 1040, 1075, 1010, 1020, false);
 		final String[] fatalRow = PhantomLearning131AuditOriginals.pveRow(beforeRewardReturn).split("\t", -1);
 		final String[] terminal = PhantomLearning131AuditOriginals.terminalRow(new NativeTerminal(event, 42, 7, 102, 91, 0, 0, 1050, 1060, 2, 1045)).split("\t", -1);
-		final var npc = PhantomLearning131AuditOriginals.decode(List.of(fatalRow, terminal), episode).get(event);
+		final var npc = PhantomLearning131AuditOriginals.decode(List.of(fatalRow, terminal, cast), episode).get(event);
 		check(npc != null && npc.atNanos() == 1045 && npc.lethalNanos() == 1050 && npc.killCreditNanos() == 1060 && npc.lastNativeWriteNanos() == 1075,
 			"NPC damage, terminal transition, credit and wrapping cast clocks must survive separately");
-		final String[] executed = {"event", "b".repeat(64), "1010", "EXECUTED", "42", "102", npc.operationId(), "skill-1230-4"};
 		final String[] damage = {"event", event, "1045", "DAMAGE", "42", "102", npc.operationId(), "800", "0"};
 		final String[] death = {"event", npc.lethalKey(), "1050", "DEATH", "42", "102", npc.operationId()};
 		final String[] credit = {"event", npc.killCreditKey(), "1060", "KILL_CREDIT", "42", "102", npc.operationId()};
-		PhantomLearning131Evaluation.verifyPaidProjection(List.of(executed, damage, death, credit), Map.of(event, npc),
+		PhantomLearning131Evaluation.verifyPaidProjection(paidEvents(npc, damage, death, credit), Map.of(event, npc),
 			Map.of(42, 7L, 102, 91L), new EpisodeWindow(1000, 54, 90), false);
+	}
+
+	private static void rejectsPaidOriginals(List<String[]> rows, String episodeId)
+	{
+		try { PhantomLearning131AuditOriginals.decode(rows, episodeId); }
+		catch (IllegalArgumentException refused) { return; }
+		throw new AssertionError("An unbound native cast entered the paid originals");
+	}
+
+	private static List<String[]> paidEvents(Fact fact, String[]... effects)
+	{
+		final var events = new ArrayList<String[]>();
+		for (String stage : PhantomLearning131AuditOriginals.castEvents(fact.trace(), fact.operationId(), "DAMAGE"))
+		{
+			events.add(stage.split("\t", -1));
+		}
+		Collections.addAll(events, effects);
+		return events;
 	}
 
 	private static void paidProjectionRejectsSubstitution()
 	{
 		final String damage = "a".repeat(64), death = "b".repeat(64), operation = "c".repeat(64);
+		final var trace = new NativeCastTrace(damage, 42, 7, 102, 91, 0, 1230, 4, 1148, 4, 96, 98, 100, "d".repeat(64));
 		final var fact = new Fact(damage, operation, 42, 7, 102, 91, 1230, 4, 110, new BigDecimal("60"), new BigDecimal("20"),
-			118, death, true, 95, 110);
+			118, death, true, 95, 110).withTrace(trace);
 		final var roster = Map.of(42, 7L, 102, 91L, 103, 92L);
 		final var originals = Map.of(damage, fact);
-		final String[] executed = {"event", "d".repeat(64), "100", "EXECUTED", "42", "102", operation, "skill-1230-4"};
 		final String[] damageRow = {"event", damage, "110", "DAMAGE", "42", "102", operation, "60", "20"};
 		final String[] deathRow = {"event", death, "118", "DEATH", "42", "102", operation};
-		final var complete = List.of(executed, damageRow, deathRow);
+		final var complete = paidEvents(fact, damageRow, deathRow);
 		PhantomLearning131Evaluation.verifyPaidProjection(complete, originals, roster, new EpisodeWindow(90, 30, 30), true);
 
-		final String[] otherVictim = damageRow.clone();
-		otherVictim[5] = "103";
-		final String[] inflated = damageRow.clone();
-		inflated[7] = "61";
-		final String[] otherSkill = executed.clone();
-		otherSkill[7] = "skill-1230-3";
-		rejectsPaidProjection(List.of(executed, otherVictim, deathRow), originals, roster);
-		rejectsPaidProjection(List.of(executed, inflated, deathRow), originals, roster);
-		rejectsPaidProjection(List.of(otherSkill, damageRow, deathRow), originals, roster);
-		rejectsPaidProjection(List.of(executed, damageRow, deathRow), originals, Map.of(42, 7L, 102, 92L));
-		rejectsPaidProjection(List.of(executed, damageRow), originals, roster);
-		rejectsPaidProjection(List.of(executed, damageRow, damageRow, deathRow), originals, roster);
-		rejectsPaidProjection(List.of(executed, damageRow, deathRow), Map.of(), roster);
+		rejectsPaidProjection(changedField(complete, 3, 5, "103"), originals, roster);
+		rejectsPaidProjection(changedField(complete, 3, 7, "61"), originals, roster);
+		rejectsPaidProjection(changedField(complete, 2, 7, "skill-1230-3"), originals, roster);
+		rejectsPaidProjection(changedField(complete, 0, 9, "skill-1230-4"), originals, roster);
+		rejectsPaidProjection(changedField(complete, 0, 7, "HEAL"), originals, roster);
+		rejectsPaidProjection(changedField(complete, 1, 1, "f".repeat(64)), originals, roster);
+		rejectsPaidProjection(changedField(complete, 1, 2, "99"), originals, roster);
+		rejectsPaidProjection(complete.subList(1, complete.size()), originals, roster);
+		rejectsPaidProjection(List.of(complete.get(0), complete.get(2), damageRow, deathRow), originals, roster);
+		rejectsPaidProjection(List.of(complete.get(0), complete.get(1), complete.get(1), complete.get(2), damageRow, deathRow), originals, roster);
+		rejectsPaidProjection(complete, originals, Map.of(42, 7L, 102, 92L));
+		rejectsPaidProjection(paidEvents(fact, damageRow), originals, roster);
+		rejectsPaidProjection(paidEvents(fact, damageRow, damageRow, deathRow), originals, roster);
+		rejectsPaidProjection(complete, Map.of(), roster);
 		for (var outOfScope : List.of(
 			new Fact(damage, operation, 42, 7, 102, 91, 1230, 4, 110, fact.hp(), fact.cp(), 118, death, true, 89, 110),
 			new Fact(damage, operation, 42, 7, 102, 91, 1230, 4, 110, fact.hp(), fact.cp(), 118, death, true, 95, 121),
 			new Fact(damage, operation, 42, 7, 102, 91, 1230, 4, 110, fact.hp(), fact.cp(), 118, death, false, 95, 110)))
 		{
-			rejectsPaidProjection(complete, Map.of(damage, outOfScope), roster);
+			rejectsPaidProjection(complete, Map.of(damage, outOfScope.withTrace(trace)), roster);
 		}
+	}
+
+	private static List<String[]> changedField(List<String[]> rows, int index, int column, String value)
+	{
+		final var changed = new ArrayList<>(rows);
+		final String[] row = changed.get(index).clone();
+		row[column] = value;
+		changed.set(index, row);
+		return changed;
 	}
 
 	private static void rejectsPaidProjection(List<String[]> events, Map<String, Fact> originals, Map<Integer, Long> roster)

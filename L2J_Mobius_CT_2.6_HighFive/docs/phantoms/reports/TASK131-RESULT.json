@@ -52,8 +52,8 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v14-reviewed.log",
-    "finalContractLog": "v14-PhantomLearning131EvaluationChecks.log",
+    "aggregateLog": "ant-combat-v15-reviewed.log",
+    "finalContractLog": "v15-PhantomLearning131EvaluationChecks.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
@@ -63,14 +63,15 @@
     "regressionTestsPassed": 171,
     "contractGroupsPassed": 17,
     "jarExitCode": 0,
-    "jarSha256": "1aabe7c53fad537d05faa4bc4bc7b47b9664a4b951e6aa1e6418e806d44bf642",
-    "loginJarSha256": "04609105b71c969a9154c878aef150f25c0624d43897b1404e4545876b9352a1",
-    "jarLog": "jar-v14-reviewed.log",
+    "jarSha256": "0728bed80e212f3d5cc5f1c71b798a10fe2f4b3a29bf25cf552d95be2999c200",
+    "loginJarSha256": "58898660ab561813d8436d240ca21330fc24aa1ecc1bdc1555dd2852f46c091e",
+    "jarLog": "jar-v15-reviewed.log",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
-    "auditScheduleLog": "v14-PhantomLearning131EvaluationChecks.log",
-    "nativeEvidenceRegressionLog": "v14-native-evidence-continuation022.log",
+    "auditScheduleLog": "v15-PhantomLearning131EvaluationChecks.log",
+    "auditCastStageNegativeControlLog": "v15-old-evaluator-negative-control.log",
+    "nativeEvidenceRegressionLog": "v15-native-evidence-continuation022.log",
     "nativeEvidenceRegressionPassed": 15,
     "managedSweepRegressionLog": "v10-native-evidence-continuation022.log",
     "supplyChecksLog": "v9-PhantomSupply074Checks.log",
@@ -81,12 +82,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v13.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v14.json",
-    "exactPathCount": 10
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v14.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v15.json",
+    "exactPathCount": 8
   },
   "testReadiness": {
-    "iterationParent": "5eae8e1a38f014cee8a1e390a065e909284150d2",
+    "iterationParent": "578eecbf0c7ff01ee152320970ef03ffd6314b26",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -198,14 +199,14 @@
       "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
       "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "off-and-protected-v14.json",
+    "g0OffReceipt": "off-and-protected-v15.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,off-and-protected-v14.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,off-and-protected-v15.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -373,8 +374,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v14-PhantomLearning131EvaluationChecks.log,v14-native-evidence-continuation022.log",
-      "reason": "Офлайн проверены раздельные часы боя и drain, точные DAMAGE DEATH и KILL_CREDIT, живой AUDIT и остальные эффекты открыты"
+      "evidence": "v15-PhantomLearning131EvaluationChecks.log,v15-native-evidence-continuation022.log",
+      "reason": "Офлайн проверены штатные отметки выбора, допуска и входа в эффект оплаченных одиночных кастов, живой AUDIT и остальные эффекты открыты"
     },
     "D9": {
       "phase": "P3–P5",

@@ -31,7 +31,7 @@ public final class LearningCastEvidence
 	private static final ThreadLocal<LearningCastEvidence> EFFECT = new ThreadLocal<>();
 	private static final ThreadLocal<LearningCastEvidence> DAMAGE = new ThreadLocal<>();
 	private static final ThreadLocal<LearningCastEvidence> MP = new ThreadLocal<>();
-	private static final AtomicReference<TerminalObserver> TERMINALS = new AtomicReference<>();
+	private static final AtomicReference<AuditObserver> AUDIT = new AtomicReference<>();
 	private static final class RunIdentity
 	{
 		private static final String SALT = UUID.randomUUID().toString();
@@ -60,23 +60,33 @@ public final class LearningCastEvidence
 		}
 	}
 
+	/** Paid native cast admission and effect-entry timestamps for independent AUDIT replay. */
+	public record NativeCastTrace(String eventKey, int actorObjectId, long actorEpoch, int targetObjectId, long targetEpoch, int instanceId,
+		int skillId, int skillLevel, int baselineSkillId, int baselineSkillLevel, long decisionNanos, long admittedNanos, long executedNanos,
+		String observationSha)
+	{
+		public NativeCastTrace
+		{
+			if (eventKey == null || !eventKey.matches("[a-f0-9]{64}") || observationSha == null || !observationSha.matches("[a-f0-9]{64}")
+				|| actorObjectId <= 0 || targetObjectId <= 0 || actorObjectId == targetObjectId || actorEpoch <= 0 || targetEpoch <= 0 || instanceId < 0
+				|| skillId <= 0 || skillLevel <= 0 || baselineSkillId <= 0 || baselineSkillLevel <= 0 || decisionNanos <= 0
+				|| admittedNanos < decisionNanos || executedNanos < admittedNanos)
+			{ throw new IllegalArgumentException("Invalid native cast trace"); }
+		}
+	}
+
 	/** Explicit owned TEST collector. Paid observers and existing receipt formats do not depend on it. */
-	public static AutoCloseable observeNativeTerminals(Consumer<NativeTerminal> sink)
+	public static AutoCloseable observeNativeAudit(Consumer<NativeCastTrace> casts, Consumer<NativeTerminal> terminals)
 	{
 		if (!TRAIN) { throw new IllegalStateException("Training opt-in required"); }
-		final var observer = new TerminalObserver(Objects.requireNonNull(sink));
-		if (!TERMINALS.compareAndSet(null, observer)) { throw new IllegalStateException("Native terminal observer already installed"); }
+		final var observer = new AuditObserver(Objects.requireNonNull(casts), Objects.requireNonNull(terminals));
+		if (!AUDIT.compareAndSet(null, observer)) { throw new IllegalStateException("Native AUDIT observer already installed"); }
 		return observer;
 	}
 
-	private record TerminalObserver(Consumer<NativeTerminal> sink) implements AutoCloseable
+	private record AuditObserver(Consumer<NativeCastTrace> casts, Consumer<NativeTerminal> terminals) implements AutoCloseable
 	{
-		private void publish(NativeTerminal receipt)
-		{
-			if (TERMINALS.get() == this) { sink.accept(receipt); }
-		}
-
-		@Override public void close() { TERMINALS.compareAndSet(this, null); }
+		@Override public void close() { AUDIT.compareAndSet(this, null); }
 	}
 
 	/** Exact paid PvP effect. A pool without a native debit is absent. */
@@ -115,7 +125,7 @@ public final class LearningCastEvidence
 	private final PlayerNativeWork.Owner _pvpOwner;
 	private final String _pvpOpponentParty;
 	private final BooleanSupplier _leaseValid;
-	private final TerminalObserver _terminalObserver;
+	private final AuditObserver _auditObserver;
 	private final long _created = System.nanoTime();
 	private final double _maxHp;
 	private boolean _bound;
@@ -132,6 +142,7 @@ public final class LearningCastEvidence
 	private double _mp, _beforeHp = Double.NaN, _afterHp;
 	private PvpPoolWrite _pvpHp;
 	private PvpPoolWrite _pvpCp;
+	private long _admittedNanos, _executedNanos;
 	private long _nativeDamageNanos, _nativeDeathNanos, _nativeCorpseGeneration, _nativeKillCreditNanos, _nativeKillSequence;
 	private String _captureRejection = "no-native-task";
 
@@ -149,7 +160,7 @@ public final class LearningCastEvidence
 		_pvpOwner = target instanceof Player opponent ? opponent.getNativeWorkOwner() : null;
 		_pvpOpponentParty = target instanceof Player opponent ? pvpPartyIdentity(opponent) : null;
 		_leaseValid = leaseValid;
-		_terminalObserver = attempt.tactical() == null ? null : TERMINALS.get();
+		_auditObserver = attempt.tactical() == null ? null : AUDIT.get();
 		_maxHp = target.getMaxHp();
 	}
 
@@ -214,6 +225,7 @@ public final class LearningCastEvidence
 			return null;
 		}
 		ticket._bound = true;
+		if (ticket.auditArmed()) { ticket._admittedNanos = System.nanoTime(); }
 		return ticket;
 	}
 
@@ -319,6 +331,7 @@ public final class LearningCastEvidence
 			return false;
 		}
 		_effectsStarted = true;
+		if (auditArmed()) { _executedNanos = System.nanoTime(); }
 		return true;
 	}
 
@@ -403,11 +416,13 @@ public final class LearningCastEvidence
 
 	private static LearningCastEvidence terminalTicket(Creature target, Creature killer)
 	{
-		if (!TRAIN || TERMINALS.get() == null) { return null; }
+		if (!TRAIN || AUDIT.get() == null) { return null; }
 		final var ticket = DAMAGE.get();
 		return ticket != null && ticket == EFFECT.get() && target == ticket._target && killer == ticket._actor && !ticket._published
-			&& ticket._terminalObserver != null && ticket._terminalObserver == TERMINALS.get() ? ticket : null;
+			&& ticket.auditArmed() ? ticket : null;
 	}
+
+	private boolean auditArmed() { return _auditObserver != null && _auditObserver == AUDIT.get(); }
 
 	private boolean terminalLifetimeCurrent()
 	{
@@ -423,7 +438,7 @@ public final class LearningCastEvidence
 		final LearningCastEvidence ticket = DAMAGE.get();
 		if (ticket != null && ticket == EFFECT.get() && attacker == ticket._actor && owner == ticket._owner && target.equals(ticket._spawn) && hp > 0 && Double.isFinite(hp))
 		{
-			if (ticket._terminalObserver != null && Double.isFinite(before) && Double.isFinite(after)) { ticket._nativeDamageNanos = System.nanoTime(); }
+			if (ticket.auditArmed() && Double.isFinite(before) && Double.isFinite(after)) { ticket._nativeDamageNanos = System.nanoTime(); }
 			ticket._damage += hp;
 			if (Double.isNaN(ticket._beforeHp)) { ticket._beforeHp = before; }
 			ticket._afterHp = after;
@@ -490,31 +505,42 @@ public final class LearningCastEvidence
 		{ ticket._mp += before - after;final long stamp=System.nanoTime();if(ticket._mpStart==0){ticket._mpStart=stamp;}ticket._mpEnd=stamp; }
 	}
 
-	private synchronized void issued()
+	private void issued()
 	{
-		_issued = true;
-		if (!_bound)
+		synchronized (this)
 		{
-			_attempt.policy().observationRejected();
-			witnessRejection("capture", _captureRejection);
-			failure("NO_NATIVE_TASK",false);
+			_issued = true;
+			if (!_bound)
+			{
+				_attempt.policy().observationRejected();
+				witnessRejection("capture", _captureRejection);
+				failure("NO_NATIVE_TASK",false);
+			}
+			if (!claimPublication()) { return; }
 		}
 		publish();
 	}
 
-	private synchronized void complete()
+	private void complete()
 	{
-		_completed = true;
+		synchronized (this)
+		{
+			_completed = true;
+			if (!claimPublication()) { return; }
+		}
 		publish();
+	}
+
+	/** The caller owns the ticket monitor and releases it before invoking subscribers. */
+	private boolean claimPublication()
+	{
+		if (!_issued || !_completed || _published) { return false; }
+		_published = true;
+		return true;
 	}
 
 	private void publish()
 	{
-		if (!_issued || !_completed || _published)
-		{
-			return;
-		}
-		_published = true;
 		try
 		{
 			final String rejection = publicationRejection();
@@ -546,13 +572,13 @@ public final class LearningCastEvidence
 				else
 				{
 					final var paid = new PvpReceipt(eventKey, tactical, _pvpHp, _pvpCp, _mp, _mpStart, _mpEnd, elapsed, _actor.getInstanceId(), _lethal, owner);
-					publishNativeTerminal(eventKey);
+					publishNativeAudit(eventKey);
 					_attempt.policy().observePvpPaid(paid);
 					if (_pvpHp == null) { return; }
 				}
 				final var paid = new TacticalReceiptV3(eventKey, tactical, _beforeHp, _afterHp, _damage, _mp, elapsed,
 					TacticalReceiptV3.reward(_damage, _maxHp, _mp, elapsed), owner);
-				if (_pvpOwner == null) { publishNativeTerminal(eventKey); }
+				if (_pvpOwner == null) { publishNativeAudit(eventKey); }
 				_attempt.policy().recordTactical(paid);
 				return;
 			}
@@ -571,18 +597,36 @@ public final class LearningCastEvidence
 		}
 	}
 
-	private void publishNativeTerminal(String eventKey)
+	private void publishNativeAudit(String eventKey)
 	{
-		if (_terminalObserver == null || _terminalObserver != TERMINALS.get() || _nativeDeathNanos <= 0) { return; }
+		if (!auditArmed() || _admittedNanos <= 0 || _executedNanos <= 0) { return; }
 		final boolean pvp = _pvpOwner != null;
 		final long targetEpoch = pvp ? _pvpOwner.epoch() : _spawn.spawnGeneration();
-		final long damageNanos = pvp ? _pvpHp == null ? 0 : Math.max(_pvpHp.lastWrite(), _pvpCp == null ? 0 : _pvpCp.lastWrite()) : _nativeDamageNanos;
 		final var tactical = _attempt.tactical();
-		if (damageNanos <= 0 || damageNanos > _nativeDeathNanos || !pvp && (damageNanos < _hpStart || damageNanos > _hpEnd)
-			|| tactical.selected().targetObjectId() != _target.getObjectId() || tactical.selected().targetEpoch() != targetEpoch) { return; }
+		final var selected = tactical.selected();
+		final var baseline = tactical.baseline();
+		final var observation = tactical.observation();
+		if (selected.targetObjectId() != _target.getObjectId() || selected.targetEpoch() != targetEpoch || selected.skillId() != _skill.getId()
+			|| selected.skillLevel() != _skill.getLevel() || _created < observation.capturedNanos()) { return; }
 		try
 		{
-			_terminalObserver.publish(new NativeTerminal(eventKey, _actor.getObjectId(), _epoch, _target.getObjectId(), targetEpoch, _actor.getInstanceId(),
+			final var trace = new NativeCastTrace(eventKey, _actor.getObjectId(), _epoch, _target.getObjectId(), targetEpoch, _actor.getInstanceId(),
+				selected.skillId(), selected.skillLevel(), baseline.skillId(), baseline.skillLevel(), _created, _admittedNanos, _executedNanos,
+				TacticalObservationV3.hash(observation.bytes()));
+			if (auditArmed()) { _auditObserver.casts().accept(trace); }
+		}
+		catch (RuntimeException | Error unavailable) { /* The optional observer cannot affect the existing paid callbacks. */ }
+		publishNativeTerminal(eventKey, targetEpoch, pvp);
+	}
+
+	private void publishNativeTerminal(String eventKey, long targetEpoch, boolean pvp)
+	{
+		if (!auditArmed() || _nativeDeathNanos <= 0) { return; }
+		final long damageNanos = pvp ? _pvpHp == null ? 0 : Math.max(_pvpHp.lastWrite(), _pvpCp == null ? 0 : _pvpCp.lastWrite()) : _nativeDamageNanos;
+		if (damageNanos <= 0 || damageNanos > _nativeDeathNanos || (!pvp && (damageNanos < _hpStart || damageNanos > _hpEnd))) { return; }
+		try
+		{
+			_auditObserver.terminals().accept(new NativeTerminal(eventKey, _actor.getObjectId(), _epoch, _target.getObjectId(), targetEpoch, _actor.getInstanceId(),
 				_nativeCorpseGeneration, _nativeDeathNanos, _nativeKillCreditNanos, _nativeKillSequence, damageNanos));
 		}
 		catch (RuntimeException | Error unavailable) { /* The optional witness cannot affect the existing paid callbacks. */ }

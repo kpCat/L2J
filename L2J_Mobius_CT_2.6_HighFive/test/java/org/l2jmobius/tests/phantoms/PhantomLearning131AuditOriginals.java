@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.SourceOwner;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeCastTrace;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.NativeTerminal;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpPoolWrite;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.PvpReceipt;
@@ -19,11 +20,12 @@ import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Role;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3.Attempt;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
 import org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.TimedAction;
 import org.l2jmobius.tests.phantoms.PhantomLearning131AuditDamage.DuelDeath;
 
-/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V2 episode document. */
+/** Test-side paid rows inside a SHA-pinned NATIVE_PAID131_V3 episode document. */
 final class PhantomLearning131AuditOriginals
 {
 	private static final int MAX_ROWS = 1024;
@@ -32,7 +34,8 @@ final class PhantomLearning131AuditOriginals
 
 	record Fact(String eventKey, String operationId, int actor, long actorEpoch, int target, long targetEpoch, int skillId,
 		int skillLevel, long atNanos, BigDecimal hp, BigDecimal cp, long lethalNanos, String lethalKey,
-		boolean pvp, long capturedNanos, long lastNativeWriteNanos, long killCreditNanos, String killCreditKey, long lastWitnessNanos)
+		boolean pvp, long capturedNanos, long lastNativeWriteNanos, long killCreditNanos, String killCreditKey, long lastWitnessNanos,
+		NativeCastTrace trace)
 	{
 		Fact(String eventKey, String operationId, int actor, long actorEpoch, int target, long targetEpoch, int skillId,
 			int skillLevel, long atNanos, BigDecimal hp, BigDecimal cp, long lethalNanos, String lethalKey,
@@ -42,16 +45,31 @@ final class PhantomLearning131AuditOriginals
 				pvp, capturedNanos, lastNativeWriteNanos, 0, "", lethalNanos);
 		}
 
+		Fact(String eventKey, String operationId, int actor, long actorEpoch, int target, long targetEpoch, int skillId,
+			int skillLevel, long atNanos, BigDecimal hp, BigDecimal cp, long lethalNanos, String lethalKey,
+			boolean pvp, long capturedNanos, long lastNativeWriteNanos, long killCreditNanos, String killCreditKey, long lastWitnessNanos)
+		{
+			this(eventKey, operationId, actor, actorEpoch, target, targetEpoch, skillId, skillLevel, atNanos, hp, cp, lethalNanos, lethalKey,
+				pvp, capturedNanos, lastNativeWriteNanos, killCreditNanos, killCreditKey, lastWitnessNanos, null);
+		}
+
+		Fact withTrace(NativeCastTrace nativeTrace)
+		{
+			return new Fact(eventKey, operationId, actor, actorEpoch, target, targetEpoch, skillId, skillLevel, atNanos, hp, cp, lethalNanos, lethalKey,
+				pvp, capturedNanos, lastNativeWriteNanos, killCreditNanos, killCreditKey, lastWitnessNanos, nativeTrace);
+		}
+
 		Fact withTerminal(NativeTerminal terminal, long lastWitness)
 		{
 			return new Fact(eventKey, operationId, actor, actorEpoch, target, targetEpoch, skillId, skillLevel, terminal.damageNanos(), hp, cp,
 				terminal.deathNanos(), deathKey(eventKey, pvp ? terminal.corpseGeneration() : targetEpoch), pvp, capturedNanos,
 				lastNativeWriteNanos, terminal.killCreditNanos(), terminal.killSequence() == 0 ? "" : PhantomLearning131AuditOriginals.killCreditKey(eventKey, terminal.killSequence()),
-				lastWitness);
+				lastWitness, trace);
 		}
 	}
 
-	private record Paid(Fact fact, int instanceId, long firstHpWrite, boolean lethal, double afterHp) { }
+	private record Paid(Fact fact, int instanceId, long firstEffectWrite, boolean lethal, double afterHp,
+		TacticalObservationV3 observation, int baselineId, int baselineRank) { }
 	private record KillCredit(int actor, long epoch, long sequence) { }
 
 	private PhantomLearning131AuditOriginals() { }
@@ -61,12 +79,18 @@ final class PhantomLearning131AuditOriginals
 		require(episodeId.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,95}") && rows.size() <= MAX_ROWS, "EPISODE_OR_ROW_LIMIT");
 		final var paid = new HashMap<String, Paid>();
 		final var operations = new HashSet<String>();
+		final var traces = new HashMap<String, NativeCastTrace>();
 		final var terminals = new HashMap<String, NativeTerminal>();
 		final var stock = new HashMap<String, DuelDeath>();
 		for (String[] row : rows)
 		{
 			require(row.length >= 2, "ROW_SHAPE");
 			final String key = eventKey(row[1]);
+			if (row[0].equals("cast"))
+			{
+				require(row.length == 15 && traces.putIfAbsent(key, readCast(row, key)) == null, "CAST_ROW_OR_DUPLICATE");
+				continue;
+			}
 			if (row[0].equals("terminal"))
 			{
 				require(row.length == 12 && terminals.putIfAbsent(key, readTerminal(row, key)) == null, "TERMINAL_ROW_OR_DUPLICATE");
@@ -91,13 +115,19 @@ final class PhantomLearning131AuditOriginals
 		{
 			final String key = entry.getKey();
 			final Paid original = entry.getValue();
+			final Fact fact = original.fact();
+			final NativeCastTrace trace = traces.remove(key);
+			require(trace != null && traceMatches(trace, key, original.instanceId(), original.observation(), fact.target(), fact.targetEpoch(),
+				fact.skillId(), fact.skillLevel(), original.firstEffectWrite())
+				&& trace.baselineSkillId() == original.baselineId() && trace.baselineSkillLevel() == original.baselineRank(),
+				"PAID_ORIGINAL_CAST_JOIN");
 			final NativeTerminal terminal = terminals.remove(key);
 			// Native NPC terminals are additive to the historical TimedAction flag.
 			require((!original.lethal() || terminal != null) && (terminal == null || !original.fact().pvp() || original.lethal()),
 				"LETHAL_ORIGINAL_TERMINAL_JOIN");
 			if (terminal == null)
 			{
-				facts.put(key, original.fact());
+				facts.put(key, fact.withTrace(trace));
 				continue;
 			}
 			final Fact joined = join(original, terminal, stock.remove(key));
@@ -105,10 +135,66 @@ final class PhantomLearning131AuditOriginals
 			{
 				require(credits.add(new KillCredit(joined.actor(), joined.actorEpoch(), terminal.killSequence())), "DUPLICATE_KILL_CREDIT");
 			}
-			facts.put(key, joined);
+			facts.put(key, joined.withTrace(trace));
 		}
-		require(terminals.isEmpty() && stock.isEmpty(), "UNMATCHED_TERMINAL_OR_STOCK");
+		require(traces.isEmpty() && terminals.isEmpty() && stock.isEmpty(), "UNMATCHED_CAST_TERMINAL_OR_STOCK");
 		return Map.copyOf(facts);
+	}
+
+	static String castRow(NativeCastTrace trace)
+	{
+		return row("cast", trace.eventKey(), trace.actorObjectId(), trace.actorEpoch(), trace.targetObjectId(), trace.targetEpoch(), trace.instanceId(),
+			trace.skillId(), trace.skillLevel(), trace.baselineSkillId(), trace.baselineSkillLevel(), trace.decisionNanos(), trace.admittedNanos(),
+			trace.executedNanos(), trace.observationSha());
+	}
+
+	private static NativeCastTrace readCast(String[] row, String key)
+	{
+		return new NativeCastTrace(key, object(row[2]), positive(row[3]), object(row[4]), positive(row[5]), nonnegativeInt(row[6]),
+			object(row[7]), object(row[8]), object(row[9]), object(row[10]), positive(row[11]), positive(row[12]), positive(row[13]), eventKey(row[14]));
+	}
+
+	static String castStageKey(String eventKey, String stage)
+	{
+		require(stage.equals("DECISION") || stage.equals("ADMITTED") || stage.equals("EXECUTED"), "CAST_STAGE");
+		return TacticalObservationV3.hash(("TASK131_AUDIT_NATIVE_CAST_STAGE_V1\n" + eventKey(eventKey) + "\n" + stage).getBytes(StandardCharsets.UTF_8));
+	}
+
+	static String skillToken(int id, int rank)
+	{
+		require(id > 0 && rank > 0, "SKILL_IDENTITY");
+		return "skill-" + id + "-" + rank;
+	}
+
+	static List<String> castEvents(NativeCastTrace trace, String operationId, String role)
+	{
+		require(role.equals("DAMAGE") || role.equals("OPPONENT"), "CAST_ROLE");
+		final String operation = eventKey(operationId);
+		final int actor = trace.actorObjectId(), target = trace.targetObjectId();
+		final String chosen = skillToken(trace.skillId(), trace.skillLevel());
+		final String baseline = skillToken(trace.baselineSkillId(), trace.baselineSkillLevel());
+		final String key = trace.eventKey();
+		return List.of(row("event", castStageKey(key, "DECISION"), trace.decisionNanos(), "DECISION", actor, target, operation, role, chosen, baseline),
+			row("event", castStageKey(key, "ADMITTED"), trace.admittedNanos(), "ADMITTED", actor, target, operation, chosen),
+			row("event", castStageKey(key, "EXECUTED"), trace.executedNanos(), "EXECUTED", actor, target, operation, chosen));
+	}
+
+	static boolean matchesCast(NativeCastTrace trace, String key, int instance, Attempt attempt, long firstEffectWrite)
+	{
+		final var action = attempt.selected();
+		return trace != null && traceMatches(trace, key, instance, attempt.observation(), action.targetObjectId(), action.targetEpoch(),
+			action.skillId(), action.skillLevel(), firstEffectWrite)
+			&& trace.baselineSkillId() == attempt.baseline().skillId() && trace.baselineSkillLevel() == attempt.baseline().skillLevel();
+	}
+
+	private static boolean traceMatches(NativeCastTrace trace, String key, int instance, TacticalObservationV3 observation, int targetId,
+		long targetEpoch, int skillId, int rank, long firstEffectWrite)
+	{
+		return trace.eventKey().equals(key) && trace.actorObjectId() == observation.actorObjectId() && trace.actorEpoch() == observation.actorEpoch()
+			&& trace.targetObjectId() == targetId && trace.targetEpoch() == targetEpoch && trace.instanceId() == instance
+			&& trace.skillId() == skillId && trace.skillLevel() == rank && trace.observationSha().equals(TacticalObservationV3.hash(observation.bytes()))
+			&& trace.decisionNanos() >= observation.capturedNanos() && trace.admittedNanos() >= trace.decisionNanos()
+			&& trace.executedNanos() >= trace.admittedNanos() && trace.executedNanos() <= firstEffectWrite;
 	}
 
 	/** event key, TacticalStoreV3 row, instance, two HP stamps, two MP stamps, lethal writer flag. */
@@ -140,32 +226,35 @@ final class PhantomLearning131AuditOriginals
 		return new Paid(new Fact(key, operationId(episodeId, receipt.owner()), action.actorObjectId(), action.actorEpoch(), action.targetObjectId(),
 			action.targetEpoch(), action.skillId(), action.skillLevel(), original.hpFinishedNanos(), wireDamage(receipt.actualHp()), BigDecimal.ZERO, 0, "",
 			false, observation.capturedNanos(), Math.max(original.hpFinishedNanos(), original.mpFinishedNanos())),
-			original.instanceId(), original.hpStartedNanos(), original.linkedLethalWrite(), receipt.afterHp());
+			original.instanceId(), original.hpStartedNanos(), original.linkedLethalWrite(), receipt.afterHp(), observation,
+			receipt.attempt().baseline().skillId(), receipt.attempt().baseline().skillLevel());
 	}
 
-	/** A canonical observation and selected native rank, owner, MP debit, and two nullable exact pool writes. */
+	/** Canonical observation, native ranks, owner, MP debit, and two nullable exact pool writes. */
 	static String pvpRow(PvpReceipt original)
 	{
 		final var action = original.attempt().selected();
+		final var baseline = original.attempt().baseline();
 		return row("pvp", original.eventKey(), ENCODER.encodeToString(original.attempt().observation().bytes()), action.targetObjectId(),
 			action.targetEpoch(), action.skillId(), action.skillLevel(), original.owner().generation(),
 			ENCODER.encodeToString(original.owner().operationKey().getBytes(StandardCharsets.UTF_8)), original.instanceId(), original.elapsedNanos(),
 			original.mp(), original.mpFirstWrite(), original.mpLastWrite())
-			+ "\t" + pool(original.hp()) + "\t" + pool(original.cp()) + "\t" + original.lethal();
+			+ "\t" + pool(original.hp()) + "\t" + pool(original.cp()) + "\t" + row(original.lethal(), baseline.skillId(), baseline.skillLevel());
 	}
 
 	private static Paid readPvp(String[] row, String key, String episodeId)
 	{
-		require(row.length == 23, "PVP_ROW_SHAPE");
+		require(row.length == 25, "PVP_ROW_SHAPE");
 		final byte[] observationBytes = bytes(row[2], 524288);
 		final var observation = TacticalObservationV3.restore(observationBytes);
 		require(Arrays.equals(observation.bytes(), observationBytes), "PVP_OBSERVATION_ENCODING");
 		final int targetId = object(row[3]), skill = object(row[5]), rank = object(row[6]);
+		final int baselineId = object(row[23]), baselineRank = object(row[24]);
 		final long targetEpoch = positive(row[4]);
 		final var target = observation.entity(targetId);
 		require(target != null && observation.entities().size() == 2 && targetId != observation.actorObjectId() && target.role() == Role.ENEMY
 			&& target.epoch() == targetEpoch && !target.fact(Field.NPC_ID).known()
-			&& observation.self().abilities().stream().anyMatch(ability -> ability.skillId() == skill && ability.level() == rank), "PVP_LEARNED_IDENTITY");
+			&& learned(observation, skill, rank) && learned(observation, baselineId, baselineRank), "PVP_LEARNED_IDENTITY");
 		final byte[] ownerBytes = bytes(row[8], 512);
 		final String ownerKey = new String(ownerBytes, StandardCharsets.UTF_8);
 		final var owner = new SourceOwner(positive(row[7]), ownerKey);
@@ -183,7 +272,17 @@ final class PhantomLearning131AuditOriginals
 		final long damageNanos = Math.max(last(hp), last(cp));
 		return new Paid(new Fact(key, operationId(episodeId, owner), observation.actorObjectId(), observation.actorEpoch(), targetId, targetEpoch,
 			skill, rank, damageNanos, delta(hp), delta(cp), 0, "", true, observation.capturedNanos(), Math.max(damageNanos, mpEnd)),
-			instance, hp == null ? 0 : hp.firstWrite(), lethal, hp == null ? 0 : hp.after());
+			instance, first(hp, cp), lethal, hp == null ? 0 : hp.after(), observation, baselineId, baselineRank);
+	}
+
+	private static boolean learned(TacticalObservationV3 observation, int skillId, int rank)
+	{
+		return observation.self().abilities().stream().anyMatch(ability -> ability.skillId() == skillId && ability.level() == rank);
+	}
+
+	static long first(PvpPoolWrite hp, PvpPoolWrite cp)
+	{
+		return hp == null ? cp.firstWrite() : cp == null ? hp.firstWrite() : Math.min(hp.firstWrite(), cp.firstWrite());
 	}
 
 	private static String pool(PvpPoolWrite write)
@@ -222,7 +321,7 @@ final class PhantomLearning131AuditOriginals
 				&& terminal.killSequence() == 0 && matchesStock(terminal, stock), "PVP_TERMINAL_OR_STOCK");
 			return fact.withTerminal(terminal, stock.observedNanos());
 		}
-		require(stock == null && terminal.corpseGeneration() == 0 && original.afterHp() < 0.5 && terminal.damageNanos() >= original.firstHpWrite()
+		require(stock == null && terminal.corpseGeneration() == 0 && original.afterHp() < 0.5 && terminal.damageNanos() >= original.firstEffectWrite()
 			&& terminal.deathNanos() <= fact.atNanos() && (terminal.killSequence() == 0
 				? terminal.killCreditNanos() == 0 : terminal.killCreditNanos() >= terminal.deathNanos()), "PVE_TERMINAL_OR_KILL_CREDIT");
 		return fact.withTerminal(terminal, Math.max(terminal.deathNanos(), terminal.killCreditNanos()));

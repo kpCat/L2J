@@ -340,7 +340,7 @@ public final class PhantomLearning131Evaluation
 				previousEnd = binding.started();
 				final Document evidence = document(directory.resolve("events131.tsv"), "NATIVE_EVENTS131_V1", "schema", "episodeId", "bindingSha");
 				require(evidence.sha().equals(seal.get("eventsSha")) && evidence.get("episodeId").equals(occurrence.id()) && evidence.get("bindingSha").equals(binding.document().sha()), "RAW_EVENTS_PIN");
-				final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V2", "schema", "episodeId", "bindingSha");
+				final Document paid = document(directory.resolve("paid131.tsv"), "NATIVE_PAID131_V3", "schema", "episodeId", "bindingSha");
 				require(paid.sha().equals(seal.get("paidOriginalsSha")) && paid.get("episodeId").equals(occurrence.id())
 					&& paid.get("bindingSha").equals(binding.document().sha()), "PAID_ORIGINALS_PIN");
 				if (retry)
@@ -373,11 +373,12 @@ public final class PhantomLearning131Evaluation
 		return report(audit, origins.sha(), plans, rows);
 	}
 
-	/** Reconstruct the scored damage and deaths from separately sealed paid originals. */
+	/** Reconstruct native cast stages, damage and deaths from separately sealed paid originals. */
 	static void verifyPaidProjection(List<String[]> events, Map<String, Fact> originals, Map<Integer, Long> roster,
 		EpisodeWindow window, boolean pvp)
 	{
-		final var executions = new HashMap<String, String[]>();
+		final var paidOperations = new HashMap<String, Fact>();
+		final var castStages = new HashMap<String, Integer>();
 		final var deaths = new HashMap<String, Fact>();
 		final var credits = new HashMap<String, Fact>();
 		final var usedDamage = new HashSet<String>();
@@ -385,6 +386,10 @@ public final class PhantomLearning131Evaluation
 		final var recipients = new HashSet<Subject>();
 		for (var fact : originals.values())
 		{
+			final var trace = fact.trace();
+			require(trace != null && trace.decisionNanos() >= fact.capturedNanos() && trace.decisionNanos() <= trace.admittedNanos()
+				&& trace.admittedNanos() <= trace.executedNanos() && trace.executedNanos() <= fact.atNanos()
+				&& paidOperations.putIfAbsent(fact.operationId(), fact) == null, "PAID_CAST_ORIGINAL");
 			require(roster.getOrDefault(fact.actor(), 0L) == fact.actorEpoch() && roster.getOrDefault(fact.target(), 0L) == fact.targetEpoch(),
 				"PAID_PARTICIPANT_EPOCH");
 			require(fact.pvp() == pvp && fact.capturedNanos() >= window.started() && fact.atNanos() <= window.combatEnd()
@@ -398,21 +403,23 @@ public final class PhantomLearning131Evaluation
 			require(event.length >= 7 && "event".equals(event[0]), "PAID_EVENT_SHAPE");
 			switch (event[3])
 			{
-				case "EXECUTED" ->
+				case "DECISION", "ADMITTED", "EXECUTED" ->
 				{
-					length(event, 8);
-					require(executions.putIfAbsent(event[6], event) == null, "DUPLICATE_PAID_EXECUTION");
+					final var fact = paidOperations.get(event[6]);
+					if (fact != null)
+					{
+						final int stage = verifyPaidCastStage(event, fact);
+						require(castStages.getOrDefault(event[6], 0) == stage - 1, "PAID_CAST_STAGE_ORDER");
+						castStages.put(event[6], stage);
+					}
 				}
 				case "DAMAGE" ->
 				{
 					length(event, 9);
 					final var fact = originals.get(event[1]);
-					final var execution = executions.get(event[6]);
-					require(fact != null && execution != null && samePaidEndpoints(event, fact)
+					require(fact != null && castStages.getOrDefault(event[6], 0) == 3 && samePaidEndpoints(event, fact)
 						&& positive(event[2]) == fact.atNanos() && decimal(event[7], true).compareTo(fact.hp()) == 0
 						&& decimal(event[8], true).compareTo(fact.cp()) == 0, "DAMAGE_WITHOUT_MATCHING_PAID_ORIGINAL");
-					require(samePaidEndpoints(execution, fact) && execution[7].equals("skill-" + fact.skillId() + "-" + fact.skillLevel())
-						&& positive(execution[2]) <= fact.atNanos(), "PAID_EXECUTED_SKILL_OR_TARGET");
 					require(usedDamage.add(fact.eventKey()) && recipients.add(new Subject(fact.operationId(), fact.target())), "DUPLICATE_PAID_DAMAGE");
 				}
 				case "DEATH" ->
@@ -433,6 +440,34 @@ public final class PhantomLearning131Evaluation
 			}
 		}
 		require(usedDamage.size() == originals.size() && deaths.isEmpty() && credits.isEmpty(), "INCOMPLETE_PAID_PROJECTION");
+	}
+
+	private static int verifyPaidCastStage(String[] event, Fact fact)
+	{
+		final String kind = event[3];
+		final var trace = fact.trace();
+		final String skill = PhantomLearning131AuditOriginals.skillToken(trace.skillId(), trace.skillLevel());
+		require(samePaidEndpoints(event, fact) && event[1].equals(PhantomLearning131AuditOriginals.castStageKey(fact.eventKey(), kind)),
+			"PAID_CAST_STAGE_BINDING");
+		switch (kind)
+		{
+			case "DECISION":
+				length(event, 10);
+				require(positive(event[2]) == trace.decisionNanos() && (event[7].equals("DAMAGE") || event[7].equals("OPPONENT"))
+					&& event[8].equals(skill) && event[9].equals(PhantomLearning131AuditOriginals.skillToken(trace.baselineSkillId(), trace.baselineSkillLevel())),
+					"PAID_CAST_DECISION");
+				return 1;
+			case "ADMITTED":
+				length(event, 8);
+				require(positive(event[2]) == trace.admittedNanos() && event[7].equals(skill), "PAID_CAST_ADMISSION");
+				return 2;
+			case "EXECUTED":
+				length(event, 8);
+				require(positive(event[2]) == trace.executedNanos() && event[7].equals(skill), "PAID_CAST_EXECUTION");
+				return 3;
+			default:
+				throw new IllegalArgumentException("PAID_CAST_STAGE_KIND");
+		}
 	}
 
 	private static boolean samePaidEndpoints(String[] event, Fact fact)
