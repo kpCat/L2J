@@ -16,7 +16,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutco
 import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.Field;
-import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPveSelection;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockSelection;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSelection;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.*;
 
 /** A bounded tie-break inside stock Party support, with rescue and dispatch authority retained by its owner. */
@@ -36,18 +37,18 @@ public final class TacticalPolicyV3
 	private volatile ActionExplorationV4 _experiment;
 	private volatile BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> _episodes131;
 	private AuditControl _auditControl131;
-	private StockPveScope _stockPveScope131;
+	private StockAuditScope _stockAuditScope131;
 	private Consumer<ActionExperimentReceiptV4.Intent> _healIntentSink;
 
 	@FunctionalInterface
-	public interface StockPveScope
+	public interface StockAuditScope
 	{
-		StockPveAuthority bind(long profileId, int actorObjectId, int targetObjectId);
+		StockAuditAuthority bind(long profileId, int actorObjectId, int targetObjectId);
 	}
 
-	public record StockPveAuthority(Object episodeFence, BooleanSupplier current)
+	public record StockAuditAuthority(Object episodeFence, BooleanSupplier current)
 	{
-		public StockPveAuthority
+		public StockAuditAuthority
 		{
 			Objects.requireNonNull(episodeFence);
 			Objects.requireNonNull(current);
@@ -92,19 +93,19 @@ public final class TacticalPolicyV3
 		bindEpisodes131(episodes, healIntentSink, null, null);
 	}
 
-	/** Bind a comparison arm without learning weights. The archived PvE picker also requires the active episode's actor and target fence. */
+	/** Bind a comparison arm without learning weights. Archived pickers require the active episode's actor and target fence. */
 	public synchronized void actionControlAudit131(AuditControl control, BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
-		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink, StockPveScope stockPveScope)
+		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink, StockAuditScope stockScope)
 	{
-		if (control == null || _actionValueMode != Mode.OFF || _actionValue != null || (control == AuditControl.STOCK_PVE) != (stockPveScope != null))
+		if (control == null || _actionValueMode != Mode.OFF || _actionValue != null || control.archived() != (stockScope != null))
 		{
 			throw new IllegalArgumentException("TASK131 control AUDIT requires exact scope, learning OFF and no weights");
 		}
-		bindEpisodes131(episodes, healIntentSink, control, stockPveScope);
+		bindEpisodes131(episodes, healIntentSink, control, stockScope);
 	}
 
 	private void bindEpisodes131(BiFunction<TacticalObservationV3, List<LegalActionV3>, ActionExplorationV4> episodes,
-		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink, AuditControl control, StockPveScope stockPveScope)
+		Consumer<ActionExperimentReceiptV4.Intent> healIntentSink, AuditControl control, StockAuditScope stockScope)
 	{
 		if (!Boolean.getBoolean("phantom.learning.train") || this == OFF || _experiment != null || _exploration != null
 			|| _episodes131 != null || !_last.isEmpty() || _model != null)
@@ -114,15 +115,17 @@ public final class TacticalPolicyV3
 		Objects.requireNonNull(episodes);
 		_healIntentSink = Objects.requireNonNull(healIntentSink);
 		_auditControl131 = control;
-		_stockPveScope131 = stockPveScope;
+		_stockAuditScope131 = stockScope;
 		_episodes131 = episodes;
 	}
 
 	boolean hasEpisodes131() { return _episodes131 != null; }
-	boolean hasStockPveControl131() { return _episodes131 != null && _auditControl131 == AuditControl.STOCK_PVE; }
-	StockPveAuthority bindStockPveAudit131(long profileId, int actorId, int targetId)
+	boolean hasStockControl131() { return _episodes131 != null && _auditControl131 != null && _auditControl131.archived(); }
+	boolean hasStockPveControl131() { return hasStockControl131() && _auditControl131 == AuditControl.STOCK_PVE; }
+	StockAuditAuthority bindStockAudit131(long profileId, int actorId, int targetId, boolean pvp)
 	{
-		return hasStockPveControl131() ? _stockPveScope131.bind(profileId, actorId, targetId) : null;
+		return hasStockControl131() && _auditControl131 == (pvp ? AuditControl.STOCK_PVP : AuditControl.STOCK_PVE)
+			? _stockAuditScope131.bind(profileId, actorId, targetId) : null;
 	}
 
 	private ActionExplorationV4 experiment(TacticalObservationV3 observation, List<LegalActionV3> offered)
@@ -243,11 +246,13 @@ public final class TacticalPolicyV3
 
 	DamageChoice damage(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest request, int actorObjectId,
 		List<LearningPolicy.Candidate> candidates, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill baseline,
-		StockPveSelection stockPveSelection)
+		StockSelection stockSelection)
 	{
 		final boolean pvp = request.learningScope() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.PVP;
 		if (pvp && (_episodes131 == null || hasStockPveControl131())) { return null; }
-		if (hasStockPveControl131() != (stockPveSelection != null)) { return null; }
+		if (hasStockControl131() != (stockSelection != null)) { return null; }
+		if (stockSelection != null && (pvp != (stockSelection instanceof StockPvpSelection)
+			|| _auditControl131 != (pvp ? AuditControl.STOCK_PVP : AuditControl.STOCK_PVE))) { return null; }
 		if (_mode == Mode.OFF || candidates.size() < 2 || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { reason("DAMAGE_OFFER_OR_MODE",request.profileId(),request.targetObjectId());return null; }
 		final long now = System.nanoTime(), profile = request.profileId();
 		if (_last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(profile)) { reason("COOLDOWN_OR_ACTOR_CAP",profile,request.targetObjectId());return null; }
@@ -263,7 +268,7 @@ public final class TacticalPolicyV3
 			final long generation = _generation.incrementAndGet(), snapshotStarted = System.nanoTime();
 			final var snapshot = pvp ? TacticalSnapshotV3.ownedPvp(actor, (Player)target, profile, generation)
 				: TacticalSnapshotV3.collect(actor, profile, generation, _maximumEntities);
-			final var observation = stockPveSelection == null ? snapshot : snapshot.withStockPveSelection(stockPveSelection);
+			final var observation = stockSelection == null ? snapshot : snapshot.withStockSelection(stockSelection);
 			_snapshotTime.add(System.nanoTime() - snapshotStarted);
 			if (observation.entity(target.getObjectId()) == null) { return null; }
 			final var offered = new ArrayList<LegalActionV3>();

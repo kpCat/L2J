@@ -33,6 +33,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetS
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSelection;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSkill;
 
 public interface PhantomCombatActorLease extends AutoCloseable
 {
@@ -290,6 +292,8 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	/** Learned native actions in tactical order; observations never grant a skill. */
 	default List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return List.of(); }
+	default List<StockPvpSkill> stockPvpSkills(
+		PhantomCombatMode mode, int ownerObjectId, int tacticalTargetObjectId) { return List.of(); }
 	/** Contextual preference only. Readiness and native dispatch validate the action independently. */
 	default List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates) { return candidates; }
 
@@ -367,7 +371,7 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	}
 
 	default LearningPolicy.Attempt preparePvpLearning(LearningPolicy learning, PhantomPvpCombatRequest request, int tacticalTargetObjectId,
-		List<SelectedSkill> ready, long generation)
+		List<SelectedSkill> ready, long generation, StockPvpSelection archived)
 	{
 		return null;
 	}

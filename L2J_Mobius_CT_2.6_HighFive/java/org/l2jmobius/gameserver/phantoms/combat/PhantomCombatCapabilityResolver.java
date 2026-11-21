@@ -18,6 +18,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ClassCapabilityFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSelection;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 
 public final class PhantomCombatCapabilityResolver
@@ -49,8 +50,12 @@ public final class PhantomCombatCapabilityResolver
 	private static final Comparator<SelectedSkill> SKILL_ORDER = Comparator.comparingInt(SelectedSkill::skillId).thenComparingInt(SelectedSkill::skillLevel);
 	private final CapabilitySource _source;
 
-	record SkillSelection(PhantomCombatLoadout loadout, List<SelectedSkill> readySkills)
+	record SkillSelection(PhantomCombatLoadout loadout, List<SelectedSkill> readySkills, StockPvpSelection stockPvp)
 	{
+		SkillSelection(PhantomCombatLoadout loadout, List<SelectedSkill> readySkills)
+		{
+			this(loadout, readySkills, null);
+		}
 	}
 
 	public PhantomCombatCapabilityResolver(CapabilitySource source)
@@ -194,5 +199,25 @@ public final class PhantomCombatCapabilityResolver
 		return resolveSkills(actor.classId(), mode, lease::knownSkillLevel, () -> lease.learnedPvpSkills(mode, PhantomNativeCombatCapability.MAXIMUM_SKILLS),
 			skill -> lease.supportsPvpSkill(skill, mode), canSpendMp ? skill -> lease.pvpSkillReady(opponentId, tacticalTargetId, skill, mode) : null,
 			skills -> lease.rankOffensiveSkills(tacticalTargetId, true, skills), lease.supportsNormalAttack(mode), maximumSkills);
+	}
+
+	Optional<SkillSelection> resolveStockPvp(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease,
+		int opponentId, int tacticalTargetId, boolean canSpendMp, int maximumSkills)
+	{
+		final var learned = lease.stockPvpSkills(mode, opponentId, tacticalTargetId);
+		final var discovered = StockPvpSelection.ordered(maximumSkills, learned, List.of());
+		final var matching = _source.capabilities(actor.classId()).stream()
+			.filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
+		final var authored = matching.stream().flatMap(capability -> capability.skills().stream())
+			.map(skill -> currentLearnedSkill(skill, lease::knownSkillLevel)).sorted(SKILL_ORDER).distinct()
+			.filter(skill -> !discovered.contains(skill) && lease.supportsPvpSkill(skill, mode))
+			.limit(maximumSkills - discovered.size()).toList();
+		final var loadout = StockPvpSelection.ordered(maximumSkills, learned, authored);
+		final var ready = canSpendMp ? loadout.stream().filter(skill -> lease.pvpSkillReady(opponentId, tacticalTargetId, skill, mode)).toList() : List.<SelectedSkill>of();
+		final boolean normalFallback = lease.supportsNormalAttack(mode);
+		if (!normalFallback && loadout.isEmpty()) { return Optional.empty(); }
+		final int rank = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElse(1);
+		return Optional.of(new SkillSelection(new PhantomCombatLoadout(mode, mode.capabilityKey(), rank, loadout, normalFallback), ready,
+			new StockPvpSelection(maximumSkills, learned, authored, ready)));
 	}
 }

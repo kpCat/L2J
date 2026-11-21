@@ -10,10 +10,11 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 
 /** Immutable rich observations; a missing fact is explicitly different from a measured zero. */
 public record TacticalObservationV3(long decisionId, long capturedNanos, long profileId, int actorObjectId,
-	long actorEpoch, String partyIdentity, List<TacticalObservationV3.Entity> entities, StockPveSelection stockPveSelection)
+	long actorEpoch, String partyIdentity, List<TacticalObservationV3.Entity> entities, StockSelection stockSelection)
 {
 	public static final int VERSION = 3, MAX_ENTITIES = 20;
-	private static final int STOCK_PVE_SKILLS = 4;
+	private static final int STOCK_SKILLS = 4;
+	public static final int STOCK_PVP_SCAN_LIMIT = 256;
 	public enum Role { SELF, ALLY, SUMMON, ENEMY }
 	public enum Field
 	{
@@ -47,14 +48,20 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 	}
 	public record PastAction(int skillId, int targetObjectId, long observedNanos) { }
 
-	public record StockPveSelection(int cursor, List<SelectedSkill> loadout, List<SelectedSkill> ready)
+	public sealed interface StockSelection permits StockPveSelection, StockPvpSelection
+	{
+		List<SelectedSkill> ready();
+		SelectedSkill selected();
+	}
+
+	public record StockPveSelection(int cursor, List<SelectedSkill> loadout, List<SelectedSkill> ready) implements StockSelection
 	{
 		public StockPveSelection
 		{
 			loadout = List.copyOf(loadout);
 			ready = List.copyOf(ready);
 			final var bySkill = Comparator.comparingInt(SelectedSkill::skillId).thenComparingInt(SelectedSkill::skillLevel);
-			if (loadout.size() > STOCK_PVE_SKILLS || ready.isEmpty()
+			if (loadout.size() > STOCK_SKILLS || ready.isEmpty()
 				|| !loadout.equals(loadout.stream().sorted(bySkill).distinct().toList())
 				|| !ready.equals(loadout.stream().filter(ready::contains).toList()))
 			{
@@ -64,6 +71,52 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 
 		public SelectedSkill selected() { return ready.get(Math.floorMod(cursor, ready.size())); }
 	}
+
+	public record StockPvpSkill(SelectedSkill skill, boolean nativeReady, int priority, int elementalPenalty, boolean supported)
+	{
+		public StockPvpSkill
+		{
+			Objects.requireNonNull(skill);
+			if ((priority != 100 && priority != 200 && priority != 250 && priority != 300)
+				|| elementalPenalty < Integer.MIN_VALUE / 10 || elementalPenalty > 100)
+			{
+				throw new IllegalArgumentException("Invalid archived PvP rank");
+			}
+		}
+	}
+
+	public record StockPvpSelection(int limit, List<StockPvpSkill> learned, List<SelectedSkill> authored, List<SelectedSkill> ready)
+		implements StockSelection
+	{
+		private static final Comparator<SelectedSkill> BY_SKILL = Comparator.comparingInt(SelectedSkill::skillId).thenComparingInt(SelectedSkill::skillLevel);
+		private static final Comparator<StockPvpSkill> RANK = Comparator.comparing(StockPvpSkill::nativeReady).reversed()
+			.thenComparing(Comparator.comparingInt((StockPvpSkill skill) -> skill.priority() - skill.elementalPenalty()).reversed())
+			.thenComparingInt(skill -> skill.skill().skillId());
+
+		public StockPvpSelection
+		{
+			learned = List.copyOf(learned);
+			authored = List.copyOf(authored);
+			ready = List.copyOf(ready);
+			if (limit < 1 || limit > STOCK_SKILLS || learned.size() > STOCK_PVP_SCAN_LIMIT
+				|| learned.stream().map(option -> option.skill().skillId()).distinct().count() != learned.size()
+				|| authored.size() > limit || !authored.equals(authored.stream().sorted(BY_SKILL).distinct().toList())
+				|| !ready.equals(ordered(limit, learned, authored).stream().filter(ready::contains).toList()))
+			{
+				throw new IllegalArgumentException("Invalid archived PvP selection input");
+			}
+		}
+
+		public List<SelectedSkill> loadout() { return ordered(limit, learned, authored); }
+		public SelectedSkill selected() { return ready.getFirst(); }
+
+		public static List<SelectedSkill> ordered(int limit, List<StockPvpSkill> learned, List<SelectedSkill> authored)
+		{
+			final var discovered = learned.stream().sorted(RANK).limit(16).filter(StockPvpSkill::supported).map(StockPvpSkill::skill);
+			return java.util.stream.Stream.concat(discovered, authored.stream()).distinct().limit(limit).toList();
+		}
+	}
+
 	public record Entity(Role role, int objectId, long epoch, int ownerObjectId, int classId, Map<Field, Fact> facts,
 		List<Gear> gear, List<Effect> effects, List<Ability> abilities, List<PastAction> pastActions)
 	{
@@ -88,6 +141,7 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 		+ Arrays.toString(Field.values()) + "/scales=" + Arrays.toString(Arrays.stream(Field.values()).mapToDouble(v -> v.scale).toArray())
 		+ "/gear32/item-grade-enchant-family-augmentation-known/effects64/skills128/history8/entity20/role-sort-objectid/no-hidden-hostile-facts").getBytes(StandardCharsets.UTF_8));
 	private static final String STOCK_PVE_SCHEMA = hash((SCHEMA + "/TASK131_STOCK_PVE_SELECTION_V1").getBytes(StandardCharsets.UTF_8));
+	private static final String STOCK_PVP_SCHEMA = hash((SCHEMA + "/TASK131_STOCK_PVP_SELECTION_V1").getBytes(StandardCharsets.UTF_8));
 
 	public TacticalObservationV3(long decisionId, long capturedNanos, long profileId, int actorObjectId, long actorEpoch,
 		String partyIdentity, List<Entity> entities)
@@ -95,7 +149,7 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 		this(decisionId, capturedNanos, profileId, actorObjectId, actorEpoch, partyIdentity, entities, null);
 	}
 
-	TacticalObservationV3 withStockPveSelection(StockPveSelection selection)
+	TacticalObservationV3 withStockSelection(StockSelection selection)
 	{
 		return new TacticalObservationV3(decisionId, capturedNanos, profileId, actorObjectId, actorEpoch, partyIdentity, entities,
 			Objects.requireNonNull(selection));
@@ -103,7 +157,8 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 	public TacticalObservationV3
 	{
 		if (decisionId <= 0 || profileId <= 0 || actorObjectId <= 0 || actorEpoch <= 0 || partyIdentity == null || partyIdentity.length() > 256
-			|| entities.isEmpty() || entities.size() > MAX_ENTITIES) { throw new IllegalArgumentException("Observation identity or bounds"); }
+			|| entities.isEmpty() || entities.size() > MAX_ENTITIES || stockSelection != null && stockSelection.ready().isEmpty())
+		{ throw new IllegalArgumentException("Observation identity or bounds"); }
 		entities = entities.stream().sorted(Comparator.comparing(Entity::role).thenComparingInt(Entity::objectId)).toList();
 		if (entities.stream().map(Entity::objectId).distinct().count() != entities.size() || entities.stream().filter(v -> v.role() == Role.SELF).count() != 1
 			|| entities.getFirst().objectId() != actorObjectId || entities.getFirst().epoch() != actorEpoch
@@ -141,14 +196,26 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 		try
 		{
 			final var buffer = new ByteArrayOutputStream(); final var out = new DataOutputStream(buffer);
-			out.writeInt(VERSION); out.writeUTF(stockPveSelection == null ? SCHEMA : STOCK_PVE_SCHEMA);
+			out.writeInt(VERSION); out.writeUTF(stockSelection instanceof StockPvpSelection ? STOCK_PVP_SCHEMA : stockSelection == null ? SCHEMA : STOCK_PVE_SCHEMA);
 			out.writeLong(decisionId); out.writeLong(capturedNanos); out.writeLong(profileId);
 			out.writeInt(actorObjectId); out.writeLong(actorEpoch); out.writeUTF(partyIdentity);
-			if (stockPveSelection != null)
+			if (stockSelection instanceof StockPveSelection pve)
 			{
-				out.writeInt(stockPveSelection.cursor());
-				writeStockPveSkills(out, stockPveSelection.loadout());
-				writeStockPveSkills(out, stockPveSelection.ready());
+				out.writeInt(pve.cursor());
+				writeStockSkills(out, pve.loadout());
+				writeStockSkills(out, pve.ready());
+			}
+			else if (stockSelection instanceof StockPvpSelection pvp)
+			{
+				out.writeInt(pvp.limit());
+				out.writeInt(pvp.learned().size());
+				for (StockPvpSkill skill : pvp.learned())
+				{
+					out.writeInt(skill.skill().skillId()); out.writeInt(skill.skill().skillLevel()); out.writeBoolean(skill.nativeReady());
+					out.writeInt(skill.priority()); out.writeInt(skill.elementalPenalty()); out.writeBoolean(skill.supported());
+				}
+				writeStockSkills(out, pvp.authored());
+				writeStockSkills(out, pvp.ready());
 			}
 			out.writeInt(entities.size());
 			for (Entity entity : entities)
@@ -186,9 +253,14 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 			final var in = new DataInputStream(new ByteArrayInputStream(bytes));
 			final int version = in.readInt();
 			final String schema = in.readUTF();
-			if (version != VERSION || !(SCHEMA.equals(schema) || STOCK_PVE_SCHEMA.equals(schema))) { throw new IllegalArgumentException("Observation schema"); }
+			if (version != VERSION || !(SCHEMA.equals(schema) || STOCK_PVE_SCHEMA.equals(schema) || STOCK_PVP_SCHEMA.equals(schema))) { throw new IllegalArgumentException("Observation schema"); }
 			final long decision = in.readLong(), now = in.readLong(), profile = in.readLong(); final int actor = in.readInt(); final long epoch = in.readLong(); final String party = in.readUTF();
-			final var stockPve = STOCK_PVE_SCHEMA.equals(schema) ? new StockPveSelection(in.readInt(), readStockPveSkills(in), readStockPveSkills(in)) : null;
+			final StockSelection stock = switch (schema)
+			{
+				case String value when STOCK_PVE_SCHEMA.equals(value) -> new StockPveSelection(in.readInt(), readStockSkills(in), readStockSkills(in));
+				case String value when STOCK_PVP_SCHEMA.equals(value) -> readStockPvp(in);
+				default -> null;
+			};
 			final var entities = new ArrayList<Entity>();
 			final int count = bounded(in.readInt(), MAX_ENTITIES);
 			for (int index = 0; index < count; index++)
@@ -223,12 +295,23 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 				}
 			}
 			if (in.available() != 0) { throw new IllegalArgumentException("Trailing observation bytes"); }
-			return new TacticalObservationV3(decision, now, profile, actor, epoch, party, entities, stockPve);
+			return new TacticalObservationV3(decision, now, profile, actor, epoch, party, entities, stock);
 		}
 		catch (IOException | IndexOutOfBoundsException failure) { throw new IllegalArgumentException("Invalid observation", failure); }
 	}
 
-	private static void writeStockPveSkills(DataOutput out, List<SelectedSkill> skills) throws IOException
+	private static StockPvpSelection readStockPvp(DataInput in) throws IOException
+	{
+		final int limit = in.readInt();
+		final var learned = new ArrayList<StockPvpSkill>();
+		for (int count = bounded(in.readInt(), STOCK_PVP_SCAN_LIMIT); count > 0; count--)
+		{
+			learned.add(new StockPvpSkill(new SelectedSkill(in.readInt(), in.readInt()), in.readBoolean(), in.readInt(), in.readInt(), in.readBoolean()));
+		}
+		return new StockPvpSelection(limit, learned, readStockSkills(in), readStockSkills(in));
+	}
+
+	private static void writeStockSkills(DataOutput out, List<SelectedSkill> skills) throws IOException
 	{
 		out.writeInt(skills.size());
 		for (SelectedSkill skill : skills)
@@ -238,10 +321,10 @@ public record TacticalObservationV3(long decisionId, long capturedNanos, long pr
 		}
 	}
 
-	private static List<SelectedSkill> readStockPveSkills(DataInput in) throws IOException
+	private static List<SelectedSkill> readStockSkills(DataInput in) throws IOException
 	{
 		final var skills = new ArrayList<SelectedSkill>();
-		for (int count = bounded(in.readInt(), STOCK_PVE_SKILLS); count > 0; count--)
+		for (int count = bounded(in.readInt(), STOCK_SKILLS); count > 0; count--)
 		{
 			skills.add(new SelectedSkill(in.readInt(), in.readInt()));
 		}

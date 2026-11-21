@@ -41,7 +41,7 @@ import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPveSelection;
-import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockAuditAuthority;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.SiegeTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
@@ -442,7 +442,7 @@ public final class PhantomCombatService
 
 		PhantomCombatActorLease lease = null;
 		PhantomCombatLoadout resolvedLoadout = null;
-		StockPveAuthority stockPveAudit = null;
+		StockAuditAuthority stockAudit = null;
 		StartStatus failure = null;
 		try
 		{
@@ -463,16 +463,31 @@ public final class PhantomCombatService
 					_metrics.leaseAcquired();
 					final ActorSnapshot actor = lease.actorSnapshot();
 					final boolean playerCombat = (pvpRequest != null) || ((siegeRequest != null) && (siegeRequest.targetKind() == org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind.PLAYER));
-					if (!playerCombat && raidRequest == null && siegeRequest == null && !retreatOnly)
+					if (pvpRequest != null)
 					{
-						stockPveAudit = _learning.bindStockPveAudit131(request, actor.objectId());
+						stockAudit = _learning.bindStockPvpAudit131(pvpRequest, actor.objectId());
+					}
+					else if (raidRequest == null && siegeRequest == null && !retreatOnly)
+					{
+						stockAudit = _learning.bindStockPveAudit131(request, actor.objectId());
 					}
 					Optional<PhantomCombatLoadout> loadout;
-					if (playerCombat)
+					if (pvpRequest != null && stockAudit != null)
+					{
+						synchronized (stockAudit.episodeFence())
+						{
+							final int opponentId = request.targetObjectId();
+							final int tacticalId = lease.pvpTacticalTargetObjectId(opponentId, _policy.maximumAcquisitionDistance());
+							loadout = stockAudit.current().getAsBoolean() ? _capabilityResolver.resolveStockPvp(actor, request.mode(), lease,
+								opponentId, tacticalId, false, _policy.maximumSelectedSkills()).map(PhantomCombatCapabilityResolver.SkillSelection::loadout)
+								: Optional.empty();
+						}
+					}
+					else if (playerCombat)
 					{
 						loadout = _capabilityResolver.resolvePvp(actor, request.mode(), lease, _policy.maximumSelectedSkills());
 					}
-					else if (raidRequest != null || siegeRequest != null || retreatOnly || stockPveAudit != null)
+					else if (raidRequest != null || siegeRequest != null || retreatOnly || stockAudit != null)
 					{
 						loadout = _capabilityResolver.resolve(actor, request.mode(), lease, _policy.maximumSelectedSkills());
 					}
@@ -549,7 +564,7 @@ public final class PhantomCombatService
 			if ((_state == ServiceState.RUNNING) && (_sessions.get(request.profileId()) == reserved) && !reserved._result.terminal() && !request.planOwnershipToken().isCancelled())
 			{
 				reserved._actorLease = lease;
-				reserved._stockPveAudit = stockPveAudit;
+				reserved._stockAudit = stockAudit;
 				reserved._loadout = resolvedLoadout;
 				reserved._contentBasicMelee = contentBasicMelee;
 				reserved._retreatOnly = retreatOnly;
@@ -1897,6 +1912,13 @@ public final class PhantomCombatService
 
 	private void processPvp(PhantomCombatSession session, ActorSnapshot actor)
 	{
+		final var archived = session._stockAudit;
+		if (archived == null) { processPvp(session, actor, false); }
+		else if (!archived.submit(() -> processPvp(session, actor, true))) { finish(session, PhantomCombatResult.CANCELLED); }
+	}
+
+	private void processPvp(PhantomCombatSession session, ActorSnapshot actor, boolean stockPvp)
+	{
 		final PvpTargetSnapshot target = session._actorLease.pvpTargetSnapshot(session._request.targetObjectId());
 		if ((target != null) && (target.dead() || target.alikeDead()))
 		{
@@ -1918,11 +1940,11 @@ public final class PhantomCombatService
 			session._actorLease.cpPotions().stream().filter(PhantomCombatBackend.CpPotionSnapshot::ready).findFirst().ifPresent(potion -> session._actorLease.useCpPotion(potion.itemObjectId(), potion.itemId()));
 		}
 		session._phase = PhantomCombatPhase.FIGHTING;
-		issuePvpAction(session, actor);
+		issuePvpAction(session, actor, stockPvp);
 		requeue(session);
 	}
 
-	private void issuePvpAction(PhantomCombatSession session, ActorSnapshot actor)
+	private void issuePvpAction(PhantomCombatSession session, ActorSnapshot actor, boolean stockPvp)
 	{
 		if (actor.casting() || actor.moving())
 		{
@@ -1931,8 +1953,10 @@ public final class PhantomCombatService
 		final int ownerObjectId = session._request.targetObjectId();
 		final int tacticalTargetObjectId = session._actorLease.pvpTacticalTargetObjectId(ownerObjectId, _policy.maximumAcquisitionDistance());
 		final boolean canSpendMp = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent();
-		final var current = _capabilityResolver.resolvePvpAction(actor, session._request.mode(), session._actorLease, ownerObjectId, tacticalTargetObjectId,
-			canSpendMp, _policy.maximumSelectedSkills());
+		final var mode = session._request.mode();
+		final var current = stockPvp
+			? _capabilityResolver.resolveStockPvp(actor, mode, session._actorLease, ownerObjectId, tacticalTargetObjectId, canSpendMp, _policy.maximumSelectedSkills())
+			: _capabilityResolver.resolvePvpAction(actor, mode, session._actorLease, ownerObjectId, tacticalTargetObjectId, canSpendMp, _policy.maximumSelectedSkills());
 		if (current.isEmpty())
 		{
 			finish(session, PhantomCombatResult.UNSUPPORTED_LOADOUT);
@@ -1954,7 +1978,7 @@ public final class PhantomCombatService
 		if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
 		if (ready.isEmpty() && !session._loadout.normalAttackFallback()) { return; }
 		final var learned = ready.size() >= 2 && _learning.ownedPvpEpisodes()
-			? session._actorLease.preparePvpLearning(_learning, session._pvpRequest, tacticalTargetObjectId, ready, session._generation) : null;
+			? session._actorLease.preparePvpLearning(_learning, session._pvpRequest, tacticalTargetObjectId, ready, session._generation, selection.stockPvp()) : null;
 		if (learned != null && (!ready.contains(learned.candidate().skill()) || !learned.candidate().exact().getAsBoolean())) { return; }
 		final var shot = session._actorLease.activateShot(session._request.mode());
 		_metrics.shot(shot);
@@ -2011,7 +2035,7 @@ public final class PhantomCombatService
 
 	private void issueAction(PhantomCombatSession session, ActorSnapshot actor, TargetSnapshot target)
 	{
-		final var archived = session._stockPveAudit;
+		final var archived = session._stockAudit;
 		if (archived == null)
 		{
 			issuePveAction(session, actor, target, false);
@@ -2429,7 +2453,7 @@ public final class PhantomCombatService
 			if (failure == null)
 			{
 				session._actorLease = null;
-				session._stockPveAudit = null;
+				session._stockAudit = null;
 				session._cleanupState = CleanupState.COMPLETE;
 				_actorLeases--;
 				_metrics.leaseReleased();

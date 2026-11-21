@@ -876,6 +876,37 @@ public final class PhantomLearning131EvaluationChecks
 				"Adding fake archived inputs to the transcript must not authenticate a paid cast that never observed them");
 			refuse(() -> PhantomLearning131Evaluation.verifyStockPveDispatch(episode, scene, List.of(choice, intent), Map.of(operation, cast), window),
 				"The H transcript cannot serve as archived PvE S");
+			final var pvpInput = new TacticalObservationV3.StockPvpSelection(2, List.of(
+				new TacticalObservationV3.StockPvpSkill(ready.getFirst(), true, 200, 80, true),
+				new TacticalObservationV3.StockPvpSkill(ready.getLast(), true, 200, 0, true),
+				new TacticalObservationV3.StockPvpSkill(new SelectedSkill(1, 1), false, 300, 0, true)),
+				List.of(), ready.reversed());
+			check(pvpInput.selected().equals(ready.getLast()), "Historical PvP puts readiness first and uses the elemental adjustment before the skill id");
+			refuse(() -> new TacticalObservationV3.StockPvpSelection(2, pvpInput.learned(), List.of(), ready),
+				"Archived PvP cannot reverse the shared-ready subsequence");
+			final var pvpPlan = new ActionExplorationV4.Plan(2, "STOCK_PVP_V2", 0, 0, 0, "AUDIT", episode, scene, "NONE", plan.skills());
+			final var pvpObserved = new TacticalObservationV3(observed.decisionId(), observed.capturedNanos(), observed.profileId(),
+				observed.actorObjectId(), observed.actorEpoch(), observed.partyIdentity(), observed.entities(), pvpInput);
+			final var pvpChoice = new ActionExplorationV4(pvpPlan).choose(pvpObserved, List.of(other, stock), other, true, Long.MAX_VALUE);
+			final var restoredPvp = ActionExplorationV4.Decision.restore(pvpChoice.bytes());
+			check(pvpInput.equals(restoredPvp.observation().stockSelection()) && java.util.Arrays.equals(pvpChoice.bytes(), restoredPvp.bytes()),
+				"PvP input must survive canonical replay");
+			refuse(() -> new ActionExplorationV4(pvpPlan).choose(archivedObserved, List.of(stock, other), other, true, Long.MAX_VALUE),
+				"A PvE archive cannot be submitted as a PvP archive");
+			refuse(() -> new ActionExplorationV4(pvpPlan).choose(pvpObserved, List.of(other, stock), stock, true, Long.MAX_VALUE),
+				"The PvP choice must be first in the historical ready order");
+			final long pvpDispatch = pvpChoice.capturedNanos() + 1;
+			final var pvpTrace = new NativeCastTrace(cast.eventKey(), 42, 7, 102, 91, 0, other.skillId(), 1, other.skillId(), 1,
+				pvpDispatch, pvpDispatch + 1, pvpDispatch + 2, TacticalObservationV3.hash(pvpObserved.bytes()));
+			final List<String[]> pvpRows = List.of(new String[] { "decision", encoder.encodeToString(pvpChoice.bytes()) },
+				new String[] { "intent", encoder.encodeToString(new Intent(pvpChoice, owner, pvpDispatch).bytes()) });
+			final var pvpWindow = new EpisodeWindow(started, pvpDispatch + 10 - started, pvpDispatch + 20 - started);
+			final var pvpControl = PhantomLearning131Evaluation.stockControl(Stratum.DUEL_PVP);
+			PhantomLearning131Evaluation.verifyControlDispatch(pvpControl, episode, scene, pvpRows, Map.of(operation, pvpTrace), pvpWindow);
+			final var traceWithPveObservation = new NativeCastTrace(cast.eventKey(), 42, 7, 102, 91, 0, other.skillId(), 1, other.skillId(), 1,
+				pvpDispatch, pvpDispatch + 1, pvpDispatch + 2, archivedTrace.observationSha());
+			refuse(() -> PhantomLearning131Evaluation.verifyControlDispatch(pvpControl, episode, scene, pvpRows,
+				Map.of(operation, traceWithPveObservation), pvpWindow), "Identical damage paid under a PvE observation is not PvP S evidence");
 			refuse(() -> PhantomLearning131Evaluation.verifyHeuristicDispatch(episode, scene, archivedRows, Map.of(operation, archivedTrace), archivedWindow),
 				"The archived PvE transcript cannot serve as H");
 		}

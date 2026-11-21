@@ -93,6 +93,9 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.learning.LearningFeatures;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSelection;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSkill;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
@@ -907,6 +910,31 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return nativePvpSkills(_player, mode, limit); }
+
+		@Override
+		public List<StockPvpSkill> stockPvpSkills(PhantomCombatMode mode, int ownerObjectId, int tacticalTargetObjectId)
+		{
+			if (!executionValid() || !(World.getInstance().findObject(ownerObjectId) instanceof Player opponent)) { return List.of(); }
+			final var snapshot = pvpTargetSnapshot(ownerObjectId);
+			if (snapshot == null || !snapshot.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE)) { return List.of(); }
+			final var target = pvpActionTarget(opponent, tacticalTargetObjectId, snapshot);
+			final var weapon = _player.getActiveWeaponItem();
+			final boolean ranged = weapon != null && (weapon.getItemType() == WeaponType.BOW || weapon.getItemType() == WeaponType.CROSSBOW);
+			if (target == null || !mode.magic() && ranged != (mode == PhantomCombatMode.RANGED_PHYSICAL)) { return List.of(); }
+			// The historical picker sampled the selected target before dispatch retargeted the player.
+			// Treat a foreign selection as absent so the archive never reads defence from outside this lease.
+			final var rankTarget = _player.getTarget() == target ? target : null;
+			return _player.getAllSkills().stream()
+				.filter(skill -> PhantomPvpSkillSafety.supports(skill, mode, _player.isTransformed()))
+				.limit(TacticalObservationV3.STOCK_PVP_SCAN_LIMIT)
+				.map(skill ->
+				{
+					final var selected = new SelectedSkill(skill.getId(), skill.getLevel());
+					final int elementalPenalty = rankTarget == null || skill.getElement() < 0 ? 0 : Math.min(100, rankTarget.getDefenseElementValue(skill.getElement()) / 10);
+					return new StockPvpSkill(selected, nativePvpSkillReady(_player, rankTarget, skill), PhantomPvpSkillSafety.priority(skill),
+						elementalPenalty, supportsPvpSkill(selected, mode));
+				}).toList();
+		}
 
 		@Override
 		public List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates)
@@ -1846,7 +1874,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 
 		@Override
 		public LearningPolicy.Attempt preparePvpLearning(LearningPolicy learning, PhantomPvpCombatRequest request, int tacticalTargetObjectId,
-			List<SelectedSkill> ready, long generation)
+			List<SelectedSkill> ready, long generation, StockPvpSelection archived)
 		{
 			if (!learning.ownedPvpEpisodes() || request.profileId() != _profileId || request.source().proactive() || request.forceUse()
 				|| tacticalTargetObjectId != request.targetObjectId() || ready.size() < 2 || !(World.getInstance().findObject(tacticalTargetObjectId) instanceof Player target))
@@ -1876,7 +1904,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken cancellation = () -> !current.getAsBoolean();
 			final var descriptor = new PhantomCombatRequest(_profileId, target.getObjectId(), request.mode(), true, false, request.timeoutMillis(),
 				cancellation, PhantomCombatRequest.LearningScope.PVP, null, cancellation);
-			return learning.chooseOwnedPvp(descriptor, generation, _player, target, candidates, current);
+			return learning.chooseOwnedPvp(descriptor, generation, _player, target, candidates, current, archived);
 		}
 
 		private boolean exactPvpLearningSkill(Skill skill, Player target)

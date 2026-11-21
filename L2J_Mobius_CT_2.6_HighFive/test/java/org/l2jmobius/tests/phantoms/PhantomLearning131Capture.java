@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import org.l2jmobius.gameserver.model.World;
@@ -34,7 +35,7 @@ import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
-import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockAuditAuthority;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalStoreV3;
@@ -114,6 +115,11 @@ final class PhantomLearning131Capture
 		return new PhantomLearning131Capture(manifestSha, null, AuditControl.STOCK_PVE);
 	}
 
+	static PhantomLearning131Capture stockPvpAudit(String manifestSha)
+	{
+		return new PhantomLearning131Capture(manifestSha, null, AuditControl.STOCK_PVP);
+	}
+
 	private PhantomLearning131Capture(String manifestSha, ActionValueV4 model, AuditControl auditControl)
 	{
 		this.auditControl = auditControl;
@@ -121,7 +127,7 @@ final class PhantomLearning131Capture
 		if (auditControl != null)
 		{
 			tactical.actionControlAudit131(auditControl, this::selectExperiment, this::before,
-				auditControl == AuditControl.STOCK_PVE ? this::bindPveSelection : null);
+				auditControl.archived() ? this::bindStockSelection : null);
 		}
 		else
 		{
@@ -161,7 +167,7 @@ final class PhantomLearning131Capture
 		}
 	}
 
-	private StockPveAuthority bindPveSelection(long profile, int actorId, int targetId)
+	private StockAuditAuthority bindStockSelection(long profile, int actorId, int targetId)
 	{
 		final var episode = current.get();
 		if (episode == null) { return null; }
@@ -170,29 +176,46 @@ final class PhantomLearning131Capture
 			final var actor = episode.roster.get(profile);
 			final var world = World.getInstance();
 			final var player = world.getPlayer(actorId);
-			if (!episode.accepting || episode.fault || actor == null || actor.objectId() != actorId || player == null
-				|| !(world.findObject(targetId) instanceof Monster monster) || player.getInstanceId() != monster.getInstanceId())
+			if (!episode.accepting || episode.fault || actor == null || actor.objectId() != actorId || player == null)
 			{
 				return null;
 			}
 			final var sensor = PlayerNativeWork.observationEvidence(player);
-			final var nativeTarget = monster.getNativeEvidenceTarget();
-			if (sensor == null || !sensor.matches(actorId, actor.epoch()) || nativeTarget == null
-				|| !episode.foes.contains(new Target(targetId, nativeTarget.spawnGeneration())))
+			final var targetCurrent = stockTargetCurrent(episode, world, player, targetId);
+			if (sensor == null || !sensor.matches(actorId, actor.epoch()) || targetCurrent == null)
 			{
 				return null;
 			}
-			return new StockPveAuthority(episode.dispatchFence, () ->
+			return new StockAuditAuthority(episode.dispatchFence, () ->
 			{
 				synchronized (episode)
 				{
 					return current.get() == episode && episode.accepting && !episode.fault
 						&& world.getPlayer(actorId) == player && PlayerNativeWork.observationEvidence(player) == sensor
-						&& world.findObject(targetId) == monster && nativeTarget.equals(monster.getNativeEvidenceTarget())
-						&& player.getInstanceId() == monster.getInstanceId();
+						&& targetCurrent.getAsBoolean();
 				}
 			});
 		}
+	}
+
+	private BooleanSupplier stockTargetCurrent(Episode episode, World world, Player actor, int targetId)
+	{
+		if (!(world.findObject(targetId) instanceof Creature target) || actor.getInstanceId() != target.getInstanceId()) { return null; }
+		if (auditControl == AuditControl.STOCK_PVP && target instanceof Player opponent)
+		{
+			final var sensor = PlayerNativeWork.observationEvidence(opponent);
+			return sensor != null && episode.foes.stream().anyMatch(foe -> sensor.matches(foe.objectId(), foe.epoch()))
+				? () -> world.findObject(targetId) == opponent && PlayerNativeWork.observationEvidence(opponent) == sensor
+					&& actor.getInstanceId() == opponent.getInstanceId() && (actor.getParty() == null || actor.getParty() != opponent.getParty()) : null;
+		}
+		if (auditControl == AuditControl.STOCK_PVE && target instanceof Monster monster)
+		{
+			final var nativeTarget = monster.getNativeEvidenceTarget();
+			return nativeTarget != null && episode.foes.contains(new Target(targetId, nativeTarget.spawnGeneration()))
+				? () -> world.findObject(targetId) == monster && nativeTarget.equals(monster.getNativeEvidenceTarget())
+					&& actor.getInstanceId() == monster.getInstanceId() : null;
+		}
+		return null;
 	}
 
 	boolean eligible(long profile, Player player)
@@ -339,7 +362,7 @@ final class PhantomLearning131Capture
 		final AuditControl planned = switch (scheduled.slot().arm())
 		{
 			case H -> AuditControl.HEURISTIC;
-			case S -> AuditControl.STOCK_PVE;
+			case S -> PhantomLearning131Evaluation.stockControl(scheduled.block().stratum());
 			default -> null;
 		};
 		require(plan.split().equals("AUDIT") && plan.episode().equals(binding.episodeId()) && plan.sourceSha().equals(scheduled.fixtureSha())

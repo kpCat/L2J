@@ -52,21 +52,21 @@
   "offline": {
     "seed": 13120261120,
     "logs": ".phantom-local/logs/TASK131/",
-    "aggregateLog": "ant-combat-v26-final.log",
-    "aggregateScope": "Final v26 sources, DB-free contracts and affected combat regressions.",
-    "finalContractLog": "v26-stock-pve-final.log",
+    "aggregateLog": "ant-combat-v27-final.log",
+    "aggregateScope": "Final v27 sources, DB-free contracts and affected combat regressions.",
+    "finalContractLog": "ant-combat-v27-final.log",
     "goldenOwnerProfileRules": 38,
     "fitBatchCheckSamples": 257,
     "fixtureSource": "DB-free contracts, native catalog, and isolated SQL/asset proof; combat receipts pending.",
     "comparison": "OFFLINE_READER_AND_NEGATIVE_CONTROLS",
     "aggregateStatus": "PASS",
     "aggregateExitCode": 0,
-    "regressionTestsPassed": 172,
+    "regressionTestsPassed": 173,
     "contractGroupsPassed": 17,
     "jarExitCode": 0,
-    "jarSha256": "d603636ace33612687ebc5c6cdc4d8ea002500bdecce09daf029a613022eed3e",
-    "loginJarSha256": "c6fb01eec786ab9d984e270c4b08378dd27da17f1d23ce01bb69d86471ceeac2",
-    "jarLog": "jar-v26-final.log",
+    "jarSha256": "96ee0b63b90104d1ee8a6bb46ba564fe7276738714076be3cc36237832295605",
+    "loginJarSha256": "df03beeb5a422a0550520d032bac454cfe264f1d422563f8fac091560ad1b863",
+    "jarLog": "jar-v27-final.log",
     "fitIngressLog": "v10-PhantomLearning131FitChecks.log",
     "scopedAutoUseLog": "v7-PhantomScopedOffense131Checks.log",
     "stockRecoveryLog": "v7-PhantomAreaControl131Checks.log",
@@ -78,7 +78,7 @@
     "stockHealScriptCompileLog": "v18-stock-heal-javac.log",
     "stockHealScriptClassSha256": "22a5cc089b0695fb6788788c8f2052668d21889a2b441d7b09d34e590d533588",
     "auditFrozenDispatchContractLog": "v19-PhantomLearning131EvaluationChecks.log",
-    "auditEvaluatorCliLog": "v26-evaluator-cli-final.log",
+    "auditEvaluatorCliLog": "v27-evaluator-cli-final.log",
     "auditNpcAggroNegativeLog": "v23-aggro-red.log",
     "auditNpcAggroContractLog": "v23-final-evaluation-checks.log",
     "stockAggroScriptCompileLog": "v23-stock-getaggro-reviewed-javac.log",
@@ -96,12 +96,20 @@
       "PhantomCombatService.java": "276be1f5667f7e2afa1682284349e3c572cd349b",
       "PhantomCombatCapabilityResolver.java": "8612dc86ecb7a84ab57fe24136fef378de623074"
     },
+    "auditStockPvpContractLog": "ant-combat-v27-final.log",
+    "auditStockPvpRedLog": "v27-stock-pvp-red.log",
+    "auditStockPvpSourceCommit": "3792c0b76f53901bbf25bd2666d3baf150d254ac",
+    "auditStockPvpSourceBlobs": {
+      "L2jCombatBackend.java": "d099075cf73400229b7f4166decc65caf501a399",
+      "PhantomCombatCapabilityResolver.java": "8612dc86ecb7a84ab57fe24136fef378de623074",
+      "PhantomCombatService.java": "276be1f5667f7e2afa1682284349e3c572cd349b"
+    },
     "learnedEscapeContractLog": "v24-learned-escape-reviewed.log",
     "auditControllerPreflightLog": "v22-controller-wire-final.log",
     "auditControllerFullPreflightLog": "v22-controller-e2e-final.log",
     "auditControllerReusedBankLog": "v22-controller-reused-bank.log",
     "auditRechargeNegativeLog": "v21-recharge-red.log",
-    "auditEvaluatorFingerprint": "1d77f46e63b9567c11efc92c980c32148057de8f140fd8d219a2ab3b7d7760e6",
+    "auditEvaluatorFingerprint": "a563a17e44bb558a8e32c779d9982a56ceddd7bda9fca3768e43388e913f5dfb",
     "auditGroupScopeNegativeLog": "v20-group-pvp-red.log",
     "auditCrossSideNegativeLog": "v20-paid-side-red.log",
     "nativeEvidenceRegressionLog": "v23-native-evidence-reviewed.log",
@@ -115,12 +123,12 @@
   "delivery": {
     "scope": "Task-owned code, focused tests and reports. Native proof and full technical delivery pending.",
     "firstPublicationReceipt": ".phantom-local/logs/TASK131/github-readback.json",
-    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v25.json",
-    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v26.json",
-    "exactPathCount": 13
+    "previousPublicationReceipt": ".phantom-local/logs/TASK131/github-readback-v26.json",
+    "publicationReceipt": ".phantom-local/logs/TASK131/github-readback-v27.json",
+    "exactPathCount": 17
   },
   "testReadiness": {
-    "iterationParent": "065bc82c3b9210555cc418d0a24c02e69b90b7bb",
+    "iterationParent": "183b0bd3c20c4c369b12a7a4252e84ad95aa95f8",
     "assetFileCount": 25809,
     "verifiedGeoTiles": 203,
     "assetReceiptSha256": "1fa0f138dfc5fbcb56aed5ddbe5bb0f5a115d951970b52ebb869087c11037d75",
@@ -233,14 +241,14 @@
       "runtimeAuthority": "RUN_DUEL_WIRED_TO_STOCK_ACTUAL_ATTACK_HEADLESS_NOT_RUN",
       "runtimeEvidence": "MEASURED_POOLS_AND_CONTROL_STOCK_DEATH_AND_SQL_STORE_AFTER_DRAIN_NO_V4_CREDIT"
     },
-    "g0OffReceipt": "end-off-v26.json",
+    "g0OffReceipt": "end-off-v27.json",
     "nativeCombatLaunchAuthorized": false
   },
   "coverage": {
     "G0": {
       "phase": "P0",
       "status": "UNKNOWN",
-      "evidence": "S024,end-off-v26.json,n01-setup-r4/n01-scenes.tsv",
+      "evidence": "S024,end-off-v27.json,n01-setup-r4/n01-scenes.tsv",
       "reason": "Запечатанного полного SETUP нет, подготовщик отклоняет r4 с тремя сценами, r5 ожидает разрешения"
     },
     "G1": {
@@ -408,8 +416,8 @@
     "D8": {
       "phase": "P4",
       "status": "UNKNOWN",
-      "evidence": "v26-stock-pve-final.log,v26-stock-pve-final-core.log,v25-heuristic-reviewed.log",
-      "reason": "Офлайн подтверждены архивный выбор умений общего PvE для S и связь с оплаченной квитанцией, полный S и живой C/H/S/R открыты"
+      "evidence": "ant-combat-v27-final.log,v27-stock-pvp-red.log,v26-stock-pve-final.log",
+      "reason": "Офлайн проверены архивный выбор умений общего PvE и PvP для S и связь с квитанцией одноцелевого DAMAGE, полный S и живой C/H/S/R открыты"
     },
     "D9": {
       "phase": "P3–P5",

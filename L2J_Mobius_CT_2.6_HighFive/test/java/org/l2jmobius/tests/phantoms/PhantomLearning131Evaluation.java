@@ -464,16 +464,13 @@ public final class PhantomLearning131Evaluation
 		AuditRows originals, EpisodeWindow window) throws IOException
 	{
 		final Arm arm = binding.slot().arm();
-		if (arm == Arm.S && !stockPveStratum(occurrence.block().plan().stratum()))
-		{
-			throw new Incomplete("STOCK_PVP_SELECTOR_REQUIRED");
-		}
+		final var stock = stockControl(occurrence.block().plan().stratum());
 		if (occurrence.modelProofSha().equals("NONE"))
 		{
 			throw new Incomplete(switch (arm)
 			{
 				case H -> "HEURISTIC_DISPATCH_MISSING";
-				case S -> "STOCK_PVE_DISPATCH_MISSING";
+				case S -> stock == AuditControl.STOCK_PVE ? "STOCK_PVE_DISPATCH_MISSING" : "STOCK_PVP_DISPATCH_MISSING";
 				default -> "FROZEN_MODEL_DISPATCH_MISSING";
 			});
 		}
@@ -502,7 +499,7 @@ public final class PhantomLearning131Evaluation
 		}
 		else if (arm == Arm.S)
 		{
-			verifyStockPveDispatch(occurrence.id(), occurrence.block().fixtureSha(), proof.rows(), paid, window);
+			verifyControlDispatch(stock, occurrence.id(), occurrence.block().fixtureSha(), proof.rows(), paid, window);
 		}
 		else
 		{
@@ -533,7 +530,7 @@ public final class PhantomLearning131Evaluation
 		verifyControlDispatch(AuditControl.STOCK_PVE, episode, fixtureSha, rows, paid, window);
 	}
 
-	private static void verifyControlDispatch(AuditControl control, String episode, String fixtureSha, List<String[]> rows,
+	static void verifyControlDispatch(AuditControl control, String episode, String fixtureSha, List<String[]> rows,
 		Map<String, NativeCastTrace> paid, EpisodeWindow window)
 	{
 		final var decisions = verifyDispatch(rows, episode, paid, window);
@@ -1087,7 +1084,6 @@ public final class PhantomLearning131Evaluation
 	static PolicyArmBinding policyArmBinding(ScheduledArm scheduled, Path path, String expectedSha) throws IOException
 	{
 		final Slot slot = scheduled.slot();
-		require(slot.arm() != Arm.S || stockPveStratum(scheduled.block().stratum()), "STOCK_PVP_SELECTOR_REQUIRED");
 		final var binding = scheduledBinding(scheduled, path, expectedSha, "MODEL_ARM");
 		final var roster = participants(binding, slot.side());
 		final var scored = new HashMap<Integer, Long>();
@@ -1096,9 +1092,9 @@ public final class PhantomLearning131Evaluation
 		return new PolicyArmBinding(token(binding.get("episodeId")), binding.sha(), positive(binding.get("startNanos")), binding.get("modelSha"), Map.copyOf(scored));
 	}
 
-	private static boolean stockPveStratum(Stratum stratum)
+	static AuditControl stockControl(Stratum stratum)
 	{
-		return stratum == Stratum.SOLO_PVE || stratum == Stratum.PARTY_PVE;
+		return stratum == Stratum.SOLO_PVE || stratum == Stratum.PARTY_PVE ? AuditControl.STOCK_PVE : AuditControl.STOCK_PVP;
 	}
 
 	private static Document scheduledBinding(ScheduledArm scheduled, Path path, String expectedSha, String name) throws IOException

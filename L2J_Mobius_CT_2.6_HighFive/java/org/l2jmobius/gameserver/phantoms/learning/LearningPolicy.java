@@ -24,8 +24,10 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomPvpCombatRequest;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPveSelection;
-import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSelection;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockAuditAuthority;
 
 /** One shared immutable model, with a bounded decision inside the existing combat lease. */
 public final class LearningPolicy
@@ -61,13 +63,20 @@ public final class LearningPolicy
 
 	public boolean ownedPvpEpisodes() { return active(LearningScope.PVP); }
 
-	public StockPveAuthority bindStockPveAudit131(PhantomCombatRequest request, int actorId)
+	public StockAuditAuthority bindStockPveAudit131(PhantomCombatRequest request, int actorId)
 	{
 		return request.learningScope() == LearningScope.SOLO || request.learningScope() == LearningScope.PARTY
-			? _tactical.bindStockPveAudit131(request.profileId(), actorId, request.targetObjectId()) : null;
+			? _tactical.bindStockAudit131(request.profileId(), actorId, request.targetObjectId(), false) : null;
 	}
 
-	public Attempt chooseOwnedPvp(PhantomCombatRequest request, long generation, Player actor, Player target, List<Skill> ready, BooleanSupplier current)
+	public StockAuditAuthority bindStockPvpAudit131(PhantomPvpCombatRequest request, int actorId)
+	{
+		return request.source().proactive() || request.forceUse() ? null
+			: _tactical.bindStockAudit131(request.profileId(), actorId, request.targetObjectId(), true);
+	}
+
+	public Attempt chooseOwnedPvp(PhantomCombatRequest request, long generation, Player actor, Player target, List<Skill> ready,
+		BooleanSupplier current, StockPvpSelection archived)
 	{
 		if (!ownedPvpEpisodes() || request.learningScope() != LearningScope.PVP || !current.getAsBoolean() || generation <= 0
 			|| ready.size() < 2 || ready.size() > _maxCandidates || request.targetObjectId() != target.getObjectId()) { return null; }
@@ -76,7 +85,7 @@ public final class LearningPolicy
 		final var candidates = ready.stream().map(skill -> new Candidate(new SelectedSkill(skill.getId(), skill.getLevel()), new float[0],
 			actor.getStat().getMpInitialConsume(skill) + actor.getStat().getMpConsume(skill), skill.getHitTime(), skill.getItemConsumeCount(),
 			() -> current.getAsBoolean() && actor.getKnownSkill(skill.getId()) == skill)).toList();
-		final var choice = _tactical.damage(request, actor.getObjectId(), candidates, baseline);
+		final var choice = _tactical.damage(request, actor.getObjectId(), candidates, baseline, archived);
 		if (choice == null || !choice.selected().exact().getAsBoolean()) { return null; }
 		return new Attempt(this, choice.selected(), request, generation, choice.attempt().observation().decisionId(), baseline, 0, candidates, choice.attempt());
 	}
@@ -124,7 +133,7 @@ public final class LearningPolicy
 	/** The stock visible Solo caster supplies ready skills and keeps execution ownership. */
 	public Attempt chooseVisible131(long profileId, long actorEpoch, Player actor, Monster target, List<Skill> ready, Skill baseline, BooleanSupplier current)
 	{
-		if (!_tactical.hasEpisodes131() || _tactical.hasStockPveControl131() || !active(LearningScope.SOLO) || actorEpoch <= 0 || ready.size() < 2 || ready.size() > _maxCandidates
+		if (!_tactical.hasEpisodes131() || _tactical.hasStockControl131() || !active(LearningScope.SOLO) || actorEpoch <= 0 || ready.size() < 2 || ready.size() > _maxCandidates
 			|| actor.getParty() != null || !ready.contains(baseline) || !current.getAsBoolean())
 		{
 			return null;

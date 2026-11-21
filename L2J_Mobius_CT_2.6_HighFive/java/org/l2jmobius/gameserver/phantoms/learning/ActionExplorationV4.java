@@ -10,7 +10,11 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 /** TEST-only single decision owner. Proposals never grant native execution authority. */
 public final class ActionExplorationV4
 {
-	public enum AuditControl { HEURISTIC, STOCK_PVE }
+	public enum AuditControl
+	{
+		HEURISTIC, STOCK_PVE, STOCK_PVP;
+		public boolean archived() { return this != HEURISTIC; }
+	}
 
 	public record Plan(int schemaVersion, String policyId, long seed, int cap, double epsilon, String split,
 		String episode, String sourceSha, String modelSha, List<String> skills)
@@ -19,7 +23,7 @@ public final class ActionExplorationV4
 		{
 			skills = List.copyOf(skills);
 			final boolean evaluation = "TUNING".equals(split) || "AUDIT".equals(split);
-			final boolean controlAudit = "HEURISTIC_V2".equals(policyId) || "STOCK_PVE_V2".equals(policyId);
+			final boolean controlAudit = "HEURISTIC_V2".equals(policyId) || "STOCK_PVE_V2".equals(policyId) || "STOCK_PVP_V2".equals(policyId);
 			final boolean deterministic = seed == 0 && cap == 0 && Double.compare(epsilon, 0) == 0;
 			final boolean validPolicy = switch (schemaVersion)
 			{
@@ -44,13 +48,15 @@ public final class ActionExplorationV4
 			{
 				case "HEURISTIC_V2" -> AuditControl.HEURISTIC;
 				case "STOCK_PVE_V2" -> AuditControl.STOCK_PVE;
+				case "STOCK_PVP_V2" -> AuditControl.STOCK_PVP;
 				default -> null;
 			};
 		}
 		boolean epsilonExploration() { return "EPSILON_V1".equals(policyId) || "EPSILON_V2".equals(policyId); }
 		boolean accepts(LegalActionV3 action)
 		{
-			return (action.family() == LegalActionV3.Family.DAMAGE || schemaVersion == 2 && auditControl() != AuditControl.STOCK_PVE && action.family() == LegalActionV3.Family.HEAL)
+			final var control = auditControl();
+			return (action.family() == LegalActionV3.Family.DAMAGE || schemaVersion == 2 && (control == null || !control.archived()) && action.family() == LegalActionV3.Family.HEAL)
 				&& skills.contains(action.skillId() + ":" + action.skillLevel());
 		}
 		void write(DataOutput out) throws IOException
@@ -93,10 +99,17 @@ public final class ActionExplorationV4
 				|| offered.stream().anyMatch(a -> !plan.accepts(a))
 				|| stock.family() == LegalActionV3.Family.HEAL && offered.stream().anyMatch(a -> observation.entity(a.targetObjectId()).role() == TacticalObservationV3.Role.ENEMY))
 			{ throw new IllegalArgumentException("Invalid V4 decision authority"); }
-			final var archived = observation.stockPveSelection();
-			if ((plan.auditControl() == AuditControl.STOCK_PVE) != (archived != null))
+			final var archived = observation.stockSelection();
+			final var stockControl = switch (archived)
 			{
-				throw new IllegalArgumentException("Archived PvE observation is required only for S");
+				case TacticalObservationV3.StockPveSelection ignored -> AuditControl.STOCK_PVE;
+				case TacticalObservationV3.StockPvpSelection ignored -> AuditControl.STOCK_PVP;
+				case null -> null;
+			};
+			final var audit = plan.auditControl();
+			if (stockControl != (audit != null && audit.archived() ? audit : null))
+			{
+				throw new IllegalArgumentException("Archived observation is required only for the matching S control");
 			}
 			if (archived != null)
 			{
@@ -104,7 +117,7 @@ public final class ActionExplorationV4
 				if (!archived.selected().equals(new SelectedSkill(stock.skillId(), stock.skillLevel()))
 					|| !offeredSkills.equals(archived.ready().stream().filter(offeredSkills::contains).toList()))
 				{
-					throw new IllegalArgumentException("Archived PvE round robin does not reproduce the recorded stock action");
+					throw new IllegalArgumentException("Archived input does not reproduce the recorded stock action");
 				}
 			}
 			if (mode.equals("EXPLORE_COVERAGE"))

@@ -9,7 +9,7 @@ import java.util.Set;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CleanupState;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
-import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockAuditAuthority;
 
 public final class PhantomCombatSession
 {
@@ -22,7 +22,7 @@ public final class PhantomCombatSession
 	final PhantomCombatThreatTable _threatTable;
 	final Set<Integer> _rememberedLootIds = new HashSet<>();
 	PhantomCombatActorLease _actorLease;
-	StockPveAuthority _stockPveAudit;
+	StockAuditAuthority _stockAudit;
 	PhantomCombatLoadout _loadout;
 	boolean _contentBasicMelee;
 	boolean _raidAttackIssued;

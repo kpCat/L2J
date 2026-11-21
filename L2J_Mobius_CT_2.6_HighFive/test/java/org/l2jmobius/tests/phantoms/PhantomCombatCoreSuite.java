@@ -48,7 +48,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
 import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
-import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockPveAuthority;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockAuditAuthority;
 
 public final class PhantomCombatCoreSuite implements PhantomTestSuite
 {
@@ -541,7 +541,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			{
 				if (profile != 1 || targetId != 100) { return null; }
 				binds.incrementAndGet();
-				return new StockPveAuthority(episodeFence, scopeCurrent::get);
+				return new StockAuditAuthority(episodeFence, scopeCurrent::get);
 			});
 			final var learning = LearningPolicy.ownedEpisodes131(tactical, "3".repeat(64));
 			final var fixture = new Fixture(1, learning);

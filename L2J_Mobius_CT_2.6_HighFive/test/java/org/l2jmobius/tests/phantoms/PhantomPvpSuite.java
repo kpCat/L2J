@@ -41,6 +41,11 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.DispatchSta
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomPvpCombatRequest;
+import org.l2jmobius.gameserver.phantoms.learning.ActionExplorationV4.AuditControl;
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvpSkill;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.StockAuditAuthority;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Candidate;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Counterpart;
@@ -287,6 +292,50 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(Source.ACTUAL_ATTACK, false).status(), "Learned PvP alternatives were rejected.");
 				fixture.dispatcher.runNext();
 				PhantomAssertions.assertEquals(ready, fixture.lease.lastPvpSkill, "Target-ready skill beyond the first four must remain available to the existing owner.");
+			}
+		});
+		registry.add("131-archived-pvp-selection-and-cut", _ ->
+		{
+			final String original = System.getProperty("phantom.learning.train");
+			try
+			{
+				System.setProperty("phantom.learning.train", "true");
+				final var current = new AtomicBoolean(true);
+				final Object fence = new Object();
+				final var tactical = new TacticalPolicyV3(TacticalPolicyV3.Mode.SHADOW, 0, null, 20, 16, 1000, ignored -> { });
+				tactical.actionControlAudit131(AuditControl.STOCK_PVP, (observation, offered) -> null, ignored -> { },
+					(profile, actorId, targetId) -> profile == 1 && actorId == 10 && targetId == 100 ? new StockAuditAuthority(fence, current::get) : null);
+				final var learning = LearningPolicy.ownedEpisodes131(tactical, "3".repeat(64));
+				try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 20, learning))
+				{
+					fixture.lease.learnedRank = 0;
+					fixture.lease.additionalSkills = List.of(new SelectedSkill(801, 2));
+					PhantomAssertions.assertEquals(StartStatus.UNSUPPORTED_LOADOUT, fixture.start(Source.ACTUAL_ATTACK, false).status(),
+						"Modern-only equipment support must not admit S or enable its consumable work.");
+				}
+				try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 100, learning))
+				{
+					final var skills = java.util.stream.IntStream.rangeClosed(801, 805).mapToObj(id -> new SelectedSkill(id, 2)).toList();
+					fixture.lease.additionalSkills = skills;
+					fixture.lease.archivedSkills = skills.stream().map(skill -> new StockPvpSkill(skill, true, 200, skill.skillId() == 802 ? 0 : 20, true)).toList();
+					fixture.lease.archivedRead = () -> PhantomAssertions.assertTrue(Thread.holdsLock(fence), "Archive choice must run under the episode fence.");
+					fixture.lease.onlyReadySkillId = 805;
+					PhantomAssertions.assertTrue(fixture.start(Source.ACTUAL_ATTACK, false).accepted(), "Exact archived PvP session rejected.");
+					fixture.dispatcher.runNext();
+					PhantomAssertions.assertEquals(0, fixture.lease.pvpCasts + fixture.lease.shotsActivated, "A shared-ready fifth skill passed the archived four-slot cap.");
+					fixture.lease.onlyReadySkillId = 0;
+					fixture.dispatcher.runNext();
+					PhantomAssertions.assertEquals(skills.get(1), fixture.lease.lastPvpSkill, "Archived order did not reach the shared PvP cast.");
+					current.set(false);
+					fixture.dispatcher.runNext();
+					PhantomAssertions.assertEquals(1, fixture.lease.pvpCasts, "A closed archive switched to H or dispatched another cast.");
+					PhantomAssertions.assertEquals(PhantomCombatResult.CANCELLED, fixture.service.find(1).orElseThrow().result(), "Archive revocation must cancel the owner.");
+				}
+			}
+			finally
+			{
+				if (original == null) { System.clearProperty("phantom.learning.train"); }
+				else { System.setProperty("phantom.learning.train", original); }
 			}
 		});
 		registry.add("03-target-safety-rejection-propagates", _ ->
@@ -669,11 +718,17 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 		private CombatFixture(PhantomCombatMode mode, double cp)
 		{
+			this(mode, cp, LearningPolicy.OFF);
+		}
+
+		private CombatFixture(PhantomCombatMode mode, double cp, LearningPolicy learning)
+		{
 			this.mode = mode;
 			lease = new FakeLease(cp);
 			final List<SelectedSkill> skills = mode == PhantomCombatMode.RANGED_MAGIC ? List.of(new SelectedSkill(123, 1)) : List.of();
 			final PhantomCombatCapabilityResolver resolver = new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(mode.capabilityKey(), 900, skills)));
 			service = new PhantomCombatService(profileId -> profileId == 1 ? lease : null, resolver, PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, dispatcher);
+			service.installLearning(learning);
 			service.start();
 			PhantomAssertions.assertEquals(PhantomCombatService.ServiceState.RUNNING, service.snapshot().state(), "PvP combat fixture did not start.");
 		}
@@ -703,6 +758,8 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 	private static final class FakeLease implements PhantomCombatActorLease
 	{
 		private ActorSnapshot actor;
+		private List<StockPvpSkill> archivedSkills = List.of();
+		private Runnable archivedRead = () -> { };
 		private int learnedRank = 1;
 		private SelectedSkill lastPvpSkill;
 		private PvpTargetSnapshot pvpTarget = target(false, false, false);
@@ -784,6 +841,13 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		{
 			return skillResources && (readySkill || mode == PhantomCombatMode.RANGED_MAGIC) && supportsPvpSkill(skill, mode)
 				&& (onlyReadySkillId == 0 || onlyReadySkillId == skill.skillId());
+		}
+
+		@Override
+		public List<StockPvpSkill> stockPvpSkills(PhantomCombatMode mode, int ownerObjectId, int tacticalTargetObjectId)
+		{
+			archivedRead.run();
+			return archivedSkills;
 		}
 
 		@Override
