@@ -356,6 +356,7 @@ public class Shutdown extends Thread
 
 	private boolean prepareShutdown(TimeCounter tc)
 	{
+		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.stopConfigured();
 		final long merchantDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(20);
 		while (!PhantomSystem.beginOfflineMerchantStop())
 		{

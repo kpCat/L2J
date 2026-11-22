@@ -808,6 +808,7 @@ public abstract class Creature extends WorldObject
 		{
 			return;
 		}
+		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.teleportStarting(this);
 		
 		int x = xValue;
 		int y = yValue;
@@ -2713,6 +2714,7 @@ public abstract class Creature extends WorldObject
 			// now reset currentHp to zero
 			setCurrentHp(0);
 			setDead(true);
+			org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.died(this);
 			deathStamp = org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.nativeDeathStamp(this, killer);
 			corpseGeneration = deathStamp > 0 && this instanceof Player player ? player.nativeCorpseGeneration() : 0;
 		}
@@ -4635,6 +4637,10 @@ public abstract class Creature extends WorldObject
 			
 			// Set the position of the Creature to estimated after parcial move.
 			super.setXYZ((int) move.xAccurate, (int) move.yAccurate, newZ);
+		}
+		if (_move == move)
+		{
+			org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.nativeMove(this, xPrev, yPrev, zPrev);
 		}
 		
 		revalidateZone(false);

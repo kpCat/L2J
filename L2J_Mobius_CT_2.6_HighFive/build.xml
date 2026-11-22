@@ -881,6 +881,10 @@
 		</java>
 	</target>
 
+	<target name="phantom-human-route-007-test" depends="compile-tests" description="Run DB-free Human Route 007 evidence and private mailbox controls.">
+		<java classname="org.l2jmobius.gameserver.phantoms.navigation.HumanRoute007Test" classpathref="test.classpath" fork="true" failonerror="true" timeout="30000" />
+	</target>
+
 	<target name="phantom-navigation-performance-smoke" depends="compile-tests" description="Run deterministic direct and computed-route navigation performance smoke.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

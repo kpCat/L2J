@@ -40,6 +40,7 @@ public class WaterZone extends ZoneType
 	protected void onEnter(Creature creature)
 	{
 		creature.setInsideZone(ZoneId.WATER, true);
+		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.water(creature, getId(), true);
 		
 		// TODO: update to only send speed status when that packet is known
 		if (creature.isPlayer())
@@ -78,6 +79,7 @@ public class WaterZone extends ZoneType
 	protected void onExit(Creature creature)
 	{
 		creature.setInsideZone(ZoneId.WATER, false);
+		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.water(creature, getId(), false);
 		
 		// TODO: update to only send speed status when that packet is known
 		if (creature.isPlayer())

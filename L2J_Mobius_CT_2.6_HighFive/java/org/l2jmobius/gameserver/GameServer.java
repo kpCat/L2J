@@ -468,6 +468,7 @@ public class GameServer
 			}
 		}
 		LocalPlayPilotService.getInstance().startConfigured();
+		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.startConfigured();
 		
 		if (ServerConfig.SERVER_RESTART_SCHEDULE_ENABLED)
 		{

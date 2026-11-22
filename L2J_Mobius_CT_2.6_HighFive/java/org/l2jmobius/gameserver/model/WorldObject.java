@@ -809,6 +809,7 @@ public abstract class WorldObject extends ListenersContainer implements IPositio
 		{
 			return;
 		}
+		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.instanceChanging(this);
 		
 		if (isPlayer())
 		{
@@ -879,6 +880,10 @@ public abstract class WorldObject extends ListenersContainer implements IPositio
 	@Override
 	public void setLocation(Location loc)
 	{
+		if (getInstanceId() != loc.getInstanceId())
+		{
+			org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.instanceChanging(this);
+		}
 		_location.setXYZ(loc.getX(), loc.getY(), loc.getZ());
 		_location.setHeading(loc.getHeading());
 		_location.setInstanceId(loc.getInstanceId());
