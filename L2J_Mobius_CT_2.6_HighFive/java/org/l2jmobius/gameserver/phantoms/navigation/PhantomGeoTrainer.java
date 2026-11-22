@@ -63,16 +63,19 @@ public final class PhantomGeoTrainer
 				number(ini, "GeoTrainerSaveIntervalSeconds", 120, 15, 3600), datapack.resolve(configured).toAbsolutePath().normalize(), scouts);
 		}
 
-		private static PhantomPhysicalGeoScout.Settings readScoutSettings(Properties ini) throws IOException
+		static PhantomPhysicalGeoScout.Settings readScoutSettings(Properties ini) throws IOException
 		{
-			final int count = number(ini, "PhysicalGeoScoutCount", 4, 1, 16);
+			final var mode = PhantomPhysicalGeoScout.Mode.valueOf(ini.getProperty("PhysicalGeoScoutMode", "LEGACY").trim().toUpperCase(java.util.Locale.ROOT));
+			final boolean dedicated = mode == PhantomPhysicalGeoScout.Mode.DEDICATED;
+			final var schedule = PhantomPhysicalGeoScout.Schedule.valueOf(ini.getProperty("PhysicalGeoScoutSchedule", dedicated ? "ALWAYS" : "NIGHT").trim().toUpperCase(java.util.Locale.ROOT));
+			final int count = number(ini, "PhysicalGeoScoutCount", dedicated ? 32 : 4, 1, dedicated ? 32 : 16);
 			final int hours = number(ini, "PhysicalGeoScoutSessionHours", 8, 1, 24);
 			final ZoneId zone = ZoneId.of(ini.getProperty("PhysicalGeoScoutTimeZone", "Europe/Chisinau").trim());
 			final LocalTime start = LocalTime.parse(ini.getProperty("PhysicalGeoScoutSessionStart", "23:00").trim());
 			final int minutes = number(ini, "PhysicalGeoScoutCommissionMinutes", 0, 0, 10);
 			// Only the explicitly armed boot can open a daytime session. A later restart uses the night schedule.
-			final boolean armed = minutes > 0 && Files.isRegularFile(SCOUT_COMMISSION_REQUEST, LinkOption.NOFOLLOW_LINKS) && Files.deleteIfExists(SCOUT_COMMISSION_REQUEST);
-			return new PhantomPhysicalGeoScout.Settings(count, hours, zone, start, armed ? minutes : 0);
+			final boolean armed = !dedicated && minutes > 0 && Files.isRegularFile(SCOUT_COMMISSION_REQUEST, LinkOption.NOFOLLOW_LINKS) && Files.deleteIfExists(SCOUT_COMMISSION_REQUEST);
+			return new PhantomPhysicalGeoScout.Settings(count, hours, zone, start, armed ? minutes : 0, mode, schedule);
 		}
 
 		private static boolean flag(Properties ini, String key, boolean fallback)
@@ -127,11 +130,13 @@ public final class PhantomGeoTrainer
 	private final List<Probe> _active = new ArrayList<>(2);
 	private volatile PhantomRouteLearning _memory;
 	private volatile PhantomPhysicalGeoScout _scout;
+	private volatile PhantomDedicatedScoutRegions _dedicatedRegions;
 	private volatile boolean _stopping;
 	private List<PhantomNavigationPoint> _anchors = List.of();
 	private String _anchorsFingerprint;
 	private long _nextSave;
 	private long _nextReport;
+	private long _nextDedicatedReport;
 	private int _cursor;
 	private int _savedCursor = -1;
 	private final ArrayDeque<Long> _recentAccepted = new ArrayDeque<>(100);
@@ -174,6 +179,7 @@ public final class PhantomGeoTrainer
 	PhantomPhysicalGeoScout installPhysicalScout(java.util.function.Function<PhantomPhysicalGeoScout.Settings, PhantomPhysicalGeoScout> factory)
 	{
 		if (_settings.scouts() != null && _settings.learning()) { _scout = factory.apply(_settings.scouts()); }
+		if (_scout != null && _dedicatedRegions != null) { _scout.installRegions(_dedicatedRegions); }
 		return _scout;
 	}
 
@@ -186,6 +192,12 @@ public final class PhantomGeoTrainer
 			final String fingerprint = fingerprint(GeoEngineConfig.GEODATA_PATH, () -> _stopping);
 			if (_stopping) { return; }
 			_memory = PhantomRouteLearning.open(root, fingerprint);
+			if (_settings.scouts() != null && _settings.scouts().mode() == PhantomPhysicalGeoScout.Mode.DEDICATED)
+			{
+				_dedicatedRegions = PhantomDedicatedScoutRegions.open(_memory);
+				final var scout = _scout;
+				if (scout != null) { scout.installRegions(_dedicatedRegions); }
+			}
 			if (_settings.scouts() != null) { _memory.openPhysicalWitness(); }
 			if (_settings.trainer())
 			{
@@ -294,17 +306,26 @@ public final class PhantomGeoTrainer
 			{
 				_nextSave = now + TimeUnit.SECONDS.toNanos(_settings.saveSeconds());
 				try { _memory.flush(); }
-				finally { saveCursor(); }
+				finally
+				{
+					saveCursor();
+					if (_dedicatedRegions != null) { _dedicatedRegions.save(_memory); }
+				}
 			}
 			if (now - _nextReport >= 0)
 			{
 				_nextReport = now + MINUTE_NANOS;
 				report(now, false);
-				if (_scout != null)
+				if (_scout != null && !_scout.dedicated())
 				{
 					_memory.flushPhysicalWitness();
-					_memory.writeFile("physical-scout-status.txt", _scout.status());
+					writeScoutStatus();
 				}
+			}
+			if (_scout != null && _scout.dedicated() && now - _nextDedicatedReport >= 0)
+			{
+				_nextDedicatedReport = now + TimeUnit.SECONDS.toNanos(5);
+				writeScoutStatus();
 			}
 			if (!_stopping && (_scout == null || !_scout.sessionOpen()) && !_anchors.isEmpty() && _active.size() < _settings.workers() && _pacing.take(System.nanoTime(), _navigation.canProbeGeo()))
 			{
@@ -420,8 +441,9 @@ public final class PhantomGeoTrainer
 					try { saveCursor(); }
 					finally
 					{
+						if (_dedicatedRegions != null) { _dedicatedRegions.save(_memory); }
 						report(System.nanoTime(), true);
-						if (_scout != null) { _memory.writeFile("physical-scout-status.txt", _scout.status()); }
+						if (_scout != null) { writeScoutStatus(); }
 					}
 				}
 			}
@@ -431,4 +453,10 @@ public final class PhantomGeoTrainer
 	}
 
 	boolean stopped() { return _writer.isTerminated(); }
+
+	private void writeScoutStatus() throws IOException
+	{
+		final String regions = _dedicatedRegions == null ? "" : _dedicatedRegions.status();
+		_memory.writeFile("physical-scout-status.txt", _scout.status() + regions);
+	}
 }

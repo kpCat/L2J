@@ -881,6 +881,13 @@
 		</java>
 	</target>
 
+	<target name="phantom-dedicated-geo-scouts-008-test" depends="compile-tests" description="Run the dedicated scout configuration and admission contracts.">
+		<java classname="org.l2jmobius.gameserver.phantoms.navigation.PhantomDedicatedScoutChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="30000" />
+		<java classname="org.l2jmobius.gameserver.phantoms.navigation.PhantomDedicatedScoutRegionChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="30000">
+			<arg value="${build.test.reports}" />
+		</java>
+	</target>
+
 	<target name="phantom-human-route-007-test" depends="compile-tests" description="Run DB-free Human Route 007 evidence and private mailbox controls.">
 		<java classname="org.l2jmobius.gameserver.phantoms.navigation.HumanRoute007Test" classpathref="test.classpath" fork="true" failonerror="true" timeout="30000" />
 	</target>

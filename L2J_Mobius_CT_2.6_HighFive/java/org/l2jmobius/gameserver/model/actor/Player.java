@@ -464,12 +464,26 @@ public class Player extends Playable
 	private volatile java.util.function.Supplier<AutoPlayTaskManager.TickLease> _phantomNativeActionAdmission;
 	private volatile boolean _phantomNativeActionManaged;
 	private volatile PlayerNativeWork.Owner _nativeWorkOwner;
+	private boolean _dedicatedGeoScout;
 	private PlayerNativeWork.Ticket _nativeLoadTicket;
 	private PlayerNativeWork.Context _nativeLoadContext;
 	private boolean _nativeLoadVitalsRestored;
 
 	public PlayerNativeWork.Owner getNativeWorkOwner() { return _nativeWorkOwner; }
 	public boolean isNativeWorkManaged() { return _phantomNativeActionManaged; }
+	public boolean isDedicatedGeoScout() { return _dedicatedGeoScout; }
+	public void attachDedicatedGeoScoutRole()
+	{
+		final var owner = _nativeWorkOwner;
+		if (_dedicatedGeoScout || owner == null || !owner.isCurrent() || _client != null
+			|| org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(getObjectId())
+				!= org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.DEDICATED_SCOUT)
+		{
+			throw new IllegalStateException("DEDICATED_SCOUT_ROLE_ATTACHMENT_REJECTED");
+		}
+		_dedicatedGeoScout = true;
+	}
+
 	public void attachNativeWorkOwner(PlayerNativeWork.Owner owner)
 	{
 		if ((_nativeWorkOwner != null) || (owner.player() != this)) { throw new IllegalStateException("NATIVE_WORK_OWNER_ATTACHMENT_REJECTED"); }
@@ -484,7 +498,10 @@ public class Player extends Playable
 	/** Only the materialization owner may install the existing action drain at native completion boundaries. */
 	public void attachPhantomNativeActionAdmission(java.util.function.Supplier<AutoPlayTaskManager.TickLease> admission)
 	{
-		if ((_client != null) || !hasHeadlessOutboundSession() || (org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(getObjectId()) != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+		final var identity = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(getObjectId());
+		if (_client != null || !hasHeadlessOutboundSession()
+			|| identity != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM
+				&& (!_dedicatedGeoScout || identity != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.DEDICATED_SCOUT))
 		{
 			throw new IllegalStateException("PHANTOM_NATIVE_ACTION_OWNER_REJECTED");
 		}
@@ -1171,11 +1188,54 @@ public class Player extends Playable
 	 */
 	public static Player create(PlayerTemplate template, String accountName, String name, PlayerAppearance app)
 	{
+		final Player player = createUninitialized(template, accountName, name, app, true);
+		return player.createDb() ? player : null;
+	}
+
+	/**
+	 * Creates an unpublished character at its native starting level in an existing
+	 * transaction. The caller owns commit and publication of the character name.
+	 */
+	public static Player create(PlayerTemplate template, String accountName, String name, PlayerAppearance app, byte startingLevel, Connection connection) throws SQLException
+	{
+		if (connection.getAutoCommit())
+		{
+			throw new SQLException("Character creation requires an explicit transaction.");
+		}
+		if ((startingLevel < 1) || (startingLevel >= ExperienceData.getInstance().getMaxLevel()))
+		{
+			throw new SQLException("Character starting level exceeds the native experience table.");
+		}
+
+		final Player player = createUninitialized(template, accountName, name, app, false);
+		try
+		{
+			player.getStat().setLevel(startingLevel);
+			player.getStat().setExp(player.getStat().getExpForLevel(startingLevel));
+			player.createDb(connection);
+			return player;
+		}
+		finally
+		{
+			player.stopAllTasks();
+			player.stopHpMpRegeneration();
+		}
+	}
+
+	private static Player createUninitialized(PlayerTemplate template, String accountName, String name, PlayerAppearance app, boolean publishName)
+	{
 		// Create a new Player with an account name
 		final Player player = new Player(template, accountName, app);
 		
 		// Set the name of the Player
-		player.setName(name);
+		if (publishName)
+		{
+			player.setName(name);
+		}
+		else
+		{
+			player.setUnpublishedCreationName(name);
+		}
 		
 		// Set Character's create time
 		player.setCreateDate(Calendar.getInstance());
@@ -1189,8 +1249,12 @@ public class Player extends Playable
 		// Give 20 recommendations
 		player.setRecomLeft(20);
 		
-		// Add the player in the characters table of the database
-		return player.createDb() ? player : null;
+		return player;
+	}
+
+	private void setUnpublishedCreationName(String name)
+	{
+		super.setName(name);
 	}
 	
 	public String getAccountName()
@@ -1362,13 +1426,20 @@ public class Player extends Playable
 	 */
 	public static Player load(int objectId)
 	{
-		return restore(objectId, null);
+		return restore(objectId, null, null, null);
 	}
 
 	/** Optional lifetime initializer runs before constructor task publication. */
 	public static Player load(int objectId, java.util.function.Consumer<Player> beforePublication)
 	{
-		return restore(objectId, java.util.Objects.requireNonNull(beforePublication));
+		return restore(objectId, java.util.Objects.requireNonNull(beforePublication), null, null);
+	}
+
+	/** Validate the character row used for native restore before constructing a service-owned Player. */
+	public static Player load(int objectId, String expectedAccount, String expectedName, java.util.function.Consumer<Player> beforePublication)
+	{
+		return restore(objectId, java.util.Objects.requireNonNull(beforePublication), java.util.Objects.requireNonNull(expectedAccount),
+			java.util.Objects.requireNonNull(expectedName));
 	}
 	
 	private void initPcStatusUpdateValues()
@@ -4777,6 +4848,7 @@ public class Player extends Playable
 	 */
 	public void doAutoLoot(Attackable target, int itemId, long itemCount)
 	{
+		if (_dedicatedGeoScout) { return; }
 		final Party party = PlayerNativeWork.rewardParty(this, _party);
 		if ((party != null) && !ItemData.getInstance().getTemplate(itemId).hasExImmediateEffect())
 		{
@@ -4815,6 +4887,7 @@ public class Player extends Playable
 	@Override
 	public void doPickupItem(WorldObject object)
 	{
+		if (_dedicatedGeoScout) { return; }
 		final Party party = getParty();
 		final List<Player> recipients = party == null ? List.of() : List.copyOf(party.getMembers());
 		// Stock CANCEL can synchronously reach this new writer from an older earned hit.
@@ -5024,6 +5097,7 @@ public class Player extends Playable
 
 	private void doNativeAttack(Creature target)
 	{
+		if (_dedicatedGeoScout || target instanceof Player other && other.isDedicatedGeoScout()) { return; }
 		super.doAttack(target);
 		setRecentFakeDeath(false);
 		if (target.isFakePlayer() && !FakePlayersConfig.FAKE_PLAYER_AUTO_ATTACKABLE)
@@ -5040,6 +5114,7 @@ public class Player extends Playable
 
 	private void doNativeCast(Skill skill)
 	{
+		if (_dedicatedGeoScout) { return; }
 		if ((_currentSkill != null) && !checkUseMagicConditions(skill, _currentSkill.isCtrlPressed(), _currentSkill.isShiftPressed()))
 		{
 			setCastingNow(false);
@@ -5602,10 +5677,16 @@ public class Player extends Playable
 	@Override
 	public boolean doDie(Creature killer)
 	{
+		if (_dedicatedGeoScout && killer != null && (killer.isPlayable() || killer.isFakePlayer())) { return false; }
 		// Kill the Player
 		if (!super.doDie(killer))
 		{
 			return false;
+		}
+		if (_dedicatedGeoScout)
+		{
+			_nativeDeathKillerObjectId = -1;
+			return true;
 		}
 		
 		if (isMounted())
@@ -7418,17 +7499,34 @@ public class Player extends Playable
 	public void updateOnlineStatus()
 	{
 		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement("UPDATE characters SET online=?, lastAccess=? WHERE charId=?"))
+			PreparedStatement ps = con.prepareStatement("UPDATE characters SET online=?, lastAccess=? WHERE charId=?" + dedicatedStoreIdentityClause()))
 		{
 			ps.setInt(1, isOnlineInt());
 			ps.setLong(2, System.currentTimeMillis());
 			ps.setInt(3, getObjectId());
-			ps.execute();
+			if (_dedicatedGeoScout)
+			{
+				bindDedicatedStoreIdentity(ps, 4);
+				if (ps.executeUpdate() != 1) { throw new SQLException("Dedicated scout online update matched no identity."); }
+			}
+			else { ps.execute(); }
 		}
 		catch (Exception e)
 		{
+			if (_dedicatedGeoScout) { throw new IllegalStateException("DEDICATED_SCOUT_ONLINE_UPDATE_FAILED", e); }
 			LOGGER.log(Level.SEVERE, "Failed updating character online status.", e);
 		}
+	}
+
+	private String dedicatedStoreIdentityClause()
+	{
+		return _dedicatedGeoScout ? " AND BINARY account_name=? AND BINARY char_name=?" : "";
+	}
+
+	private void bindDedicatedStoreIdentity(PreparedStatement statement, int first) throws SQLException
+	{
+		statement.setString(first, _accountName);
+		statement.setString(first + 1, getName());
 	}
 	
 	/**
@@ -7437,8 +7535,21 @@ public class Player extends Playable
 	 */
 	private boolean createDb()
 	{
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement(INSERT_CHARACTER))
+		try (Connection con = DatabaseFactory.getConnection())
+		{
+			createDb(con);
+			return true;
+		}
+		catch (Exception e)
+		{
+			LOGGER.log(Level.SEVERE, "Could not insert char data: " + e.getMessage(), e);
+			return false;
+		}
+	}
+
+	private void createDb(Connection connection) throws SQLException
+	{
+		try (PreparedStatement ps = connection.prepareStatement(INSERT_CHARACTER))
 		{
 			ps.setString(1, _accountName);
 			ps.setInt(2, getObjectId());
@@ -7478,15 +7589,11 @@ public class Player extends Playable
 			ps.setLong(36, 0);
 			ps.setTimestamp(37, new Timestamp(_createDate.getTimeInMillis()));
 			ps.setLong(38, System.currentTimeMillis());
-			ps.executeUpdate();
+			if (ps.executeUpdate() != 1)
+			{
+				throw new SQLException("Character insert did not affect one row.");
+			}
 		}
-		catch (Exception e)
-		{
-			LOGGER.log(Level.SEVERE, "Could not insert char data: " + e.getMessage(), e);
-			return false;
-		}
-		
-		return true;
 	}
 	
 	/**
@@ -7498,7 +7605,7 @@ public class Player extends Playable
 	 * @param objectId Identifier of the object to initialized
 	 * @return The Player loaded from the database
 	 */
-	private static Player restore(int objectId, java.util.function.Consumer<Player> beforePublication)
+	private static Player restore(int objectId, java.util.function.Consumer<Player> beforePublication, String expectedAccount, String expectedName)
 	{
 		Player player = null;
 		Throwable nativeLoadFailure = null;
@@ -7516,6 +7623,11 @@ public class Player extends Playable
 				{
 					if (rset.next())
 					{
+						if (expectedAccount != null && (!expectedAccount.equals(rset.getString("account_name"))
+							|| !expectedName.equals(rset.getString("char_name")) || rset.getInt("accesslevel") != 0 || rset.getInt("clanid") != 0))
+						{
+							throw new IllegalStateException("DEDICATED_SCOUT_RESTORE_IDENTITY_MISMATCH");
+						}
 						final int activeClassId = rset.getInt("classid");
 						final boolean female = rset.getInt("sex") != Sex.MALE.ordinal();
 						final PlayerTemplate template = PlayerTemplateData.getInstance().getTemplate(activeClassId);
@@ -7725,7 +7837,7 @@ public class Player extends Playable
 			player.restoreCharData();
 			
 			// Reward auto-get skills and all available skills if auto-learn skills is true.
-			player.rewardSkills();
+			if (!player._dedicatedGeoScout) { player.rewardSkills(); }
 			
 			player.restoreItemReuse();
 			
@@ -8084,6 +8196,7 @@ public class Player extends Playable
 	private void storeNative(boolean storeActiveEffects, OwnedStoreSnapshot snapshot)
 	{
 		storeCharBase(snapshot);
+		if (_dedicatedGeoScout) { return; }
 		storeCharSub(snapshot);
 		storeEffect(storeActiveEffects);
 		storeItemReuseDelay();
@@ -8126,7 +8239,7 @@ public class Player extends Playable
 		final int level = snapshot == null ? getStat().getBaseLevel() : snapshot.baseLevel();
 		final long sp = snapshot == null ? getStat().getBaseSp() : snapshot.baseSkillPoints();
 		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement(UPDATE_CHARACTER))
+			PreparedStatement ps = con.prepareStatement(UPDATE_CHARACTER + dedicatedStoreIdentityClause()))
 		{
 			ps.setInt(1, level);
 			ps.setInt(2, snapshot == null ? getMaxHp() : snapshot.maxHp());
@@ -8197,12 +8310,14 @@ public class Player extends Playable
 			ps.setInt(50, factionId);
 			ps.setInt(51, _pcCafePoints);
 			ps.setInt(52, getObjectId());
+			if (_dedicatedGeoScout) { bindDedicatedStoreIdentity(ps, 53); }
 			if (ps.executeUpdate() == 1) { getStat().acknowledgeStoredSkillPoints(0, sp); }
+			else if (_dedicatedGeoScout) { throw new SQLException("Dedicated scout store matched no identity."); }
 		}
 		catch (Exception e)
 		{
 			LOGGER.log(Level.WARNING, "Could not store char base data: " + this + " - " + e.getMessage(), e);
-			if (snapshot != null) { throw new IllegalStateException("OWNED_STORE_NATIVE_BASE_FAILED", e); }
+			if (snapshot != null || _dedicatedGeoScout) { throw new IllegalStateException("OWNED_STORE_NATIVE_BASE_FAILED", e); }
 		}
 	}
 	
@@ -9172,7 +9287,7 @@ public class Player extends Playable
 	{
 		// A headless materialization publishes its canonical Player state at the owned store/capture boundary.
 		// Check headless first: cleanup marks offline before detach, so a retired callback cannot pass both guards.
-		if (hasHeadlessOutboundSession() || !isOnline())
+		if (_dedicatedGeoScout || hasHeadlessOutboundSession() || !isOnline())
 		{
 			return;
 		}
@@ -9247,6 +9362,7 @@ public class Player extends Playable
 	@Override
 	public boolean isAutoAttackable(Creature attacker)
 	{
+		if (_dedicatedGeoScout && attacker != null && (attacker.isPlayable() || attacker.isFakePlayer())) { return false; }
 		if (attacker == null)
 		{
 			return false;
@@ -12019,6 +12135,7 @@ public class Player extends Playable
 	
 	public synchronized void addExpAndSp(double addToExp, double addToSp, boolean useVitality)
 	{
+		if (_dedicatedGeoScout) { return; }
 		final long expBefore = getExp();
 		final long spBefore = getSp();
 		getStat().addExpAndSp(addToExp, addToSp, useVitality);
@@ -12103,6 +12220,7 @@ public class Player extends Playable
 	@Override
 	public void reduceCurrentHp(double value, Creature attacker, boolean awake, boolean isDOT, Skill skill)
 	{
+		if (_dedicatedGeoScout && attacker != null && (attacker.isPlayable() || attacker.isFakePlayer())) { return; }
 		if (skill != null)
 		{
 			getStatus().reduceHp(value, attacker, awake, isDOT, skill.isToggle(), skill.getDmgDirectlyToHP());
@@ -12374,7 +12492,7 @@ public class Player extends Playable
 
 	private void notifyNativeLogout()
 	{
-		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_LOGOUT, this))
+		if (!_dedicatedGeoScout && EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_LOGOUT, this))
 		{
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerLogout(this), this);
 		}
@@ -12487,12 +12605,13 @@ public class Player extends Playable
 		// Set the online Flag to True or False and update the characters table of the database with online status and lastAccess (called when login and logout)
 		try
 		{
-			if (!_isOnline)
+			if (!_isOnline && !_dedicatedGeoScout)
 			{
 				LOGGER.log(Level.SEVERE, "deleteMe() called on offline character " + this, new RuntimeException());
 			}
 			
-			setOnlineStatus(false, true);
+			// Dedicated terminal STORE already acknowledged offline and the canonical row in one update.
+			setOnlineStatus(false, !_dedicatedGeoScout);
 		}
 		catch (Exception e)
 		{

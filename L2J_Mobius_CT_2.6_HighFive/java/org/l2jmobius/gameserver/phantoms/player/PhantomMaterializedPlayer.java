@@ -146,6 +146,9 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	private final FailureInjector _failureInjector;
 	private final LifecycleSupport _lifecycleSupport;
 	private final long _actionDrainTimeoutMillis;
+	private final org.l2jmobius.gameserver.model.Location _dedicatedSeed;
+	private final PhantomDedicatedScoutRoster.Identity _dedicatedIdentity;
+	private boolean _dedicatedLoadVerified;
 	private volatile State _state = State.STORED;
 	private volatile Player _player;
 	private Lease _identityLease;
@@ -184,6 +187,13 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 	PhantomMaterializedPlayer(int objectId, PhantomIdentityLeaseRegistry identityRegistry, HeadlessPlayerOutboundSession outboundSession, FailureInjector failureInjector, LifecycleSupport lifecycleSupport, long actionDrainTimeoutMillis)
 	{
+		this(objectId, identityRegistry, outboundSession, failureInjector, lifecycleSupport, actionDrainTimeoutMillis, null, null);
+	}
+
+	PhantomMaterializedPlayer(int objectId, PhantomIdentityLeaseRegistry identityRegistry, HeadlessPlayerOutboundSession outboundSession,
+		FailureInjector failureInjector, LifecycleSupport lifecycleSupport, long actionDrainTimeoutMillis,
+		org.l2jmobius.gameserver.model.Location dedicatedSeed, PhantomDedicatedScoutRoster.Identity dedicatedIdentity)
+	{
 		if (objectId <= 0)
 		{
 			throw new IllegalArgumentException("objectId must be positive");
@@ -198,6 +208,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		_failureInjector = Objects.requireNonNull(failureInjector, "failureInjector");
 		_lifecycleSupport = Objects.requireNonNull(lifecycleSupport, "lifecycleSupport");
 		_actionDrainTimeoutMillis = actionDrainTimeoutMillis;
+		_dedicatedSeed = dedicatedSeed;
+		_dedicatedIdentity = dedicatedIdentity;
 	}
 
 	public void materialize()
@@ -217,31 +229,36 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		{
 			requireIdentityRegistriesFree("before identity claim");
 
-			_identityLease = _identityRegistry.tryAcquire(_objectId, OwnerKind.PHANTOM);
+			final var kind = _dedicatedSeed == null ? OwnerKind.PHANTOM : OwnerKind.DEDICATED_SCOUT;
+			_identityLease = _identityRegistry.tryAcquire(_objectId, kind);
 			if (_identityLease == null)
 			{
 				throw new MaterializationException(MaterializationFailure.IDENTITY_BUSY, "Character identity is already owned");
 			}
 			_state = State.CLAIMED;
 			failAfter(FailurePoint.AFTER_IDENTITY_CLAIM);
-			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_IDENTITY_CLAIMED", _state.name(), "PHANTOM", _objectId);
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_IDENTITY_CLAIMED", _state.name(), kind.name(), _objectId);
 
 			requireIdentityRegistriesFree("after identity claim");
 
 			_state = State.LOADING;
 			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_PLAYER_LOAD_BEGIN", _state.name(), "", _objectId);
-			_player = Player.load(_objectId, loaded ->
+			final java.util.function.Consumer<Player> beforePublication = loaded ->
 			{
 				// Retain this exact instance even if constructor/restore aborts later.
 				_player = loaded;
 				_materializedAtNanos = System.nanoTime();
 				_nativeWork = new PhantomNativeWorkScope(_actionMonitor, loaded, _identityLease, _materializedAtNanos, _execution, _executionProfileId);
 				loaded.attachNativeWorkOwner(_nativeWork);
-			});
-			if (_player == null)
+				if (_dedicatedSeed != null) { loaded.attachDedicatedGeoScoutRole(); }
+			};
+			final var loaded = _dedicatedIdentity == null ? Player.load(_objectId, beforePublication)
+				: Player.load(_objectId, _dedicatedIdentity.accountName(), _dedicatedIdentity.characterName(), beforePublication);
+			if (loaded == null)
 			{
 				throw new MaterializationException(MaterializationFailure.PLAYER_LOAD_FAILED, "Could not load canonical Player");
 			}
+			_player = loaded;
 			if (_player.getObjectId() != _objectId)
 			{
 				throw new MaterializationException(MaterializationFailure.OBJECT_ID_MISMATCH, "Loaded Player object ID does not match the claimed character");
@@ -253,14 +270,26 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			{
 				throw new MaterializationException(MaterializationFailure.AUTOSAVE_IDENTITY_BUSY, "Loaded Player is not the only autosave owner for the claimed character");
 			}
-			PlayerNativeWork.run(_player, "PLAYER_RESTORE_EFFECTS", () -> { _player.restoreEffects(); _player.restoreNativeLoadVitals(); });
-			_lifecycleSupport.afterPlayerLoad(_player);
-			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_AFTER_PLAYER_LOAD_OK", _state.name(), "", _objectId);
-			PlayerNativeWork.run(_player, "PLAYER_LOGIN_DOMAIN", () ->
+			PlayerNativeWork.run(_player, "PLAYER_RESTORE_EFFECTS", () ->
 			{
-				org.l2jmobius.gameserver.model.script.Quest.playerEnter(_player);
-				PersonalProgressionQoLService.getInstance().tryGrantAutoNoblesse(_player);
+				if (_dedicatedSeed == null) { _player.restoreEffects(); }
+				_player.restoreNativeLoadVitals();
 			});
+			_lifecycleSupport.afterPlayerLoad(_player);
+			_dedicatedLoadVerified = _dedicatedIdentity != null;
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_AFTER_PLAYER_LOAD_OK", _state.name(), "", _objectId);
+			if (_dedicatedSeed == null)
+			{
+				PlayerNativeWork.run(_player, "PLAYER_LOGIN_DOMAIN", () ->
+				{
+					org.l2jmobius.gameserver.model.script.Quest.playerEnter(_player);
+					PersonalProgressionQoLService.getInstance().tryGrantAutoNoblesse(_player);
+				});
+			}
+			else if (_player.isDead())
+			{
+				PlayerNativeWork.run(_player, "SCOUT_RECOVER_AT_SEED", _player::doRevive);
+			}
 			failAfter(FailurePoint.AFTER_PLAYER_LOAD);
 
 			_identityAttached = true;
@@ -291,7 +320,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 			_lifecycleSupport.beforeWorldSpawn(_player);
 			requireWorldIdentityFree("immediately before World spawn");
-			_player.spawnMe();
+			if (_dedicatedSeed == null) { _player.spawnMe(); }
+			else { _player.spawnMe(_dedicatedSeed.getX(), _dedicatedSeed.getY(), _dedicatedSeed.getZ()); }
 			final World world = World.getInstance();
 			if ((world.getPlayer(_objectId) != _player) || (world.findObject(_objectId) != _player))
 			{
@@ -401,6 +431,10 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			if ((cleanupPlayer != null) && !PhantomPlayerCleanupPolicy.isComplete(cleanupPlayer))
 			{
 				_cleanupPhase = CleanupPhase.PRE_STORE;
+				if (_dedicatedIdentity != null && !_dedicatedLoadVerified)
+				{
+					throw new IllegalStateException("DEDICATED_SCOUT_STORE_UNVERIFIED_NATIVE_LOAD");
+				}
 				_cleanupHook = "NATIVE_TEARDOWN";
 				requireNoForeignWorldIdentity(cleanupPlayer);
 				if (!cleanupPlayer.isNativeCleanupPrepared())
@@ -433,6 +467,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 						failAfter(FailurePoint.BEFORE_STORE_OPERATION);
 						_cleanupPhase = CleanupPhase.NATIVE_STORE;
 						_cleanupHook = "PLAYER_STORE_ME";
+						if (_dedicatedIdentity != null) { cleanupPlayer.setOnlineStatus(false, false); }
 						cleanupPlayer.storeMe();
 						failAfter(FailurePoint.AFTER_NATIVE_STORE);
 						_cleanupPhase = CleanupPhase.POST_STORE;

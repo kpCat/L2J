@@ -543,7 +543,7 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		if (identityLease == null)
 		{
 			final OwnerKind failedOwner = identityRegistry.getOwnerKind(objectId);
-			if (failedOwner == OwnerKind.PHANTOM)
+			if (failedOwner == OwnerKind.PHANTOM || failedOwner == OwnerKind.DEDICATED_SCOUT)
 			{
 				LOGGER.warning("Character identity is materialized by Phantom: " + objectId);
 			}

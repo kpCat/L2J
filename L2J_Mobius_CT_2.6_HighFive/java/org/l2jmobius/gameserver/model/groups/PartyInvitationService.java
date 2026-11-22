@@ -529,6 +529,11 @@ public final class PartyInvitationService
 
 	private InviteOutcome validateInvite(Player requester, Player target, boolean managedTarget)
 	{
+		if (requester.isDedicatedGeoScout() || target.isDedicatedGeoScout())
+		{
+			requester.sendPacket(SystemMessageId.THAT_IS_AN_INCORRECT_TARGET);
+			return InviteOutcome.TARGET_NOT_VISIBLE;
+		}
 		if (!managedTarget && !target.hasHeadlessOutboundSession() && ((target.getClient() == null) || target.getClient().isDetached()))
 		{
 			requester.sendMessage("Player is in offline mode.");
@@ -615,6 +620,10 @@ public final class PartyInvitationService
 	{
 		final Player requester = pending._requester;
 		final Player invitee = pending._invitee;
+		if (requester.isDedicatedGeoScout() || invitee.isDedicatedGeoScout())
+		{
+			return InviteOutcome.TARGET_NOT_VISIBLE;
+		}
 		if ((requester.getObjectId() != pending._identity.requesterObjectId()) || (invitee.getObjectId() != pending._identity.inviteeObjectId()) || (invitee.getActiveRequester() != requester))
 		{
 			return InviteOutcome.TARGET_BUSY;

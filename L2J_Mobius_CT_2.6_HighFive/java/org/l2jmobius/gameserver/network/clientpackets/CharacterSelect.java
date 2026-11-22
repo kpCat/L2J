@@ -123,7 +123,13 @@ public class CharacterSelect extends ClientPacket
 					final Player player = World.getInstance().getPlayer(info.getObjectId());
 					if (player != null)
 					{
-						if (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(info.getObjectId()) == OwnerKind.PHANTOM)
+						final var owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(info.getObjectId());
+						if (owner == OwnerKind.DEDICATED_SCOUT)
+						{
+							client.close(ServerClose.STATIC_PACKET);
+							return;
+						}
+						if (owner == OwnerKind.PHANTOM)
 						{
 							// Route the collision through the real-login reservation hook.
 							client.load(_charSlot);

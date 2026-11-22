@@ -579,12 +579,12 @@ public final class PhantomRouteLearning implements AutoCloseable
 
 	private static long add(long a, long b) { return a > Long.MAX_VALUE - b ? Long.MAX_VALUE : a + b; }
 
-	private String checkedContent(String header, String payload)
+	String checkedContent(String header, String payload)
 	{
 		return header + _fingerprint + "\t" + checksum(payload) + "\n" + payload;
 	}
 
-	private String readChecked(String filename, String header, int maxBytes) throws IOException
+	String readChecked(String filename, String header, int maxBytes) throws IOException
 	{
 		final Path file = _root.resolve(filename);
 		if (Files.notExists(file, LinkOption.NOFOLLOW_LINKS)) { return null; }

@@ -32,6 +32,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -64,7 +65,8 @@ public final class PhantomMaterializationService
 	{
 		NORMAL,
 		HISTORICAL_BASELINE,
-		NATIVE_CONTEXT_HANDOFF
+		NATIVE_CONTEXT_HANDOFF,
+		DEDICATED_SCOUT
 	}
 
 	public enum ResultStatus
@@ -91,10 +93,12 @@ public final class PhantomMaterializationService
 		BACKGROUND_RECONCILIATION_BLOCKED,
 		CATCHUP_FENCED,
 		POPULATION_ADMISSION_FENCED,
+		DEDICATED_SCOUT_FENCED,
 		NOT_ACTIVE
 	}
 
 	private static final long MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS = 10000;
+	private static final long DEDICATED_KEY_BASE = 1L << 62;
 
 	private final Object _stateMonitor = new Object();
 	private final PhantomProfileRepository _profileRepository;
@@ -118,6 +122,9 @@ public final class PhantomMaterializationService
 		Runnable begin(long profileId, long scoutVersion, boolean historicalPreparation);
 	}
 	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission _execution;
+	private final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission _dedicatedExecution =
+		new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(32);
+	private volatile long _ordinaryCapacityPressureUntil;
 	public void installExecutionAdmission(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission execution)
 	{
 		synchronized (_stateMonitor)
@@ -249,19 +256,53 @@ public final class PhantomMaterializationService
 
 	public MaterializeResult materialize(long profileId, MaterializationPurpose purpose, String ownerClaim, long scoutVersion)
 	{
+		if (profileId >= DEDICATED_KEY_BASE || purpose == MaterializationPurpose.DEDICATED_SCOUT) { return rejectMaterialization(ResultStatus.DEDICATED_SCOUT_FENCED); }
 		if (scoutVersion < 0 || scoutVersion > 0 && purpose != MaterializationPurpose.NORMAL) { throw new IllegalArgumentException("Invalid scout admission version"); }
 		final var admission = _populationAdmission;
 		if (admission == null)
 		{
-			return scoutVersion == 0 ? materializeOwned(profileId, purpose, ownerClaim, 0) : rejectMaterialization(ResultStatus.POPULATION_ADMISSION_FENCED);
+			return scoutVersion == 0 ? materializeOwned(profileId, purpose, ownerClaim, 0, null) : rejectMaterialization(ResultStatus.POPULATION_ADMISSION_FENCED);
 		}
 		final var release = admission.begin(profileId, scoutVersion, purpose == MaterializationPurpose.HISTORICAL_BASELINE);
 		if (release == null) { return rejectMaterialization(ResultStatus.POPULATION_ADMISSION_FENCED); }
-		try { return materializeOwned(profileId, purpose, ownerClaim, scoutVersion); }
+		try { return materializeOwned(profileId, purpose, ownerClaim, scoutVersion, null); }
 		finally { release.run(); }
 	}
 
-	private MaterializeResult materializeOwned(long profileId, MaterializationPurpose purpose, String ownerClaim, long scoutVersion)
+	public static long dedicatedScoutKey(int slot)
+	{
+		if (slot < 1 || slot > 32) { throw new IllegalArgumentException("Dedicated scout slot must be in 1..32."); }
+		return DEDICATED_KEY_BASE + slot;
+	}
+
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Permit tryAcquireDedicatedScoutExecution(long key)
+	{
+		final var entry = _activeByProfile.get(key);
+		return entry == null || !entry._dedicated || _state != ServiceState.RUNNING ? null : _dedicatedExecution.tryAcquireExclusiveIdle(key, dedicatedOwner(key));
+	}
+
+	private static org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef dedicatedOwner(long key)
+	{
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("execution.dedicated_scout", Long.toString(key));
+	}
+
+	private record DedicatedAdmission(PhantomDedicatedScoutRoster.Identity identity, org.l2jmobius.gameserver.model.Location seed,
+		java.util.function.BooleanSupplier safeToSpawn, int ordinaryTarget) { }
+
+	public MaterializeResult materializeDedicatedScout(PhantomDedicatedScoutRoster roster, PhantomDedicatedScoutRoster.Identity identity,
+		org.l2jmobius.gameserver.model.Location seed, java.util.function.BooleanSupplier safeToSpawn, int ordinaryTarget, long assignmentVersion)
+	{
+		if (assignmentVersion <= 0 || ordinaryTarget < 0 || seed.getInstanceId() != 0 || !safeToSpawn.getAsBoolean())
+		{
+			return rejectMaterialization(ResultStatus.DEDICATED_SCOUT_FENCED);
+		}
+		try { roster.verify(identity); }
+		catch (java.sql.SQLException | RuntimeException failure) { return rejectMaterialization(ResultStatus.DEDICATED_SCOUT_FENCED); }
+		return materializeOwned(dedicatedScoutKey(identity.slot()), MaterializationPurpose.DEDICATED_SCOUT, "dedicated_scout",
+			assignmentVersion, new DedicatedAdmission(identity, seed, safeToSpawn, ordinaryTarget));
+	}
+
+	private MaterializeResult materializeOwned(long profileId, MaterializationPurpose purpose, String ownerClaim, long scoutVersion, DedicatedAdmission dedicated)
 	{
 		Objects.requireNonNull(purpose, "purpose");
 		ownerClaim = Objects.requireNonNullElse(ownerClaim, "");
@@ -280,30 +321,39 @@ public final class PhantomMaterializationService
 			return rejectMaterialization(ResultStatus.SERVICE_NOT_RUNNING);
 		}
 
-		final PhantomProfile profile;
-		try
+		final int characterObjectId;
+		if (dedicated != null)
 		{
-			final Optional<PhantomProfile> found = _profileRepository.find(profileId);
-			if (found.isEmpty())
+			characterObjectId = dedicated.identity().objectId();
+		}
+		else
+		{
+			final PhantomProfile profile;
+			try
 			{
-				return rejectMaterialization(ResultStatus.PROFILE_NOT_FOUND);
+				final Optional<PhantomProfile> found = _profileRepository.find(profileId);
+				if (found.isEmpty())
+				{
+					return rejectMaterialization(ResultStatus.PROFILE_NOT_FOUND);
+				}
+				profile = found.get();
 			}
-			profile = found.get();
-		}
-		catch (RuntimeException e)
-		{
-			return rejectMaterialization(ResultStatus.PROFILE_READ_FAILED);
-		}
-		if (profile.characterObjectId() == null)
-		{
-			return rejectMaterialization(ResultStatus.PROFILE_UNLINKED);
-		}
+			catch (RuntimeException e)
+			{
+				return rejectMaterialization(ResultStatus.PROFILE_READ_FAILED);
+			}
+			if (profile.characterObjectId() == null)
+			{
+				return rejectMaterialization(ResultStatus.PROFILE_UNLINKED);
+			}
 
-		final int characterObjectId = profile.characterObjectId();
-		final MaterializationLifecycleAttempt lifecycleAttempt = new MaterializationLifecycleAttempt(_lifecyclePort, profileId, characterObjectId);
+			characterObjectId = profile.characterObjectId();
+		}
+		final var port = dedicated == null ? _lifecyclePort : PhantomMaterializationLifecyclePort.none();
+		final MaterializationLifecycleAttempt lifecycleAttempt = new MaterializationLifecycleAttempt(port, profileId, characterObjectId);
 		try
 		{
-			_lifecyclePort.beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
+			port.beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
 		}
 		catch (PhantomMaterializationLifecyclePort.AdmissionRejectedException exception)
 		{
@@ -331,43 +381,61 @@ public final class PhantomMaterializationService
 			@Override
 			public void afterPlayerLoad(Player player)
 			{
-				if (_requiresOffensiveShots && player.getNativeWorkOwner() instanceof PhantomNativeWorkScope scope) { scope.requireOffensiveShots(true); }
-				_lifecyclePort.afterPlayerLoad(profileId, player);
+				if (dedicated != null)
+				{
+					if (!dedicated.identity().accountName().equals(player.getAccountName()) || !dedicated.identity().characterName().equals(player.getName())
+						|| player.getAccessLevel().isGm() || !player.isDedicatedGeoScout() || player.getClan() != null || player.isInParty() || player.isInStoreMode())
+					{
+						throw new IllegalStateException("Dedicated scout native identity changed.");
+					}
+				}
+				else if (_requiresOffensiveShots && player.getNativeWorkOwner() instanceof PhantomNativeWorkScope scope) { scope.requireOffensiveShots(true); }
+				port.afterPlayerLoad(profileId, player);
 			}
 
 			@Override
 			public void beforeWorldSpawn(Player player)
 			{
-				_lifecyclePort.beforeWorldSpawn(profileId, player);
+				if (dedicated != null && (!dedicated.safeToSpawn().getAsBoolean() || !dedicatedWorldCapacity(dedicated.ordinaryTarget())))
+				{
+					throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("Dedicated scout seed or World capacity changed.");
+				}
+				port.beforeWorldSpawn(profileId, player);
 			}
 
 			@Override
 			public void beforeStore(Player player)
 			{
-				_lifecyclePort.beforeStore(profileId, player);
+				port.beforeStore(profileId, player);
 			}
 
 			@Override
 			public void afterStore(Player player)
 			{
-				_lifecyclePort.afterStore(profileId, player);
+				port.afterStore(profileId, player);
 			}
 		};
-		final Entry entry = new Entry(profileId, characterObjectId, scoutVersion, new PhantomMaterializedPlayer(
+		final Entry entry = new Entry(profileId, characterObjectId, scoutVersion, dedicated != null, new PhantomMaterializedPlayer(
 			characterObjectId,
 			_identityRegistry,
 			new HeadlessPlayerOutboundSession(16, 128),
 			_failureInjector,
 			lifecycleSupport,
-			_actionDrainTimeoutMillis));
+			_actionDrainTimeoutMillis, dedicated == null ? null : dedicated.seed(), dedicated == null ? null : dedicated.identity()));
 		ownedEntry = entry;
-		if (_execution != null) { entry._materializedPlayer.installExecutionAdmission(profileId, _execution); }
+		final var execution = dedicated == null ? _execution : _dedicatedExecution;
+		if (execution != null) { entry._materializedPlayer.installExecutionAdmission(profileId, execution); }
 
 		synchronized (_stateMonitor)
 		{
 			if (_state != ServiceState.RUNNING)
 			{
 				return rejectMaterialization(ResultStatus.SERVICE_NOT_RUNNING);
+			}
+			if (dedicated != null && (dedicatedCapacity(dedicated.ordinaryTarget()) <= occupiedDedicatedSlots()
+				|| !dedicatedWorldCapacity(dedicated.ordinaryTarget()) || ordinaryCapacityPressure()))
+			{
+				return rejectMaterialization(ResultStatus.CAPACITY_REACHED);
 			}
 			if (_activeByProfile.putIfAbsent(profileId, entry) != null)
 			{
@@ -380,11 +448,17 @@ public final class PhantomMaterializationService
 			}
 			if (!_permits.tryAcquire())
 			{
+				if (dedicated == null && occupiedDedicatedSlots() > 0) { _ordinaryCapacityPressureUntil = System.nanoTime() + TimeUnit.SECONDS.toNanos(15); }
 				_activeByCharacter.remove(characterObjectId, entry);
 				_activeByProfile.remove(profileId, entry);
 				return rejectMaterialization(ResultStatus.CAPACITY_REACHED);
 			}
 			entry._permitHeld = true;
+		}
+		if (dedicated != null)
+		{
+			_dedicatedExecution.publish(profileId, dedicated.identity().version(),
+				org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(dedicatedOwner(profileId)));
 		}
 
 		final boolean shutdownRequested;
@@ -396,7 +470,7 @@ public final class PhantomMaterializationService
 		}
 
 		final OwnerSnapshot owner = _identityRegistry.getOwnerSnapshot(characterObjectId);
-		if ((owner != null) && (owner.ownerKind() == OwnerKind.REAL_LOGIN) && (owner.state() == OwnerState.RETAINED))
+		if (dedicated == null && (owner != null) && (owner.ownerKind() == OwnerKind.REAL_LOGIN) && (owner.state() == OwnerState.RETAINED))
 		{
 			final PhantomRetainedIdentityRecovery.Result recovery = recoverRetainedIdentityInternal(characterObjectId);
 			if (!recovery.recovered())
@@ -429,7 +503,10 @@ public final class PhantomMaterializationService
 			final boolean retained = entry._materializedPlayer.snapshot().state() != State.STORED;
 			if (!retained) { releaseStoredEntry(entry); }
 			else { _metrics.recordMaterializationFailureRetained(); }
-			if (!retained && e instanceof PhantomMaterializationLifecyclePort.AdmissionRejectedException) { return rejectMaterialization(ResultStatus.CATCHUP_FENCED); }
+			if (!retained && e instanceof PhantomMaterializationLifecyclePort.AdmissionRejectedException)
+			{
+				return rejectMaterialization(dedicated == null ? ResultStatus.CATCHUP_FENCED : ResultStatus.DEDICATED_SCOUT_FENCED);
+			}
 			if (e instanceof MaterializationException materializationFailure)
 			{
 				final ResultStatus status = switch (materializationFailure.failure())
@@ -751,6 +828,7 @@ public final class PhantomMaterializationService
 
 	private void traceDematerialization(Entry entry, String reason)
 	{
+		if (entry._dedicated) { return; }
 		try
 		{
 			final var current = snapshot(entry);
@@ -907,7 +985,7 @@ public final class PhantomMaterializationService
 	public Optional<MaterializationSnapshot> findByCharacterObjectId(int characterObjectId)
 	{
 		final Entry entry = _activeByCharacter.get(characterObjectId);
-		return entry == null ? Optional.empty() : Optional.of(snapshot(entry));
+		return entry == null || entry._dedicated ? Optional.empty() : Optional.of(snapshot(entry));
 	}
 
 	public boolean ownsCharacterObjectId(int objectId)
@@ -928,7 +1006,7 @@ public final class PhantomMaterializationService
 		final List<MaterializationSnapshot> snapshots = new ArrayList<>();
 		for (Entry entry : _activeByProfile.values())
 		{
-			snapshots.add(snapshot(entry));
+			if (!entry._dedicated) { snapshots.add(snapshot(entry)); }
 		}
 		snapshots.sort(Comparator.comparingLong(MaterializationSnapshot::profileId));
 		return List.copyOf(snapshots);
@@ -1122,6 +1200,37 @@ public final class PhantomMaterializationService
 
 	/** Capacity fact safe inside an individual actor callback: never acquires other Player monitors. */
 	public int occupiedPhysicalSlots() { return _physicalCeiling - _permits.availablePermits(); }
+	public int physicalCeiling() { return _physicalCeiling; }
+
+	public int occupiedDedicatedSlots()
+	{
+		return (int) _activeByProfile.values().stream().filter(entry -> entry._dedicated && entry._permitHeld).count();
+	}
+
+	public int dedicatedCapacity(int ordinaryTarget)
+	{
+		return Math.max(0, _maximumMaterialized - Math.max(ordinaryTarget, occupiedPhysicalSlots() - occupiedDedicatedSlots()));
+	}
+
+	public boolean ordinaryCapacityPressure()
+	{
+		final long deadline = _ordinaryCapacityPressureUntil;
+		return deadline != 0 && deadline - System.nanoTime() > 0;
+	}
+
+	private boolean dedicatedWorldCapacity(int ordinaryTarget)
+	{
+		final int ordinaryReserved = Math.max(0, ordinaryTarget - occupiedPhysicalSlots() + occupiedDedicatedSlots());
+		return World.getInstance().getPlayers().size() + ordinaryReserved < dedicatedWorldLimit();
+	}
+
+	public boolean dedicatedWorldPressure() { return World.getInstance().getPlayers().size() > dedicatedWorldLimit(); }
+
+	private static int dedicatedWorldLimit()
+	{
+		final int maximum = org.l2jmobius.gameserver.config.ServerConfig.MAXIMUM_ONLINE_USERS;
+		return maximum - Math.min(8, Math.max(1, maximum / 10));
+	}
 
 	public ServiceSnapshot snapshot()
 	{
@@ -1285,10 +1394,11 @@ public final class PhantomMaterializationService
 		private final long _profileId;
 		private final int _characterObjectId;
 		private final long _scoutVersion;
+		private final boolean _dedicated;
 		private final PhantomMaterializedPlayer _materializedPlayer;
 		private final CountDownLatch _materializationCompletion = new CountDownLatch(1);
 		private volatile Thread _materializationThread = Thread.currentThread();
-		private boolean _permitHeld;
+		private volatile boolean _permitHeld;
 		private volatile long _cleanupStartedAtNanos;
 		private boolean _countedActive;
 		private boolean _released;
@@ -1299,11 +1409,12 @@ public final class PhantomMaterializationService
 		private boolean _retryRegistered;
 		private int _automaticCleanupAttempts;
 
-		private Entry(long profileId, int characterObjectId, long scoutVersion, PhantomMaterializedPlayer materializedPlayer)
+		private Entry(long profileId, int characterObjectId, long scoutVersion, boolean dedicated, PhantomMaterializedPlayer materializedPlayer)
 		{
 			_profileId = profileId;
 			_characterObjectId = characterObjectId;
 			_scoutVersion = scoutVersion;
+			_dedicated = dedicated;
 			_materializedPlayer = materializedPlayer;
 		}
 	}

@@ -296,7 +296,7 @@ public class LoginServerThread extends Thread
 							final List<String> playerList = new ArrayList<>();
 							for (Player player : World.getInstance().getPlayers())
 							{
-								if (!player.isInOfflineMode())
+								if (!player.isInOfflineMode() && !player.isDedicatedGeoScout())
 								{
 									playerList.add(player.getAccountName());
 								}

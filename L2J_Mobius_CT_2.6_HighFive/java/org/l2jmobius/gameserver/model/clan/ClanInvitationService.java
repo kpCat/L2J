@@ -145,6 +145,11 @@ public final class ClanInvitationService
 			}
 			return new InviteResult(InviteOutcome.TARGET_NOT_FOUND, null);
 		}
+		if (requester.isDedicatedGeoScout() || target.isDedicatedGeoScout())
+		{
+			requester.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
+			return new InviteResult(InviteOutcome.JOIN_CONDITION_FAILED, null);
+		}
 
 		final PendingInvitation pending;
 		synchronized (_stateLock)
@@ -226,7 +231,7 @@ public final class ClanInvitationService
 				clearRequestRelation(pending);
 				return new RespondResult(RespondOutcome.REFUSED, pending._identity);
 			}
-			if ((pending._requester.getClan() != pending._clan) || !pending._clan.checkClanJoinCondition(pending._requester, invitee, pending._identity.pledgeType()))
+			if (pending._requester.isDedicatedGeoScout() || invitee.isDedicatedGeoScout() || (pending._requester.getClan() != pending._clan) || !pending._clan.checkClanJoinCondition(pending._requester, invitee, pending._identity.pledgeType()))
 			{
 				clearRequestRelation(pending);
 				return new RespondResult(RespondOutcome.REVALIDATION_FAILED, pending._identity);

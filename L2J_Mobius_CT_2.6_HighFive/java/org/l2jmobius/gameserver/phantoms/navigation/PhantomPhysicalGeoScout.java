@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
@@ -36,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.OwnedWalk;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Edge;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomDedicatedScoutRoster;
 import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
@@ -44,12 +46,21 @@ import org.l2jmobius.gameserver.taskmanagers.MovementTaskManager;
 /** The scheduler is the sole intent writer. The route-learning writer persists completed native receipts. */
 public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPort
 {
-	public record Settings(int count, int sessionHours, java.time.ZoneId zone, LocalTime start, int commissioningMinutes)
+	public enum Mode { LEGACY, DEDICATED }
+	public enum Schedule { NIGHT, ALWAYS }
+
+	public record Settings(int count, int sessionHours, java.time.ZoneId zone, LocalTime start, int commissioningMinutes, Mode mode, Schedule schedule)
 	{
+		public Settings(int count, int sessionHours, java.time.ZoneId zone, LocalTime start, int commissioningMinutes)
+		{
+			this(count, sessionHours, zone, start, commissioningMinutes, Mode.LEGACY, Schedule.NIGHT);
+		}
+
 		public Settings
 		{
-			if (count < 1 || count > 16 || sessionHours < 1 || sessionHours > 24 || zone == null || start == null
-				|| commissioningMinutes < 0 || commissioningMinutes > 10) { throw new IllegalArgumentException("Invalid physical scout settings"); }
+			if (count < 1 || count > (mode == Mode.DEDICATED ? 32 : 16) || sessionHours < 1 || sessionHours > 24
+				|| zone == null || start == null || mode == null || schedule == null || commissioningMinutes < 0 || commissioningMinutes > 10
+				|| mode == Mode.LEGACY && schedule != Schedule.NIGHT) { throw new IllegalArgumentException("Invalid physical scout settings"); }
 		}
 	}
 
@@ -70,6 +81,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 
 		String mode(Instant now)
 		{
+			if (_settings.schedule() == Schedule.ALWAYS) { return "ALWAYS"; }
 			final var commissioningUntil = _commissioningUntil;
 			if (commissioningUntil != null && now.isBefore(commissioningUntil)) { return "COMMISSIONING"; }
 			final var today = now.atZone(_settings.zone()).toLocalDate().atTime(_settings.start());
@@ -97,6 +109,19 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	private final LongPredicate _preparationEligible;
 	private final IntSupplier _spareSlots;
 	private final PhantomPopulationEcologyService _ecology;
+	private final PhantomDedicatedScoutRoster _dedicatedRoster;
+	private final IntSupplier _ordinaryTarget;
+	private final Set<Integer> _bootstrapped = new java.util.HashSet<>();
+	private final long[] _slotRetry = new long[33];
+	private volatile PhantomDedicatedScoutRegions _regions;
+	private FutureTask<DedicatedAttempt> _dedicatedAdmission;
+	private Scout _admitting;
+	private int _nextSlot = 1;
+	private int _walkCursor;
+	private long _nextShed;
+	private int _pressureSamples;
+	private long _stored;
+	private boolean _pauseNewWalks;
 	private final L2jNavigationBackend _geo = new L2jNavigationBackend();
 	private final ConcurrentHashMap<Long, Scout> _scouts = new ConcurrentHashMap<>();
 	private final java.util.Map<Long, Long> _retry = new java.util.LinkedHashMap<>();
@@ -115,6 +140,13 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		PhantomExecutionAdmission execution, PhantomNavigationService navigation, PhantomPopulationManager population,
 		LongPredicate eligible, LongPredicate preparationEligible, IntSupplier spareSlots, PhantomPopulationEcologyService ecology)
 	{
+		this(settings, scheduler, materialization, execution, navigation, population, eligible, preparationEligible, spareSlots, ecology, () -> 0);
+	}
+
+	public PhantomPhysicalGeoScout(Settings settings, PhantomScheduler scheduler, PhantomMaterializationService materialization,
+		PhantomExecutionAdmission execution, PhantomNavigationService navigation, PhantomPopulationManager population,
+		LongPredicate eligible, LongPredicate preparationEligible, IntSupplier spareSlots, PhantomPopulationEcologyService ecology, IntSupplier ordinaryTarget)
+	{
 		_settings = settings;
 		_scheduler = scheduler;
 		_materialization = materialization;
@@ -125,13 +157,17 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		_preparationEligible = preparationEligible;
 		_spareSlots = spareSlots;
 		_ecology = ecology;
+		_ordinaryTarget = ordinaryTarget;
+		_dedicatedRoster = settings.mode() == Mode.DEDICATED ? new PhantomDedicatedScoutRoster() : null;
 		_session = new SessionSchedule(settings);
 	}
 
 	boolean sessionOpen() { return !_stopped && !"CLOSED".equals(_session.mode(Instant.now())); }
 	String status() { return _status; }
-	public Set<Long> reservedProfiles() { return Set.copyOf(_scouts.keySet()); }
-	public int occupied() { return _occupied; }
+	public boolean dedicated() { return _dedicatedRoster != null; }
+	void installRegions(PhantomDedicatedScoutRegions regions) { _regions = regions; }
+	public Set<Long> reservedProfiles() { return dedicated() ? Set.of() : Set.copyOf(_scouts.keySet()); }
+	public int occupied() { return dedicated() ? _materialization.occupiedDedicatedSlots() : _occupied; }
 	public boolean releasingCorpse(long id, int objectId, long epoch)
 	{
 		final var scout = _scouts.get(id);
@@ -140,6 +176,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 
 	public PhantomPhysicalDemand demand(long id, long now)
 	{
+		if (dedicated()) { return null; }
 		final var scout = _scouts.get(id);
 		final long until = scout == null ? 0 : scout.signalUntil;
 		return scout != null && sessionOpen() && until > now && until - now <= SIGNAL_MILLIS && _population.scoutReservation(id) == scout.intent
@@ -153,6 +190,12 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		if (_stopped || now - _nextPulse < 0) { return; }
 		_nextPulse = now + SECOND / 2;
 		final var memory = _navigation.routeLearning();
+		if (dedicated())
+		{
+			pulseDedicated(memory, now);
+			report(memory);
+			return;
+		}
 		if (memory != null && memory.physicalReady()) { _session.startCommissioning(Instant.now()); }
 		final boolean open = sessionOpen();
 		final var overload = _scheduler.snapshot().overloadLevel();
@@ -200,6 +243,135 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		report(memory);
 	}
 
+	private record DedicatedAttempt(boolean bootstrapped, PhantomMaterializationService.ResultStatus status, String failure) { }
+
+	private void pulseDedicated(PhantomRouteLearning memory, long now)
+	{
+		finishDedicatedAdmission(memory, now);
+		final var regions = _regions;
+		final boolean ready = regions != null && memory != null && memory.physicalReady();
+		final boolean open = sessionOpen();
+		final boolean pressure = dedicatedPressure();
+		final boolean ordinaryWaiting = _materialization.ordinaryCapacityPressure();
+		final boolean worldFull = _materialization.dedicatedWorldPressure();
+		final int count = _scouts.size();
+		final int target = Math.min(_settings.count(), _materialization.dedicatedCapacity(_ordinaryTarget.getAsInt()));
+		_pauseNewWalks = pressure || ordinaryWaiting || worldFull;
+		if (!open) { _reason = "WAITING_FOR_NEXT_SESSION"; }
+		else if (!ready) { _reason = "LEARNED_OR_REGIONS_UNAVAILABLE"; }
+		else if (pressure) { _reason = "GAMEPLAY_LOAD_HIGH"; }
+		else if (ordinaryWaiting) { _reason = "ORDINARY_CAPACITY_PRIORITY"; }
+		else if (worldFull) { _reason = "WORLD_CAPACITY"; }
+		else if (target < _settings.count()) { _reason = "NO_SPARE_PHYSICAL_CAPACITY"; }
+
+		final boolean shed = (count > target || _pauseNewWalks && count != 0) && now >= _nextShed;
+		final var victim = shed ? _scouts.values().stream().filter(scout -> !scout.releasing && scout != _admitting)
+			.max(java.util.Comparator.comparingInt(scout -> scout.slot)).orElse(null) : null;
+		for (var scout : _scouts.values().stream().sorted(java.util.Comparator.comparingInt(candidate -> Math.floorMod(candidate.slot - _walkCursor, 32))).toList())
+		{
+			if (scout == _admitting) { continue; }
+			try
+			{
+				if (scout.releasing || !open || !ready || scout == victim)
+				{
+					release(scout, memory, now, scout.releasing ? scout.releaseReason : _reason);
+					if (scout == victim) { _nextShed = now + 5 * SECOND; }
+				}
+				else if (scout.leg == null && now - scout.assignmentStarted >= 8 * 60 * SECOND)
+				{
+					release(scout, memory, now, "REGION_ROTATION");
+				}
+				else { advance(scout, memory, now); }
+			}
+			catch (RuntimeException failure)
+			{
+				release(scout, memory, now, "SCOUT_ERROR_" + failure.getClass().getSimpleName());
+			}
+		}
+		_walkCursor = (_walkCursor + 1) % 32;
+		if (open && ready && !_pauseNewWalks && _admitting == null && _scouts.size() < target && now >= _nextAdmission)
+		{
+			_nextAdmission = now + SECOND;
+			regions.beginPulse();
+			startDedicatedAdmission(regions, now);
+		}
+	}
+
+	private boolean dedicatedPressure()
+	{
+		final var heap = java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+		final var os = java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+		final boolean high = _scheduler.snapshot().overloadLevel().ordinal() >= PhantomActivityOverloadLevel.HIGH.ordinal()
+			|| heap.getMax() > 0 && heap.getUsed() > heap.getMax() * 0.90
+			|| os instanceof com.sun.management.OperatingSystemMXBean extended && extended.getProcessCpuLoad() > 0.80;
+		_pressureSamples = high ? Math.min(6, _pressureSamples + 1) : Math.max(0, _pressureSamples - 1);
+		return _pressureSamples >= 4;
+	}
+
+	private void startDedicatedAdmission(PhantomDedicatedScoutRegions regions, long now)
+	{
+		for (int attempt = 0; attempt < _settings.count(); attempt++)
+		{
+			final int slot = _nextSlot;
+			_nextSlot = slot == _settings.count() ? 1 : slot + 1;
+			final long key = PhantomMaterializationService.dedicatedScoutKey(slot);
+			if (_scouts.containsKey(key) || (_slotRetry[slot] != 0 && now - _slotRetry[slot] < 0)) { continue; }
+			final var assignment = regions.claim(key, System.currentTimeMillis());
+			if (assignment == null) { _reason = "WAITING_FOR_SAFE_REGION"; return; }
+			final var seed = assignment.seed();
+			final var scout = new Scout(key, ++_sequence, now);
+			scout.slot = slot;
+			scout.assignment = assignment;
+			scout.assignmentStarted = now;
+			scout.admissionStatus = "MATERIALIZING";
+			_scouts.put(key, scout);
+			_admitting = scout;
+			_selected++;
+			_dedicatedAdmission = new FutureTask<>(() ->
+			{
+				boolean bootstrapped = false;
+				try
+				{
+					if (!sessionOpen()) { return new DedicatedAttempt(false, null, "SESSION_EXPIRED"); }
+					final var identity = _dedicatedRoster.ensure(slot);
+					bootstrapped = true;
+					final var result = _materialization.materializeDedicatedScout(_dedicatedRoster, identity, new Location(seed.x(), seed.y(), seed.z()),
+						() -> sessionOpen() && _regions == regions && regions.validateSeed(assignment), _ordinaryTarget.getAsInt(), scout.intent);
+					return new DedicatedAttempt(true, result.status(), null);
+				}
+				catch (java.sql.SQLException | RuntimeException failure)
+				{
+					return new DedicatedAttempt(bootstrapped, null, "ROSTER_" + failure.getClass().getSimpleName());
+				}
+			});
+			try { org.l2jmobius.commons.threads.ThreadPool.executeOrThrow(_dedicatedAdmission); }
+			catch (RuntimeException failure) { _dedicatedAdmission.cancel(false); }
+			_reason = "ADMISSION_REQUESTED";
+			return;
+		}
+	}
+
+	private void finishDedicatedAdmission(PhantomRouteLearning memory, long now)
+	{
+		if (_dedicatedAdmission == null || !_dedicatedAdmission.isDone()) { return; }
+		final var scout = _admitting;
+		try
+		{
+			final var done = _dedicatedAdmission.get();
+			if (done.bootstrapped()) { _bootstrapped.add(scout.slot); }
+			if (done.status() == PhantomMaterializationService.ResultStatus.SUCCESS) { return; }
+			final String reason = done.status() == null ? done.failure() : done.status().name();
+			scout.storeRetained = done.status() == PhantomMaterializationService.ResultStatus.MATERIALIZATION_FAILED_RETAINED;
+			release(scout, memory, now, reason);
+		}
+		catch (java.util.concurrent.ExecutionException | java.util.concurrent.CancellationException failure)
+		{
+			release(scout, memory, now, "ADMISSION_WORKER_FAILED");
+		}
+		catch (InterruptedException failure) { Thread.currentThread().interrupt(); }
+		finally { _dedicatedAdmission = null; _admitting = null; }
+	}
+
 	private boolean renew(Scout scout)
 	{
 		scout.signalUntil = System.currentTimeMillis() + SIGNAL_MILLIS;
@@ -214,18 +386,18 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		final var player = !scoutLifetime || entry == null || !entry.worldPresent() ? null : World.getInstance().getPlayer(entry.characterObjectId());
 		final var activeLeg = scout.leg;
 		final boolean recheck = now >= scout.recheckAt;
-		final var activity = scout.epoch == 0 ? _scheduler.find(scout.id).orElse(null) : null;
+		final var activity = !dedicated() && scout.epoch == 0 ? _scheduler.find(scout.id).orElse(null) : null;
 		// A temporary historical baseline can also enter World. Only a scheduler promotion starts the scout lifetime.
-		final boolean preparing = scout.epoch == 0 && (player == null || !entry.actionAdmissionOpen() || activity == null
+		final boolean preparing = !dedicated() && scout.epoch == 0 && (player == null || !entry.actionAdmissionOpen() || activity == null
 			|| activity.effectiveState() != PhantomActivityState.ACTIVE || activity.transitionStatus() != PhantomActivityTransitionStatus.STABLE);
-		if (_population.scoutReservation(scout.id) != scout.intent || !("internal." + SOURCE).equals(_population.presence().busyReason(scout.id))
-			|| activeLeg == null && (recheck || scout.epoch == 0 && !preparing) && !(preparing ? _preparationEligible : _eligible).test(scout.id))
+		if (!dedicated() && (_population.scoutReservation(scout.id) != scout.intent || !("internal." + SOURCE).equals(_population.presence().busyReason(scout.id))
+			|| activeLeg == null && (recheck || scout.epoch == 0 && !preparing) && !(preparing ? _preparationEligible : _eligible).test(scout.id)))
 		{
 			release(scout, memory, now, "OWNERSHIP_OR_INTENT_CHANGED");
 			return;
 		}
 		if (activeLeg == null && recheck) { scout.recheckAt = now + 3 * SECOND; }
-		if (scout.signalUntil - System.currentTimeMillis() < SIGNAL_MILLIS / 2 && !renew(scout))
+		if (!dedicated() && scout.signalUntil - System.currentTimeMillis() < SIGNAL_MILLIS / 2 && !renew(scout))
 		{
 			release(scout, memory, now, "SIGNAL_REJECTED");
 			return;
@@ -262,11 +434,17 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		}
 		if (scout.epoch == 0)
 		{
+			if (dedicated() && (!scout.assignment.seed().equals(PhantomNativeTravelActions.point(player)) || !player.isDedicatedGeoScout()))
+			{
+				release(scout, memory, now, "SEED_PLACEMENT_REJECTED");
+				return;
+			}
 			scout.epoch = entry.materializedAtNanos();
 			scout.objectId = entry.characterObjectId();
 			scout.actionAdmissionStarted = now;
 			scout.admissionStatus = "native_owner=SCOUT";
 			_materialized++;
+			if (dedicated()) { _regions.seeded(scout.assignment); }
 		}
 		if (player.isAlikeDead()) { _dead++; release(scout, memory, now, "DIED"); return; }
 		if (player.getInstanceId() != 0) { _instanceRejected++; release(scout, memory, now, "INSTANCE_ENTRY_UNSUPPORTED"); return; }
@@ -275,13 +453,19 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 			release(scout, memory, now, "NATIVE_ACTOR_NOT_ELIGIBLE");
 			return;
 		}
-		if (now < scout.retryAt) { return; }
+		if (dedicated() && !inAssignment(scout, PhantomNativeTravelActions.point(player)))
+		{
+			release(scout, memory, now, "REGION_ASSIGNMENT_CHANGED");
+			return;
+		}
+		if (now < scout.retryAt || dedicated() && _pauseNewWalks && activeLeg == null) { return; }
 		if (scout.lastPoint == null && now - scout.actionAdmissionStarted >= ADMISSION_NANOS)
 		{
 			release(scout, memory, now, "NATIVE_ACTION_ADMISSION_TIMEOUT");
 			return;
 		}
-		final var execution = activeLeg == null ? _execution.tryAcquireExclusiveIdle(scout.id, PhantomExecutionHandoff.solo(scout.id)) : activeLeg.execution;
+		final var execution = activeLeg != null ? activeLeg.execution : dedicated()
+			? _materialization.tryAcquireDedicatedScoutExecution(scout.id) : _execution.tryAcquireExclusiveIdle(scout.id, PhantomExecutionHandoff.solo(scout.id));
 		if (execution == null) { return; }
 		try
 		{
@@ -302,7 +486,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 				if (!owned(scout, player)) { release(scout, memory, now, "STALE_NATIVE_ACTOR"); return; }
 				if (activeLeg != null)
 				{
-					if (recheck && !_eligible.test(scout.id)) { release(scout, memory, now, "OWNERSHIP_OR_INTENT_CHANGED"); return; }
+					if (recheck && !eligible(scout)) { release(scout, memory, now, "OWNERSHIP_OR_INTENT_CHANGED"); return; }
 					if (recheck) { scout.recheckAt = now + 3 * SECOND; }
 					observe(scout, memory, player, lease, current, now);
 					return;
@@ -371,6 +555,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	private void selectFrontier(Scout scout, PhantomRouteLearning memory, PhantomNavigationPoint from, long now)
 	{
 		scout.candidate = memory.scoutFrontier(from, System.currentTimeMillis(), edge -> !scout.recent.contains(edge.to())
+			&& inAssignment(scout, edge.from()) && inAssignment(scout, edge.to())
 			&& _scouts.values().stream().noneMatch(other -> other != scout && edge.equals(other.candidate)));
 		if (scout.candidate != null)
 		{
@@ -388,9 +573,18 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 				final int x = from.x() + direction[0] * span, y = from.y() + direction[1] * span;
 				if (x < World.WORLD_X_MIN || x > World.WORLD_X_MAX || y < World.WORLD_Y_MIN || y > World.WORLD_Y_MAX) { continue; }
 				final var target = _geo.learnedSurface(new PhantomNavigationPoint(x, y, from.z(), 0), 384);
-				if (target != null && !PhantomWalkCorridorPlanner.nearVisited(target, scout.recent)) { scout.frontier = target; break; }
+				if (target != null && inAssignment(scout, target) && !PhantomWalkCorridorPlanner.nearVisited(target, scout.recent))
+				{
+					scout.frontier = target;
+					break;
+				}
 			}
 			if (scout.frontier == null) { useBacktrack(scout, from); }
+			if (dedicated() && scout.frontier == null)
+			{
+				rejectFrontier(scout, memory, now, "REGION_FRONTIER_UNAVAILABLE");
+				return;
+			}
 		}
 		scout.frontierDeadline = now + FRONTIER_NANOS;
 	}
@@ -419,14 +613,15 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	{
 		final var waypoint = scout.waypoints.peek();
 		final var to = waypointWithinLeg(from, waypoint);
-		if (to == null || from.x() == to.x() && from.y() == to.y() || !_geo.canWalkDirect(from, to) || !safe(player, to))
+		if (to == null || !inAssignment(scout, from) || !inAssignment(scout, to) || from.x() == to.x() && from.y() == to.y()
+			|| !_geo.canWalkDirect(from, to) || !safe(player, to))
 		{
 			remember(scout.blocked, new Edge(from, waypoint), 16);
 			witness(scout, memory, player, null, from, waypoint, from, System.currentTimeMillis(), now, now, ++_sequence, 0, "BLOCKED_BEFORE_ISSUE");
 			failPlan(scout, memory, now, "BLOCKED_BEFORE_ISSUE");
 			return;
 		}
-		if (!_eligible.test(scout.id) || !lease.executionValid()) { release(scout, memory, now, "INTENT_CHANGED_BEFORE_WALK"); return; }
+		if (!eligible(scout) || !lease.executionValid()) { release(scout, memory, now, "INTENT_CHANGED_BEFORE_WALK"); return; }
 		player.setWalking();
 		RuntimeException nativeFailure = null;
 		try { player.getAI().setIntention(Intention.MOVE_TO, new Location(to.x(), to.y(), to.z())); }
@@ -489,7 +684,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		if (settled && leg.arrival.consume(sessionOpen() && !scout.releasing && !player.isRunning(), leg.samples, current))
 		{
 			scout.leg = null;
-			if (!_eligible.test(scout.id) || !_geo.canWalkDirect(edge.from(), edge.to()))
+			if (!eligible(scout) || !inAssignment(scout, edge.from()) || !inAssignment(scout, edge.to()) || !_geo.canWalkDirect(edge.from(), edge.to()))
 			{
 				witness(scout, memory, player, null, edge.from(), edge.to(), current, leg.wallClock, leg.started, now, leg.id, leg.samples, "ARRIVAL_INVALIDATED");
 				failPlan(scout, memory, now, "ARRIVAL_INVALIDATED");
@@ -504,6 +699,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 			final boolean saved = witness(scout, memory, player, edge, edge.from(), edge.to(), current, leg.wallClock, leg.started, now, leg.id, leg.samples, "ARRIVED");
 			if (saved && edge.equals(scout.candidate)) { _verified++; scout.candidateWitnessed = true; }
 			if (!saved) { release(scout, memory, now, "WITNESS_UNAVAILABLE"); return; }
+			if (dedicated()) { _regions.arrived(scout.assignment); }
 			remember(scout.recent, edge.from(), 32);
 			if (!scout.backtracking)
 			{
@@ -527,9 +723,20 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	private boolean owned(Scout scout, Player player)
 	{
 		final var owner = player.getNativeWorkOwner();
-		return _scouts.get(scout.id) == scout && !scout.releasing && _population.scoutReservation(scout.id) == scout.intent
+		return _scouts.get(scout.id) == scout && !scout.releasing
+			&& (dedicated() ? player.isDedicatedGeoScout() : _population.scoutReservation(scout.id) == scout.intent)
 			&& _materialization.ownsScoutMaterialization(scout.id, scout.intent) && owner != null && owner.player() == player && owner.epoch() == scout.epoch && owner.isCurrent()
 			&& !owner.sealed() && World.getInstance().getPlayer(player.getObjectId()) == player && actorEligible(player);
+	}
+
+	private boolean eligible(Scout scout)
+	{
+		return dedicated() ? !scout.releasing && _materialization.ownsScoutMaterialization(scout.id, scout.intent) : _eligible.test(scout.id);
+	}
+
+	private boolean inAssignment(Scout scout, PhantomNavigationPoint point)
+	{
+		return !dedicated() || _regions.tracks(scout.assignment, point);
 	}
 
 	private static boolean actorEligible(Player player)
@@ -646,6 +853,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 
 	private void release(Scout scout, PhantomRouteLearning memory, long now, String reason)
 	{
+		if (dedicated()) { releaseDedicated(scout, memory, now, reason); return; }
 		if (!scout.releasing)
 		{
 			scout.releasing = true;
@@ -693,11 +901,62 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		_retry.put(scout.id, now + (scout.died ? TimeUnit.HOURS.toNanos(1) : 180 * SECOND));
 	}
 
+	private void releaseDedicated(Scout scout, PhantomRouteLearning memory, long now, String reason)
+	{
+		if (!scout.releasing)
+		{
+			scout.releasing = true;
+			scout.releaseReason = reason;
+			scout.admissionStatus = scout.storeRetained ? "FAILED_RETAINED" : "DRAINING";
+			_reason = reason;
+			cancelRequest(scout);
+		}
+		cancelLeg(scout, memory, now, scout.releaseReason);
+		if (scout.leg != null) { return; }
+		final var entry = _materialization.find(scout.id).orElse(null);
+		if (entry != null)
+		{
+			if (!_materialization.ownsScoutMaterialization(scout.id, scout.intent))
+			{
+				scout.storeRetained = true;
+				scout.admissionStatus = "FAILED_RETAINED";
+				return;
+			}
+			if (!scout.storeRetained && entry.materializedAtNanos() != 0 && now >= scout.storeRetryAt)
+			{
+				scout.storeRetryAt = now + (_stopped ? SECOND / 10 : SECOND);
+				final var receipt = _materialization.requestDematerialize(scout.id, entry.characterObjectId(), entry.materializedAtNanos(), now + 8 * SECOND);
+				scout.storeRetained = receipt.status() == PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED;
+				if (scout.storeRetained) { scout.admissionStatus = "FAILED_RETAINED"; }
+			}
+			return;
+		}
+		final boolean cleanRotation = "REGION_ROTATION".equals(scout.releaseReason);
+		final boolean administrative = _stopped || cleanRotation || "WAITING_FOR_NEXT_SESSION".equals(scout.releaseReason)
+			|| "NO_SPARE_PHYSICAL_CAPACITY".equals(scout.releaseReason) || "ORDINARY_CAPACITY_PRIORITY".equals(scout.releaseReason)
+			|| "WORLD_CAPACITY".equals(scout.releaseReason) || "GAMEPLAY_LOAD_HIGH".equals(scout.releaseReason);
+		_regions.release(scout.assignment, System.currentTimeMillis(), scout.releaseReason, !administrative);
+		if (scout.epoch != 0) { _stored++; }
+		_scouts.remove(scout.id, scout);
+		_slotRetry[scout.slot] = now + (administrative ? 2 : 25) * SECOND;
+	}
+
 	public synchronized boolean beginStop()
 	{
 		_stopped = true;
 		final var memory = _navigation.routeLearning();
 		final long now = System.nanoTime();
+		if (dedicated())
+		{
+			finishDedicatedAdmission(memory, now);
+			for (var scout : _scouts.values())
+			{
+				if (scout != _admitting) { releaseDedicated(scout, memory, now, "SERVER_STOP"); }
+			}
+			_reason = "SERVER_STOP";
+			report(memory);
+			return _admitting == null && _scouts.isEmpty();
+		}
 		for (var scout : _scouts.values()) { release(scout, memory, now, "SERVER_STOP"); }
 		_reason = "SERVER_STOP";
 		report(memory);
@@ -728,11 +987,11 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		final long worldPresent = _scouts.values().stream().filter(scout -> _materialization.ownsScoutMaterialization(scout.id, scout.intent)
 			&& _materialization.find(scout.id).map(entry -> entry.worldPresent()).orElse(false)).count();
 		final boolean proven = memory != null && memory.physicalNewProven() > 0;
-		final String state = _stopped ? "STOPPED" : !sessionOpen() ? "SESSION_CLOSED" : moving > 0 && proven ? "PHYSICAL_SCOUTS_RUNNING"
+		final String state = _stopped ? dedicated() && !_scouts.isEmpty() ? "DRAINING" : "STOPPED" : !sessionOpen() ? "SESSION_CLOSED" : moving > 0 && proven ? "PHYSICAL_SCOUTS_RUNNING"
 			: moving > 0 ? "MOVING_AWAITING_PHYSICAL_PROOF" : active > 0 ? "PHYSICAL_SCOUTS_IDLE" : "WAITING_FOR_ADMISSION";
 		final var output = new StringBuilder().append("state=").append(state).append("\nreason=").append(_reason)
 			.append("\nrequested=").append(_settings.count()).append("\nreserved=").append(_scouts.size()).append("\nselected_total=").append(_selected)
-			.append("\nmissing_physical_slots=").append(Math.max(0, _settings.count() - _spareSlots.getAsInt()))
+			.append("\nmissing_physical_slots=").append(Math.max(0, _settings.count() - (dedicated() ? _materialization.dedicatedCapacity(_ordinaryTarget.getAsInt()) : _spareSlots.getAsInt())))
 			.append("\nactive=").append(active).append("\nmaterialized=").append(worldPresent).append("\nmaterialized_total=").append(_materialized).append("\nmoving=").append(moving)
 			.append("\nidle=").append(active - moving).append("\nstuck=").append(_stuck).append("\ndead=").append(_dead).append("\nwalked_units=").append(Math.round(_walked))
 			.append("\nnative_legs_started=").append(_started).append("\nnative_legs_completed=").append(_completed)
@@ -745,12 +1004,31 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 			.append("\nsession_mode=").append(_session.mode(Instant.now())).append("\nsession_zone=").append(_settings.zone())
 			.append("\nsession_start=").append(_settings.start()).append("\nsession_hours=").append(_settings.sessionHours())
 			.append("\nserver_session=").append(_serverSession).append("\nlast_progress=").append(_lastProgress == 0 ? "-" : Instant.ofEpochMilli(_lastProgress)).append('\n');
+		if (dedicated())
+		{
+			final var heap = java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+			final var os = java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+			final var navigation = _navigation.snapshot();
+			output.append("mode=DEDICATED\nbootstrapped=").append(_bootstrapped.size()).append("\nstored_total=").append(_stored)
+				.append("\nordinary_occupied=").append(_materialization.occupiedPhysicalSlots() - _materialization.occupiedDedicatedSlots())
+				.append("\nordinary_target=").append(_ordinaryTarget.getAsInt()).append("\nphysical_occupied=").append(_materialization.occupiedPhysicalSlots())
+				.append("\nworld_players=").append(World.getInstance().getPlayers().size())
+				.append("\nphysical_ceiling=").append(_materialization.physicalCeiling())
+				.append("\nheap_used_bytes=").append(heap.getUsed()).append("\nheap_committed_bytes=").append(heap.getCommitted()).append("\nheap_max_bytes=").append(heap.getMax())
+				.append("\nprocess_cpu=").append(os instanceof com.sun.management.OperatingSystemMXBean extended ? extended.getProcessCpuLoad() : -1)
+				.append("\ngc_count=").append(java.lang.management.ManagementFactory.getGarbageCollectorMXBeans().stream().mapToLong(java.lang.management.GarbageCollectorMXBean::getCollectionCount).sum())
+				.append("\npath_workers=").append(navigation.currentWorkers()).append("\npath_workers_max=").append(navigation.maximumWorkers())
+				.append("\npath_queue=").append(navigation.queuedRequests()).append("\npath_queue_peak=").append(navigation.peakQueuedRequests())
+				.append("\npressure_samples=").append(_pressureSamples).append('\n');
+		}
 		for (var scout : _scouts.values())
 		{
 			output.append("scout=").append(scout.id).append(" reservation=").append(scout.intent).append(" object=").append(scout.objectId)
 				.append(" epoch=").append(scout.epoch).append(" position=").append(encode(scout.lastPoint))
 				.append(" frontier=").append(encode(scout.frontier)).append(" releasing=").append(scout.releasing)
-				.append(" admission=").append(scout.admissionStatus).append('\n');
+				.append(" admission=").append(scout.admissionStatus);
+			if (dedicated()) { output.append(" slot=").append(scout.slot).append(" region=").append(scout.assignment.tileX()).append('_').append(scout.assignment.tileY()); }
+			output.append('\n');
 		}
 		_status = output.toString();
 	}
@@ -795,6 +1073,9 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		volatile long signalUntil;
 		volatile boolean storeCorpse;
 		long epoch, recheckAt, retryAt, frontierDeadline, request, actionAdmissionStarted, storeRetryAt;
+		int slot;
+		long assignmentStarted;
+		PhantomDedicatedScoutRegions.Assignment assignment;
 		int objectId, direction, planAttempts, planFailures, deadEnds;
 		boolean approaching, candidateWitnessed, backtracking, releasing, died, storeRetained;
 		String releaseReason, admissionStatus = "requested";

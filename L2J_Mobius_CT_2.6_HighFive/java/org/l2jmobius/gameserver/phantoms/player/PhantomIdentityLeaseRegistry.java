@@ -35,6 +35,7 @@ public final class PhantomIdentityLeaseRegistry
 	{
 		REAL_LOGIN,
 		PHANTOM,
+		DEDICATED_SCOUT,
 		BACKGROUND,
 		LOCALPLAY_TEST_HUMAN
 	}

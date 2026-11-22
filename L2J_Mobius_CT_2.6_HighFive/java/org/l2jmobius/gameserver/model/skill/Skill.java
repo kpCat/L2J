@@ -1385,7 +1385,7 @@ public class Skill
 	private void applyEffects(Creature effector, Creature effected, boolean self, boolean passive, boolean instant, int abnormalTime, Collection<WorldObject> nativeTargets, CastDuration duration, boolean summonMirrorConsumed)
 	{
 		// null targets cannot receive any effects.
-		if (effected == null)
+		if (effected == null || excludesScoutInteraction(effector, effected))
 		{
 			return;
 		}
@@ -1476,6 +1476,7 @@ public class Skill
 		for (WorldObject obj : targets)
 		{
 			final Creature target = obj.asCreature();
+			if (excludesScoutInteraction(caster, target)) { continue; }
 			if (Formulas.calcBuffDebuffReflection(target, this))
 			{
 				// If skill is reflected instant effects should be casted on target and continuous effects on caster.
@@ -1521,6 +1522,12 @@ public class Skill
 		{
 			caster.doDie(caster);
 		}
+	}
+
+	private static boolean excludesScoutInteraction(Creature caster, Creature target)
+	{
+		return caster instanceof Player source && source.isDedicatedGeoScout()
+			|| target instanceof Player scout && scout.isDedicatedGeoScout() && caster != null && (caster.isPlayable() || caster.isFakePlayer());
 	}
 	
 	/** Immutable view of parsed native functions; reading it never equips an item or applies a skill. */

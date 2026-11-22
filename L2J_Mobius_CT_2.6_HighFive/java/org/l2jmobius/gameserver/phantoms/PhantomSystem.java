@@ -1219,11 +1219,14 @@ public final class PhantomSystem
 				_physicalGeoScouts = _navigationService.installPhysicalScout(policy -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout(
 					policy, _scheduler, _materializationService, _executionAdmission, _navigationService, _populationManager,
 					id -> physicalScoutEligible(id, productionGoals, true), id -> physicalScoutEligible(id, productionGoals, false),
-					this::physicalScoutSpareSlots, periodicEcology));
+					this::physicalScoutSpareSlots, periodicEcology, this::physicalTarget));
 				if (_physicalGeoScouts != null)
 				{
-					_materializationService.installPopulationAdmission(_populationManager::tryBeginPhysicalAdmission);
-					_reconcileMaterializationActivity.installScoutAdmission(id -> physicalScoutEligible(id, productionGoals, true));
+					if (!_physicalGeoScouts.dedicated())
+					{
+						_materializationService.installPopulationAdmission(_populationManager::tryBeginPhysicalAdmission);
+						_reconcileMaterializationActivity.installScoutAdmission(id -> physicalScoutEligible(id, productionGoals, true));
+					}
 					controlPorts.add(_physicalGeoScouts);
 				}
 				if (!_scheduler.installControlPort(executionControlChain(controlPorts)))
@@ -3351,7 +3354,8 @@ public final class PhantomSystem
 		{
 			return false;
 		}
-		if (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) != OwnerKind.PHANTOM)
+		final var kind = PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId());
+		if (kind != OwnerKind.PHANTOM && !(kind == OwnerKind.DEDICATED_SCOUT && player.isDedicatedGeoScout()))
 		{
 			return false;
 		}

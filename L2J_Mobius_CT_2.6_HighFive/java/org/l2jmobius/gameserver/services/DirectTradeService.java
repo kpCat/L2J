@@ -64,6 +64,10 @@ public final class DirectTradeService
 	public Result request(Player player, int objectId)
 	{
 		Objects.requireNonNull(player);
+		if (player.isDedicatedGeoScout())
+		{
+			return Result.REJECTED;
+		}
 		if (!player.getAccessLevel().allowTransaction())
 		{
 			player.sendMessage("Transactions are disabled for your current Access Level.");
@@ -92,6 +96,12 @@ public final class DirectTradeService
 			return Result.REJECTED;
 		}
 		final Player partner = target.asPlayer();
+		if (partner.isDedicatedGeoScout())
+		{
+			player.sendPacket(SystemMessageId.INVALID_TARGET);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
+			return Result.REJECTED;
+		}
 		if (partner.isInOlympiadMode() || player.isInOlympiadMode())
 		{
 			player.sendMessage("A user currently participating in the Olympiad cannot accept or request a trade.");
@@ -173,6 +183,12 @@ public final class DirectTradeService
 			player.setActiveRequester(null);
 			return Result.REJECTED;
 		}
+		if (player.isDedicatedGeoScout() || partner.isDedicatedGeoScout())
+		{
+			player.setActiveRequester(null);
+			partner.onTransactionResponse();
+			return Result.REJECTED;
+		}
 		if (accepted && !partner.isRequestExpired())
 		{
 			player.startTrade(partner);
@@ -209,6 +225,11 @@ public final class DirectTradeService
 				PacketLogger.warning("Character:" + player.getName() + " requested invalid trade object: " + objectId);
 			}
 			player.sendPacket(SystemMessageId.THAT_PLAYER_IS_NOT_ONLINE);
+			player.cancelActiveTrade();
+			return Result.REJECTED;
+		}
+		if (player.isDedicatedGeoScout() || partner.isDedicatedGeoScout())
+		{
 			player.cancelActiveTrade();
 			return Result.REJECTED;
 		}
@@ -257,6 +278,11 @@ public final class DirectTradeService
 		{
 			player.cancelActiveTrade();
 			player.sendPacket(SystemMessageId.THAT_PLAYER_IS_NOT_ONLINE);
+			return Result.REJECTED;
+		}
+		if (player.isDedicatedGeoScout() || partner.isDedicatedGeoScout())
+		{
+			player.cancelActiveTrade();
 			return Result.REJECTED;
 		}
 		if ((trade.getOwner().getActiveEnchantItemId() != Player.ID_NONE) || (partner.getActiveEnchantItemId() != Player.ID_NONE))

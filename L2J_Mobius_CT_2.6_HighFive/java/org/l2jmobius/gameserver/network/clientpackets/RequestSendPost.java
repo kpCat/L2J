@@ -19,12 +19,15 @@ package org.l2jmobius.gameserver.network.clientpackets;
 import static org.l2jmobius.gameserver.model.itemcontainer.Inventory.ADENA_ID;
 import static org.l2jmobius.gameserver.model.itemcontainer.Inventory.MAX_ADENA;
 
+import java.sql.SQLException;
+
 import org.l2jmobius.gameserver.config.GeneralConfig;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.data.holders.AccessLevel;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
 import org.l2jmobius.gameserver.data.xml.AdminData;
 import org.l2jmobius.gameserver.managers.MailManager;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.holders.player.BlockList;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
@@ -38,6 +41,7 @@ import org.l2jmobius.gameserver.network.serverpackets.ExNoticePostSent;
 import org.l2jmobius.gameserver.network.serverpackets.InventoryUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.StatusUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.phantoms.player.PhantomDedicatedScoutRoster;
 
 /**
  * @author Migi, DS
@@ -110,7 +114,7 @@ public class RequestSendPost extends ClientPacket
 		}
 		
 		final Player player = getPlayer();
-		if (player == null)
+		if ((player == null) || player.isDedicatedGeoScout())
 		{
 			return;
 		}
@@ -203,8 +207,23 @@ public class RequestSendPost extends ClientPacket
 			}
 		}
 		
-		final int receiverId = CharInfoTable.getInstance().getIdByName(_receiver);
+		final CharInfoTable names = CharInfoTable.getInstance();
+		final int receiverId = names.getIdByName(_receiver);
 		if (receiverId <= 0)
+		{
+			player.sendPacket(SystemMessageId.WHEN_THE_RECIPIENT_DOESN_T_EXIST_OR_THE_CHARACTER_HAS_BEEN_DELETED_SENDING_MAIL_IS_NOT_POSSIBLE);
+			return;
+		}
+		final Player onlineReceiver = World.getInstance().getPlayer(receiverId);
+		try
+		{
+			if (((onlineReceiver != null) && onlineReceiver.isDedicatedGeoScout()) || PhantomDedicatedScoutRoster.isMailRestricted(receiverId, names.getNameById(receiverId)))
+			{
+				player.sendPacket(SystemMessageId.WHEN_THE_RECIPIENT_DOESN_T_EXIST_OR_THE_CHARACTER_HAS_BEEN_DELETED_SENDING_MAIL_IS_NOT_POSSIBLE);
+				return;
+			}
+		}
+		catch (SQLException | RuntimeException e)
 		{
 			player.sendPacket(SystemMessageId.WHEN_THE_RECIPIENT_DOESN_T_EXIST_OR_THE_CHARACTER_HAS_BEEN_DELETED_SENDING_MAIL_IS_NOT_POSSIBLE);
 			return;
@@ -216,7 +235,7 @@ public class RequestSendPost extends ClientPacket
 			return;
 		}
 		
-		final int level = CharInfoTable.getInstance().getAccessLevelById(receiverId);
+		final int level = names.getAccessLevelById(receiverId);
 		final AccessLevel accessLevel = AdminData.getInstance().getAccessLevel(level);
 		if (accessLevel.isGm() && !player.getAccessLevel().isGm())
 		{
