@@ -80,11 +80,26 @@ public final class PhantomExecutionAdmission
 	{
 		final var slot = _slots.get(id);
 		return slot != null && !slot.uncertain && !slot.boundary && slot.state.owner().equals(owner)
+			&& (slot.exclusiveThread == null || slot.exclusiveThread == Thread.currentThread())
 			&& (slot.refreshThread == null || purpose == Purpose.COMPLETION && slot.refreshThread == Thread.currentThread())
 			&& (purpose == Purpose.NORMAL ? slot.state.phase() == PhantomExecutionHandoff.Phase.ACTIVE && (continuation || slot.blocked == 0) : slot.state.ownerMayComplete(owner));
 	}
 	public synchronized Permit tryAcquire(long id, PhantomDomainRef owner)
 	{ return tryAcquire(id, owner, Purpose.NORMAL); }
+
+	/** Low-priority native work may enter only when the current grant is idle. */
+	public synchronized Permit tryAcquireExclusiveIdle(long id, PhantomDomainRef owner)
+	{
+		final var slot = _slots.get(id);
+		if (slot == null || slot.running != 0 || slot.exclusiveThread != null) { return null; }
+		final var permit = tryAcquire(id, owner, Purpose.NORMAL);
+		if (permit != null)
+		{
+			slot.exclusiveThread = Thread.currentThread();
+			permit._exclusive = true;
+		}
+		return permit;
+	}
 	private Permit tryAcquire(long id, PhantomDomainRef owner, Purpose purpose)
 	{ return tryAcquire(id, owner, purpose, false); }
 	private Permit tryAcquire(long id, PhantomDomainRef owner, Purpose purpose, boolean continuation)
@@ -311,6 +326,7 @@ public final class PhantomExecutionAdmission
 		private final long _admissionEpoch;
 		private final Purpose _purpose;
 		private boolean _closed;
+		private boolean _exclusive;
 		private Permit(long id, Slot slot, long generation, PhantomDomainRef owner, long epoch, Purpose purpose)
 		{ _profileId = id; _slot = slot; _generation = generation; _owner = owner; _admissionEpoch = epoch; _purpose = purpose; }
 		public Stamp stamp() { return new Stamp(_profileId, _generation, _owner, _admissionEpoch, _purpose); }
@@ -352,7 +368,14 @@ public final class PhantomExecutionAdmission
 		@Override public void close()
 		{
 			synchronized (PhantomExecutionAdmission.this)
-			{ if (!_closed) { _closed = true; _slot.running--; } }
+			{
+				if (!_closed)
+				{
+					_closed = true;
+					_slot.running--;
+					if (_exclusive) { _slot.exclusiveThread = null; }
+				}
+			}
 		}
 	}
 	private static final class Slot
@@ -361,6 +384,7 @@ public final class PhantomExecutionAdmission
 		private long activatedAt;
 		private final Map<String, Blocker> blockers = new HashMap<>();
 		private int blocked;
+		private Thread exclusiveThread;
 		private Slot(long version, PhantomExecutionHandoff state, long activatedAt) { this.version = version; this.state = state; this.activatedAt = activatedAt; }
 	}
 }

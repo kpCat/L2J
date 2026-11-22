@@ -180,6 +180,12 @@ public final class PhantomNavigationService
 		return trainer == null ? null : trainer.memory();
 	}
 
+	public PhantomPhysicalGeoScout installPhysicalScout(java.util.function.Function<PhantomPhysicalGeoScout.Settings, PhantomPhysicalGeoScout> factory)
+	{
+		final var trainer = _geoTrainer;
+		return trainer == null ? null : trainer.installPhysicalScout(factory);
+	}
+
 	public Submission submitSoloWalk(PhantomNavigationRequest request, boolean episode, java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked)
 	{
 		if (visited.size() > 64 || blocked.size() > 16) { throw new IllegalArgumentException("Too many physical WALK checkpoints or exclusions."); }
@@ -198,6 +204,11 @@ public final class PhantomNavigationService
 	Submission submitGeoProbe(PhantomNavigationRequest request)
 	{
 		return submit(request, true, false, null, java.util.Set.of(), java.util.Set.of(), false, true);
+	}
+
+	Submission submitScoutWalk(PhantomNavigationRequest request, java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked)
+	{
+		return submit(request, true, true, null, java.util.Set.copyOf(visited), java.util.Set.copyOf(blocked), true, true);
 	}
 	public Submission submitTravelPlan(PhantomNavigationRequest request, PhantomTravelStrategy.Options options)
 	{
@@ -754,7 +765,7 @@ public final class PhantomNavigationService
 						corridorStatus = planned.status(); entry._selectedPlan = planned.candidate();
 						backendPath = entry._selectedPlan == null ? null : entry._selectedPlan.stages().getFirst().points();
 					}
-					else if (validated == null && entry._walkCorridor && !entry._geoProbe)
+					else if (validated == null && entry._walkCorridor && (!entry._geoProbe || entry._soloWalk))
 					{
 						final var nativeBackend = _backend instanceof L2jNavigationBackend nativeValue ? nativeValue : new L2jNavigationBackend();
 						final var corridor = nativeBackend.findSoloWalk(entry._request, entry._cancellation, _policy, _clock, _backend,
@@ -870,7 +881,7 @@ public final class PhantomNavigationService
 
 	private ValidatedPath validateBackendPath(RequestEntry entry, List<PhantomNavigationPoint> backendPath, long cancellationGeneration)
 	{
-		return validateBackendPath(entry, backendPath, cancellationGeneration, (from, to) -> entry._geoProbe && _backend instanceof L2jNavigationBackend backend
+		return validateBackendPath(entry, backendPath, cancellationGeneration, (from, to) -> entry._geoProbe && !entry._soloWalk && _backend instanceof L2jNavigationBackend backend
 			? backend.canWalkLearned(from, to) : _backend.canWalkDirect(from, to));
 	}
 
@@ -1144,7 +1155,7 @@ public final class PhantomNavigationService
 
 	private boolean canMove(RequestEntry entry, PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
-		return permitsSegment(entry, from, to) && (entry._geoProbe && _backend instanceof L2jNavigationBackend backend ? backend.canWalkLearned(from, to)
+		return permitsSegment(entry, from, to) && (entry._geoProbe && !entry._soloWalk && _backend instanceof L2jNavigationBackend backend ? backend.canWalkLearned(from, to)
 			: entry._walkCorridor ? _backend.canWalkDirect(from, to) : _backend.canMoveDirect(from, to));
 	}
 

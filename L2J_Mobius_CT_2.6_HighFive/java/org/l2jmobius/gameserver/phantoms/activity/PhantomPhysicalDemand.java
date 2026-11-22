@@ -5,7 +5,7 @@ package org.l2jmobius.gameserver.phantoms.activity;
 public record PhantomPhysicalDemand(Kind kind, long sourceProfileId, long sourceEpoch, String owner, long createdMillis, long expiresMillis)
 {
 	private static final String AMBIENT_OWNER = "population.ambient";
-	public enum Kind { HUMAN_OBSERVATION, AMBIENT_TARGET, LOGICAL_PARTY_WAKE, ACCEPTED_TRAVEL, NATIVE_CONTEXT }
+	public enum Kind { HUMAN_OBSERVATION, AMBIENT_TARGET, LOGICAL_PARTY_WAKE, ACCEPTED_TRAVEL, NATIVE_CONTEXT, PHYSICAL_SCOUT }
 	public PhantomPhysicalDemand
 	{
 		if (kind == null || sourceProfileId <= 0 || sourceEpoch < 0 || kind == Kind.LOGICAL_PARTY_WAKE && sourceEpoch == 0 || owner == null || !owner.matches("[A-Za-z0-9_.:-]{1,128}")
@@ -22,6 +22,11 @@ public record PhantomPhysicalDemand(Kind kind, long sourceProfileId, long source
 	public boolean ordinaryAdmission(boolean online, boolean admitted, long now)
 	{
 		return current(now) && online && admitted && (kind == Kind.AMBIENT_TARGET || kind == Kind.LOGICAL_PARTY_WAKE);
+	}
+
+	public boolean scoutAdmission(long profileId, boolean online, long now)
+	{
+		return kind == Kind.PHYSICAL_SCOUT && sourceProfileId == profileId && online && current(now);
 	}
 
 	public PhantomRelevanceSignal ambientSignal(boolean online, boolean admitted, long sequence, long now)

@@ -25,11 +25,19 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	private volatile LongFunction<SoftReclaimSelection> _softCandidate;
 	private volatile LongPredicate _populationRequestAdmission = _ -> true;
 	private volatile LongFunction<PhantomPhysicalDemand> _physicalDemand = _ -> null;
+	private volatile LongPredicate _scoutAdmission = _ -> false;
 	public void installPhysicalDemand(LongFunction<PhantomPhysicalDemand> demand) { _physicalDemand = Objects.requireNonNull(demand); }
+	public void installScoutAdmission(LongPredicate eligible) { _scoutAdmission = Objects.requireNonNull(eligible); }
 	private boolean coordinatedDemand(long profileId, boolean online, boolean admitted)
 	{
 		final var demand = _physicalDemand.apply(profileId);
 		return demand != null && demand.ordinaryAdmission(online, admitted, System.currentTimeMillis());
+	}
+
+	private boolean scoutDemand(long profileId, boolean online)
+	{
+		final var demand = _physicalDemand.apply(profileId);
+		return demand != null && demand.scoutAdmission(profileId, online, System.currentTimeMillis());
 	}
 
 	public PhantomReconcileFirstActivityPort(PhantomActivityMaterializationPort delegate)
@@ -85,7 +93,8 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 			final boolean ordinaryLocal = continuation || online && locality.isLocal(profileId);
 			final boolean background = online && backgroundNativeRequest.test(profileId);
 			final boolean coordinated = coordinatedDemand(profileId, online, admitted.test(profileId));
-			final boolean local = ordinaryLocal || background || coordinated;
+			final boolean scout = scoutDemand(profileId, online);
+			final boolean local = ordinaryLocal || background || coordinated || scout;
 			if (!local)
 			{
 				recorder.record(profileId, online ? "READY_NOT_LOCAL" : "READY_PRESENCE_OFFLINE", online ? "ONLINE" : "OFFLINE", "DEFERRED", "presence.no_current_local_demand", 0, 0, 0);
@@ -102,18 +111,20 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				request = due.request();
 			}
 			// A Background request carries only its exact historical prerequisite, never NORMAL admission.
-			if (!ordinaryLocal && !coordinated && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
+			if (!ordinaryLocal && !coordinated && !scout && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
 			{
 				return TransitionOutcome.deferred("presence.background_native_handoff_required");
 			}
 			// An exact bounded historical handoff supplies the prerequisite for ordinary admission.
 			// NORMAL work still requires final population admission; lifecycle validates the original claim.
-			if (!continuation && !admitted.test(profileId) && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
+			if (!continuation && !admitted.test(profileId) && !scout && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
 			{
 				return TransitionOutcome.deferred("population.not_admitted");
 			}
 			final boolean currentLocal = continuation || locality.isCurrentLocal(profileId)
 				|| coordinatedDemand(profileId, presence.isOnline(profileId), admitted.test(profileId))
+				|| scout && request.kind() == MaterializationRequest.Kind.NORMAL && _scoutAdmission.test(profileId)
+					&& scoutDemand(profileId, presence.isOnline(profileId))
 				|| request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF && presence.isOnline(profileId) && backgroundNativeRequest.test(profileId);
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
 			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");

@@ -13,6 +13,7 @@ import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -78,6 +80,10 @@ public final class PhantomRouteLearning implements AutoCloseable
 	private static final String JOURNEYS = "journey-stats.tsv";
 	private static final String JOURNEY_HEADER = "PHANTOM_JOURNEY_STATS\t1\t";
 	private static final String JOURNEY_COLUMNS = "kind\tfrom_x\tfrom_y\tto_x\tto_y\tattempts\tcompleted\troute_failed\tnative_failed\tbudget_failed\telapsed_ms\twalked_units\n";
+	private static final String PHYSICAL = "physical-scout-witness.tsv";
+	private static final String PHYSICAL_HEADER = "PHANTOM_PHYSICAL_WITNESS\t1\t";
+	private static final String PHYSICAL_COLUMNS = "server_session\tprofile\tobject\tplayer\tepoch\tintent\tleg\tstarted_ms\tfinished_ms\telapsed_ms\tfrom_xyzi\tissued_xyzi\tfinal_xyzi\tfrontier_xyzi\tsamples\tresult\n";
+	private static final int MAX_PHYSICAL_PAYLOAD = 768 * 1024;
 	private static final int MAX_JOURNEY_PAIRS = 1024;
 	private static final Region OTHER = new Region(999, 999);
 	private static final Region OTHER_CROSS = new Region(999, 998);
@@ -100,6 +106,11 @@ public final class PhantomRouteLearning implements AutoCloseable
 	private long _savedJourneyRevision = -1;
 	private boolean _journeysReadOnly;
 	private boolean _accepting = true;
+	private record PhysicalWitness(Edge arrived, String row) { }
+	private final ArrayDeque<PhysicalWitness> _physicalPending = new ArrayDeque<>();
+	private volatile boolean _physicalReady;
+	private volatile long _physicalNewProven;
+	private String _physicalPayload;
 
 	private PhantomRouteLearning(Path root, String fingerprint, FileLock writerLock)
 	{
@@ -132,6 +143,88 @@ public final class PhantomRouteLearning implements AutoCloseable
 	{
 		final var shard = _snapshot.get(Region.of(edge.from()));
 		return shard == null ? null : shard.entries().get(edge);
+	}
+
+	Edge scoutFrontier(PhantomNavigationPoint origin, long now, Predicate<Edge> permitted)
+	{
+		final var snapshot = _snapshot;
+		final int range = 6400;
+		Edge best = null;
+		double score = Double.POSITIVE_INFINITY;
+		for (int x = (origin.x() - range) >> 15; x <= (origin.x() + range) >> 15; x++)
+		{
+			for (int y = (origin.y() - range) >> 15; y <= (origin.y() + range) >> 15; y++)
+			{
+				final var shard = snapshot.get(new Region(x, y));
+				if (shard == null) { continue; }
+				for (var entry : shard.entries().entrySet())
+				{
+					final var edge = entry.getKey();
+					final var evidence = entry.getValue();
+					if (edge.from().instanceId() != 0 || !evidence.candidate() || evidence.successes() > 0 || evidence.retryAfter() > now || !permitted.test(edge)) { continue; }
+					final double distance = origin.distanceTo(edge.from());
+					if (distance > range) { continue; }
+					final double priority = Math.max(0, distance - Math.min(700, 3 * Math.abs(edge.to().z() - edge.from().z())))
+						+ 600 * Math.min(8, evidence.geometryFailures() + evidence.transientFailures());
+					if (priority < score || priority == score && encodeEdge(edge).compareTo(encodeEdge(best)) < 0)
+					{
+						best = edge;
+						score = priority;
+					}
+				}
+			}
+		}
+		return best;
+	}
+
+	void openPhysicalWitness()
+	{
+		try
+		{
+			final String existing = readChecked(PHYSICAL, PHYSICAL_HEADER, MAX_SHARD_BYTES);
+			if (existing != null && !existing.startsWith(PHYSICAL_COLUMNS)) { throw new IOException("Invalid physical witness columns"); }
+			_physicalPayload = existing == null ? "" : existing.substring(PHYSICAL_COLUMNS.length());
+			_physicalReady = true;
+		}
+		catch (IOException ex) { LOGGER.warning("Physical scout witness unavailable: " + ex.getMessage()); }
+	}
+
+	boolean physicalReady() { return _physicalReady; }
+	long physicalNewProven() { return _physicalNewProven; }
+
+	synchronized boolean recordPhysical(Edge arrived, String row)
+	{
+		if (!_accepting || !_physicalReady || _physicalPending.size() >= 1024 || row.length() > 512
+			|| arrived != null && (arrived.from().instanceId() != 0 || !valid(arrived))) { return false; }
+		_physicalPending.add(new PhysicalWitness(arrived, row));
+		return true;
+	}
+
+	void flushPhysicalWitness() throws IOException
+	{
+		final List<PhysicalWitness> batch;
+		synchronized (this) { batch = List.copyOf(_physicalPending); }
+		if (batch.isEmpty()) { return; }
+		final var payload = new StringBuilder(_physicalPayload);
+		batch.forEach(witness -> payload.append(witness.row()).append('\n'));
+		if (payload.length() > MAX_PHYSICAL_PAYLOAD)
+		{
+			payload.delete(0, payload.indexOf("\n", payload.length() - MAX_PHYSICAL_PAYLOAD) + 1);
+		}
+		writeFile(PHYSICAL, checkedContent(PHYSICAL_HEADER, PHYSICAL_COLUMNS + payload));
+		_physicalPayload = payload.toString();
+		synchronized (this)
+		{
+			for (var witness : batch)
+			{
+				_physicalPending.removeFirst();
+				if (witness.arrived() == null) { continue; }
+				final var before = find(witness.arrived());
+				update(witness.arrived(), old -> new Evidence(old.candidate(), increment(old.successes()), old.geometryFailures(), old.transientFailures(), 0), true);
+				final var after = find(witness.arrived());
+				if ((before == null || before.successes() == 0) && after != null && after.successes() > 0) { _physicalNewProven++; }
+			}
+		}
 	}
 
 	public void propose(Edge edge)
@@ -176,7 +269,12 @@ public final class PhantomRouteLearning implements AutoCloseable
 
 	private synchronized void update(Edge edge, UnaryOperator<Evidence> change)
 	{
-		if (!_accepting || !valid(edge)) { return; }
+		update(edge, change, false);
+	}
+
+	private void update(Edge edge, UnaryOperator<Evidence> change, boolean acceptedWitness)
+	{
+		if ((!_accepting && !acceptedWitness) || !valid(edge)) { return; }
 		final var region = Region.of(edge.from());
 		if (_readOnly.contains(region) || (!_snapshot.containsKey(region) && _snapshot.size() + _readOnly.size() >= MAX_REGIONS)) { return; }
 		final var previousShard = _snapshot.get(region);
@@ -308,6 +406,8 @@ public final class PhantomRouteLearning implements AutoCloseable
 
 	public void flush() throws IOException
 	{
+		try { flushPhysicalWitness(); }
+		catch (IOException ex) { LOGGER.warning("Physical witness save deferred: " + ex.getMessage()); }
 		final List<Region> dirty;
 		final Map<Region, PhantomRouteGraph.Shard> snapshot;
 		synchronized (this)

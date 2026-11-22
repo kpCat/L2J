@@ -37,12 +37,99 @@ public final class PhantomRouteLearningChecks
 	public static void main(String[] args) throws Exception
 	{
 		final Path root = Path.of(args[0]);
+		physicalScoutArrival();
+		physicalScoutExecutionAdmission();
 		roundtrip(root);
+		physicalWitnessRoundtrip(root.resolve("physical"));
 		capacityRoundtrip(root.resolve("capacity"));
 		probeCadenceAndPriority();
 		directedGraphAndProgress(root.resolve("routing"));
 		journeyOutcomes(root.resolve("journeys"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
+	}
+
+	private static void physicalScoutArrival()
+	{
+		final var from = new PhantomNavigationPoint(32700, 100, -200, 0);
+		final var to = new PhantomNavigationPoint(32840, 100, -152, 0);
+		final var edge = new Edge(from, to);
+		final var nativeArrived = new java.util.concurrent.atomic.AtomicBoolean();
+		final var receipt = new PhantomPhysicalGeoScout.Arrival(edge, nativeArrived::get);
+		check(!receipt.consume(true, 1, to), "Coordinates alone proved a cross-region climb");
+		nativeArrived.set(true);
+		check(!receipt.consume(true, 0, to), "A final snap without a native progress sample proved an entire leg");
+		check(!receipt.consume(false, 1, to), "Stale native owner proved arrival");
+		check(!receipt.consume(true, 1, new PhantomNavigationPoint(to.x(), to.y(), to.z(), 1)), "Instance arrival leaked to world0");
+		check(!receipt.consume(true, 1, new PhantomNavigationPoint(to.x(), to.y(), from.z(), 0)), "Another floor proved arrival");
+		check(receipt.consume(true, 1, to), "Exact current native receipt failed");
+		check(!receipt.consume(true, 1, to), "Same receipt published twice");
+		check(!new PhantomPhysicalGeoScout.Arrival(new Edge(from, from), () -> true).consume(true, 1, from), "Stationary receipt proved movement");
+		check(!new PhantomPhysicalGeoScout.Arrival(new Edge(from, to), () -> true).consume(false, 1, to), "Released or dead scout proved a leg after STOP");
+		System.out.println("PASS physical receipt identity, cross-region height, instance isolation and single consumption");
+	}
+
+	private static void physicalScoutExecutionAdmission() throws InterruptedException
+	{
+		final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1);
+		final long profile = 7;
+		final var owner = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profile);
+		gate.publish(profile, 0, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(owner));
+		try (var ongoing = gate.tryAcquire(profile, owner))
+		{
+			check(ongoing != null && gate.tryAcquireExclusiveIdle(profile, owner) == null, "Scout preempted an admitted ordinary action");
+		}
+		try (var scout = gate.tryAcquireExclusiveIdle(profile, owner))
+		{
+			check(scout != null && scout.valid(), "Idle grant rejected the low-priority action");
+			final var competed = new java.util.concurrent.atomic.AtomicBoolean();
+			Thread.startVirtualThread(() ->
+			{
+				try (var other = gate.tryAcquire(profile, owner)) { competed.set(other != null); }
+			}).join();
+			check(!competed.get(), "An ordinary owner entered during the scout action");
+			try (var nativeChild = gate.tryAcquireContinuationScoped(profile, scout.stamp()))
+			{
+				check(nativeChild != null && nativeChild.valid(), "The scout could not enter the native action lease");
+			}
+		}
+		try (var ordinary = gate.tryAcquire(profile, owner)) { check(ordinary != null && ordinary.valid(), "Scout retained ownership after release"); }
+		System.out.println("PASS idle admission, competing owner rejection, native continuation and release");
+	}
+
+	private static void physicalWitnessRoundtrip(Path root) throws Exception
+	{
+		Files.createDirectory(root);
+		final String fingerprint = "a".repeat(64);
+		final var from = new PhantomNavigationPoint(32720, 100, -200, 0);
+		final var to = new PhantomNavigationPoint(32920, 100, -136, 0);
+		final var edge = new Edge(from, to);
+		try (var memory = PhantomRouteLearning.open(root, fingerprint))
+		{
+			memory.openPhysicalWitness();
+			memory.propose(edge);
+			check(edge.equals(memory.scoutFrontier(from, 100, _ -> true)), "Cross-region candidate was skipped");
+			check(memory.recordPhysical(null, "test\tSTUCK"), "Blocked witness was rejected");
+			memory.flush();
+			check(memory.find(edge).successes() == 0, "Failure promoted a candidate");
+			check(memory.recordPhysical(edge, "test\tARRIVED"), "Native receipt could not enter writer");
+			check(memory.find(edge).successes() == 0, "Witness was published before the writer acknowledged it");
+		}
+		try (var reopened = PhantomRouteLearning.open(root, fingerprint))
+		{
+			check(reopened.find(edge).successes() == 1, "Shutdown failed to publish the accepted witness");
+			check(reopened.scoutFrontier(from, 100, _ -> true) == null, "An already proven leg was offered again");
+		}
+		final var file = root.resolve("physical-scout-witness.tsv");
+		final var content = Files.readString(file);
+		check(content.endsWith("test\tSTUCK\ntest\tARRIVED\n"), "Witness order changed after STOP");
+		Files.writeString(file, content + "corrupt\n");
+		try (var reopened = PhantomRouteLearning.open(root, fingerprint))
+		{
+			reopened.openPhysicalWitness();
+			check(!reopened.recordPhysical(edge, "test\tARRIVED"), "Corrupt journal admitted new proof");
+		}
+		check(Files.readString(file).equals(content + "corrupt\n"), "Corrupt witness bytes were replaced");
+		System.out.println("PASS witnessed cross-region proof, candidate promotion, STOP flush and corrupted witness protection");
 	}
 
 	private static void probeCadenceAndPriority()

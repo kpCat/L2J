@@ -39,7 +39,7 @@ public final class PhantomGeoTrainer
 	static final int TICK_MILLIS = 200;
 	private static final long MINUTE_NANOS = TimeUnit.MINUTES.toNanos(1);
 
-	record Settings(boolean learning, boolean trainer, int workers, int probesPerMinute, int saveSeconds, Path path)
+	record Settings(boolean learning, boolean trainer, int workers, int probesPerMinute, int saveSeconds, Path path, PhantomPhysicalGeoScout.Settings scouts)
 	{
 		private static Settings read(Path datapack) throws IOException
 		{
@@ -55,7 +55,9 @@ public final class PhantomGeoTrainer
 			}
 			return new Settings(flag(ini, "EnableRouteLearning", true), flag(ini, "EnableSuperGeoTrainer", false),
 				number(ini, "GeoTrainerMaxWorkers", 1, 1, 2), number(ini, "GeoTrainerMaxProbesPerMinute", 20, 1, 100),
-				number(ini, "GeoTrainerSaveIntervalSeconds", 120, 15, 3600), datapack.resolve(configured).toAbsolutePath().normalize());
+				number(ini, "GeoTrainerSaveIntervalSeconds", 120, 15, 3600), datapack.resolve(configured).toAbsolutePath().normalize(),
+				flag(ini, "EnablePhysicalGeoScouts", false) ? new PhantomPhysicalGeoScout.Settings(
+					number(ini, "PhysicalGeoScoutCount", 4, 1, 16), number(ini, "PhysicalGeoScoutSessionHours", 8, 1, 24)) : null);
 		}
 
 		private static boolean flag(Properties ini, String key, boolean fallback)
@@ -109,6 +111,7 @@ public final class PhantomGeoTrainer
 	private final ScheduledThreadPoolExecutor _writer = new ScheduledThreadPoolExecutor(1, Thread.ofPlatform().daemon().name("PhantomGeoTrainer").factory());
 	private final List<Probe> _active = new ArrayList<>(2);
 	private volatile PhantomRouteLearning _memory;
+	private volatile PhantomPhysicalGeoScout _scout;
 	private volatile boolean _stopping;
 	private List<PhantomNavigationPoint> _anchors = List.of();
 	private String _anchorsFingerprint;
@@ -153,6 +156,12 @@ public final class PhantomGeoTrainer
 		return _stopping || !_settings.learning() ? null : _memory;
 	}
 
+	PhantomPhysicalGeoScout installPhysicalScout(java.util.function.Function<PhantomPhysicalGeoScout.Settings, PhantomPhysicalGeoScout> factory)
+	{
+		if (_settings.scouts() != null && _settings.learning()) { _scout = factory.apply(_settings.scouts()); }
+		return _scout;
+	}
+
 	private void initialize()
 	{
 		try
@@ -162,6 +171,7 @@ public final class PhantomGeoTrainer
 			final String fingerprint = fingerprint(GeoEngineConfig.GEODATA_PATH, () -> _stopping);
 			if (_stopping) { return; }
 			_memory = PhantomRouteLearning.open(root, fingerprint);
+			if (_settings.scouts() != null) { _memory.openPhysicalWitness(); }
 			if (_settings.trainer())
 			{
 				_anchors = _topology.snapshot().anchors().stream().map(anchor -> anchor.point())
@@ -275,8 +285,13 @@ public final class PhantomGeoTrainer
 			{
 				_nextReport = now + MINUTE_NANOS;
 				report(now, false);
+				if (_scout != null)
+				{
+					_memory.flushPhysicalWitness();
+					_memory.writeFile("physical-scout-status.txt", _scout.status());
+				}
 			}
-			if (!_stopping && !_anchors.isEmpty() && _active.size() < _settings.workers() && _pacing.take(System.nanoTime(), _navigation.canProbeGeo()))
+			if (!_stopping && (_scout == null || !_scout.sessionOpen()) && !_anchors.isEmpty() && _active.size() < _settings.workers() && _pacing.take(System.nanoTime(), _navigation.canProbeGeo()))
 			{
 				_attempts++;
 				probe();
@@ -388,7 +403,11 @@ public final class PhantomGeoTrainer
 				try (var memoryToClose = _memory)
 				{
 					try { saveCursor(); }
-					finally { report(System.nanoTime(), true); }
+					finally
+					{
+						report(System.nanoTime(), true);
+						if (_scout != null) { _memory.writeFile("physical-scout-status.txt", _scout.status()); }
+					}
 				}
 			}
 			catch (IOException | RuntimeException ex) { LOGGER.log(Level.WARNING, "Phantom route learning final flush failed", ex); }
