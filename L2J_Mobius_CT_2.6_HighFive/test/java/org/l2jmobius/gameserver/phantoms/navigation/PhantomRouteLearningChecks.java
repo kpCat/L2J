@@ -4,8 +4,12 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.config.GeoEngineConfig;
@@ -35,7 +39,186 @@ public final class PhantomRouteLearningChecks
 		final Path root = Path.of(args[0]);
 		roundtrip(root);
 		capacityRoundtrip(root.resolve("capacity"));
+		probeCadenceAndPriority();
+		directedGraphAndProgress(root.resolve("routing"));
+		journeyOutcomes(root.resolve("journeys"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
+	}
+
+	private static void probeCadenceAndPriority()
+	{
+		final var clock = new AtomicLong(1);
+		final var workers = new ArrayDeque<Runnable>();
+		final var backend = new PhantomNavigationBackend()
+		{
+			@Override public CapabilitySnapshot capability(PhantomNavigationPoint from, PhantomNavigationPoint to)
+			{
+				return new CapabilitySnapshot(PhantomNavigationCapability.GEODATA_PATHFINDING, 1);
+			}
+			@Override public boolean canMoveDirect(PhantomNavigationPoint from, PhantomNavigationPoint to) { return false; }
+			@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken token) { return List.of(); }
+		};
+		final var navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), backend, workers::offer, clock::get, new PhantomMetrics());
+		check(navigation.start(), "Fake navigation did not start");
+		final var a = point(1008);
+		final var b = point(1600);
+		final long scout = Long.MAX_VALUE;
+		final var cadence = new PhantomGeoTrainer.ProbePacing(100);
+		final var accepted = new ArrayList<Long>();
+		final long minute = TimeUnit.MINUTES.toNanos(1);
+		final long tick = TimeUnit.MILLISECONDS.toNanos(PhantomGeoTrainer.TICK_MILLIS);
+		for (long now = 1; now < 2 * minute; now += tick)
+		{
+			clock.set(now);
+			if (cadence.take(now, navigation.canProbeGeo()))
+			{
+				final var submission = navigation.submitGeoProbe(request(scout, now, a, b));
+				check(submission.status() == PhantomNavigationService.SubmissionStatus.ACCEPTED, "Ready probe rejected or throttled by gameplay cooldown");
+				workers.remove().run();
+				check(navigation.consume(submission.requestId()).isPresent(), "Accepted probe did not complete");
+				accepted.add(now);
+			}
+		}
+		check(accepted.stream().filter(now -> now <= minute).count() >= 90, "Scheduler cannot use the configured rate");
+		for (int i = 100; i < accepted.size(); i++)
+		{
+			check(accepted.get(i) - accepted.get(i - 100) >= minute, "More than 100 probes in a sliding minute");
+		}
+		clock.set(3 * minute);
+		check(cadence.take(clock.get(), navigation.canProbeGeo()), "One probe should resume after idle");
+		check(!cadence.take(clock.get() + tick, true), "Paused probes were released in a burst");
+		final var probe = navigation.submitGeoProbe(request(scout, clock.get(), a, b));
+		final var foreground = navigation.submit(request(1, clock.get(), a, b));
+		check(!navigation.canProbeGeo() && !cadence.take(clock.get() + minute, false), "Trainer competed for foreground service");
+		check(navigation.consume(probe.requestId()).orElseThrow().status() == PhantomNavigationResult.Status.CANCELLED, "Foreground could not displace queued probe");
+		while (!workers.isEmpty()) { workers.remove().run(); }
+		check(navigation.consume(foreground.requestId()).isPresent(), "Foreground request did not receive service");
+		navigation.beginStop();
+		check(navigation.finishStop() && !navigation.canProbeGeo(), "Stop did not release navigation");
+		System.out.println("PASS real admission at scheduler cadence, foreground priority and no catch-up: " + accepted.size() + " probes in two virtual minutes");
+	}
+
+	private static void directedGraphAndProgress(Path root) throws Exception
+	{
+		Files.createDirectory(root);
+		final String geo = "a".repeat(64);
+		final String anchors = "c".repeat(64);
+		final var a = point(31900);
+		final var b = point(32720);
+		final var c = point(33600);
+		final var d = point(34500);
+		final var ab = new Edge(a, b);
+		final var bc = new Edge(b, c);
+		final var cd = new Edge(c, d);
+		final var chain = Set.of(ab, bc, cd);
+		final var proven = new ArrayList<Edge>();
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			chain.forEach(memory::propose);
+			final var policy = PhantomNavigationPolicy.productionDefaults();
+			final var request = request(1, 1, a, point(34600));
+			final var connector = new Edge(d, request.destination());
+			final var route = memory.route(request, policy, false, Set.of(), Set.of(), 1000, (from, to) ->
+			{
+				final var edge = new Edge(from, to);
+				proven.add(edge);
+				return chain.contains(edge) || edge.equals(connector);
+			}, () -> false);
+			check(route.equals(List.of(b, c, d, request.destination())) && proven.containsAll(chain) && proven.contains(connector), "Directed crossing was not validated end to end");
+			check(memory.route(request(1, 1, d, a), policy, false, Set.of(), Set.of(), 1000, (from, to) -> true, () -> false).isEmpty(), "Graph invented reverse connectivity");
+			check(memory.route(request, policy, false, Set.of(), Set.of(bc), 1000, (from, to) -> true, () -> false).isEmpty(), "Exact blacklist was bypassed");
+			check(memory.route(request, policy, false, Set.of(), Set.of(), 1000, (from, to) -> !from.equals(b), () -> false).isEmpty(), "Geometry refusal was bypassed");
+			final var limited = new PhantomNavigationPolicy(16, 1, 16, 16, 5000, 1000, 12000, 2, 100000, 1000, 3000, 20, 50, 120000);
+			check(memory.route(request, limited, false, Set.of(), Set.of(), 1000, (from, to) -> true, () -> false).isEmpty(), "Graph exceeded its waypoint budget");
+			final var wrongFloor = request(1, 1, a, new PhantomNavigationPoint(d.x(), d.y(), d.z() + 48, 0));
+			check(memory.route(wrongFloor, policy, false, Set.of(), Set.of(), 1000, (from, to) -> true, () -> false).isEmpty(), "Connector crossed floors");
+			check(memory.route(request, policy, false, Set.of(), Set.of(), 1000, (from, to) -> true, () -> true).isEmpty(), "Cancelled graph did not yield");
+			memory.failed(bc, PhantomRouteLearning.Failure.TRANSIENT, 1000);
+			check(memory.route(request, policy, false, Set.of(), Set.of(), 1001, (from, to) -> true, () -> false).isEmpty(), "Unexpired retry was ignored");
+			check(!memory.route(request, policy, false, Set.of(), Set.of(), 901001, (from, to) -> true, () -> false).isEmpty(), "Expired retry was treated as permanent");
+			check(memory.find(bc).successes() == 0, "Graph usage invented physical proof");
+			memory.saveCursor(anchors, 7);
+		}
+		final Path shard = root.resolve("region-0_0.tsv");
+		final var original = Files.readString(shard);
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			check(memory.loadCursor(anchors, 20) == 7, "Cursor did not resume at the next probe");
+			check(memory.loadCursor("d".repeat(64), 20) == 0 && memory.loadCursor(anchors, 7) == 0, "Changed anchors or invalid cursor were trusted");
+		}
+		try (var memory = PhantomRouteLearning.open(root, "b".repeat(64)))
+		{
+			check(memory.loadCursor(anchors, 20) == 0, "Cursor reused under changed GeoData");
+		}
+		Files.writeString(root.resolve("trainer-progress.tsv"), "corrupt");
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			check(memory.loadCursor(anchors, 20) == 0, "Corrupt cursor was trusted");
+		}
+		check(Files.readString(shard).equals(original), "Bad cursor changed learned legs");
+		System.out.println("PASS multi-hop across shards, fresh directed geometry, blocked and expired edges, cursor reload and reset");
+	}
+
+	private static void journeyOutcomes(Path root) throws Exception
+	{
+		Files.createDirectory(root);
+		final String geo = "a".repeat(64);
+		final var owner = new PhantomJourneyObservation.Identity(12345678, 700000001, 87654321, 3);
+		final var stale = new PhantomJourneyObservation.Identity(12345678, 700000002, 87654321, 3);
+		final var changed = new PhantomJourneyObservation.Identity(12345678, 700000001, 87654321, 4);
+		final var a = point(32700);
+		final var b = point(32900);
+		final var c = point(33100);
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			final var journey = new PhantomJourneyObservation(owner, a, c, "final", 0);
+			memory.propose(new Edge(a, b));
+			check(journey.complete(owner, "final", c, 1) == null, "Candidate-only progress counted as success");
+			journey.walked(new Edge(a, b));
+			check(journey.complete(owner, "intermediate", b, 2) == null, "Intermediate checkpoint counted as success");
+			check(journey.complete(stale, "final", b, 3) == null && journey.complete(changed, "final", b, 3) == null, "Foreign epoch or goal revision completed journey");
+			journey.walked(new Edge(b, c));
+			memory.recordJourney(journey.complete(owner, "final", c, 2_000_000_000L));
+			memory.recordJourney(journey.complete(owner, "final", c, 2_000_000_000L));
+			final var mixed = new PhantomJourneyObservation(owner, a, c, "final", 0);
+			mixed.walked(new Edge(a, b));
+			mixed.transported();
+			check(mixed.complete(owner, "final", c, 3_000_000_000L) == null, "Teleport completed the last leg");
+			mixed.walked(new Edge(point(33000), c));
+			memory.recordJourney(mixed.complete(owner, "final", c, 3_000_000_000L));
+			final var failed = new PhantomJourneyObservation(owner, a, c, "final", 0);
+			memory.recordJourney(failed.fail(stale, PhantomJourneyObservation.Failure.NATIVE, 1));
+			memory.recordJourney(failed.fail(owner, PhantomJourneyObservation.Failure.NATIVE, 4_000_000_000L));
+			check(failed.complete(owner, "final", c, 5_000_000_000L) == null, "Terminal failure was reused");
+			new PhantomJourneyObservation(owner, a, c, "final", 0).walked(new Edge(a, b)); // discarded ownership
+		}
+		final Path stats = root.resolve("journey-stats.tsv");
+		final var payload = Files.readString(stats);
+		check(!payload.contains("12345678") && !payload.contains("87654321") && !payload.contains("700000001") && !payload.contains("final"), "Runtime identity entered persisted aggregates");
+		check(payload.contains("PHYSICAL\t0\t0\t1\t0\t2\t1\t0\t1\t0\t2000\t400")
+			&& payload.contains("MIXED\t0\t0\t1\t0\t1\t1\t0\t0\t0\t3000\t300"), "Journey counts, native distance or duration are wrong");
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			check(memory.journeyTotals().equals(new PhantomRouteLearning.JourneyTotals(2, 1, 2)), "Reload lost or duplicated journey counters");
+		}
+		check(Files.readString(stats).equals(payload), "Reading stats rewrote their bytes");
+		Files.writeString(stats, "damaged");
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			final var candidate = new Edge(a, b);
+			check(memory.find(candidate).candidate(), "Damaged statistics disabled old route memory");
+			final var failed = new PhantomJourneyObservation(owner, a, c, "final", 0);
+			memory.recordJourney(failed.fail(owner, PhantomJourneyObservation.Failure.ROUTE, 1));
+		}
+		check(Files.readString(stats).equals("damaged"), "Damaged statistics were overwritten");
+		System.out.println("PASS full native arrival, mixed and failed journeys, idempotence, reload and privacy");
+	}
+
+	private static PhantomNavigationPoint point(int x) { return new PhantomNavigationPoint(x, 1008, -32, 0); }
+
+	private static PhantomNavigationRequest request(long profile, long now, PhantomNavigationPoint from, PhantomNavigationPoint to)
+	{
+		return new PhantomNavigationRequest(profile, from, to, now, now + 1_000_000_000L, 20_000);
 	}
 
 	private static void roundtrip(Path root) throws Exception
@@ -64,7 +247,8 @@ public final class PhantomRouteLearningChecks
 			check(memory.find(new Edge(b, a)) == null, "Reverse edge was inferred");
 			check(memory.find(new Edge(new PhantomNavigationPoint(a.x(), a.y(), 32, 0), b)) == null, "Altitude was ignored");
 			check(memory.find(new Edge(new PhantomNavigationPoint(a.x(), a.y(), a.z(), 1), b)) == null, "Instance was ignored");
-			check(memory.hints(a, b, true, Set.of(ab, ac), 1000).equals(List.of(ad)), "Exact episode blacklist hid the wrong alternative");
+			check(memory.route(request(1, 1, a, b), PhantomNavigationPolicy.productionDefaults(), true, Set.of(), Set.of(ab, ac), 1000,
+				(from, to) -> !from.equals(d), () -> false).isEmpty(), "Blacklisted routes were reused");
 			memory.flush();
 		}
 		try (var memory = PhantomRouteLearning.open(root, geo))

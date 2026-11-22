@@ -31,6 +31,7 @@ import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomJourneyObservation;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
@@ -59,6 +60,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private final PhantomRelevanceSignalPort _signals;
 	private final Map<Long, Journey> _journeys = new ConcurrentHashMap<>();
 	private final Map<Long, Attempt> _attempts = new ConcurrentHashMap<>();
+	// The same factual goal spans several Attempts. Guard observations with the Attempt ownership lock.
+	private final Map<Long, PhantomJourneyObservation> _journeyObservations = new java.util.HashMap<>();
 	private final Map<Long, PendingStore> _pendingStores = new ConcurrentHashMap<>();
 	private final Map<Long, TerminalFailure> _terminalReasons = new ConcurrentHashMap<>();
 	private final java.util.concurrent.atomic.AtomicLong _failureSequence = new java.util.concurrent.atomic.AtomicLong();
@@ -367,6 +370,17 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (!_pendingStores.remove(profileId, pending)) { return false; }
 			if (pending.journey != null)
 			{
+				final var memory = _navigation.routeLearning();
+				final var observation = _journeyObservations.get(profileId);
+				final var identity = observation == null ? null : observationIdentity(pending.journey.attempt);
+				if (observation != null && identity != null)
+				{
+					if (destination && memory != null && !pending.player.isTeleporting())
+					{
+						memory.recordCompletedJourney(observation, identity, pending.anchorId, PhantomNativeTravelActions.point(pending.player), _clock.getAsLong());
+					}
+					else if (!destination) { observation.checkpoint(); }
+				}
 				_journeys.remove(profileId, pending.journey);
 				closeRoutePhase(profileId, pending.journey);
 			}
@@ -476,6 +490,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				synchronized (_attempts)
 				{
 					if ((_attempts.get(profileId) != attempt) || attempt.terminal || (_journeys.putIfAbsent(profileId, journey) != null)) { return false; }
+					beginJourneyObservation(profileId, attempt, targetAnchor);
 				}
 			}
 			if ((journey.nativeBudget == null && !journey.nativeIdleWalk && (_clock.getAsLong() - attempt.startedNanos) >= _navigation.policy().maximumAttemptDurationNanos())
@@ -624,7 +639,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			final var receipt = PhantomNativeTravelActions.gatekeeper(player, stage.gatekeeper());
 			journey.reason = "travel.native_gatekeeper_" + receipt.status().name().toLowerCase(java.util.Locale.ROOT) + ";fee=" + receipt.fee() + ";before=" + receipt.before() + ";after=" + receipt.after();
-			if (receipt.status() == PhantomNativeTravelActions.Status.ARRIVED) { clearRoute(profileId, journey); journey.stageIndex++; hold(profileId); }
+			if (receipt.status() == PhantomNativeTravelActions.Status.ARRIVED)
+			{
+				observeTransport(profileId, journey);
+				clearRoute(profileId, journey);
+				journey.stageIndex++;
+				hold(profileId);
+			}
 			else if (receipt.status() == PhantomNativeTravelActions.Status.PAID_WITHOUT_ARRIVAL || receipt.status() == PhantomNativeTravelActions.Status.INSUFFICIENT_RESOURCES) { fail(profileId, journey, journey.reason, Disposition.ROUTE_UNUSABLE); }
 			else { retryOrFail(profileId, journey, Disposition.NATIVE_ACTION_REJECTED); }
 			return false;
@@ -636,7 +657,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (journey.returnOperation == null) { journey.reason="travel.native_return_unavailable"; retryOrFail(profileId, journey, Disposition.NATIVE_ACTION_REJECTED); }
 			else { journey.reason="travel.native_return_cast;millis="+stage.millis(); hold(profileId); }
 		}
-		else if (journey.returnOperation.arrived()) { journey.returnOperation=null; journey.stageIndex++; journey.reason="travel.native_return_arrived"; hold(profileId); }
+		else if (journey.returnOperation.arrived())
+		{
+			observeTransport(profileId, journey);
+			journey.returnOperation = null;
+			journey.stageIndex++;
+			journey.reason = "travel.native_return_arrived";
+			hold(profileId);
+		}
 		else { hold(profileId); }
 		return false;
 	}
@@ -848,7 +876,54 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			&& unsafeSegment(from, to, false, 0) == null && leg.published().compareAndSet(false, true))
 		{
 			memory.arrived(leg.edge());
+			synchronized (_attempts)
+			{
+				final var observation = _journeyObservations.get(profileId);
+				if (observation != null && _journeys.get(profileId) == journey && _attempts.get(profileId) == journey.attempt
+					&& observationIdentity(journey.attempt) != null)
+				{
+					observation.walked(leg.edge());
+				}
+			}
 		}
+	}
+
+	private void beginJourneyObservation(long profileId, Attempt attempt, PhantomTopologyAnchor finalAnchor)
+	{
+		if (finalAnchor == null || _navigation.routeLearning() == null) { return; }
+		final var identity = observationIdentity(attempt);
+		if (identity == null) { return; }
+		final var existing = _journeyObservations.get(profileId);
+		if (existing != null && existing.matches(identity, finalAnchor.id())) { return; }
+		if (existing == null && _journeyObservations.size() >= _navigation.policy().maximumTrackedProfiles()) { return; }
+		final var from = PhantomNativeTravelActions.point(attempt.player);
+		final var target = finalAnchor.point();
+		if (from.instanceId() != 0 || target.instanceId() != 0) { return; }
+		_journeyObservations.put(profileId, new PhantomJourneyObservation(identity, from,
+			new PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId()), finalAnchor.id(), _clock.getAsLong()));
+	}
+
+	private void observeTransport(long profileId, Journey journey)
+	{
+		synchronized (_attempts)
+		{
+			final var observation = _journeyObservations.get(profileId);
+			if (observation != null && _journeys.get(profileId) == journey && _attempts.get(profileId) == journey.attempt
+				&& observationIdentity(journey.attempt) != null)
+			{
+				observation.transported();
+			}
+		}
+	}
+
+	private static PhantomJourneyObservation.Identity observationIdentity(Attempt attempt)
+	{
+		final var player = attempt.player;
+		final var owner = player.getNativeWorkOwner();
+		final int objectId = player.getObjectId();
+		return owner != null && owner == attempt.nativeOwner && owner.player() == player && owner.isCurrent() && owner.epoch() == attempt.epoch
+			&& World.getInstance().getPlayer(objectId) == player && !player.isDead() && !player.isInParty() && player.hasHeadlessOutboundSession()
+			? new PhantomJourneyObservation.Identity(objectId, attempt.epoch, attempt.goal.goalId(), attempt.goal.revision()) : null;
 	}
 
 	/** Inspect stock native legs; water is allowed only before the first dry cell of an exit. */
@@ -1094,12 +1169,30 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private void fail(long profileId, Attempt attempt, String stepId, String reason, Disposition disposition)
 	{
+		final var outcome = switch (disposition)
+		{
+			case ROUTE_UNUSABLE -> PhantomJourneyObservation.Failure.ROUTE;
+			case NATIVE_ACTION_REJECTED -> PhantomJourneyObservation.Failure.NATIVE;
+			case INDETERMINATE_ROUTE -> PhantomJourneyObservation.Failure.BUDGET;
+			default -> null;
+		};
+		final var memory = _navigation.routeLearning();
+		final boolean observeFailure = outcome != null && memory != null && !attempt.player.hasPendingOwnedStore()
+			&& _materialization.find(profileId).filter(lifetime -> lifetime.characterObjectId() == attempt.player.getObjectId()
+				&& lifetime.materializedAtNanos() == attempt.epoch).isPresent()
+			&& currentGoal(profileId, attempt.goal);
 		synchronized (_attempts)
 		{
 			if ((_attempts.get(profileId) != attempt) || attempt.terminal) { return; }
 			attempt.terminal = true;
 			clearRoutePhase(attempt);
 			rememberFailure(profileId, reason, disposition, attempt);
+			final var observation = _journeyObservations.get(profileId);
+			if (observeFailure && observation != null)
+			{
+				final var identity = observationIdentity(attempt);
+				if (identity != null) { memory.recordFailedJourney(observation, identity, outcome, _clock.getAsLong()); }
+			}
 		}
 		if (reason.startsWith("travel.navigation_") || reason.equals("travel.search_limit") || reason.equals("travel.no_route_within_budget"))
 		{
@@ -1356,6 +1449,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		synchronized (_attempts)
 		{
 			clearRoutePhase(_attempts.remove(profileId));
+			_journeyObservations.remove(profileId);
 		}
 	}
 

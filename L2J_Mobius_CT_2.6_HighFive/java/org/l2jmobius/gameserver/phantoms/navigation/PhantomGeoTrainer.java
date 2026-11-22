@@ -6,7 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Properties;
@@ -19,6 +21,8 @@ import java.util.logging.Logger;
 import org.l2jmobius.gameserver.config.GeoEngineConfig;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.SubmissionStatus;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Edge;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 
@@ -32,6 +36,8 @@ public final class PhantomGeoTrainer
 	private static final int[][] OFFSETS = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
 	private static final int MAX_ANCHORS = 2048;
 	private static final int PROBE_DISTANCE = 2400;
+	static final int TICK_MILLIS = 200;
+	private static final long MINUTE_NANOS = TimeUnit.MINUTES.toNanos(1);
 
 	record Settings(boolean learning, boolean trainer, int workers, int probesPerMinute, int saveSeconds, Path path)
 	{
@@ -48,7 +54,7 @@ public final class PhantomGeoTrainer
 				throw new IllegalArgumentException("GeoTrainerDataPath must be the default relative path or an absolute checkout path.");
 			}
 			return new Settings(flag(ini, "EnableRouteLearning", true), flag(ini, "EnableSuperGeoTrainer", false),
-				number(ini, "GeoTrainerMaxWorkers", 1, 1, 2), number(ini, "GeoTrainerMaxProbesPerMinute", 20, 1, 20),
+				number(ini, "GeoTrainerMaxWorkers", 1, 1, 2), number(ini, "GeoTrainerMaxProbesPerMinute", 20, 1, 100),
 				number(ini, "GeoTrainerSaveIntervalSeconds", 120, 15, 3600), datapack.resolve(configured).toAbsolutePath().normalize());
 		}
 
@@ -67,7 +73,31 @@ public final class PhantomGeoTrainer
 			return value;
 		}
 
-		long probeSpacingNanos() { return (TimeUnit.MINUTES.toNanos(1) + probesPerMinute - 1) / probesPerMinute; }
+	}
+
+	static final class ProbePacing
+	{
+		private final long _spacing;
+		private long _next;
+		private boolean _armed;
+
+		ProbePacing(int probesPerMinute)
+		{
+			_spacing = (MINUTE_NANOS + probesPerMinute - 1) / probesPerMinute;
+		}
+
+		boolean take(long now, boolean idle)
+		{
+			if (!idle || (_armed && now - _next < 0)) { return false; }
+			deferAfter(now);
+			return true;
+		}
+
+		void deferAfter(long now)
+		{
+			_armed = true;
+			_next = now + _spacing;
+		}
 	}
 
 	private record Probe(long profile, long request) { }
@@ -75,16 +105,22 @@ public final class PhantomGeoTrainer
 	private final Settings _settings;
 	private final PhantomNavigationService _navigation;
 	private final PhantomTopologyQuery _topology;
+	private final ProbePacing _pacing;
 	private final ScheduledThreadPoolExecutor _writer = new ScheduledThreadPoolExecutor(1, Thread.ofPlatform().daemon().name("PhantomGeoTrainer").factory());
 	private final List<Probe> _active = new ArrayList<>(2);
 	private volatile PhantomRouteLearning _memory;
 	private volatile boolean _stopping;
 	private List<PhantomNavigationPoint> _anchors = List.of();
-	private long _nextProbe;
+	private String _anchorsFingerprint;
 	private long _nextSave;
+	private long _nextReport;
 	private int _cursor;
-	private int _probes;
-	private int _routes;
+	private int _savedCursor = -1;
+	private final ArrayDeque<Long> _recentAccepted = new ArrayDeque<>(100);
+	private long _attempts;
+	private long _accepted;
+	private long _completed;
+	private long _routes;
 
 	static PhantomGeoTrainer start(Path datapack, PhantomNavigationService navigation, PhantomTopologyQuery topology)
 	{
@@ -106,9 +142,10 @@ public final class PhantomGeoTrainer
 		_settings = settings;
 		_navigation = navigation;
 		_topology = topology;
+		_pacing = new ProbePacing(settings.probesPerMinute());
 		_writer.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
 		_writer.execute(this::initialize);
-		_writer.scheduleWithFixedDelay(this::tick, 1, 1, TimeUnit.SECONDS);
+		_writer.scheduleWithFixedDelay(this::tick, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS);
 	}
 
 	PhantomRouteLearning memory()
@@ -129,17 +166,40 @@ public final class PhantomGeoTrainer
 			{
 				_anchors = _topology.snapshot().anchors().stream().map(anchor -> anchor.point())
 					.filter(point -> point.instanceId() == 0).map(point -> new PhantomNavigationPoint(point.x(), point.y(), point.z(), point.instanceId()))
-					.distinct().limit(MAX_ANCHORS).toList();
+					.distinct().sorted(Comparator.comparingInt(PhantomNavigationPoint::x).thenComparingInt(PhantomNavigationPoint::y)
+						.thenComparingInt(PhantomNavigationPoint::z)).limit(MAX_ANCHORS).toList();
+				if (!_anchors.isEmpty())
+				{
+					_anchorsFingerprint = anchorFingerprint(_anchors);
+					_cursor = _memory.loadCursor(_anchorsFingerprint, cursorLimit());
+				}
 			}
-			_nextSave = System.nanoTime() + TimeUnit.SECONDS.toNanos(_settings.saveSeconds());
-			_nextProbe = System.nanoTime();
-			LOGGER.info("Phantom route learning ready, GeoData=" + fingerprint + ", trainer=" + _settings.trainer() + ", anchors=" + _anchors.size());
+			final long now = System.nanoTime();
+			_nextSave = now + TimeUnit.SECONDS.toNanos(_settings.saveSeconds());
+			_nextReport = now + MINUTE_NANOS;
+			LOGGER.info("Phantom route learning ready, GeoData=" + fingerprint + ", trainer=" + _settings.trainer()
+				+ ", anchors=" + _anchors.size() + ", cursor=" + _cursor + "/" + cursorLimit() + ", probe_limit_per_minute=" + _settings.probesPerMinute());
 		}
 		catch (IOException | RuntimeException ex)
 		{
 			if (!_stopping) { LOGGER.log(Level.WARNING, "Phantom route learning unavailable at " + _settings.path(), ex); }
 		}
 	}
+
+	private static String anchorFingerprint(List<PhantomNavigationPoint> anchors)
+	{
+		final var digest = PhantomRouteLearning.sha256();
+		final var values = java.nio.ByteBuffer.allocate(4 * Integer.BYTES);
+		for (var point : anchors)
+		{
+			values.clear();
+			values.putInt(point.x()).putInt(point.y()).putInt(point.z()).putInt(point.instanceId());
+			digest.update(values.array());
+		}
+		return HexFormat.of().formatHex(digest.digest());
+	}
+
+	private int cursorLimit() { return _anchors.size() * (OFFSETS.length + 1); }
 
 	static Path checkoutPath(Path configured) throws IOException
 	{
@@ -201,29 +261,35 @@ public final class PhantomGeoTrainer
 		{
 			_active.removeIf(probe -> {
 				final var result = _navigation.consume(probe.request()).orElse(null);
-				if (result != null) { saveCandidate(result); }
+				if (result != null) { completeProbe(result); }
 				return result != null || _navigation.find(probe.request()).isEmpty();
 			});
 			final long now = System.nanoTime();
 			if (now - _nextSave >= 0)
 			{
 				_nextSave = now + TimeUnit.SECONDS.toNanos(_settings.saveSeconds());
-				_memory.flush();
+				try { _memory.flush(); }
+				finally { saveCursor(); }
 			}
-			if (!_anchors.isEmpty() && _active.size() < _settings.workers() && now - _nextProbe >= 0 && _navigation.canProbeGeo())
+			if (now - _nextReport >= 0)
 			{
-				_nextProbe = now + _settings.probeSpacingNanos();
-				probe(Math.max(1, now));
+				_nextReport = now + MINUTE_NANOS;
+				report(now, false);
+			}
+			if (!_stopping && !_anchors.isEmpty() && _active.size() < _settings.workers() && _pacing.take(System.nanoTime(), _navigation.canProbeGeo()))
+			{
+				_attempts++;
+				probe();
 			}
 		}
 		catch (IOException | RuntimeException ex) { LOGGER.log(Level.WARNING, "Phantom route learning tick failed", ex); }
 	}
 
-	private void probe(long now)
+	private void probe()
 	{
 		final int index = _cursor % _anchors.size();
 		final int round = _cursor / _anchors.size();
-		_cursor = (_cursor + 1) % (_anchors.size() * (OFFSETS.length + 1));
+		_cursor = (_cursor + 1) % cursorLimit();
 		final var anchor = _anchors.get(index);
 		final var backend = new L2jNavigationBackend();
 		final var origin = backend.learnedSurface(anchor, 100);
@@ -245,20 +311,31 @@ public final class PhantomGeoTrainer
 		final var destination = backend.learnedSurface(target, 100);
 		if (_stopping || destination == null || origin.equals(destination) || _memory.find(new Edge(origin, destination)) != null) { return; }
 		final long profile = _active.stream().anyMatch(probe -> probe.profile() == Long.MAX_VALUE) ? Long.MAX_VALUE - 1 : Long.MAX_VALUE;
+		final long now = Math.max(1, System.nanoTime());
 		final var request = new PhantomNavigationRequest(profile, origin, destination, now, now + _navigation.policy().defaultRequestDeadlineNanos(), 3000);
 		final var submission = _navigation.submitGeoProbe(request);
 		if (submission.requestId() == 0) { return; }
-		_probes++;
+		if (submission.status() == SubmissionStatus.REJECTED || (submission.immediateResult() != null && submission.immediateResult().status() == Status.QUEUE_BACKPRESSURE))
+		{
+			_navigation.consume(submission.requestId());
+			return;
+		}
+		final long submitted = System.nanoTime();
+		_pacing.deferAfter(submitted);
+		trimAccepted(submitted);
+		_recentAccepted.addLast(submitted);
+		_accepted++;
 		if (submission.immediateResult() != null)
 		{
 			_navigation.consume(submission.requestId());
-			saveCandidate(submission.immediateResult());
+			completeProbe(submission.immediateResult());
 		}
 		else { _active.add(new Probe(profile, submission.requestId())); }
 	}
 
-	private void saveCandidate(PhantomNavigationResult result)
+	private void completeProbe(PhantomNavigationResult result)
 	{
+		_completed++;
 		if (_stopping || result.route() == null || result.route().mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA) { return; }
 		var from = result.route().origin();
 		for (var to : result.route().waypoints())
@@ -269,6 +346,35 @@ public final class PhantomGeoTrainer
 		_routes++;
 	}
 
+	private void trimAccepted(long now)
+	{
+		while (!_recentAccepted.isEmpty() && now - _recentAccepted.getFirst() >= MINUTE_NANOS) { _recentAccepted.removeFirst(); }
+	}
+
+	private void saveCursor() throws IOException
+	{
+		if (_anchorsFingerprint != null && _savedCursor != _cursor)
+		{
+			_memory.saveCursor(_anchorsFingerprint, _cursor);
+			_savedCursor = _cursor;
+		}
+	}
+
+	private void report(long now, boolean stopped) throws IOException
+	{
+		trimAccepted(now);
+		final var legs = _memory.legTotals();
+		final var journeys = _memory.journeyTotals();
+		final String status = "state=" + (stopped ? "stopped" : "running") + " probe_limit_per_minute=" + _settings.probesPerMinute()
+			+ " accepted_last_60s=" + _recentAccepted.size() + " attempts=" + _attempts + " accepted=" + _accepted + " completed=" + _completed
+			+ " candidate_routes=" + _routes + " cursor=" + _cursor + "/" + cursorLimit() + " regions=" + legs.regions()
+			+ " PROVEN=" + legs.proven() + " CANDIDATE=" + legs.candidate() + " full_journeys_completed=" + journeys.completed()
+			+ " full_journeys_failed=" + journeys.failed() + " cross_region_completed=" + journeys.crossRegion()
+			+ " journey_stats_writable=" + _memory.journeyStatsWritable();
+		LOGGER.info("Phantom GeoTrainer " + status);
+		_memory.writeFile("trainer-status.txt", status.replace(' ', '\n') + "\n");
+	}
+
 	void beginStop()
 	{
 		_stopping = true;
@@ -276,9 +382,16 @@ public final class PhantomGeoTrainer
 		if (memory != null) { memory.stopAccepting(); }
 		_writer.execute(() ->
 		{
-			try { if (_memory != null) { _memory.close(); } }
+			if (_memory == null) { return; }
+			try
+			{
+				try (var memoryToClose = _memory)
+				{
+					try { saveCursor(); }
+					finally { report(System.nanoTime(), true); }
+				}
+			}
 			catch (IOException | RuntimeException ex) { LOGGER.log(Level.WARNING, "Phantom route learning final flush failed", ex); }
-			LOGGER.info("Phantom GeoTrainer stopped, probes=" + _probes + ", candidate routes=" + _routes);
 		});
 		_writer.shutdown();
 	}

@@ -21,11 +21,13 @@
 package org.l2jmobius.gameserver.phantoms.navigation;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.function.LongSupplier;
 
@@ -96,6 +98,7 @@ public final class PhantomNavigationService
 	private final ArrayBlockingQueue<RequestEntry> _queue;
 	private final Map<Long, RequestEntry> _activeByRequest = new LinkedHashMap<>();
 	private final Map<Long, RequestEntry> _activeByProfile = new LinkedHashMap<>();
+	private final Set<RequestEntry> _geoProbes = new HashSet<>(2);
 	private final LinkedHashMap<Long, PhantomNavigationResult> _completed = new LinkedHashMap<>();
 	private final LinkedHashMap<Long, PhantomTravelStrategy.Candidate> _completedTravelPlans = new LinkedHashMap<>();
 	private final LinkedHashMap<CacheKey, CacheEntry> _cache = new LinkedHashMap<>(16, 0.75f, true);
@@ -188,7 +191,7 @@ public final class PhantomNavigationService
 		synchronized (_monitor)
 		{
 			return _state == ServiceState.RUNNING && _queue.isEmpty() && _workers < _policy.maximumConcurrentPathfinders()
-				&& _activeByRequest.values().stream().allMatch(entry -> entry._geoProbe);
+				&& _activeByRequest.size() == _geoProbes.size();
 		}
 	}
 
@@ -250,6 +253,12 @@ public final class PhantomNavigationService
 			entry = new RequestEntry(requestId, request, walkCorridor, walkEpisode, travelOptions, visited, blocked, soloWalk, geoProbe);
 			_activeByRequest.put(requestId, entry);
 			_activeByProfile.put(request.profileId(), entry);
+			if (geoProbe) { _geoProbes.add(entry); }
+			else if (!_geoProbes.isEmpty())
+			{
+				// Cancel queued probes before they can run and let in-flight GeoData yield cooperatively.
+				for (var probe : List.copyOf(_geoProbes)) { cancel(probe._request.profileId(), probe._requestId); }
+			}
 		}
 		return processDirect(entry);
 	}
@@ -540,7 +549,7 @@ public final class PhantomNavigationService
 				return completeSubmissionLocked(entry, Status.CANCELLED, null, false, true);
 			}
 			if (entry._geoProbe && !canProbeGeo()) { return completeSubmissionLocked(entry, Status.QUEUE_BACKPRESSURE, null, false, true); }
-			final Long cooldownUntil = _cooldowns.get(entry._request.profileId());
+			final Long cooldownUntil = entry._geoProbe ? null : _cooldowns.get(entry._request.profileId());
 			if ((cooldownUntil != null) && (cooldownUntil > afterCache))
 			{
 				_metrics.recordNavigationCooldownRejected();
@@ -798,21 +807,21 @@ public final class PhantomNavigationService
 					}
 					if (deadlineExpired(entry._request, completedLogicalNanos))
 					{
-						setCooldownLocked(entry._request.profileId(), completedLogicalNanos);
+						if (!entry._geoProbe) { setCooldownLocked(entry._request.profileId(), completedLogicalNanos); }
 						completeLocked(entry, result(entry, Status.DEADLINE_EXPIRED, null, false, completedLogicalNanos), true);
 						_metrics.recordNavigationPathTimedOut();
 						continue;
 					}
 					if (failure != null)
 					{
-						setCooldownLocked(entry._request.profileId(), completedLogicalNanos);
+						if (!entry._geoProbe) { setCooldownLocked(entry._request.profileId(), completedLogicalNanos); }
 						completeLocked(entry, result(entry, Status.BACKEND_FAILURE, null, false, completedLogicalNanos), true);
 						_metrics.recordNavigationPathFailed();
 						continue;
 					}
 					if (validated._status != Status.PATH_FOUND)
 					{
-						setCooldownLocked(entry._request.profileId(), completedLogicalNanos);
+						if (!entry._geoProbe) { setCooldownLocked(entry._request.profileId(), completedLogicalNanos); }
 						completeLocked(entry, result(entry, validated._status, null, false, completedLogicalNanos), true);
 						if (validated._status == Status.NO_PATH)
 						{
@@ -848,30 +857,14 @@ public final class PhantomNavigationService
 	{
 		final var memory = routeLearning();
 		if (memory == null || !(_backend instanceof L2jNavigationBackend nativeBackend) || entry._request.origin().instanceId() != 0) { return null; }
-		final var origin = entry._request.origin();
-		final var goal = entry._request.destination();
-		for (var edge : memory.hints(origin, goal, entry._walkEpisode, entry._blockedEdges, System.currentTimeMillis()))
-		{
-			if (interruption(entry, cancellationGeneration) != Status.PATH_FOUND) { break; }
-			final boolean complete = PhantomRouteLearning.connector(edge.to(), goal);
-			if (!complete && PhantomWalkCorridorPlanner.nearVisited(edge.to(), entry._episodeVisited)) { continue; }
-			final var points = new java.util.ArrayList<PhantomNavigationPoint>(3);
-			if (!origin.equals(edge.from())) { points.add(edge.from()); }
-			points.add(edge.to());
-			if (complete && !edge.to().equals(goal)) { points.add(goal); }
-			entry._episodeDestination = points.getLast();
-			final var validated = validateBackendPath(entry, points, cancellationGeneration, (from, to) ->
-			{
-				final boolean allowed = nativeBackend.canWalkLearned(from, to);
-				if (!allowed && edge.from().equals(from) && edge.to().equals(to))
-				{
-					memory.failed(edge, PhantomRouteLearning.Failure.TRANSIENT, System.currentTimeMillis());
-				}
-				return allowed;
-			});
-			if (validated._status == Status.PATH_FOUND) { return validated; }
-			entry._episodeDestination = null;
-		}
+		final var points = memory.route(entry._request, _policy, entry._walkEpisode, entry._episodeVisited, entry._blockedEdges, System.currentTimeMillis(),
+			(from, to) -> permitsSegment(entry, from, to) && nativeBackend.canWalkLearned(from, to),
+			() -> interruption(entry, cancellationGeneration) != Status.PATH_FOUND);
+		if (points.isEmpty()) { return null; }
+		if (entry._walkEpisode) { entry._episodeDestination = points.getLast(); }
+		final var validated = validateBackendPath(entry, points, cancellationGeneration, nativeBackend::canWalkLearned);
+		if (validated._status == Status.PATH_FOUND) { return validated; }
+		entry._episodeDestination = null;
 		return null;
 	}
 
@@ -1039,6 +1032,7 @@ public final class PhantomNavigationService
 	{
 		_activeByRequest.remove(entry._requestId, entry);
 		_activeByProfile.remove(entry._request.profileId(), entry);
+		if (entry._geoProbe) { _geoProbes.remove(entry); }
 		entry._state = RequestState.TERMINAL;
 		entry._terminalResult = result;
 		if (retain)
