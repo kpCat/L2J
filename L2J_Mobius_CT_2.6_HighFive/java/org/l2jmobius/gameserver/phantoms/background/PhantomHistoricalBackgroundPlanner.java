@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Spa
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdge;
@@ -65,6 +66,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	private static final int FALLBACK_TARGETS = 256;
 	private static final int MAXIMUM_TARGET_PAGES = 8;
 	private static final int MAXIMUM_OFFSCREEN_NATIVE_PROOFS = 256;
+	private static final int RECOVERY_WALK_DISTANCE = PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance();
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomBackgroundAuthority _authority;
@@ -195,6 +197,20 @@ public final class PhantomHistoricalBackgroundPlanner
 			availability.put(candidate.spec().anchorId(), false);
 		}
 		return Result.blocked("planner.visible_route.unavailable");
+	}
+
+	/** One ordinary target proposal from the factual origin for asynchronous WALK verification. */
+	Result proposeVisibleRecovery(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomTopologyAnchor> availableAnchor)
+	{
+		if (live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return Result.blocked("planner.visible_route.unavailable"); }
+		final var previous = PhantomBackgroundGoalSpec.parse(previousGoal);
+		final var availability = new java.util.HashMap<String, Boolean>();
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(),
+			previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed,
+			planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, live, PlanningCombat.from(state), false,
+			candidate -> !previous.anchorId().equals(candidate.anchor().id())
+				&& availability.computeIfAbsent(candidate.anchor().id(), _ -> availableAnchor.test(candidate.anchor())), new java.util.HashMap<>(), null, RECOVERY_WALK_DISTANCE);
 	}
 	/** Select only the agreed farm source through the existing bounded target/route planner. */
 	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
@@ -744,6 +760,12 @@ public final class PhantomHistoricalBackgroundPlanner
 	}
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, Candidate exactPartyCandidate)
 	{
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter,
+			deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, admitted, viability, exactPartyCandidate, 0);
+	}
+
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, Candidate exactPartyCandidate, int recoveryWalkDistance)
+	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
 			return Result.blocked("planner.request.invalid");
@@ -766,7 +788,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			{
 				final KnowledgePage<TargetFact> page = targets(Math.max(1, level - radius), maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
 				if (live == null) { addCandidates(candidates, seenCandidates, currentAnchorId, page.values(), allowOffscreen, rejections, offscreenAttempts, combat, viability, excludedTargets); }
-				else { addLocalCandidates(candidates, live, page.values()); }
+				else { addLocalCandidates(candidates, live, page.values(), recoveryWalkDistance); }
 				candidates.removeIf(candidate ->
 				{
 					final boolean denied = excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id())
@@ -792,10 +814,10 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		if (live != null)
 		{
-			candidates.sort(Comparator.comparingLong((Candidate value) -> localFarmDistance(value.anchor(), live)).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
+			candidates.sort(Comparator.comparingLong((Candidate value) -> visibleFarmDistance(value.anchor(), live, recoveryWalkDistance)).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
 			if (candidates.size() > 8) { candidates.subList(8, candidates.size()).clear(); }
 		}
-		if (live != null) { candidates.sort(Comparator.comparingLong((Candidate value) -> localFarmDistance(value.anchor(), live)).thenComparingInt(value -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id())); }
+		if (live != null) { candidates.sort(Comparator.comparingLong((Candidate value) -> visibleFarmDistance(value.anchor(), live, recoveryWalkDistance)).thenComparingInt(value -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id())); }
 		final Candidate selected = live == null ? selectGlobal(candidates, profileId, deterministicSeed, planOrdinal, level) : candidates.getFirst();
 		final Map<String, Long> constraints = new LinkedHashMap<>();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, shotItemId, PhantomBackgroundGoalSpec.SHOT_COUNT, shotsPerEncounter);
@@ -960,6 +982,12 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private void addLocalCandidates(List<Candidate> candidates, PhantomTopologyPoint live, List<TargetFact> targets)
 	{
+		addLocalCandidates(candidates, live, targets, 0);
+	}
+
+	private void addLocalCandidates(List<Candidate> candidates, PhantomTopologyPoint live, List<TargetFact> targets, int recoveryWalkDistance)
+	{
+		final long maximumSquared = recoveryWalkDistance > 0 ? (long) recoveryWalkDistance * recoveryWalkDistance : 4_000_000L;
 		for (TargetFact target : targets)
 		{
 			for (var area : target.representativeAreas())
@@ -967,7 +995,7 @@ public final class PhantomHistoricalBackgroundPlanner
 				if ((area.instanceId() != live.instanceId()) || (area.totalConfiguredAmount() <= 0) || (area.topologyNodeId() == null)) { continue; }
 				for (var anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
 				{
-					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (localFarmDistance(anchor, live) <= 4_000_000L)
+					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (visibleFarmDistance(anchor, live, recoveryWalkDistance) <= maximumSquared)
 						&& ((anchor.npcId() == null) || (anchor.npcId() == target.npc().npcId())))
 					{
 						final var candidate = new Candidate(target, anchor, List.of(), 0, 0);
@@ -976,6 +1004,15 @@ public final class PhantomHistoricalBackgroundPlanner
 				}
 			}
 		}
+	}
+
+	private long visibleFarmDistance(PhantomTopologyAnchor anchor, PhantomTopologyPoint live, int recoveryWalkDistance)
+	{
+		if (recoveryWalkDistance == 0) { return localFarmDistance(anchor, live); }
+		final var point = anchor.point();
+		if (point.instanceId() != live.instanceId()) { return Long.MAX_VALUE; }
+		final long dz = (long) point.z() - live.z();
+		return point.distanceSquared2D(live) + dz * dz;
 	}
 
 	private static void putPositivePair(Map<String, Long> constraints, String itemKey, int itemId, String countKey, int count)

@@ -1203,6 +1203,21 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return Optional.of(runVisibleCheckpoint(request));
 	}
 
+	boolean discardUnwrittenVisibleCheckpoint(long profileId, Player player, PhantomGoal goal)
+	{
+		if (player.hasPendingOwnedStore()) { return false; }
+		final var request = _visibleCheckpoints.get(profileId);
+		if (request == null) { return true; }
+		if (request.player != player || !request.goal.equals(goal) || !request.executing.compareAndSet(false, true)) { return false; }
+		try
+		{
+			final var result = request.result;
+			return (result == null || result.outcome() == CheckpointOutcome.RETRY_BEFORE_WRITE) && request.scope.open()
+				&& !player.hasPendingOwnedStore() && visibleCheckpointOwnerCurrent(request) && _visibleCheckpoints.remove(profileId, request);
+		}
+		finally { request.executing.set(false); }
+	}
+
 	private boolean visibleCheckpointOwnerCurrent(VisibleCheckpoint request)
 	{
 		return visibleCheckpointOwnerCurrent(request, true);

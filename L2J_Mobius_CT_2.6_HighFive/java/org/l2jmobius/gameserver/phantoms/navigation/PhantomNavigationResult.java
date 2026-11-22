@@ -22,8 +22,12 @@ package org.l2jmobius.gameserver.phantoms.navigation;
 
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.CapabilitySnapshot;
 
-public record PhantomNavigationResult(Status status, long profileId, long requestId, CapabilitySnapshot capability, PhantomNavigationRoute route, boolean fromCache, long completedLogicalNanos, BudgetProof proof)
+public record PhantomNavigationResult(Status status, long profileId, long requestId, CapabilitySnapshot capability, PhantomNavigationRoute route, boolean fromCache, long completedLogicalNanos, BudgetProof proof, PhantomFarmSwimRoute.Plan swim)
 {
+	public PhantomNavigationResult(Status status, long profileId, long requestId, CapabilitySnapshot capability, PhantomNavigationRoute route, boolean fromCache, long completedLogicalNanos, BudgetProof proof)
+	{
+		this(status, profileId, requestId, capability, route, fromCache, completedLogicalNanos, proof, null);
+	}
 	public PhantomNavigationResult(Status status, long profileId, long requestId, CapabilitySnapshot capability, PhantomNavigationRoute route, boolean fromCache, long completedLogicalNanos)
 	{ this(status, profileId, requestId, capability, route, fromCache, completedLogicalNanos, BudgetProof.unknown()); }
 	public enum LimitKind { NONE, UNKNOWN, CHORD_DISTANCE, PATH_DISTANCE, RAW_WAYPOINTS, WAYPOINTS, SEARCH_LIMIT, SEGMENT_BLOCKED, NO_PATH_WITHIN_SEARCH }
@@ -57,6 +61,7 @@ public record PhantomNavigationResult(Status status, long profileId, long reques
 		DIRECT_VALIDATED,
 		DIRECT_UNVERIFIED_NO_GEODATA,
 		PATH_FOUND,
+		SWIM_FOUND,
 		NO_GEODATA,
 		PATHFINDING_DISABLED,
 		NO_PATH,
@@ -94,6 +99,10 @@ public record PhantomNavigationResult(Status status, long profileId, long reques
 		if (successful != (route != null))
 		{
 			throw new IllegalArgumentException("Only successful results may contain a route.");
+		}
+		if ((status == Status.SWIM_FOUND) != (swim != null))
+		{
+			throw new IllegalArgumentException("A shore crossing requires its own typed proof.");
 		}
 		if (fromCache && (status != Status.PATH_FOUND))
 		{

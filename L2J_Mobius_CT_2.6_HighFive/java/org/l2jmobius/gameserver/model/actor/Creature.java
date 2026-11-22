@@ -3817,6 +3817,13 @@ public abstract class Creature extends WorldObject
 			|| move.xDestination != x || move.yDestination != y || move.zDestination != z) { return null; }
 		return () -> move._physicallyArrived;
 	}
+
+	/** Read-only witness of the exact move, including a native shortened or redirected dispatch. */
+	public java.util.function.BooleanSupplier captureNativeMoveIdentity()
+	{
+		final MoveData move = _move;
+		return () -> move != null && _move == move;
+	}
 	
 	/**
 	 * Add a Func to the Calculator set of the Creature.<br>

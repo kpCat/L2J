@@ -49,8 +49,30 @@ public final class PhantomRouteLearningChecks
 		capacityRoundtrip(root.resolve("capacity"));
 		probeCadenceAndPriority();
 		directedGraphAndProgress(root.resolve("routing"));
+		regionalRecoveryWake(root.resolve("farm-recovery"));
 		journeyOutcomes(root.resolve("journeys"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
+	}
+
+	private static void regionalRecoveryWake(Path root) throws Exception
+	{
+		Files.createDirectory(root);
+		try (var memory = PhantomRouteLearning.open(root, "a".repeat(64)))
+		{
+			final var origin = point(31_900);
+			final var connector = point(32_720);
+			final var destination = point(33_600);
+			final int scope = PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance();
+			memory.propose(new Edge(origin, connector));
+			memory.arrived(new Edge(point(200_000), point(200_820)));
+			check(memory.recoveryProofGeneration(origin, destination, scope) == 0, "Unrelated region woke farm recovery");
+			memory.arrived(new Edge(connector, destination));
+			final long ready = memory.recoveryProofGeneration(origin, destination, scope);
+			check(ready > 0 && memory.find(new Edge(origin, destination)) == null, "New directed connector did not wake without an exact edge");
+			memory.arrived(new Edge(connector, destination));
+			check(memory.recoveryProofGeneration(origin, destination, scope) == ready, "Repeated receipt opened another recovery wake-up");
+		}
+		System.out.println("PASS new regional learned connector wakes a bounded route without invented exact or reverse evidence");
 	}
 
 	private static void physicalScoutLocalSession()

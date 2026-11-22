@@ -31,9 +31,14 @@ final class PhantomRouteGraph
 		static Cell of(PhantomNavigationPoint point) { return new Cell(point.x() >> CELL_SHIFT, point.y() >> CELL_SHIFT, point.instanceId()); }
 	}
 
-	record Shard(Map<Edge, Evidence> entries, Map<Cell, List<Edge>> outgoing)
+	record Shard(Map<Edge, Evidence> entries, Map<Cell, List<Edge>> outgoing, long proofGeneration)
 	{
 		static Shard of(Map<Edge, Evidence> entries)
+		{
+			return of(entries, 0);
+		}
+
+		static Shard of(Map<Edge, Evidence> entries, long generation)
 		{
 			final var cells = new HashMap<Cell, List<Edge>>();
 			for (var edge : entries.keySet())
@@ -45,12 +50,12 @@ final class PhantomRouteGraph
 				edges.sort(EDGE_ORDER);
 				return List.copyOf(edges);
 			});
-			return new Shard(entries, Map.copyOf(cells));
+			return new Shard(entries, Map.copyOf(cells), generation);
 		}
 
-		Shard updated(Map<Edge, Evidence> updated, Edge added, Edge evicted)
+		Shard updated(Map<Edge, Evidence> updated, Edge added, Edge evicted, long generation)
 		{
-			if (added == null) { return new Shard(updated, outgoing); }
+			if (added == null) { return new Shard(updated, outgoing, generation); }
 			final var cells = new HashMap<>(outgoing);
 			if (evicted != null)
 			{
@@ -64,7 +69,7 @@ final class PhantomRouteGraph
 			final var edges = new ArrayList<>(cells.getOrDefault(cell, List.of()));
 			edges.add(-Collections.binarySearch(edges, added, EDGE_ORDER) - 1, added);
 			cells.put(cell, List.copyOf(edges));
-			return new Shard(updated, Map.copyOf(cells));
+			return new Shard(updated, Map.copyOf(cells), generation);
 		}
 	}
 

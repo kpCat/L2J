@@ -96,9 +96,11 @@ public final class PhantomCoordination130Integration
 	public static void main(String[] args) throws Exception
 	{
         if (args.length < 2 || args.length > 3 || !List.of("group-pve", "group-pve-resume", "group-pve-close", "group-pve-route", "group-pve-route-resume", "group-pve-route-close",
-            "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "publication-retry", "publication-retry-resume", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart", "census").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
+            "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "publication-retry", "publication-retry-resume", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart", "census", PhantomFarmRouteRecovery006Native.MODE).contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
+		final boolean farmRecovery = PhantomFarmRouteRecovery006Native.MODE.equals(args[0]);
+		if (farmRecovery && !rendezvousLane()) { throw new IllegalArgumentException("006 requires the owned rendezvous lane."); }
 		final boolean ownedContract = ownedContractLane();
 		if (ownedContract && !List.of("check", "prepare", "inspect", "test", "resume", "ownership", "ownership-resume", "cold").contains(args[0]))
 		{ throw new IllegalArgumentException("Owned contract lane cannot run native or prepare a gameplay fixture."); }
@@ -106,10 +108,11 @@ public final class PhantomCoordination130Integration
 		{ throw new IllegalArgumentException("Census actions require the isolated census lane."); }
 		final boolean isolatedF7 = lane().equals("first-party") && args[0].equals("authority-f7");
 		final boolean isolatedGroupProof = lane().equals("first-party") && List.of("group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close").contains(args[0]);
-		if (!ownedContract && !censusLane() && firstPartyLane() && !isolatedF7 && !isolatedGroupProof && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
+		if (!ownedContract && !censusLane() && firstPartyLane() && !isolatedF7 && !isolatedGroupProof && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart", PhantomFarmRouteRecovery006Native.MODE).contains(args[0]))
 		{ throw new IllegalArgumentException("First Party lane is reserved for the native fixture."); }
 		if (isolatedGroupProof && !PhantomCoordination130Native.validateInfrastructure(module))
 		{ throw new IllegalArgumentException("The SQL-only group proof requires the exact owned pre-CUT runtime."); }
+		final Path farmRecoveryRuntime = farmRecovery ? PhantomFarmRouteRecovery006Native.verifyRuntime(module) : null;
 		final Path local = localRoot(module), config = local.resolve("Database.ini");
 		Class.forName("com.mysql.cj.jdbc.Driver");
 		if (args[0].equals("check") || args[0].equals("prepare"))
@@ -195,13 +198,14 @@ public final class PhantomCoordination130Integration
             final String foreign = args[0].equals("probe-live") ? " AND USER<>'" + settings.getProperty("Login") + "'" : "";
             try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB='" + SCHEMA + "' AND ID<>CONNECTION_ID()" + foreign))
 			{ if (!rows.next() || rows.getInt(1) != 0) { throw new IllegalStateException("TEST130 has foreign sessions."); } }
-			if (isolatedF7)
+			if (isolatedF7 || farmRecovery)
 			{
 				try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT (SELECT COUNT(*) FROM phantom_profiles) + (SELECT COUNT(*) FROM characters)"))
-				{ if (!rows.next() || rows.getLong(1) != 0) { throw new IllegalStateException("F7 requires a fresh isolated First Party schema."); } }
+				{ if (!rows.next() || rows.getLong(1) != 0) { throw new IllegalStateException(farmRecovery ? "006 requires a fresh isolated rendezvous schema." : "F7 requires a fresh isolated First Party schema."); } }
 			}
 		}
 		if (args[0].equals("inspect")) { System.out.println("SQL130_INSPECT_ONLY;SQL_WRITES=0"); return; }
+		if (farmRecovery) { PhantomFarmRouteRecovery006Native.run(module, farmRecoveryRuntime); return; }
         if (args[0].equals("fixture")) { PhantomCoordination130Native.prepareOnly(module); return; }
 		if (args[0].equals("native") || args[0].equals("restart") || args[0].equals("census")) { PhantomCoordination130Native.run(module, args[0].equals("restart")); return; }
 		final long start = System.nanoTime();

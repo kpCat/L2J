@@ -101,6 +101,7 @@ public final class PhantomRouteLearning implements AutoCloseable
 	private final Set<Region> _readOnly = new HashSet<>();
 	private final Set<Region> _dirty = new HashSet<>();
 	private volatile Map<Region, PhantomRouteGraph.Shard> _snapshot = Map.of();
+	private long _proofGeneration;
 	private final Map<JourneyKey, JourneyCounts> _journeys = new HashMap<>();
 	private long _journeyRevision;
 	private long _savedJourneyRevision = -1;
@@ -143,6 +144,23 @@ public final class PhantomRouteLearning implements AutoCloseable
 	{
 		final var shard = _snapshot.get(Region.of(edge.from()));
 		return shard == null ? null : shard.entries().get(edge);
+	}
+
+	/** Cheap regional wake-up for a bounded WALK query. The queue still proves applicable directed connectors. */
+	public long recoveryProofGeneration(PhantomNavigationPoint origin, PhantomNavigationPoint destination, int maximumLocalDistance)
+	{
+		if (origin.instanceId() != 0 || destination.instanceId() != 0 || origin.distanceTo(destination) > maximumLocalDistance) { return 0; }
+		final var snapshot = _snapshot;
+		long generation = 0;
+		for (int x = (Math.min(origin.x(), destination.x()) - MAX_LEG) >> 15; x <= (Math.max(origin.x(), destination.x()) + MAX_LEG) >> 15; x++)
+		{
+			for (int y = (Math.min(origin.y(), destination.y()) - MAX_LEG) >> 15; y <= (Math.max(origin.y(), destination.y()) + MAX_LEG) >> 15; y++)
+			{
+				final var shard = snapshot.get(new Region(x, y));
+				if (shard != null) { generation = Math.max(generation, shard.proofGeneration()); }
+			}
+		}
+		return generation;
 	}
 
 	Edge scoutFrontier(PhantomNavigationPoint origin, long now, Predicate<Edge> permitted)
@@ -299,7 +317,9 @@ public final class PhantomRouteLearning implements AutoCloseable
 		entries.put(edge, next);
 		final var updated = new HashMap<>(_snapshot);
 		final var immutable = Map.copyOf(entries);
-		updated.put(region, previousShard == null ? PhantomRouteGraph.Shard.of(immutable) : previousShard.updated(immutable, added ? edge : null, evicted));
+		final long generation = old.successes() == 0 && next.successes() > 0 ? ++_proofGeneration : previousShard == null ? 0 : previousShard.proofGeneration();
+		updated.put(region, previousShard == null ? PhantomRouteGraph.Shard.of(immutable, generation)
+			: previousShard.updated(immutable, added ? edge : null, evicted, generation));
 		_snapshot = Map.copyOf(updated);
 		_dirty.add(region);
 	}

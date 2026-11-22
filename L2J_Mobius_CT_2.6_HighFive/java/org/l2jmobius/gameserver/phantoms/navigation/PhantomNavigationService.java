@@ -214,6 +214,12 @@ public final class PhantomNavigationService
 	{
 		return submit(request, true, Objects.requireNonNull(options, "options"));
 	}
+
+	public Submission submitFarmSwim(PhantomNavigationRequest request, PhantomFarmSwimRoute.Geometry geometry, double speed, long availableMillis)
+	{
+		return submit(request, true, true, null, Set.of(), Set.of(), false, false,
+			new SwimSearch(Objects.requireNonNull(geometry), speed, availableMillis));
+	}
 	public Optional<PhantomTravelStrategy.Candidate> consumeTravelPlan(long requestId)
 	{
 		synchronized (_monitor) { return Optional.ofNullable(_completedTravelPlans.remove(requestId)); }
@@ -234,6 +240,12 @@ public final class PhantomNavigationService
 
 	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions,
 		java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe)
+	{
+		return submit(request, walkCorridor, walkEpisode, travelOptions, visited, blocked, soloWalk, geoProbe, null);
+	}
+
+	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions,
+		java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe, SwimSearch swim)
 	{
 		Objects.requireNonNull(request, "request");
 		final RequestEntry entry;
@@ -261,7 +273,7 @@ public final class PhantomNavigationService
 				_metrics.recordNavigationSubmissionRejected();
 				return rejected(request.profileId(), Status.BACKEND_FAILURE);
 			}
-			entry = new RequestEntry(requestId, request, walkCorridor, walkEpisode, travelOptions, visited, blocked, soloWalk, geoProbe);
+			entry = new RequestEntry(requestId, request, walkCorridor, walkEpisode, travelOptions, visited, blocked, soloWalk, geoProbe, swim);
 			_activeByRequest.put(requestId, entry);
 			_activeByProfile.put(request.profileId(), entry);
 			if (geoProbe) { _geoProbes.add(entry); }
@@ -464,7 +476,7 @@ public final class PhantomNavigationService
 		{
 			capability = Objects.requireNonNull(_backend.capability(entry._request.origin(), entry._request.destination()), "Backend capability must not be null.");
 			entry._capability = capability;
-			direct = (!entry._walkEpisode || directDistance <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
+			direct = entry._swim == null && (!entry._walkEpisode || directDistance <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
 				&& (entry._travelOptions == null || directDistance <= _policy.maximumLocalStraightDistance()) && canMove(entry, entry._request.origin(), entry._request.destination());
 		}
 		catch (Throwable throwable)
@@ -757,6 +769,13 @@ public final class PhantomNavigationService
 				Throwable failure = null;
 				try
 				{
+					if (entry._swim != null)
+					{
+						final var swim = entry._swim;
+						entry._swimPlan = PhantomFarmSwimRoute.plan(entry._request.origin(), entry._request.destination(),
+							swim.geometry(), swim.speed(), swim.availableMillis(), () -> interruption(entry, cancellationGeneration) != Status.PATH_FOUND);
+						validated = new ValidatedPath(entry._swimPlan == null ? Status.NO_PATH : Status.SWIM_FOUND, null);
+					}
 					if (entry._soloWalk) { validated = learnedPath(entry, cancellationGeneration); }
 					if (validated == null && entry._travelOptions != null)
 					{
@@ -828,6 +847,12 @@ public final class PhantomNavigationService
 						if (!entry._geoProbe) { setCooldownLocked(entry._request.profileId(), completedLogicalNanos); }
 						completeLocked(entry, result(entry, Status.BACKEND_FAILURE, null, false, completedLogicalNanos), true);
 						_metrics.recordNavigationPathFailed();
+						continue;
+					}
+					if (validated._status == Status.SWIM_FOUND)
+					{
+						completeLocked(entry, result(entry, Status.SWIM_FOUND, null, false, completedLogicalNanos), true);
+						_metrics.recordNavigationPathSucceeded();
 						continue;
 					}
 					if (validated._status != Status.PATH_FOUND)
@@ -1076,7 +1101,8 @@ public final class PhantomNavigationService
 	private PhantomNavigationResult result(RequestEntry entry, Status status, PhantomNavigationRoute route, boolean fromCache, long logicalNow)
 	{
 		final var proof = entry._proof.origin() == null ? PhantomNavigationResult.BudgetProof.context(PhantomNavigationResult.LimitKind.UNKNOWN, requestKind(entry), entry._request, _policy) : entry._proof;
-		return new PhantomNavigationResult(status, entry._request.profileId(), entry._requestId, entry._capability, route, fromCache, Math.max(0, logicalNow), proof);
+		return new PhantomNavigationResult(status, entry._request.profileId(), entry._requestId, entry._capability, route, fromCache, Math.max(0, logicalNow), proof,
+			status == Status.SWIM_FOUND ? entry._swimPlan : null);
 	}
 
 	private Submission rejected(long profileId, Status status)
@@ -1164,7 +1190,8 @@ public final class PhantomNavigationService
 		return entry._request.permitsWalkSegment(from, to) && !entry._blockedEdges.contains(new PhantomWalkCorridorPlanner.Edge(from, to));
 	}
 
-	private static String requestKind(RequestEntry entry) { return entry._travelOptions != null ? "TRAVEL" : entry._walkEpisode ? "EPISODE" : entry._walkCorridor ? "CORRIDOR" : "PATH"; }
+	private static String requestKind(RequestEntry entry) { return entry._swim != null ? "FARM_SWIM" : entry._travelOptions != null ? "TRAVEL" : entry._walkEpisode ? "EPISODE" : entry._walkCorridor ? "CORRIDOR" : "PATH"; }
+	private record SwimSearch(PhantomFarmSwimRoute.Geometry geometry, double speed, long availableMillis) { }
 	private static final class RequestEntry
 	{
 		private PhantomNavigationResult.BudgetProof _proof = PhantomNavigationResult.BudgetProof.unknown();
@@ -1178,7 +1205,9 @@ public final class PhantomNavigationService
 		private final boolean _soloWalk;
 		private final boolean _geoProbe;
 		private final PhantomTravelStrategy.Options _travelOptions;
+		private final SwimSearch _swim;
 		private PhantomTravelStrategy.Candidate _selectedPlan;
+		private PhantomFarmSwimRoute.Plan _swimPlan;
 		private final PhantomNavigationCancellationToken _cancellation = new PhantomNavigationCancellationToken();
 		private final long _initialCancellationGeneration = _cancellation.generation();
 		private RequestState _state = RequestState.DIRECT_CHECK;
@@ -1187,7 +1216,7 @@ public final class PhantomNavigationService
 		private boolean _submissionCounted;
 
 		private RequestEntry(long requestId, PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions,
-			java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe)
+			java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe, SwimSearch swim)
 		{
 			_requestId = requestId;
 			_request = request;
@@ -1198,6 +1227,7 @@ public final class PhantomNavigationService
 			_soloWalk = soloWalk;
 			_geoProbe = geoProbe;
 			_travelOptions = travelOptions;
+			_swim = swim;
 		}
 	}
 

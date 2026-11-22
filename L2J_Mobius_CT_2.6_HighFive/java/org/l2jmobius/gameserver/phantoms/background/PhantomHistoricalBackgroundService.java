@@ -1917,6 +1917,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 			stage = "permits_decision";
 			if (!permitsDecision(profileId)) { return false; }
+			final var recoveryReturn = _visibleTravel == null ? PhantomVisibleFarmTravel.RecoveryReturn.NONE
+				: _visibleTravel.continueRecoveryReturn(profileId, stored.goal());
+			if (recoveryReturn == PhantomVisibleFarmTravel.RecoveryReturn.HOLD) { stage = "learned_return_pending"; return false; }
+			final boolean returned = recoveryReturn == PhantomVisibleFarmTravel.RecoveryReturn.LANDED;
 			stage = "native_handoff_completion";
 			if (finishNativeContextHandoff(profileId, stored.goal())) { return false; }
 			stage = "materialization";
@@ -1926,6 +1930,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
 				if ((action == null) || (action.player().getObjectId() != admitted.characterObjectId()) || action.player().hasPendingOwnedStore()) { return false; }
+				if (_visibleTravel != null && sharedFarmSource == null
+					&& _visibleTravel.finishEarnedRecovery(profileId, stored.goal(), action.player(), admitted.materializedAtNanos()))
+				{
+					_visibleEpisodes.computeIfPresent(profileId, (_, episode) ->
+						episode.objectId == admitted.characterObjectId() && episode.epoch == admitted.materializedAtNanos() ? null : episode);
+				}
+				if (_visibleTravel != null && sharedFarmSource == null
+					&& _visibleTravel.yieldDryWalkForCombat(profileId, stored.goal(), action.player(), admitted.materializedAtNanos()))
+				{ stage = "combat_yield"; return false; }
 			}
 			stage = "reload";
 			if (!runtimeMatches(runtime, stored))
@@ -2055,12 +2068,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, combat.vitals(), baseline.position(), combat.combat(), loadout, baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
-			final boolean spatialRecovery = spatialWait != null
+			final boolean spatialRecovery = returned || spatialWait != null
 				&& !(freshLocal && Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), stored.goal()));
 			if (spatialCooldown && spatialRecovery) { return false; }
 			final boolean exactRouteRecovery = !historicalIdle && failures != null && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
 				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
-			final boolean routeRecovery = spatialRecovery || exactRouteRecovery;
+			final boolean routeRecovery = spatialRecovery || exactRouteRecovery || returned;
 			stage = "logical_assembly";
 			if (logicalAssemblyHoldsRoot(profileId, stored.goal(), sharedFarmSource != null)) { return false; }
 			stage = "suitability_travel";
@@ -2088,6 +2101,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if ((catchup == null) || (catchup.state().goalId() != stored.goal().goalId()) || (catchup.state().goalRevision() != stored.goal().revision())
 				|| ((catchup.state().status() != Status.COMPLETE) && ((handoff == null) || !exactForegroundHandoff(profileId, handoff)))) { return false; }
 			final long now = _visibleClock.getAsLong();
+			if (returned && episode != null && episode.waiting(now, null)) { return false; }
 			stage = "local_replan";
 			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
 			if (exactRouteRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
@@ -2097,12 +2111,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!spatialRecovery) { excluded.addAll(recovery.targets); }
 			if (routeRecovery) { excluded.add(targetKey(stored.goal())); }
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
-			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate -> !spatialRecovery && _planner.isVisibleLocal(candidate, live)
-				|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player, spatialRecovery));
+			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate ->
+				_planner.isVisibleLocal(candidate, live)
+					|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player));
 			final boolean travelOnly = rendezvousTravelPreparation(profileId, stored.goal(), sharedFarmSource != null);
 			final var replacement = spatialRecovery
-				? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel,
-					anchor -> !_visibleTravel.searchHeldAtAnchor(profileId, player, lifetime.materializedAtNanos(), anchor))
+				? _planner.proposeVisibleRecovery(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
+					anchor -> _visibleTravel.recoveryAnchorAvailable(stored.goal(), player, anchor))
 				: sharedFarmSource == null
 				? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
@@ -2110,6 +2125,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!replacement.ready())
 			{
 				stage += ":" + replacement.reasonKey();
+				if (spatialRecovery && !returned && sharedFarmSource == null && !freshLocal
+					&& _visibleTravel.queueRecoveryReturn(profileId, stored.goal(), player, lifetime.materializedAtNanos(), live, baseline,
+						() -> Objects.equals(decision.currentGoal(profileId).orElse(null), stored.goal())))
+				{
+					stage = "learned_return_pending";
+					return false;
+				}
 				final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
 				if (recorder.isRecording())
 				{
@@ -2120,11 +2142,21 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				recovery.unavailable(now, spatialRecovery ? spatialWait : null); return false;
 			}
 			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
+			if (spatialRecovery)
+			{
+				if (!replacement.generation().equals(generation) || !generation.equals(_planner.generation())) { return false; }
+				final var admission = _visibleTravel.assessRecoveryWalk(stored.goal(), replacement.goal(), live, player);
+				if (admission != PhantomVisibleFarmTravel.RecoveryWalkAdmission.VERIFIED)
+				{
+					stage = "spatial_walk." + admission.name().toLowerCase(java.util.Locale.ROOT);
+					return false;
+				}
+			}
 			final var state = catchup.state();
 			final var updated = historicalIdle && !travelOnly
 				? state.withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.generation().authorityHashes())
 				: new PhantomBackgroundCatchupState(state.status(), state.requestId(), state.deterministicSeed(), state.fromEpochMinute(), state.targetEpochMinute(), state.cursorEpochMinute(), nextOrdinal, state.intervalOrdinal(), state.generation(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.goal().goalId(), replacement.goal().revision(), replacement.planIdentity(), state.modelVersion(), replacement.generation().authorityHashes(), state.failureReason());
-			final var publication = new VisiblePublication(player, lifetime.materializedAtNanos(), handoff, catchup, stored, updated, replacement.goal());
+			final var publication = new VisiblePublication(player, lifetime.materializedAtNanos(), handoff, catchup, stored, updated, replacement.goal(), spatialRecovery);
 			if (_visiblePublications.putIfAbsent(profileId, publication) != null) { return false; }
 			if (sharedFarmSource != null && (!rendezvousCurrent(profileId, expectedGoal, reservationCurrent)
 				|| travelOnly && !rendezvousTravelPreparation(profileId, stored.goal(), true)
@@ -2132,14 +2164,18 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{ _visiblePublications.remove(profileId, publication); return false; }
 			if (_acceptedIntent.test(profileId, stored.goal()) || sharedFarmSource == null && _acceptedPartyRoot.test(profileId, stored.goal())
 				|| logicalAssemblyHoldsRoot(profileId, stored.goal(), sharedFarmSource != null))
-			{ _visiblePublications.remove(profileId, publication); return false; }
+			{ discardVisiblePublication(profileId, publication); return false; }
+			if (spatialRecovery && (!generation.equals(_planner.generation()) || !_visibleTravel.recoveryWalkCurrent(stored.goal(), replacement.goal(), player)))
+			{ discardVisiblePublication(profileId, publication); return false; }
+			if (returned && (!generation.equals(_planner.generation()) || !_visibleTravel.recoveryReturnLandingCurrent(profileId, stored.goal(), player, live)))
+			{ discardVisiblePublication(profileId, publication); return false; }
 			try { publication.committed = _store.replacePlan(profileId, catchup, updated, stored, replacement.goal()); }
 			catch (RuntimeException exception)
 			{
 				// Resolve an ambiguous DB return only to the exact proposed components; never grant on drift.
 				final var persisted = _store.load(profileId).orElse(null); final var persistedGoal = _goals.load(profileId).orElse(null);
 				if ((persisted != null) && (persistedGoal != null) && persisted.state().equals(updated) && persistedGoal.goal().equals(replacement.goal()) && (persisted.rowVersion() == catchup.rowVersion() + 1) && (persistedGoal.rowVersion() == stored.rowVersion() + 1)) { publication.committed = new PlannedSnapshot(persisted, persistedGoal); }
-				else { _visiblePublications.remove(profileId, publication); return false; }
+				else { discardVisiblePublication(profileId, publication); return false; }
 			}
 			if (sharedFarmSource == null && !historicalIdle && !authorityRenewal && !routeRecovery) { recovery.targets.add(targetKey(replacement.goal())); }
 			stage = "finish_publication";
@@ -2175,7 +2211,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{
 			final var state = _store.load(profileId).orElse(null); final var goal = _goals.load(profileId).orElse(null);
 			if ((state != null) && (goal != null) && state.state().equals(receipt.proposed) && goal.goal().equals(receipt.proposedGoal) && (state.rowVersion() == receipt.before.rowVersion() + 1) && (goal.rowVersion() == receipt.oldGoal.rowVersion() + 1)) { receipt.committed = new PlannedSnapshot(state, goal); }
-			else if (Objects.equals(state, receipt.before) && Objects.equals(goal, receipt.oldGoal)) { _visiblePublications.remove(profileId, receipt); return false; }
+			else if (Objects.equals(state, receipt.before) && Objects.equals(goal, receipt.oldGoal)) { discardVisiblePublication(profileId, receipt); return false; }
 			else { return false; }
 		}
 		final var committed = receipt.committed;
@@ -2197,6 +2233,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			|| (_visiblePublications.get(profileId) != receipt) || !visibleActorQuiet(profileId, receipt.player, receipt.epoch)) { return false; }
 		_visiblePublications.remove(profileId, receipt);
 		return permitsDecision(profileId);
+	}
+
+	private void discardVisiblePublication(long profileId, VisiblePublication receipt)
+	{
+		if (_visiblePublications.remove(profileId, receipt) && receipt.spatialRecovery)
+		{
+			_visibleTravel.abandonRecoveryWalk(receipt.oldGoal.goal(), receipt.proposedGoal, receipt.player);
+		}
 	}
 
 	/** Temporary native work returns its unchanged historical claim through the normal STORE boundary. */
@@ -2601,10 +2645,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final StoredGoal oldGoal;
 		final PhantomBackgroundCatchupState proposed;
 		final PhantomGoal proposedGoal;
+		final boolean spatialRecovery;
 		volatile PlannedSnapshot committed;
 		volatile ActiveForegroundHandoff rebound;
-		VisiblePublication(Player player, long epoch, ActiveForegroundHandoff handoff, Snapshot before, StoredGoal oldGoal, PhantomBackgroundCatchupState proposed, PhantomGoal proposedGoal)
-		{ this.player = player; this.epoch = epoch; this.handoff = handoff; this.before = before; this.oldGoal = oldGoal; this.proposed = proposed; this.proposedGoal = proposedGoal; }
+		VisiblePublication(Player player, long epoch, ActiveForegroundHandoff handoff, Snapshot before, StoredGoal oldGoal, PhantomBackgroundCatchupState proposed, PhantomGoal proposedGoal, boolean spatialRecovery)
+		{ this.player = player; this.epoch = epoch; this.handoff = handoff; this.before = before; this.oldGoal = oldGoal; this.proposed = proposed; this.proposedGoal = proposedGoal; this.spatialRecovery = spatialRecovery; }
 	}
 
 	private record Exclusions(Set<String> targets, Set<String> steps)

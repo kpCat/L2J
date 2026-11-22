@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
-import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
@@ -28,11 +28,11 @@ final class PhantomFarmRouteBackoff
 	record Probe(Site site, PhantomNavigationPoint origin, PhantomNavigationPoint destination) { }
 
 	private final int _maximumProfiles;
-	private final ToIntFunction<Probe> _provenTraversals;
+	private final ToLongFunction<Probe> _provenTraversals;
 	private final BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> _sameSurface;
 	private final ConcurrentHashMap<Long, ProfileFailures> _failures = new ConcurrentHashMap<>();
 
-	PhantomFarmRouteBackoff(int maximumProfiles, ToIntFunction<Probe> provenTraversals, BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> sameSurface)
+	PhantomFarmRouteBackoff(int maximumProfiles, ToLongFunction<Probe> provenTraversals, BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> sameSurface)
 	{
 		_maximumProfiles = maximumProfiles;
 		_provenTraversals = provenTraversals;
@@ -88,8 +88,7 @@ final class PhantomFarmRouteBackoff
 
 	private boolean stillUnproven(Failure failure)
 	{
-		// This exact learned-edge lookup preserves immediate wake-up without repeating geometry or scanning failures.
-		return _provenTraversals.applyAsInt(failure.probe()) <= failure.provenTraversals();
+		return _provenTraversals.applyAsLong(failure.probe()) <= failure.provenTraversals();
 	}
 
 	void failed(Probe probe, LimitKind kind, int nativeQueries, long now, String diagnostic)
@@ -131,7 +130,7 @@ final class PhantomFarmRouteBackoff
 			}
 			if (profile.failures.size() >= MAX_ROUTES_PER_PROFILE) { profile.failures.removeFirst(); }
 			profile.activeUntil = now + RETRY_NANOS;
-			profile.failures.add(new Failure(probe, kind, profile.activeUntil, _provenTraversals.applyAsInt(probe)));
+			profile.failures.add(new Failure(probe, kind, profile.activeUntil, _provenTraversals.applyAsLong(probe)));
 			profile.checks.clear();
 			LOGGER.info(diagnostic + ";nextRetryMs=" + RETRY_NANOS / 1_000_000L);
 			profile.summarize(now);
@@ -156,7 +155,7 @@ final class PhantomFarmRouteBackoff
 			&& (a.z() == b.z() || _sameSurface.test(a, b));
 	}
 
-	private record Failure(Probe probe, LimitKind kind, long expiresAt, int provenTraversals) { }
+	private record Failure(Probe probe, LimitKind kind, long expiresAt, long provenTraversals) { }
 
 	private record Checked(Failure witness, long until) { }
 
