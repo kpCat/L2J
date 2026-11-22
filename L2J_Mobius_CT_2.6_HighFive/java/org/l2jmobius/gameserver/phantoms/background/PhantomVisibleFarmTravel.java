@@ -142,13 +142,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var firstRequest = step.id().startsWith("live.approach.") && step.fromAnchorId().equals(step.toAnchorId())
 			? PhantomNativeTravelActions.localWalkDestinations(origin, arrival, _navigation.policy().maximumLocalStraightDistance()).stream().findFirst().orElse(null) : arrival;
 		return firstRequest != null && origin.distanceTo(firstRequest) <= _navigation.policy().maximumLocalStraightDistance()
-			&& !_farmSearches.blocked(new PhantomFarmRouteBackoff.Probe(searchSite(profileId, player, epoch), origin, firstRequest), _clock.getAsLong(), true)
+			&& !_farmSearches.blocked(new PhantomFarmRouteBackoff.Probe(searchSite(profileId, player, epoch), origin, firstRequest), _clock.getAsLong())
 			&& new L2jNavigationBackend().canWalkDirect(origin, firstRequest);
 	}
 
 	boolean searchHeld(long profileId, PhantomGoal goal, Player player, long epoch)
 	{
-		if (player == null || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()) || !_farmSearches.hasFailures(profileId)
+		if (player == null || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()) || !_farmSearches.hasFailures(profileId, _clock.getAsLong())
 			|| player.isInParty() || _groupTravelSafety.test(profileId, goal)) { return false; }
 		final var site = searchSite(profileId, player, epoch);
 		final var origin = PhantomNativeTravelActions.point(player);
@@ -165,18 +165,19 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean searchHeldAtAnchor(PhantomFarmRouteBackoff.Site site, PhantomNavigationPoint origin, PhantomTopologyAnchor anchor)
 	{
-		return _farmSearches.blocked(new PhantomFarmRouteBackoff.Probe(site, origin, navigationPoint(anchor.point())), _clock.getAsLong(), true);
+		return _farmSearches.blocked(new PhantomFarmRouteBackoff.Probe(site, origin, navigationPoint(anchor.point())), _clock.getAsLong());
 	}
 
 	private boolean searchHeld(Attempt attempt, PhantomFarmRouteBackoff.Site site, PhantomNavigationPoint origin)
 	{
 		final var destination = attempt.indeterminateSearch != null ? attempt.indeterminateSearch.destination() : attempt.suppressedSearch;
-		return destination != null && _farmSearches.blocked(new PhantomFarmRouteBackoff.Probe(site, origin, destination), _clock.getAsLong(), true);
+		return destination != null && _farmSearches.blocked(new PhantomFarmRouteBackoff.Probe(site, origin, destination), _clock.getAsLong());
 	}
 
 	private PhantomFarmRouteBackoff.Site searchSite(long profileId, Player player, long epoch)
 	{
-		return new PhantomFarmRouteBackoff.Site(profileId, player.getObjectId(), epoch, _travel.topology().snapshot().generation(), ZoneManager.getInstance().loadedGeneration());
+		return new PhantomFarmRouteBackoff.Site(profileId, player.getObjectId(), epoch, _travel.topology().snapshot().generation(),
+			ZoneManager.getInstance().loadedGeneration(), GeoEngine.getInstance().generation());
 	}
 
 	private int provenSearchTraversals(PhantomFarmRouteBackoff.Probe probe)
@@ -638,14 +639,20 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if (action == null) { return false; }
 			final var player = action.player();
-			if (player.isDead() || player.isInParty() || player.hasPendingOwnedStore() || player.getObjectId() != lifetime.characterObjectId()) { return false; }
-			final var spec = PhantomBackgroundGoalSpec.parse(goal);
-			final var state = _background.acquisitionSnapshot(profileId).orElse(null);
-			final var anchor = _travel.topology().findAnchor(spec.anchorId()).orElse(null);
-			return state != null && state.state() == PhantomBackgroundState.State.MATERIALIZED
-				&& state.position().committedAnchorId().equals(spec.anchorId()) && anchor != null
-				&& hasLocalOpportunity(profileId, player, anchor, spec.npcId());
+			return player.getObjectId() == lifetime.characterObjectId()
+				&& hasFreshLocalActionUnderLease(profileId, goal, player, _background.acquisitionSnapshot(profileId).orElse(null));
 		}
+	}
+
+	/** The caller holds the current actor's action lease and has already read the baseline. */
+	boolean hasFreshLocalActionUnderLease(long profileId, PhantomGoal goal, Player player, PhantomBackgroundState state)
+	{
+		if (!_permitsOrdinary.test(profileId) || player.isDead() || player.isInParty() || player.hasPendingOwnedStore()
+			|| state == null || state.state() != PhantomBackgroundState.State.MATERIALIZED || state.identity().characterObjectId() != player.getObjectId()) { return false; }
+		final var spec = PhantomBackgroundGoalSpec.parse(goal);
+		if (!state.position().committedAnchorId().equals(spec.anchorId())) { return false; }
+		final var anchor = _travel.topology().findAnchor(spec.anchorId()).orElse(null);
+		return anchor != null && hasLocalOpportunity(profileId, player, anchor, spec.npcId());
 	}
 
 	private boolean hasLocalOpportunity(long profileId, Player player, PhantomTopologyAnchor anchor, int npcId)
@@ -800,6 +807,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		if (journey.requestId == 0)
 		{
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
+			final boolean ordinarySearch = !pveSafeWalk && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(journey.goal.goalType());
+			final var site = ordinarySearch ? searchSite(profileId, player, journey.epoch) : null;
+			final var held = journey.heldSearch;
+			if (ordinarySearch && held != null && held.site().equals(site) && held.origin().equals(current)
+				&& destination.equals(journey.heldWalkDestination) && _farmSearches.blocked(held, now)) { return false; }
+			journey.heldSearch = null;
+			journey.heldWalkDestination = null;
 			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
 			final List<PhantomNavigationRequest.PveThreat> threats;
 			try { threats = pveSafeWalk ? pveThreats(current, player.getLevel(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.instance.Monster.class, 3500))) : List.of(); }
@@ -813,11 +827,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			final var request = new PhantomNavigationRequest(profileId, current, requestDestination, now, journey.deadline, 100_000, threats);
 			journey.submittedSearch = null;
-			if (!pveSafeWalk && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(journey.goal.goalType()))
+			if (ordinarySearch)
 			{
-				final var probe = new PhantomFarmRouteBackoff.Probe(searchSite(profileId, player, journey.epoch), current, requestDestination);
-				if (_farmSearches.blocked(probe, now, true))
+				final var probe = new PhantomFarmRouteBackoff.Probe(site, current, requestDestination);
+				if (_farmSearches.blocked(probe, now))
 				{
+					journey.heldSearch = probe;
+					journey.heldWalkDestination = destination;
 					journey.attempt.suppressedSearch = requestDestination;
 					journey.reason = "travel.farm_search_backoff";
 					return false;
@@ -1169,9 +1185,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			final var checkpoint = checkpoints.get(index);
 			final var probe = new PhantomFarmRouteBackoff.Probe(failed.site(), origin, checkpoint);
-			if (_farmSearches.equivalent(failed, probe) || _farmSearches.blocked(probe, now, true)
+			if (_farmSearches.equivalent(failed, probe) || _farmSearches.blocked(probe, now)
 				|| !geometry.canWalkDirect(origin, checkpoint)) { continue; }
-			_farmSearches.failed(failed, proof.kind(), now, searchDiagnostic("Farm checkpoint search", profileId, journey.attempt, journey.step.id(), journey.reason, Disposition.INDETERMINATE_ROUTE));
+			_farmSearches.failed(failed, proof.kind(), proof.queries(), now, searchDiagnostic("Farm checkpoint search", profileId, journey.attempt, journey.step.id(), journey.reason, Disposition.INDETERMINATE_ROUTE));
 			journey.localApproach = index;
 			journey.verifiedCheckpointRetried = true;
 			clearRoute(profileId, journey);
@@ -1328,7 +1344,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		synchronized (_attempts)
 		{
 			if ((_attempts.get(profileId) != attempt) || attempt.terminal) { return; }
-			if (attempt.indeterminateSearch != null) { _farmSearches.failed(attempt.indeterminateSearch, attempt.proof.kind(), _clock.getAsLong(), diagnostic); }
+			if (attempt.indeterminateSearch != null) { _farmSearches.failed(attempt.indeterminateSearch, attempt.proof.kind(), attempt.proof.queries(), _clock.getAsLong(), diagnostic); }
 			attempt.terminal = true;
 			clearRoutePhase(attempt);
 			rememberFailure(profileId, reason, disposition, attempt);
@@ -1526,6 +1542,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 		journey.requestId = 0;
 		journey.submittedSearch = null;
+		journey.heldSearch = null;
+		journey.heldWalkDestination = null;
 		journey.waypoints = null;
 		journey.nativeLeg = null;
 		journey.route = null;
@@ -1694,6 +1712,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private long deadline;
 		private PhantomNavigationPoint arrivalPoint;
 		private PhantomFarmRouteBackoff.Probe submittedSearch;
+		private PhantomFarmRouteBackoff.Probe heldSearch;
+		private PhantomNavigationPoint heldWalkDestination;
 		private List<PhantomNavigationPoint> waypoints;
 		private PhantomNavigationRoute route;
 		private int trackedIndex = -1;

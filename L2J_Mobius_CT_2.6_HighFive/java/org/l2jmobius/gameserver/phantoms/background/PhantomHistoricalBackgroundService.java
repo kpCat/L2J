@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStor
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.OperationStatus;
+import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner.PlanningGeneration;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
@@ -54,6 +55,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.Ma
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
 /** Synchronous bounded owner for causal historical Background catch-up. */
 public final class PhantomHistoricalBackgroundService implements PhantomMaterializationLifecyclePort
@@ -1648,7 +1650,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final var lifetime = _materialization.find(profileId).orElse(null);
 		final long epoch = lifetime == null ? 0 : lifetime.materializedAtNanos();
 		final var episode = _visibleEpisodes.get(profileId);
-		if ((episode != null) && (episode.epoch == epoch) && !episode.spatialWait && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.cooldown"); }
+		if (episode != null && episode.epoch == epoch && episode.waiting(_visibleClock.getAsLong(), null)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.cooldown"); }
 		if (lifetime != null && _visibleTravel != null
 			&& _visibleTravel.searchHeld(profileId, goal, org.l2jmobius.gameserver.model.World.getInstance().getPlayer(lifetime.characterObjectId()), epoch)
 			&& !freshLocalAction(profileId, goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.farm_search_backoff"); }
@@ -1958,7 +1960,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if ((failures != null) && failures.protocolBlocked(stored.goal(), lifetime.materializedAtNanos())) { return false; }
 			stage = "cooldown";
 			final var episode = _visibleEpisodes.get(profileId);
-			if ((episode != null) && (episode.epoch == lifetime.materializedAtNanos()) && !episode.spatialWait && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
+			if (episode != null && episode.epoch == lifetime.materializedAtNanos() && episode.waiting(_visibleClock.getAsLong(), null)) { return false; }
 			stage = "baseline";
 			var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
 			if (baseline == null) { return false; }
@@ -2020,7 +2022,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 			final Player player;
 			final PhantomBackgroundState projected;
-			final org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint live;
+			final PhantomTopologyPoint live;
+			final SpatialWait spatialWait;
+			final boolean freshLocal;
+			final boolean spatialCooldown;
 			stage = "projection";
 			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
@@ -2028,6 +2033,19 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				player = action.player();
 				if (player.hasPendingOwnedStore() || (player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId())) { return false; }
 				if (player.isDead()) { prepared = sharedFarmSource == null && !historicalIdle; return prepared; } // Existing native farm death/recovery remains the decision adapter's responsibility.
+				final long epoch = lifetime.materializedAtNanos();
+				live = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+				spatialWait = sharedFarmSource == null && !historicalIdle && _visibleTravel != null
+					&& _visibleTravel.searchHeld(profileId, stored.goal(), player, epoch)
+					? new SpatialWait(stored.goal(), live, generation) : null;
+				freshLocal = spatialWait != null && _visibleTravel.hasFreshLocalActionUnderLease(profileId, stored.goal(), player, baseline);
+				spatialCooldown = spatialWait != null && !authorityRenewal && episode != null && episode.objectId == player.getObjectId()
+					&& episode.epoch == epoch && episode.waiting(_visibleClock.getAsLong(), spatialWait);
+				if (spatialCooldown && !freshLocal)
+				{
+					stage = "spatial_cooldown";
+					return false;
+				}
 				final var progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
 				// Planning reads current gear/resources; the persisted transaction baseline stays unchanged.
 				final var skill = org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.offensiveSkill(player, null);
@@ -2035,14 +2053,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				final var beforeLoadout = baseline.loadout();
 				final var loadout = new PhantomBackgroundState.Loadout(skill == null ? 0 : skill.getId(), skill == null ? 0 : skill.getLevel(), beforeLoadout.summonNpcId(), (int) Math.ceil(combat.requiredMp()), beforeLoadout.shotItemId(), beforeLoadout.shotsPerEncounter(), beforeLoadout.summonResourceItemId(), beforeLoadout.summonResourcesPerEncounter());
 				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, combat.vitals(), baseline.position(), combat.combat(), loadout, baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
-				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
-			final boolean spatialRecovery = sharedFarmSource == null && !historicalIdle && _visibleTravel != null
-				&& _visibleTravel.searchHeld(profileId, stored.goal(), player, lifetime.materializedAtNanos())
-				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
-			if (spatialRecovery && !authorityRenewal && episode != null && episode.epoch == lifetime.materializedAtNanos()
-				&& episode.spatialWait && _visibleClock.getAsLong() < episode.cooldownUntil) { return false; }
+			final boolean spatialRecovery = spatialWait != null
+				&& !(freshLocal && Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), stored.goal()));
+			if (spatialCooldown && spatialRecovery) { return false; }
 			final boolean exactRouteRecovery = !historicalIdle && failures != null && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
 				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
 			final boolean routeRecovery = spatialRecovery || exactRouteRecovery;
@@ -2077,7 +2092,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
 			if (exactRouteRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
 			else if (!spatialRecovery && sharedFarmSource == null && !authorityRenewal && !historicalIdle) { recovery.targets.add(targetKey(stored.goal())); }
-			if (!spatialRecovery && (recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now, false); return false; }
+			if (!spatialRecovery && (recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now, null); return false; }
 			final var excluded = new java.util.HashSet<>(exclusions.targets());
 			if (!spatialRecovery) { excluded.addAll(recovery.targets); }
 			if (routeRecovery) { excluded.add(targetKey(stored.goal())); }
@@ -2102,7 +2117,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 						"live=" + live.x() + "," + live.y() + "," + live.z() + ";reject=" + replacement.candidateRejections().stream().limit(2).toList(),
 						stored.goal().goalId(), lifetime.materializedAtNanos(), stored.goal().revision());
 				}
-				recovery.unavailable(now, spatialRecovery); return false;
+				recovery.unavailable(now, spatialRecovery ? spatialWait : null); return false;
 			}
 			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
 			final var state = catchup.state();
@@ -2550,6 +2565,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		ActiveForegroundHandoff(Admission admission, long materializedAtNanos) { this(admission, materializedAtNanos, 0); }
 	}
 
+	private record SpatialWait(PhantomGoal goal, PhantomTopologyPoint origin, PlanningGeneration generation) { }
+
+	private record VisibleCooldown(long until, SpatialWait spatial) { }
+
 	private static final class VisibleEpisode
 	{
 		final int objectId;
@@ -2557,15 +2576,19 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final long started;
 		final Set<String> targets = ConcurrentHashMap.newKeySet();
 		final Set<String> routes = ConcurrentHashMap.newKeySet();
-		volatile long cooldownUntil;
-		volatile boolean spatialWait;
+		volatile VisibleCooldown cooldown;
 		volatile String reason = "";
 		VisibleEpisode(int objectId, long epoch, long started) { this.objectId = objectId; this.epoch = epoch; this.started = started; }
-		void unavailable(long now, boolean spatial)
+		boolean waiting(long now, SpatialWait spatial)
+		{
+			final var current = cooldown;
+			return current != null && current.until() - now > 0 && Objects.equals(current.spatial(), spatial);
+		}
+		void unavailable(long now, SpatialWait spatial)
 		{
 			reason = "LOCAL_FARM_UNAVAILABLE";
-			cooldownUntil = spatial ? now + 30_000_000_000L : Math.max(now + 10_000_000_000L, started + 60_000_000_000L);
-			spatialWait = spatial;
+			final long until = spatial != null ? now + 30_000_000_000L : Math.max(now + 10_000_000_000L, started + 60_000_000_000L);
+			cooldown = new VisibleCooldown(until, spatial);
 		}
 	}
 

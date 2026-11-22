@@ -27,6 +27,7 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -103,6 +104,7 @@ public class GeoEngine
 	
 	// Region Management.
 	private static final AtomicReferenceArray<IRegion> REGIONS = new AtomicReferenceArray<>(GEO_REGIONS);
+	private final AtomicLong _generation = new AtomicLong();
 	
 	protected GeoEngine()
 	{
@@ -191,12 +193,14 @@ public class GeoEngine
 			{
 				final ByteBuffer buffer = ByteBuffer.wrap(Files.readAllBytes(geoFilePath)).order(ByteOrder.LITTLE_ENDIAN);
 				((Region) region).load(buffer);
+				_generation.incrementAndGet();
 				LOGGER.info(getClass().getSimpleName() + ": Reloaded region " + regionX + "_" + regionY + " from bytes.");
 				return true;
 			}
 			
 			// Not a real region? fallback load.
 			loadRegion(geoFilePath, regionX, regionY);
+			_generation.incrementAndGet();
 			LOGGER.info(getClass().getSimpleName() + ": Replaced NullRegion with new region " + regionX + "_" + regionY);
 			return true;
 		}
@@ -217,6 +221,13 @@ public class GeoEngine
 	{
 		final int regionOffset = (regionX * GEO_REGIONS_Y) + regionY;
 		REGIONS.set(regionOffset, region);
+		_generation.incrementAndGet();
+	}
+
+	/** Changes after a live reload or replacement invalidates prior surface observations. */
+	public long generation()
+	{
+		return _generation.get();
 	}
 	
 	/**

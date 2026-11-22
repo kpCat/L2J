@@ -2,6 +2,7 @@
 package org.l2jmobius.gameserver.phantoms.background;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
@@ -18,17 +19,18 @@ final class PhantomFarmRouteBackoff
 	private static final long RETRY_NANOS = 120_000_000_000L;
 	private static final long SUMMARY_NANOS = 30_000_000_000L;
 	private static final int MAX_ROUTES_PER_PROFILE = 8;
+	private static final int MAX_CHECKS_PER_PROFILE = 16;
 	private static final int ORIGIN_RADIUS = 96;
 	private static final int DESTINATION_RADIUS = 320;
 	private static final int FLOOR_TOLERANCE = 32;
 
-	record Site(long profileId, int objectId, long epoch, long topology, long zones) { }
+	record Site(long profileId, int objectId, long epoch, long topology, long zones, long geodata) { }
 	record Probe(Site site, PhantomNavigationPoint origin, PhantomNavigationPoint destination) { }
 
 	private final int _maximumProfiles;
 	private final ToIntFunction<Probe> _provenTraversals;
 	private final BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> _sameSurface;
-	private final ConcurrentHashMap<Long, List<Failure>> _failures = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, ProfileFailures> _failures = new ConcurrentHashMap<>();
 
 	PhantomFarmRouteBackoff(int maximumProfiles, ToIntFunction<Probe> provenTraversals, BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> sameSurface)
 	{
@@ -42,65 +44,97 @@ final class PhantomFarmRouteBackoff
 		return kind == LimitKind.NO_PATH_WITHIN_SEARCH || kind == LimitKind.SEARCH_LIMIT;
 	}
 
-	boolean hasFailures(long profileId) { return _failures.containsKey(profileId); }
+	boolean hasFailures(long profileId, long now)
+	{
+		final var profile = _failures.get(profileId);
+		return profile != null && profile.activeUntil - now > 0;
+	}
 
 	void clear(long profileId) { _failures.remove(profileId); }
 
-	boolean blocked(Probe probe, long now) { return blocked(probe, now, false); }
-
-	boolean blocked(Probe probe, long now, boolean suppressingSearch)
+	boolean blocked(Probe probe, long now)
 	{
-		final var failures = _failures.get(probe.site().profileId());
-		if (failures == null) { return false; }
-		synchronized (failures)
+		final var profile = _failures.get(probe.site().profileId());
+		if (profile == null || !profile.site.equals(probe.site()) || profile.activeUntil - now <= 0) { return false; }
+		synchronized (profile)
 		{
-			failures.removeIf(failure -> now - failure.recorded >= RETRY_NANOS);
-			boolean blocked = false;
-			for (var failure : failures)
+			final var remembered = profile.checks.get(probe);
+			if (remembered != null && remembered.until() - now > 0
+				&& (remembered.witness() == null || stillUnproven(remembered.witness())))
 			{
-				if (!failure.probe.site().equals(probe.site()) || !equivalent(failure.probe, probe)
-					|| _provenTraversals.applyAsInt(failure.probe) > failure.provenTraversals) { continue; }
-				blocked = true;
-				if (suppressingSearch)
-				{
-					failure.suppressed++;
-					failure.summarize(now);
-				}
+				profile.skippedChecks++;
+				profile.summarize(now);
+				return remembered.witness() != null;
 			}
-			return blocked;
+			profile.checks.remove(probe);
+			profile.backoffChecks++;
+			profile.failures.removeIf(failure -> failure.expiresAt() - now <= 0);
+			boolean equivalent = false;
+			for (var failure : profile.failures)
+			{
+				if (!equivalent(failure.probe(), probe)) { continue; }
+				equivalent = true;
+				if (!stillUnproven(failure)) { continue; }
+				profile.remember(probe, new Checked(failure, failure.expiresAt()));
+				profile.summarize(now);
+				return true;
+			}
+			// No matching failure can start blocking these coordinates until a new refusal arrives.
+			if (!equivalent) { profile.remember(probe, new Checked(null, profile.activeUntil)); }
+			profile.summarize(now);
+			return false;
 		}
 	}
 
-	void failed(Probe probe, LimitKind kind, long now, String diagnostic)
+	private boolean stillUnproven(Failure failure)
+	{
+		// This exact learned-edge lookup preserves immediate wake-up without repeating geometry or scanning failures.
+		return _provenTraversals.applyAsInt(failure.probe()) <= failure.provenTraversals();
+	}
+
+	void failed(Probe probe, LimitKind kind, int nativeQueries, long now, String diagnostic)
 	{
 		if (!indeterminate(kind)) { return; }
 		final long profileId = probe.site().profileId();
-		final List<Failure> failures;
 		synchronized (_failures)
 		{
 			if (!_failures.containsKey(profileId) && _failures.size() >= _maximumProfiles)
 			{
-				final var keys = _failures.keySet().iterator();
-				if (keys.hasNext()) { _failures.remove(keys.next()); }
-			}
-			failures = _failures.computeIfAbsent(profileId, _ -> new ArrayList<>());
-		}
-		synchronized (failures)
-		{
-			failures.removeIf(failure -> !failure.probe.site().equals(probe.site()) || now - failure.recorded >= RETRY_NANOS);
-			for (var failure : failures)
-			{
-				if (failure.kind == kind && equivalent(failure.probe, probe)
-					&& _provenTraversals.applyAsInt(failure.probe) <= failure.provenTraversals)
+				_failures.entrySet().removeIf(entry -> entry.getValue().activeUntil - now <= 0);
+				if (_failures.size() >= _maximumProfiles)
 				{
-					failure.repeats++;
-					failure.summarize(now);
+					final var keys = _failures.keySet().iterator();
+					if (keys.hasNext()) { _failures.remove(keys.next()); }
+				}
+			}
+			final var profile = _failures.compute(profileId, (_, previous) -> previous != null && previous.site.equals(probe.site())
+				? previous : new ProfileFailures(probe.site(), now));
+			// An expired profile can be evicted at capacity. Refresh it before another admission can evict it.
+			recordFailure(profile, probe, kind, nativeQueries, now, diagnostic);
+		}
+	}
+
+	private void recordFailure(ProfileFailures profile, Probe probe, LimitKind kind, int nativeQueries, long now, String diagnostic)
+	{
+		synchronized (profile)
+		{
+			profile.failedPathSearches++;
+			profile.pathfindingQueries += Math.max(0, nativeQueries);
+			profile.failures.removeIf(failure -> failure.expiresAt() - now <= 0);
+			for (var failure : profile.failures)
+			{
+				if (failure.kind() == kind && equivalent(failure.probe(), probe) && stillUnproven(failure))
+				{
+					profile.summarize(now);
 					return;
 				}
 			}
-			if (failures.size() >= MAX_ROUTES_PER_PROFILE) { failures.removeFirst(); }
-			failures.add(new Failure(probe, kind, now, _provenTraversals.applyAsInt(probe), diagnostic));
-			LOGGER.info(diagnostic + ";repeats=0;suppressed=0;nextRetryMs=" + RETRY_NANOS / 1_000_000L);
+			if (profile.failures.size() >= MAX_ROUTES_PER_PROFILE) { profile.failures.removeFirst(); }
+			profile.activeUntil = now + RETRY_NANOS;
+			profile.failures.add(new Failure(probe, kind, profile.activeUntil, _provenTraversals.applyAsInt(probe)));
+			profile.checks.clear();
+			LOGGER.info(diagnostic + ";nextRetryMs=" + RETRY_NANOS / 1_000_000L);
+			profile.summarize(now);
 		}
 	}
 
@@ -122,33 +156,52 @@ final class PhantomFarmRouteBackoff
 			&& (a.z() == b.z() || _sameSurface.test(a, b));
 	}
 
-	private static final class Failure
-	{
-		final Probe probe;
-		final LimitKind kind;
-		final long recorded;
-		final int provenTraversals;
-		final String diagnostic;
-		long lastSummary;
-		int repeats;
-		int suppressed;
+	private record Failure(Probe probe, LimitKind kind, long expiresAt, int provenTraversals) { }
 
-		Failure(Probe probe, LimitKind kind, long recorded, int provenTraversals, String diagnostic)
+	private record Checked(Failure witness, long until) { }
+
+	private static final class ProfileFailures
+	{
+		final Site site;
+		final List<Failure> failures = new ArrayList<>();
+		final LinkedHashMap<Probe, Checked> checks = new LinkedHashMap<>(MAX_CHECKS_PER_PROFILE, 0.75f, true);
+		volatile long activeUntil;
+		long lastSummary;
+		long failedPathSearches;
+		long pathfindingQueries;
+		long backoffChecks;
+		long skippedChecks;
+
+		ProfileFailures(Site site, long now)
 		{
-			this.probe = probe;
-			this.kind = kind;
-			this.recorded = recorded;
-			this.provenTraversals = provenTraversals;
-			this.diagnostic = diagnostic;
-			lastSummary = recorded;
+			this.site = site;
+			activeUntil = now + RETRY_NANOS;
+			lastSummary = now;
+		}
+
+		void remember(Probe probe, Checked checked)
+		{
+			checks.put(probe, checked);
+			if (checks.size() > MAX_CHECKS_PER_PROFILE) { checks.pollFirstEntry(); }
 		}
 
 		void summarize(long now)
 		{
 			if (now - lastSummary < SUMMARY_NANOS) { return; }
 			lastSummary = now;
-			LOGGER.info(diagnostic + ";summary=true;repeats=" + repeats + ";suppressed=" + suppressed
-				+ ";nextRetryMs=" + (RETRY_NANOS - (now - recorded)) / 1_000_000L);
+			long until = activeUntil - now;
+			for (var failure : failures)
+			{
+				final long remaining = failure.expiresAt() - now;
+				if (remaining > 0) { until = Math.min(until, remaining); }
+			}
+			LOGGER.info("Farm route backoff profile=" + site.profileId() + ";object=" + site.objectId() + ";epoch=" + site.epoch()
+				+ ";failedPathSearches=" + failedPathSearches + ";pathfindingQueries=" + pathfindingQueries
+				+ ";backoffChecks=" + backoffChecks + ";skippedChecks=" + skippedChecks + ";nextRetryMs=" + Math.max(0, until) / 1_000_000L);
+			failedPathSearches = 0;
+			pathfindingQueries = 0;
+			backoffChecks = 0;
+			skippedChecks = 0;
 		}
 	}
 }
