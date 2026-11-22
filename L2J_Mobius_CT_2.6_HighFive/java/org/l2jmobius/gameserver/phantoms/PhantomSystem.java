@@ -643,7 +643,7 @@ public final class PhantomSystem
 					populationCatalog,
 					productionGoals,
 					_scheduler,
-					profileId -> _materializationService.find(profileId).isPresent(),
+					_materializationService::ownsProfile,
 					Clock.systemUTC(),
 					_settings.populationTimeZone(),
 					_settings.populationTarget(),
@@ -796,7 +796,7 @@ public final class PhantomSystem
 				_materializationService.installSoftCleanupAdmission(this::softCleanupHumanAbsent);
 				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_backgroundService.installRecoveryReadmission(this::allowsRecoveryReadmission);
-				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || partyRetainsNativeLifetime(profileId) || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
+				_populationManager.installRetirementProtection(profileId -> physicalScoutReserved(profileId) || _materializationRetention.observe(profileId).hard() || partyRetainsNativeLifetime(profileId) || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING)
 					&& (_phantomStoreService.blocksDecision(profileId) || _materializationRetention.observe(profileId).retained()));
 				_reconcileMaterializationActivity.installSoftReclamationEpochs(requestingProfileId ->
@@ -1217,12 +1217,12 @@ public final class PhantomSystem
 				}
 				if (_offlineMerchantService != null) { controlPorts.add(executionControl(_offlineMerchantService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)); }
 				_physicalGeoScouts = _navigationService.installPhysicalScout(policy -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout(
-					policy, _scheduler, _materializationService, _executionAdmission, _navigationService, _populationManager.presence(),
-					after -> populationStore.loadManagedAfter(after, 24).stream().map(entry -> entry.profile().profileId()).toList(),
+					policy, _scheduler, _materializationService, _executionAdmission, _navigationService, _populationManager,
 					id -> physicalScoutEligible(id, productionGoals, true), id -> physicalScoutEligible(id, productionGoals, false),
 					this::physicalScoutSpareSlots, periodicEcology));
 				if (_physicalGeoScouts != null)
 				{
+					_materializationService.installPopulationAdmission(_populationManager::tryBeginPhysicalAdmission);
 					_reconcileMaterializationActivity.installScoutAdmission(id -> physicalScoutEligible(id, productionGoals, true));
 					controlPorts.add(_physicalGeoScouts);
 				}
@@ -4002,8 +4002,7 @@ public final class PhantomSystem
 
 	private boolean physicalScoutReserved(long profileId)
 	{
-		final var scouts = _physicalGeoScouts;
-		return scouts != null && scouts.reserved(profileId);
+		return _physicalGeoScouts != null && _populationManager.scoutReservation(profileId) != 0;
 	}
 
 	private int ordinaryOccupiedPhysicalSlots()
@@ -4020,9 +4019,9 @@ public final class PhantomSystem
 	private boolean physicalScoutEligible(long id, PhantomGoalStateStore goals, boolean requireCompletedHistory)
 	{
 		final var population = _populationManager.admissionProfile(id).orElse(null);
-		if (population == null || population.admitted() || !population.calendarOnline()
+		if (population == null || !population.calendarOnline()
 			|| population.populationState() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY
-			|| !testRosterAllows(id) || !soloExecution(id) || _humanLocality.isLocal(id) || _partyCoordinator.blocksBackground(id)
+			|| !testRosterAllows(id) || !soloExecution(id) || _humanLocality.hasPhysicalDemand(id) || _humanLocality.isLocal(id) || _partyCoordinator.blocksBackground(id)
 			|| _logicalParties.groupFor(id).isPresent() || pvpHoldsOrdinaryFarm(id) || hasAcceptedNativeJourney(id)
 			|| currentBackgroundMaterializationDemand(id)
 			|| _phantomStoreService.blocksDecision(id) || _phantomStoreService.retainedPlan(id).isPresent()
@@ -4048,7 +4047,7 @@ public final class PhantomSystem
 			&& fact.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).orElse(false)) { return null; }
 		final long now = System.currentTimeMillis();
 		final var scouts = _physicalGeoScouts;
-		if (scouts != null && scouts.reserved(profileId))
+		if (scouts != null && physicalScoutReserved(profileId))
 		{
 			return scouts.demand(profileId, now);
 		}

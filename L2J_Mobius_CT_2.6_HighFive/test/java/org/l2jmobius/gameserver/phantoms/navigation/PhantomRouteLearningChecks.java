@@ -4,6 +4,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +43,7 @@ public final class PhantomRouteLearningChecks
 		physicalScoutArrival();
 		physicalScoutExecutionAdmission();
 		physicalScoutPreparationWait();
+		physicalScoutLocalSession();
 		roundtrip(root);
 		physicalWitnessRoundtrip(root.resolve("physical"));
 		capacityRoundtrip(root.resolve("capacity"));
@@ -47,6 +51,27 @@ public final class PhantomRouteLearningChecks
 		directedGraphAndProgress(root.resolve("routing"));
 		journeyOutcomes(root.resolve("journeys"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
+	}
+
+	private static void physicalScoutLocalSession()
+	{
+		final var settings = new PhantomPhysicalGeoScout.Settings(4, 8, ZoneId.of("Europe/Chisinau"), LocalTime.of(23, 0), 5);
+		final var session = new PhantomPhysicalGeoScout.SessionSchedule(settings);
+		check(session.mode(Instant.parse("2026-11-22T20:59:59Z")).equals("CLOSED"), "Night session opened before 23:00 local");
+		check(session.mode(Instant.parse("2026-11-22T21:00:00Z")).equals("NIGHT"), "Night session missed its local start");
+		check(session.mode(Instant.parse("2026-11-23T04:59:59Z")).equals("NIGHT"), "Night session did not cross midnight");
+		check(session.mode(Instant.parse("2026-11-23T05:00:00Z")).equals("CLOSED"), "Night session exceeded the 07:00 local end");
+		check(session.mode(Instant.parse("2026-03-29T03:59:59Z")).equals("NIGHT"), "Spring DST closed before 07:00 local");
+		check(session.mode(Instant.parse("2026-03-29T04:00:00Z")).equals("CLOSED"), "Spring DST moved the local end");
+		check(session.mode(Instant.parse("2026-10-25T04:59:59Z")).equals("NIGHT"), "Autumn DST closed before 07:00 local");
+		check(session.mode(Instant.parse("2026-10-25T05:00:00Z")).equals("CLOSED"), "Autumn DST moved the local end");
+		final Instant noon = Instant.parse("2026-11-22T10:00:00Z");
+		session.startCommissioning(noon);
+		check(session.mode(noon).equals("COMMISSIONING"), "Daytime commissioning did not open");
+		session.startCommissioning(noon.plusSeconds(240));
+		check(session.mode(noon.plusSeconds(300)).equals("CLOSED"), "Commissioning was extended after initial activation");
+		check(session.mode(Instant.parse("2026-11-22T21:00:00Z")).equals("NIGHT"), "Commissioning disabled scheduled overnight training");
+		System.out.println("PASS local across-midnight/DST schedule and bounded commissioning");
 	}
 
 	private static void physicalScoutPreparationWait()

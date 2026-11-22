@@ -90,6 +90,7 @@ public final class PhantomMaterializationService
 		SOFT_RECLAIM_DEFERRED,
 		BACKGROUND_RECONCILIATION_BLOCKED,
 		CATCHUP_FENCED,
+		POPULATION_ADMISSION_FENCED,
 		NOT_ACTIVE
 	}
 
@@ -104,10 +105,18 @@ public final class PhantomMaterializationService
 	private final int _maximumMaterialized;
 	private final int _physicalCeiling;
 	private volatile java.util.function.LongPredicate _softCleanupAdmission = _ -> true;
+	private volatile PopulationAdmission _populationAdmission;
 	private volatile java.util.function.BiConsumer<MaterializationSnapshot, String> _beforeDematerialize = (_, _) -> { };
 
 	public void installDematerializationTrace(java.util.function.BiConsumer<MaterializationSnapshot, String> trace)
 	{ _beforeDematerialize = Objects.requireNonNull(trace); }
+	public void installPopulationAdmission(PopulationAdmission admission) { _populationAdmission = Objects.requireNonNull(admission); }
+
+	@FunctionalInterface
+	public interface PopulationAdmission
+	{
+		Runnable begin(long profileId, long scoutVersion, boolean historicalPreparation);
+	}
 	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission _execution;
 	public void installExecutionAdmission(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission execution)
 	{
@@ -235,6 +244,25 @@ public final class PhantomMaterializationService
 
 	public MaterializeResult materialize(long profileId, MaterializationPurpose purpose, String ownerClaim)
 	{
+		return materialize(profileId, purpose, ownerClaim, 0);
+	}
+
+	public MaterializeResult materialize(long profileId, MaterializationPurpose purpose, String ownerClaim, long scoutVersion)
+	{
+		if (scoutVersion < 0 || scoutVersion > 0 && purpose != MaterializationPurpose.NORMAL) { throw new IllegalArgumentException("Invalid scout admission version"); }
+		final var admission = _populationAdmission;
+		if (admission == null)
+		{
+			return scoutVersion == 0 ? materializeOwned(profileId, purpose, ownerClaim, 0) : rejectMaterialization(ResultStatus.POPULATION_ADMISSION_FENCED);
+		}
+		final var release = admission.begin(profileId, scoutVersion, purpose == MaterializationPurpose.HISTORICAL_BASELINE);
+		if (release == null) { return rejectMaterialization(ResultStatus.POPULATION_ADMISSION_FENCED); }
+		try { return materializeOwned(profileId, purpose, ownerClaim, scoutVersion); }
+		finally { release.run(); }
+	}
+
+	private MaterializeResult materializeOwned(long profileId, MaterializationPurpose purpose, String ownerClaim, long scoutVersion)
+	{
 		Objects.requireNonNull(purpose, "purpose");
 		ownerClaim = Objects.requireNonNullElse(ownerClaim, "");
 		if (((purpose == MaterializationPurpose.NORMAL) && !ownerClaim.isEmpty()) || ((purpose != MaterializationPurpose.NORMAL) && ownerClaim.isBlank()))
@@ -325,7 +353,7 @@ public final class PhantomMaterializationService
 				_lifecyclePort.afterStore(profileId, player);
 			}
 		};
-		final Entry entry = new Entry(profileId, characterObjectId, new PhantomMaterializedPlayer(
+		final Entry entry = new Entry(profileId, characterObjectId, scoutVersion, new PhantomMaterializedPlayer(
 			characterObjectId,
 			_identityRegistry,
 			new HeadlessPlayerOutboundSession(16, 128),
@@ -887,6 +915,14 @@ public final class PhantomMaterializationService
 		return _activeByCharacter.containsKey(objectId);
 	}
 
+	public boolean ownsProfile(long profileId) { return _activeByProfile.containsKey(profileId); }
+
+	public boolean ownsScoutMaterialization(long profileId, long version)
+	{
+		final var entry = _activeByProfile.get(profileId);
+		return version > 0 && entry != null && entry._scoutVersion == version;
+	}
+
 	public List<MaterializationSnapshot> list()
 	{
 		final List<MaterializationSnapshot> snapshots = new ArrayList<>();
@@ -1248,6 +1284,7 @@ public final class PhantomMaterializationService
 	{
 		private final long _profileId;
 		private final int _characterObjectId;
+		private final long _scoutVersion;
 		private final PhantomMaterializedPlayer _materializedPlayer;
 		private final CountDownLatch _materializationCompletion = new CountDownLatch(1);
 		private volatile Thread _materializationThread = Thread.currentThread();
@@ -1262,10 +1299,11 @@ public final class PhantomMaterializationService
 		private boolean _retryRegistered;
 		private int _automaticCleanupAttempts;
 
-		private Entry(long profileId, int characterObjectId, PhantomMaterializedPlayer materializedPlayer)
+		private Entry(long profileId, int characterObjectId, long scoutVersion, PhantomMaterializedPlayer materializedPlayer)
 		{
 			_profileId = profileId;
 			_characterObjectId = characterObjectId;
+			_scoutVersion = scoutVersion;
 			_materializedPlayer = materializedPlayer;
 		}
 	}

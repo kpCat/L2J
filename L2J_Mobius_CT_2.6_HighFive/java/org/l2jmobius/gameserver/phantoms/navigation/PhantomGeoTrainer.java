@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -31,6 +33,7 @@ public final class PhantomGeoTrainer
 {
 	private static final Logger LOGGER = Logger.getLogger(PhantomGeoTrainer.class.getName());
 	private static final Path CONFIG = Path.of("config/Custom/PhantomGeoTrainer.ini");
+	private static final Path SCOUT_COMMISSION_REQUEST = CONFIG.resolveSibling("PhantomGeoScoutCommission.once");
 	private static final Path LEARNED = Path.of("data/phantoms/travel/learned");
 	private static final String MANIFEST = "{\"schema\":1,\"format\":\"phantom-directed-leg-tsv\"}";
 	private static final int[][] OFFSETS = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
@@ -53,11 +56,23 @@ public final class PhantomGeoTrainer
 			{
 				throw new IllegalArgumentException("GeoTrainerDataPath must be the default relative path or an absolute checkout path.");
 			}
-			return new Settings(flag(ini, "EnableRouteLearning", true), flag(ini, "EnableSuperGeoTrainer", false),
+			final boolean learning = flag(ini, "EnableRouteLearning", true);
+			final var scouts = learning && flag(ini, "EnablePhysicalGeoScouts", false) ? readScoutSettings(ini) : null;
+			return new Settings(learning, flag(ini, "EnableSuperGeoTrainer", false),
 				number(ini, "GeoTrainerMaxWorkers", 1, 1, 2), number(ini, "GeoTrainerMaxProbesPerMinute", 20, 1, 100),
-				number(ini, "GeoTrainerSaveIntervalSeconds", 120, 15, 3600), datapack.resolve(configured).toAbsolutePath().normalize(),
-				flag(ini, "EnablePhysicalGeoScouts", false) ? new PhantomPhysicalGeoScout.Settings(
-					number(ini, "PhysicalGeoScoutCount", 4, 1, 16), number(ini, "PhysicalGeoScoutSessionHours", 8, 1, 24)) : null);
+				number(ini, "GeoTrainerSaveIntervalSeconds", 120, 15, 3600), datapack.resolve(configured).toAbsolutePath().normalize(), scouts);
+		}
+
+		private static PhantomPhysicalGeoScout.Settings readScoutSettings(Properties ini) throws IOException
+		{
+			final int count = number(ini, "PhysicalGeoScoutCount", 4, 1, 16);
+			final int hours = number(ini, "PhysicalGeoScoutSessionHours", 8, 1, 24);
+			final ZoneId zone = ZoneId.of(ini.getProperty("PhysicalGeoScoutTimeZone", "Europe/Chisinau").trim());
+			final LocalTime start = LocalTime.parse(ini.getProperty("PhysicalGeoScoutSessionStart", "23:00").trim());
+			final int minutes = number(ini, "PhysicalGeoScoutCommissionMinutes", 0, 0, 10);
+			// Only the explicitly armed boot can open a daytime session. A later restart uses the night schedule.
+			final boolean armed = minutes > 0 && Files.isRegularFile(SCOUT_COMMISSION_REQUEST, LinkOption.NOFOLLOW_LINKS) && Files.deleteIfExists(SCOUT_COMMISSION_REQUEST);
+			return new PhantomPhysicalGeoScout.Settings(count, hours, zone, start, armed ? minutes : 0);
 		}
 
 		private static boolean flag(Properties ini, String key, boolean fallback)

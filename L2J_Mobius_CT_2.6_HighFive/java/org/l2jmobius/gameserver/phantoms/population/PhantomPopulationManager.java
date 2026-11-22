@@ -76,6 +76,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	public static final String SCHEDULE_SIGNAL_SOURCE = "population.schedule";
 	public static final long DETERMINISTIC_SEED = 16_001_601L;
 	private static final long SIGNAL_HEARTBEAT_MILLIS = 3_600_000;
+	private static final String SCOUT_BUSY_OWNER = "travel.physical_scout";
 
 	private final Object _monitor = new Object();
 	private final PhantomPopulationPersistencePort _store;
@@ -97,6 +98,9 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final Map<Integer, TreeSet<Long>> _readyIdsByRegion = new HashMap<>();
 	private final Map<Integer, TreeSet<Long>> _desiredActiveIdsByRegion = new HashMap<>();
 	private final Set<Long> _admittedIds = new HashSet<>();
+	private final Map<Long, ScoutReservation> _scoutReservations = new HashMap<>();
+	private final Map<Long, Object> _physicalAdmissions = new HashMap<>();
+	private long _scoutVersion;
 	private final Set<Long> _eligibleActiveIds = new HashSet<>();
 	private final Map<Long, PhantomPopulationEcologyService.DemandFact> _humanDemand = new HashMap<>();
 	private final Map<Long, Instant> _lastDemandAdmission = new HashMap<>();
@@ -921,7 +925,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			final TreeSet<Long> eligible = new TreeSet<>();
 			for (long profileId : regional.getValue())
 			{
-				if (_participants.contains(profileId) && ((ecology == null) || ecology.permitted(profileId)))
+				if (_participants.contains(profileId) && !_scoutReservations.containsKey(profileId) && ((ecology == null) || ecology.permitted(profileId)))
 				{
 					eligible.add(profileId);
 					_eligibleActiveIds.add(profileId);
@@ -1754,7 +1758,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				return true;
 			}
-			if ((_lifecycle != LifecycleState.STOPPING) || (_controlClaims != 0) || (_creationClaims != 0) || (_persistenceClaims != 0))
+			if ((_lifecycle != LifecycleState.STOPPING) || (_controlClaims != 0) || (_creationClaims != 0) || (_persistenceClaims != 0) || !_physicalAdmissions.isEmpty())
 			{
 				return false;
 			}
@@ -1766,6 +1770,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			_desiredActiveIdsByRegion.clear();
 			_eligibleActiveIds.clear();
 			_admittedIds.clear();
+			_scoutReservations.clear();
 			_classHistogram.clear();
 			_levelHistogram.clear();
 			_regionHistogram.clear();
@@ -1797,6 +1802,73 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	{
 		return _presence;
 	}
+
+	/** Uses the same monitor as ordinary allocation and its final native admission. */
+	public long tryReserveScout(long profileId, int requestedSlots, int spareSlots)
+	{
+		synchronized (_monitor)
+		{
+			final var entry = _entries.get(profileId);
+			if (_lifecycle != LifecycleState.RUNNING || requestedSlots <= 0 || requestedSlots > Math.min(spareSlots, _maximumMaterialized - _activeTarget)
+				|| _scoutReservations.size() >= requestedSlots || entry == null || !_participants.contains(profileId) || entry._retirementPending
+				|| entry._snapshot.state().state() != State.READY || entry._snapshot.profile().characterObjectId() == null
+				|| _humanDemand.containsKey(profileId) || _admittedIds.contains(profileId) || _scoutReservations.containsKey(profileId)
+				|| _physicalAdmissions.containsKey(profileId) || _materialized.test(profileId) || !_presence.claimBusy(profileId, SCOUT_BUSY_OWNER)) { return 0; }
+			final long version = ++_scoutVersion;
+			_scoutReservations.put(profileId, new ScoutReservation(version, false));
+			_admissionDirty = true;
+			return version;
+		}
+	}
+
+	public long scoutReservation(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final var reservation = _scoutReservations.get(profileId);
+			return reservation == null ? 0 : reservation.version();
+		}
+	}
+
+	public void closeScoutAdmission(long profileId, long version)
+	{
+		synchronized (_monitor)
+		{
+			final var reservation = _scoutReservations.get(profileId);
+			if (reservation != null && reservation.version() == version) { _scoutReservations.put(profileId, new ScoutReservation(version, true)); }
+		}
+	}
+
+	public boolean releaseScout(long profileId, long version)
+	{
+		synchronized (_monitor)
+		{
+			final var reservation = _scoutReservations.get(profileId);
+			if (reservation == null || reservation.version() != version || !reservation.closing()
+				|| _physicalAdmissions.containsKey(profileId) || _materialized.test(profileId)) { return false; }
+			_presence.releaseBusy(profileId, SCOUT_BUSY_OWNER);
+			_scoutReservations.remove(profileId);
+			_admissionDirty = true;
+			return true;
+		}
+	}
+
+	/** Keep the claim through spawn or compensation, without holding the population monitor during native work. */
+	public Runnable tryBeginPhysicalAdmission(long profileId, long scoutVersion, boolean historicalPreparation)
+	{
+		final Object attempt = new Object();
+		synchronized (_monitor)
+		{
+			final var reservation = _scoutReservations.get(profileId);
+			final boolean owner = reservation == null ? scoutVersion == 0 : !reservation.closing()
+				&& (scoutVersion == reservation.version() && _presence.isOnline(profileId) || scoutVersion == 0 && historicalPreparation);
+			if (!owner || _lifecycle == LifecycleState.STOPPING || _lifecycle == LifecycleState.STOPPED
+				|| _physicalAdmissions.putIfAbsent(profileId, attempt) != null) { return null; }
+		}
+		return () -> { synchronized (_monitor) { _physicalAdmissions.remove(profileId, attempt); } };
+	}
+
+	private record ScoutReservation(long version, boolean closing) { }
 
 	public AdmissionSnapshot admissionSnapshot()
 	{
@@ -1835,9 +1907,10 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			final boolean ready = (entry._snapshot.state().state() == State.READY) && !entry._retirementPending;
 			final boolean desired = ready && (entry._desiredState == PhantomActivityState.ACTIVE);
-			final boolean eligible = desired && ecologyCurrent(_admissionEcology) && _eligibleActiveIds.contains(profileId);
+			final boolean scout = _scoutReservations.containsKey(profileId);
+			final boolean eligible = desired && !scout && ecologyCurrent(_admissionEcology) && _eligibleActiveIds.contains(profileId);
 			final boolean admitted = eligible && _admittedIds.contains(profileId);
-			final String reason = !ready ? "not_ready" : !desired ? "schedule_not_active" : !eligible ? "ecology_fenced" : !admitted ? "capacity" : "admitted";
+			final String reason = scout ? "scout_reserved" : !ready ? "not_ready" : !desired ? "schedule_not_active" : !eligible ? "ecology_fenced" : !admitted ? "capacity" : "admitted";
 			return Optional.of(new AdmissionProfileSnapshot(profileId, entry._snapshot.state().state(), entry._desiredState, entry._effectiveState, eligible, admitted, reason, _admissionDirty, entry._nextBoundary, _presence.isOnline(profileId)));
 		}
 	}

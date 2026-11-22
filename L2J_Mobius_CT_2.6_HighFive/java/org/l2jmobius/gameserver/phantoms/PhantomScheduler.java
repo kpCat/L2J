@@ -1221,6 +1221,26 @@ public final class PhantomScheduler
 		}
 	}
 
+	/** Observe the completed STORE while the scout's population reservation still fences every fresh admission. */
+	public boolean acknowledgeScoutStore(long profileId)
+	{
+		if (_materializationPort.hasLifecycleOwnership(profileId)) { return false; }
+		synchronized (_monitor)
+		{
+			final Slot slot = _slots.get(profileId);
+			if (slot == null) { return true; }
+			if (_state != SchedulerState.RUNNING || slot._processing || slot._localProcessing || slot._workInFlight || slot._boundaryInFlight) { return false; }
+			if (slot._effectiveState.requiresMaterialization() || slot._retainedFailureKind != RetainedFailureKind.NONE)
+			{
+				final long now = _clock.nanoTime();
+				final var plan = new TransitionPlan(profileId, slot._generation, requestedStateLocked(slot), BoundaryAction.OBSERVE_LIFECYCLE_RELEASE);
+				applyTransitionOutcomeLocked(slot, plan, TransitionOutcome.success(), now);
+				ensureNextOpportunityLocked(slot, now);
+			}
+			return true;
+		}
+	}
+
 	private void applyTransitionOutcomeLocked(Slot slot, TransitionPlan plan, TransitionOutcome outcome, long logicalNow)
 	{
 		PhantomRuntimeFlightRecorder.getInstance().record(slot._profileId, "SCHED_BOUNDARY_RESULT", plan._action.name(), outcome == null ? "NULL" : outcome.outcome().name(), outcome == null ? "" : outcome.reason(), plan._generation, logicalNow, 0);

@@ -81,15 +81,18 @@ public interface PhantomActivityMaterializationPort
 		RETAINED_FAILURE
 	}
 
-	record MaterializationRequest(Kind kind, String ownerClaim)
+	record MaterializationRequest(Kind kind, String ownerClaim, long scoutVersion)
 	{
-		public enum Kind { NORMAL, NATIVE_CONTEXT_HANDOFF }
+		public enum Kind { NORMAL, NATIVE_CONTEXT_HANDOFF, PHYSICAL_SCOUT }
+
+		public MaterializationRequest(Kind kind, String ownerClaim) { this(kind, ownerClaim, 0); }
 
 		public MaterializationRequest
 		{
 			java.util.Objects.requireNonNull(kind, "kind");
 			ownerClaim = java.util.Objects.requireNonNullElse(ownerClaim, "");
-			if (((kind == Kind.NORMAL) && !ownerClaim.isEmpty()) || ((kind == Kind.NATIVE_CONTEXT_HANDOFF) && ownerClaim.isBlank()))
+			if ((kind == Kind.NATIVE_CONTEXT_HANDOFF ? ownerClaim.isBlank() : !ownerClaim.isEmpty())
+				|| (kind == Kind.PHYSICAL_SCOUT ? scoutVersion <= 0 : scoutVersion != 0))
 			{
 				throw new IllegalArgumentException("Invalid materialization intent claim.");
 			}
@@ -97,6 +100,7 @@ public interface PhantomActivityMaterializationPort
 
 		public static MaterializationRequest normal() { return new MaterializationRequest(Kind.NORMAL, ""); }
 		public static MaterializationRequest nativeContextHandoff(String ownerClaim) { return new MaterializationRequest(Kind.NATIVE_CONTEXT_HANDOFF, ownerClaim); }
+		public static MaterializationRequest physicalScout(long version) { return new MaterializationRequest(Kind.PHYSICAL_SCOUT, "", version); }
 	}
 
 	record TransitionOutcome(Outcome outcome, String reason, MaterializationRequest request)

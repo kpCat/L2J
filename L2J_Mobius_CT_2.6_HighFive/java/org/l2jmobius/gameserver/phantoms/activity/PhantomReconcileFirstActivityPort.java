@@ -34,10 +34,10 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 		return demand != null && demand.ordinaryAdmission(online, admitted, System.currentTimeMillis());
 	}
 
-	private boolean scoutDemand(long profileId, boolean online)
+	private PhantomPhysicalDemand scoutDemand(long profileId, boolean online)
 	{
 		final var demand = _physicalDemand.apply(profileId);
-		return demand != null && demand.scoutAdmission(profileId, online, System.currentTimeMillis());
+		return demand != null && demand.sourceEpoch() > 0 && demand.scoutAdmission(profileId, online, System.currentTimeMillis()) ? demand : null;
 	}
 
 	public PhantomReconcileFirstActivityPort(PhantomActivityMaterializationPort delegate)
@@ -93,8 +93,8 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 			final boolean ordinaryLocal = continuation || online && locality.isLocal(profileId);
 			final boolean background = online && backgroundNativeRequest.test(profileId);
 			final boolean coordinated = coordinatedDemand(profileId, online, admitted.test(profileId));
-			final boolean scout = scoutDemand(profileId, online);
-			final boolean local = ordinaryLocal || background || coordinated || scout;
+			final var scout = scoutDemand(profileId, online);
+			final boolean local = ordinaryLocal || background || coordinated || scout != null;
 			if (!local)
 			{
 				recorder.record(profileId, online ? "READY_NOT_LOCAL" : "READY_PRESENCE_OFFLINE", online ? "ONLINE" : "OFFLINE", "DEFERRED", "presence.no_current_local_demand", 0, 0, 0);
@@ -111,23 +111,31 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				request = due.request();
 			}
 			// A Background request carries only its exact historical prerequisite, never NORMAL admission.
-			if (!ordinaryLocal && !coordinated && !scout && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
+			if (!ordinaryLocal && !coordinated && scout == null && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
 			{
 				return TransitionOutcome.deferred("presence.background_native_handoff_required");
 			}
 			// An exact bounded historical handoff supplies the prerequisite for ordinary admission.
 			// NORMAL work still requires final population admission; lifecycle validates the original claim.
-			if (!continuation && !admitted.test(profileId) && !scout && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
+			if (!continuation && !admitted.test(profileId) && scout == null && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
 			{
 				return TransitionOutcome.deferred("population.not_admitted");
 			}
 			final boolean nativeHandoff = request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF;
 			final boolean currentOnline = presence.isOnline(profileId);
+			if (scout != null)
+			{
+				final var currentScout = scoutDemand(profileId, currentOnline);
+				if (currentScout == null || currentScout.sourceEpoch() != scout.sourceEpoch()) { return TransitionOutcome.deferred("population.scout_reservation_changed"); }
+				// Native-context work belongs to its historical owner, which needs the ordinary execution lane.
+				if (nativeHandoff) { return TransitionOutcome.deferred("population.scout_yield_native_context"); }
+				return _scoutAdmission.test(profileId) ? TransitionOutcome.success(MaterializationRequest.physicalScout(scout.sourceEpoch()))
+					: TransitionOutcome.deferred("population.scout_preparation_pending");
+			}
 			final boolean currentAdmitted = admitted.test(profileId);
 			final boolean currentLocal = continuation
 				|| (nativeHandoff || currentAdmitted) && (locality.isCurrentLocal(profileId) || coordinatedDemand(profileId, currentOnline, currentAdmitted))
-				|| (nativeHandoff ? currentOnline && backgroundNativeRequest.test(profileId)
-					: scout && _scoutAdmission.test(profileId) && scoutDemand(profileId, currentOnline));
+				|| nativeHandoff && currentOnline && backgroundNativeRequest.test(profileId);
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
 			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");
 		});

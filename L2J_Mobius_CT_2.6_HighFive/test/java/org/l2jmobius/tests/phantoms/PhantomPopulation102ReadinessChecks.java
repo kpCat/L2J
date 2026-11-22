@@ -14,7 +14,10 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
@@ -41,18 +44,52 @@ public final class PhantomPopulation102ReadinessChecks
     {
         if(args.length!=1){throw new IllegalArgumentException("Exact module required; DB-free checks.");}
         int failures=0;
-        for(int test=1;test<=3;test++)
+        for(int test=1;test<=4;test++)
         {
             try(var f=new Fixture(Path.of(args[0])))
             {
-                if(test==1){f.preparation();}else if(test==2){f.handoff();}else{f.negativeGuards();}
+                if(test==1){f.preparation();}else if(test==2){f.handoff();}else if(test==3){f.negativeGuards();}else{f.scoutAdmissionRace();}
                 System.out.println("PASS readiness102."+test);
             }
             catch(AssertionError error){failures++;System.out.println("FAIL readiness102."+test+" "+error.getMessage());}
         }
         PhantomAssertions.assertFalse(DatabaseFactory.isInitialized(),"Pure regression initialized a database.");
         if(failures!=0){throw new AssertionError("readiness102 failed="+failures);}
-        System.out.println("READINESS102_PASS tests=3;JDBC=0;World=NOT_INITIALIZED");
+        scoutStoreReopensSchedulerAdmission();
+        System.out.println("READINESS102_PASS tests=5;JDBC=0;World=NOT_INITIALIZED");
+    }
+
+    private static void scoutStoreReopensSchedulerAdmission()
+    {
+        final var metrics=new PhantomMetrics();
+        final var materialized=new java.util.concurrent.atomic.AtomicBoolean();
+        final var port=new PhantomActivityMaterializationPort(){
+            @Override public TransitionOutcome materialize(long id){materialized.set(true);return TransitionOutcome.success();}
+            @Override public TransitionOutcome dematerialize(long id){materialized.set(false);return TransitionOutcome.success();}
+            @Override public TransitionOutcome retryCleanup(long id){return TransitionOutcome.deferred();}
+            @Override public boolean isMaterialized(long id){return materialized.get();}
+            @Override public boolean hasLifecycleOwnership(long id){return materialized.get();}
+        };
+        final var clock=new AtomicLong(1_000_000);
+        final var scheduler=new PhantomScheduler(1,100,1,PhantomSchedulerPolicy.productionDefaults(100),clock::get,(_pulse,_period)->null,false,
+            metrics,new PhantomDiagnosticTrace(false,0,0,metrics),port,PhantomActivityWorkSink.noop());
+        PhantomAssertions.assertTrue(scheduler.start(),"Scheduler start.");
+        try
+        {
+            scheduler.register(1);
+            scheduler.submitSignal(1,new PhantomRelevanceSignal("ordinary.urgent",1,PhantomActivityState.ACTIVE,15000));
+            scheduler.pulse();
+            PhantomAssertions.assertTrue(port.isMaterialized(1),"ACTIVE fixture did not materialize.");
+            PhantomAssertions.assertFalse(scheduler.acknowledgeScoutStore(1),"Scheduler acknowledged STORE before the owner disappeared.");
+            port.dematerialize(1);
+            PhantomAssertions.assertTrue(scheduler.acknowledgeScoutStore(1),"Scheduler did not acknowledge the completed native STORE.");
+            PhantomAssertions.assertFalse(scheduler.find(1).orElseThrow().effectiveState().requiresMaterialization(),"Scheduler retained a missing player.");
+            clock.addAndGet(200_000_000);
+            scheduler.pulse();
+            PhantomAssertions.assertTrue(port.isMaterialized(1),"Remaining urgent demand did not start a new physical lifetime.");
+        }
+        finally {scheduler.beginStop();scheduler.finishStop();}
+        System.out.println("PASS scout STORE acknowledgement and urgent readmission");
     }
 
     private static final class Fixture implements AutoCloseable
@@ -97,7 +134,7 @@ public final class PhantomPopulation102ReadinessChecks
             final var clock=new PhantomPopulationTestDoubles.MutableClock(instant);
             ecology=new PhantomPopulationEcologyService(catalog,population,states,historical,id->false,id->"",clock,ZoneOffset.UTC,PhantomPopulationEcologyState.Preset.LIVING,0,10,worker->{worker.run();return true;});
             ecology.enablePeriodicDueMode();
-            manager=new PhantomPopulationManager(store,population,null,new PhantomPopulationTestDoubles.Ownership(),clock,ZoneOffset.UTC,1,1,2,1,1,64);
+            manager=new PhantomPopulationManager(store,population,null,new PhantomPopulationTestDoubles.Ownership(),clock,ZoneOffset.UTC,1,1,5,5,1,64);
             manager.installEcology(ecology);PhantomAssertions.assertTrue(manager.start(),"Manager start.");
             for(int pulse=0;pulse<32;pulse++){manager.onPulse();}
             PhantomAssertions.assertTrue(manager.presence().isOnline(1),"READY calendar must be online.");
@@ -106,6 +143,48 @@ public final class PhantomPopulation102ReadinessChecks
             final var backend=new PhantomTopologyCoreSuite.TestBackend();
             topology=PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(backend),backend,PhantomTopologyCoreSuite.POLICY,signals);
             PhantomAssertions.assertTrue(topology.start(),"Topology start.");topology.registerProfile(1);topology.updateProfile(1,PhantomTopologyCoreSuite.LEFT_POINT,1);
+        }
+        void scoutAdmissionRace() throws Exception
+        {
+            PhantomAssertions.assertEquals(0L,manager.tryReserveScout(1,4,3),"Scout takes capacity reserved for ordinary presence.");
+            final var start=new java.util.concurrent.CountDownLatch(1);
+            try(var pool=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
+            {
+                final var scout=pool.submit(()->{start.await();return manager.tryReserveScout(1,4,4);});
+                final var ordinary=pool.submit(()->{start.await();return manager.tryBeginPhysicalAdmission(1,0,false);});
+                start.countDown();
+                final long won=scout.get(5,java.util.concurrent.TimeUnit.SECONDS);
+                final Runnable ordinaryLease=ordinary.get(5,java.util.concurrent.TimeUnit.SECONDS);
+                PhantomAssertions.assertTrue((won>0)!=(ordinaryLease!=null),"Two physical admission owners or no winner.");
+                if(ordinaryLease!=null){ordinaryLease.run();}
+                final long version=won>0?won:manager.tryReserveScout(1,4,4);
+                PhantomAssertions.assertTrue(version>0,"Free linked profile could not be reserved ahead of catchup.");
+                PhantomAssertions.assertTrue(manager.tryBeginPhysicalAdmission(1,0,false)==null,"Ordinary admit bypassed a scout reservation.");
+                final Runnable baseline=manager.tryBeginPhysicalAdmission(1,0,true);
+                PhantomAssertions.assertTrue(baseline!=null,"Canonical historical prerequisite could not run.");
+                PhantomAssertions.assertTrue(manager.tryBeginPhysicalAdmission(1,version,false)==null,"Scout overlapped with native preparation.");
+                baseline.run();
+                final var scoutPort=new PhantomReconcileFirstActivityPort(delegate);
+                scoutPort.installPopulationReadiness(manager.presence(),locality(false),null,id->false,id->false);
+                scoutPort.installScoutAdmission(id->true);
+                scoutPort.installPhysicalDemand(id->{
+                    final long now=System.currentTimeMillis();
+                    return new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(
+                        org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.PHYSICAL_SCOUT,id,version,"travel.physical_scout",now,now+1000);
+                });
+                PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS,scoutPort.materialize(1).outcome(),"The final activity gate rejected the reserved profile.");
+                PhantomAssertions.assertEquals(MaterializationRequest.physicalScout(version),loaded.get(),"The activity boundary dropped the reservation version.");
+                final Runnable preparing=manager.tryBeginPhysicalAdmission(1,version,false);
+                PhantomAssertions.assertTrue(preparing!=null,"Exact materialization version was denied.");
+                manager.closeScoutAdmission(1,version);
+                PhantomAssertions.assertFalse(manager.releaseScout(1,version),"In-flight native admission was released early.");
+                preparing.run();
+                PhantomAssertions.assertTrue(manager.releaseScout(1,version),"Canceled scout ownership was not released.");
+                final long next=manager.tryReserveScout(1,4,4);
+                PhantomAssertions.assertTrue(next>version && manager.tryBeginPhysicalAdmission(1,version,false)==null,"Stale version acquired the new lifetime.");
+                manager.closeScoutAdmission(1,next);
+                PhantomAssertions.assertTrue(manager.releaseScout(1,next),"Final reservation did not release.");
+            }
         }
         PhantomHumanLocalityControl locality(boolean productionPredicate)
         {

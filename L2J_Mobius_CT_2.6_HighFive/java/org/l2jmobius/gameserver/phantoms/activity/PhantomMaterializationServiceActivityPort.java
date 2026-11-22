@@ -66,7 +66,7 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 		final var purpose = request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF ? PhantomMaterializationService.MaterializationPurpose.NATIVE_CONTEXT_HANDOFF : PhantomMaterializationService.MaterializationPurpose.NORMAL;
 		final var recorder = PhantomRuntimeFlightRecorder.getInstance();
 		recorder.record(profileId, "MATERIALIZE_CALL", "", "", "service." + purpose.name(), 0, 0, 0);
-		final PhantomMaterializationService.MaterializeResult result = recorder.withProfile(profileId, () -> _service.materialize(profileId, purpose, request.ownerClaim()));
+		final PhantomMaterializationService.MaterializeResult result = recorder.withProfile(profileId, () -> _service.materialize(profileId, purpose, request.ownerClaim(), request.scoutVersion()));
 		final var observed = result.snapshot();
 		recorder.record(profileId, "MATERIALIZE_RESULT", result.status().name(), observed == null ? "" : observed.state().name(), result.status().name(),
 			observed == null ? 0 : observed.characterObjectId(), observed == null ? 0 : observed.materializedAtNanos(), observed != null && observed.worldPresent() ? 1 : 0);
@@ -88,6 +88,10 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 		if (result.status() == ResultStatus.CATCHUP_FENCED)
 		{
 			return TransitionOutcome.deferred();
+		}
+		if (result.status() == ResultStatus.POPULATION_ADMISSION_FENCED)
+		{
+			return TransitionOutcome.deferred("materialization.population_owner_changed");
 		}
 		return hasLifecycleOwnership(profileId) ? TransitionOutcome.retainedFailure() : TransitionOutcome.transientBlock();
 	}
