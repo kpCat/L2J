@@ -39,6 +39,15 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 			super("Goal publication awaits REQUEST/YIELD/CHECKPOINT/TRANSFER.");
 		}
 	}
+	public static final class ContinuationUnavailable extends ConcurrentModificationException
+	{
+		private static final long serialVersionUID = 1L;
+
+		public ContinuationUnavailable()
+		{
+			super("Goal continuation owner is not current.");
+		}
+	}
 
 	public static final String COMPONENT_TYPE = "goal.runtime";
 	public static final int COMPONENT_SCHEMA_VERSION = 1;
@@ -132,7 +141,7 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 		{
 			try (var permit = _admission.tryAcquireGoalContinuation(id, execution.state().owner()))
 			{
-				if (permit == null || !_admission.current(id, execution.component().rowVersion(), execution.state())) { throw new ConcurrentModificationException("Goal continuation owner is not current."); }
+				if (permit == null || !_admission.current(id, execution.component().rowVersion(), execution.state())) { throw new ContinuationUnavailable(); }
 				final var activity = _repository.findComponent(id, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ACTIVITY_COMPONENT_TYPE).orElse(null);
 				if (activity != null && org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot.decode(activity.payload()).pending()
 					&& execution.state().phase() == org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE)

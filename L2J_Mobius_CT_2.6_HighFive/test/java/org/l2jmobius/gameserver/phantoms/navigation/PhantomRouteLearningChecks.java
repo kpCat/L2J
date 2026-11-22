@@ -39,6 +39,7 @@ public final class PhantomRouteLearningChecks
 		final Path root = Path.of(args[0]);
 		physicalScoutArrival();
 		physicalScoutExecutionAdmission();
+		physicalScoutPreparationWait();
 		roundtrip(root);
 		physicalWitnessRoundtrip(root.resolve("physical"));
 		capacityRoundtrip(root.resolve("capacity"));
@@ -46,6 +47,18 @@ public final class PhantomRouteLearningChecks
 		directedGraphAndProgress(root.resolve("routing"));
 		journeyOutcomes(root.resolve("journeys"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
+	}
+
+	private static void physicalScoutPreparationWait()
+	{
+		final long second = TimeUnit.SECONDS.toNanos(1);
+		final var wait = new PhantomPhysicalGeoScout.AdmissionWait(second);
+		check(!wait.expired(second, 100), "Preparation expired on its first sample");
+		check(!wait.expired(40 * second, 101), "Committed preparation progress did not renew the wait");
+		check(!wait.expired(70 * second, 102), "A progressing reservation stopped at its original 45-second deadline");
+		check(!wait.expired(100 * second, 101), "An older inner cursor replaced the observed high water mark");
+		check(wait.expired(115 * second, 102), "A stalled cursor kept a reservation beyond the idle deadline");
+		System.out.println("PASS admission remains bounded by measured preparation progress");
 	}
 
 	private static void physicalScoutArrival()

@@ -520,13 +520,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				claimed = _store.claim(profileId, initial);
 			}
 		}
-		catch (PhantomGoalStateStore.PublicationPending pending)
-		{
-			return Result.rejected(ResultStatusCode.RETRY, "catchup.claim.publication_pending", null);
-		}
 		catch (RuntimeException exception)
 		{
-			return Result.rejected(ResultStatusCode.CONFLICT, "catchup.claim.conflict", null);
+			return claimFailure(exception, existing);
 		}
 		if (!sameRequest(claimed.state(), initial))
 		{
@@ -547,6 +543,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (renewalRecovery.isEmpty()) { return baseline; }
 		final ResultStatusCode status = (baseline.status() == ResultStatusCode.REPLAN_REQUIRED) && isRecoverableFailure(baseline.reason()) ? ResultStatusCode.RETRY : baseline.status();
 		return new Result(status, renewalRecovery + (baseline.successful() ? ".recovered" : "." + baseline.reason()), baseline.snapshot(), baseline.advancedIntervals());
+	}
+
+	static Result claimFailure(RuntimeException failure, Snapshot existing)
+	{
+		if (failure instanceof PhantomGoalStateStore.ContinuationUnavailable)
+		{
+			// A restart may restore the baseline before execution acknowledges the ordinary owner.
+			return Result.rejected(ResultStatusCode.RETRY, "catchup.claim.execution_wait", existing);
+		}
+		if (failure instanceof PhantomGoalStateStore.PublicationPending)
+		{
+			return Result.rejected(ResultStatusCode.RETRY, "catchup.claim.publication_pending", null);
+		}
+		return Result.rejected(ResultStatusCode.CONFLICT, "catchup.claim.conflict", null);
 	}
 
 	private Result ensureBaseline(long profileId, Snapshot claimed)

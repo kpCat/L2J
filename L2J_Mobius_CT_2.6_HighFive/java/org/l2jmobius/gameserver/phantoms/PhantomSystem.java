@@ -1219,10 +1219,11 @@ public final class PhantomSystem
 				_physicalGeoScouts = _navigationService.installPhysicalScout(policy -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout(
 					policy, _scheduler, _materializationService, _executionAdmission, _navigationService, _populationManager.presence(),
 					after -> populationStore.loadManagedAfter(after, 24).stream().map(entry -> entry.profile().profileId()).toList(),
-					id -> physicalScoutEligible(id, productionGoals), this::physicalScoutSpareSlots));
+					id -> physicalScoutEligible(id, productionGoals, true), id -> physicalScoutEligible(id, productionGoals, false),
+					this::physicalScoutSpareSlots, periodicEcology));
 				if (_physicalGeoScouts != null)
 				{
-					_reconcileMaterializationActivity.installScoutAdmission(id -> physicalScoutEligible(id, productionGoals));
+					_reconcileMaterializationActivity.installScoutAdmission(id -> physicalScoutEligible(id, productionGoals, true));
 					controlPorts.add(_physicalGeoScouts);
 				}
 				if (!_scheduler.installControlPort(executionControlChain(controlPorts)))
@@ -4016,7 +4017,7 @@ public final class PhantomSystem
 		return Math.max(0, _settings.maxMaterializedPhantoms() - Math.max(physicalTarget(), ordinaryOccupiedPhysicalSlots()));
 	}
 
-	private boolean physicalScoutEligible(long id, PhantomGoalStateStore goals)
+	private boolean physicalScoutEligible(long id, PhantomGoalStateStore goals, boolean requireCompletedHistory)
 	{
 		final var population = _populationManager.admissionProfile(id).orElse(null);
 		if (population == null || population.admitted() || !population.calendarOnline()
@@ -4026,13 +4027,15 @@ public final class PhantomSystem
 			|| currentBackgroundMaterializationDemand(id)
 			|| _phantomStoreService.blocksDecision(id) || _phantomStoreService.retainedPlan(id).isPresent()
 			|| _economyReservations.findActive(id).isPresent() || executionRecoveryDemand(id) != null) { return false; }
-		if (!_historicalBackgroundService.permitsNormalOperation(id)) { return false; }
+		if (requireCompletedHistory && !_historicalBackgroundService.permitsNormalOperation(id)) { return false; }
 		final var runtime = _decisionEngine.find(id).orElse(null);
 		if (runtime != null && (runtime.inFlight() || runtime.persistenceInFlight())) { return false; }
 		if (goals.publication(id).filter(row -> row.state().status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Status.PENDING).isPresent()) { return false; }
 		final var root = goals.load(id).map(row -> row.goal()).orElse(null);
 		if (root != null && root.status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE
 			&& !PhantomBackgroundGoalSpec.canonicalHistoricalIdle(id, root)) { return false; }
+		// While the ordinary historical worker prepares an actor, its in-flight background state is its own fence.
+		if (!requireCompletedHistory) { return true; }
 		final var background = _backgroundService.acquisitionSnapshot(id).orElse(null);
 		if (background == null) { return true; }
 		return root != null && PhantomGoalStateStore.nativeRootType(root)

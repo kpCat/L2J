@@ -25,11 +25,32 @@ public final class PhantomHistoricalIdleVisible068Checks implements PhantomTestS
 		registry.add("04-idle-travel-keeps-solo-farm-closed", _ -> travelAdmission());
 		registry.add("05-native-walk-checkpoints-retain-bounds", _ -> walkBudget());
 		registry.add("06-idle-native-ingress-uses-existing-connected-anchor", _ -> idleIngress());
+		registry.add("07-history-renewal-retries-execution-recovery", _ -> historyClaimAdmission());
 	}
 	public static void main(String[] args)
 	{
-		predecessor(); fences(); recoveryControl(); travelAdmission(); walkBudget(); idleIngress();
+		predecessor(); fences(); recoveryControl(); travelAdmission(); walkBudget(); idleIngress(); historyClaimAdmission();
 		System.out.println("OWN068_HISTORICAL_IDLE_VISIBLE_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void historyClaimAdmission()
+	{
+		final long profileId = 5;
+		final var owner = PhantomExecutionHandoff.solo(profileId);
+		final var gate = new PhantomExecutionAdmission(1);
+		final var recovering = PhantomExecutionHandoff.initial(owner).restartRecovery();
+		gate.publish(profileId, 1, recovering);
+		PhantomAssertions.assertEquals(null, gate.tryAcquireGoalContinuation(profileId, owner), "Renewal bypassed restart recovery.");
+		final var waiting = PhantomHistoricalBackgroundService.claimFailure(new PhantomGoalStateStore.ContinuationUnavailable(), null);
+		PhantomAssertions.assertEquals(PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, waiting.status(), "Temporary execution wait would terminate ecology.");
+		PhantomAssertions.assertEquals("catchup.claim.execution_wait", waiting.reason(), "Renewal hid the execution gate.");
+		final var conflict = PhantomHistoricalBackgroundService.claimFailure(new java.util.ConcurrentModificationException(), null);
+		PhantomAssertions.assertEquals(PhantomHistoricalBackgroundService.ResultStatusCode.CONFLICT, conflict.status(), "An unrelated claim conflict became retryable.");
+		final var proof = new PhantomExecutionHandoff.Dependency("goal.runtime", 1, 2, "a".repeat(64));
+		gate.publish(profileId, 2, recovering.recovered(List.of(proof)));
+		try (var admitted = gate.tryAcquireGoalContinuation(profileId, owner))
+		{
+			PhantomAssertions.assertTrue(admitted != null && admitted.valid(), "Recovered execution owner could not resume renewal.");
+		}
 	}
 	private static PhantomGoal idle()
 	{
