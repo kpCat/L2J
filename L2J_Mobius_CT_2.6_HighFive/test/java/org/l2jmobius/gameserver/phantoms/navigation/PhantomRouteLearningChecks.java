@@ -14,6 +14,7 @@ import org.l2jmobius.gameserver.geoengine.geodata.IBlock;
 import org.l2jmobius.gameserver.geoengine.geodata.IRegion;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomRouteLearning.Evidence;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Edge;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
@@ -31,7 +32,9 @@ public final class PhantomRouteLearningChecks
 {
 	public static void main(String[] args) throws Exception
 	{
-		roundtrip(Path.of(args[0]));
+		final Path root = Path.of(args[0]);
+		roundtrip(root);
+		capacityRoundtrip(root.resolve("capacity"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
 	}
 
@@ -83,6 +86,62 @@ public final class PhantomRouteLearningChecks
 			check(Files.readString(shard).equals("truncated"), "Corrupt evidence was overwritten");
 		}
 		System.out.println("PASS route learning direction, altitude, alternatives, concurrency, restart, stale and corruption");
+	}
+
+	private static void capacityRoundtrip(Path root) throws Exception
+	{
+		Files.createDirectory(root);
+		final String geo = "a".repeat(64);
+		final Path shard = root.resolve("region-0_0.tsv");
+		final String legacy = "PHANTOM_ROUTE_LEARNING\t1\t" + geo + "\tc0e084a66007d0bf9ea06e588938db970029021ec5eb55c84d1149c0b967de21\n"
+			+ "0\t1008\t1008\t-32\t1200\t1104\t-32\tPROVEN\tNATIVE_ARRIVED\t1\t2\t0\t1\t901000\n"
+			+ "0\t1008\t1008\t-32\t1200\t912\t-32\tCANDIDATE\tGEODATA_PROPOSED\t1\t0\t0\t0\t0\n";
+		Files.writeString(shard, legacy);
+		final var origin = new PhantomNavigationPoint(1008, 1008, -32, 0);
+		final var proven = new Edge(origin, new PhantomNavigationPoint(1200, 1104, -32, 0));
+		final var candidate = new Edge(origin, new PhantomNavigationPoint(1200, 912, -32, 0));
+		final var legacyProven = new Evidence(true, 2, 0, 1, 901000);
+		final var legacyCandidate = new Evidence(true, 0, 0, 0, 0);
+		final var newProven = new Evidence(false, 1, 0, 0, 0);
+		final int newEdges = 4096 - 2;
+		final var overflow = capacityEdge(origin, newEdges);
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			check(legacyProven.equals(memory.find(proven)), "Legacy PROVEN evidence did not load");
+			check(legacyCandidate.equals(memory.find(candidate)), "Legacy CANDIDATE evidence did not load");
+			memory.flush();
+			check(Files.readString(shard).equals(legacy), "Reading a legacy shard changed its bytes");
+			System.out.println("PASS legacy TSV v1 and unchanged bytes after load and flush");
+
+			for (int i = 0; i < newEdges; i++)
+			{
+				final var edge = capacityEdge(origin, i);
+				if (i % 2 == 0) { memory.arrived(edge); }
+				else { memory.propose(edge); }
+				check(memory.find(edge) != null, "Expected room for directed edge " + (i + 3));
+			}
+			memory.propose(overflow);
+			check(memory.find(overflow) == null, "A 4097th candidate entered a full region");
+		}
+		final long bytes = Files.size(shard);
+		check(bytes > 64 * 1024 && bytes <= 1024 * 1024, "Expected a full shard above the old byte limit");
+		try (var memory = PhantomRouteLearning.open(root, geo))
+		{
+			check(legacyProven.equals(memory.find(proven)), "Legacy PROVEN evidence changed after expansion");
+			check(legacyCandidate.equals(memory.find(candidate)), "Legacy CANDIDATE evidence changed after expansion");
+			for (int i = 0; i < newEdges; i++)
+			{
+				final var expected = i % 2 == 0 ? newProven : legacyCandidate;
+				check(expected.equals(memory.find(capacityEdge(origin, i))), "Evidence did not survive reload for directed edge " + (i + 3));
+			}
+			check(memory.find(overflow) == null, "A 4097th candidate was persisted");
+		}
+		System.out.println("PASS 4096 directed edges after reload (" + bytes + " bytes), including both legacy entries");
+	}
+
+	private static Edge capacityEdge(PhantomNavigationPoint origin, int index)
+	{
+		return new Edge(origin, new PhantomNavigationPoint(1208 + (index % 64) * 16, 1008 - (index / 64) * 12, -32, 0));
 	}
 
 	private static void geoFixture() throws Exception

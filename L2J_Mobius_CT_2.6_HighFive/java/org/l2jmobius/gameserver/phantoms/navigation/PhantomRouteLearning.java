@@ -56,8 +56,8 @@ public final class PhantomRouteLearning implements AutoCloseable
 	private static final String HEADER = "PHANTOM_ROUTE_LEARNING\t1\t";
 	private static final Pattern SHARD = Pattern.compile("region-(-?[0-9]{1,3})_(-?[0-9]{1,3})\\.tsv");
 	private static final int MAX_REGIONS = 512;
-	private static final int MAX_EDGES = 256;
-	private static final int MAX_SHARD_BYTES = 64 * 1024;
+	private static final int MAX_EDGES = 4096;
+	private static final int MAX_SHARD_BYTES = 1024 * 1024;
 	private static final int MAX_COUNT = 65535;
 	private static final int CONNECTOR = 160;
 	private static final int MAX_LEG = 3000;
