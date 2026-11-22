@@ -121,11 +121,13 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 			{
 				return TransitionOutcome.deferred("population.not_admitted");
 			}
-			final boolean currentLocal = continuation || locality.isCurrentLocal(profileId)
-				|| coordinatedDemand(profileId, presence.isOnline(profileId), admitted.test(profileId))
-				|| scout && request.kind() == MaterializationRequest.Kind.NORMAL && _scoutAdmission.test(profileId)
-					&& scoutDemand(profileId, presence.isOnline(profileId))
-				|| request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF && presence.isOnline(profileId) && backgroundNativeRequest.test(profileId);
+			final boolean nativeHandoff = request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF;
+			final boolean currentOnline = presence.isOnline(profileId);
+			final boolean currentAdmitted = admitted.test(profileId);
+			final boolean currentLocal = continuation
+				|| (nativeHandoff || currentAdmitted) && (locality.isCurrentLocal(profileId) || coordinatedDemand(profileId, currentOnline, currentAdmitted))
+				|| (nativeHandoff ? currentOnline && backgroundNativeRequest.test(profileId)
+					: scout && _scoutAdmission.test(profileId) && scoutDemand(profileId, currentOnline));
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
 			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");
 		});

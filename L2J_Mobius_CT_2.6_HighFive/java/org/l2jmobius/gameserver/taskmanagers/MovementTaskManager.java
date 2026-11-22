@@ -148,6 +148,15 @@ public class MovementTaskManager
 			POOLS_CREATURE.add(pool);
 		}
 	}
+
+	public boolean isPlayerMovementScheduled(Creature player)
+	{
+		for (Set<Creature> pool : POOLS_PLAYER)
+		{
+			if (pool.contains(player)) { return true; }
+		}
+		return false;
+	}
 	
 	public static final MovementTaskManager getInstance()
 	{

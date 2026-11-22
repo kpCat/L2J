@@ -18,6 +18,7 @@ import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler;
@@ -33,7 +34,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.OwnedWalk;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Edge;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry;
+import org.l2jmobius.gameserver.taskmanagers.MovementTaskManager;
 
 /** The scheduler is the sole intent writer. The route-learning writer persists completed native receipts. */
 public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPort
@@ -173,13 +176,15 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	{
 		final var entry = _materialization.find(scout.id).orElse(null);
 		final var player = entry == null || !entry.worldPresent() ? null : World.getInstance().getPlayer(entry.characterObjectId());
+		final var activeLeg = scout.leg;
+		final boolean recheck = now >= scout.recheckAt;
 		if (!("internal." + SOURCE).equals(_presence.busyReason(scout.id))
-			|| now >= scout.recheckAt && !_eligible.test(scout.id))
+			|| activeLeg == null && recheck && !_eligible.test(scout.id))
 		{
 			release(scout, memory, now, "OWNERSHIP_OR_INTENT_CHANGED");
 			return;
 		}
-		if (now >= scout.recheckAt) { scout.recheckAt = now + 3 * SECOND; }
+		if (activeLeg == null && recheck) { scout.recheckAt = now + 3 * SECOND; }
 		if (scout.signalUntil - System.currentTimeMillis() < SIGNAL_MILLIS / 2 && !renew(scout))
 		{
 			release(scout, memory, now, "SIGNAL_REJECTED");
@@ -208,16 +213,32 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 			release(scout, memory, now, "NATIVE_ACTION_ADMISSION_TIMEOUT");
 			return;
 		}
-		try (var execution = _execution.tryAcquireExclusiveIdle(scout.id, PhantomExecutionHandoff.solo(scout.id)))
+		final var execution = activeLeg == null ? _execution.tryAcquireExclusiveIdle(scout.id, PhantomExecutionHandoff.solo(scout.id)) : activeLeg.execution;
+		if (execution == null) { return; }
+		try
 		{
-			if (execution == null) { return; }
+			if (activeLeg != null && !execution.valid())
+			{
+				release(scout, memory, now, "OWNERSHIP_OR_INTENT_CHANGED");
+				return;
+			}
 			try (var lease = _materialization.tryAcquireAction(scout.id, execution.stamp()).orElse(null))
 			{
-				if (lease == null || lease.player() != player || !lease.executionValid()) { return; }
+				if (lease == null || lease.player() != player || !lease.executionValid())
+				{
+					if (activeLeg != null && now >= activeLeg.deadline) { release(scout, memory, now, "MOVE_ACTION_ADMISSION_TIMEOUT"); }
+					return;
+				}
 				final var current = PhantomNativeTravelActions.point(player);
 				scout.lastPoint = current;
 				if (!owned(scout, player)) { release(scout, memory, now, "STALE_NATIVE_ACTOR"); return; }
-				if (scout.leg != null) { observe(scout, memory, player, lease, current, now); return; }
+				if (activeLeg != null)
+				{
+					if (recheck && !_eligible.test(scout.id)) { release(scout, memory, now, "OWNERSHIP_OR_INTENT_CHANGED"); return; }
+					if (recheck) { scout.recheckAt = now + 3 * SECOND; }
+					observe(scout, memory, player, lease, current, now);
+					return;
+				}
 				if (player.isMoving() || player.hasAI() && player.getAI().getIntention() != Intention.IDLE
 					&& player.getAI().getIntention() != Intention.ACTIVE && player.getAI().getIntention() != Intention.MOVE_TO)
 				{
@@ -270,8 +291,12 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 					plan(scout, player, current, now);
 					return;
 				}
-				issue(scout, memory, player, lease, current, now);
+				issue(scout, memory, player, lease, execution, current, now);
 			}
+		}
+		finally
+		{
+			if (scout.leg == null || scout.leg.execution != execution) { execution.close(); }
 		}
 	}
 
@@ -322,7 +347,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	}
 
 	private void issue(Scout scout, PhantomRouteLearning memory, Player player, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease lease,
-		PhantomNavigationPoint from, long now)
+		PhantomExecutionAdmission.Permit execution, PhantomNavigationPoint from, long now)
 	{
 		final var waypoint = scout.waypoints.peek();
 		final var to = waypointWithinLeg(from, waypoint);
@@ -335,22 +360,31 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		}
 		if (!_eligible.test(scout.id) || !lease.executionValid()) { release(scout, memory, now, "INTENT_CHANGED_BEFORE_WALK"); return; }
 		player.setWalking();
-		player.getAI().setIntention(Intention.MOVE_TO, new Location(to.x(), to.y(), to.z()));
+		RuntimeException nativeFailure = null;
+		try { player.getAI().setIntention(Intention.MOVE_TO, new Location(to.x(), to.y(), to.z())); }
+		catch (RuntimeException failure) { nativeFailure = failure; }
 		final var movement = PhantomNativeTravelActions.captureWalk(player);
-		final var stamp = lease.executionStamp();
 		final var receipt = movement == null ? null : player.nativeStraightMoveArrival(to.x(), to.y(), to.z());
 		final long legId = ++_sequence;
 		final long wallClock = System.currentTimeMillis();
-		if (movement == null || !movement.destination().equals(to) || receipt == null || stamp == null)
+		if (movement == null)
 		{
-			PhantomNativeTravelActions.cancelWalk(movement);
-			witness(scout, memory, player, null, from, movement == null ? null : movement.destination(), from, wallClock, now, now, legId, 0, "NATIVE_MOVE_REJECTED");
+			witness(scout, memory, player, null, from, null, from, wallClock, now, now, legId, 0, "NATIVE_MOVE_REJECTED");
+			if (nativeFailure != null) { throw nativeFailure; }
+			failPlan(scout, memory, now, "NATIVE_MOVE_REJECTED");
+			return;
+		}
+		final long deadline = now + TimeUnit.SECONDS.toNanos(Math.clamp((long) Math.ceil(from.distanceTo(to) / Math.max(1, player.getMoveSpeed())) + 8, 10, 65));
+		scout.leg = new Leg(movement, new Arrival(new Edge(from, movement.destination()), receipt == null ? () -> false : receipt),
+			execution, execution.stamp(), legId, wallClock, now, deadline, from);
+		if (nativeFailure != null || !movement.destination().equals(to) || receipt == null)
+		{
+			cancelLeg(scout, memory, now, "NATIVE_MOVE_REJECTED");
+			if (nativeFailure != null) { throw nativeFailure; }
 			failPlan(scout, memory, now, "NATIVE_MOVE_REJECTED");
 			return;
 		}
 		_started++;
-		scout.leg = new Leg(movement, new Arrival(new Edge(from, to), receipt), stamp, legId, wallClock, now,
-			now + TimeUnit.SECONDS.toNanos(Math.clamp((long) Math.ceil(from.distanceTo(to) / Math.max(1, player.getMoveSpeed())) + 8, 10, 65)), from);
 		if (to.equals(waypoint)) { scout.waypoints.removeFirst(); }
 	}
 
@@ -368,6 +402,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		PhantomNavigationPoint current, long now)
 	{
 		final var leg = scout.leg;
+		if (leg.cancelReason != null) { cancelLeg(scout, memory, now, leg.cancelReason); return; }
 		final var edge = leg.arrival.edge;
 		final boolean sameOwner = player == leg.walk.player() && player.getNativeWorkOwner() == leg.walk.owner() && owned(scout, player)
 			&& leg.stamp.equals(lease.executionStamp()) && lease.executionValid();
@@ -379,7 +414,11 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 			leg.samples++;
 			_lastProgress = System.currentTimeMillis();
 		}
-		if (sameOwner && leg.arrival.consume(sessionOpen() && !scout.releasing && !player.isRunning(), leg.samples, current))
+		// Native ARRIVED runs after the position receipt, under the queued movement ticket.
+		final boolean endpoint = sameOwner && current.equals(edge.to());
+		final boolean settled = endpoint && walkSettled(leg.walk);
+		if (endpoint && !settled && now < leg.deadline) { return; }
+		if (settled && leg.arrival.consume(sessionOpen() && !scout.releasing && !player.isRunning(), leg.samples, current))
 		{
 			scout.leg = null;
 			if (!_eligible.test(scout.id) || !_geo.canWalkDirect(edge.from(), edge.to()))
@@ -515,19 +554,25 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	{
 		final var leg = scout.leg;
 		if (leg == null) { return; }
+		if (leg.cancelReason == null) { leg.cancelReason = reason; }
 		final var player = leg.walk.player();
-		final var existing = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.current(leg.walk.owner());
-		if (existing != null) { PhantomNativeTravelActions.cancelWalk(leg.walk); }
-		else
+		if (leg.walk.equals(PhantomNativeTravelActions.captureWalk(player)))
 		{
-			try (var completion = _materialization.tryAcquireCompletionAction(scout.id, leg.stamp).orElse(null))
-			{
-				if (completion == null && player.isMoving() && leg.walk.equals(PhantomNativeTravelActions.captureWalk(player))) { return; }
-				if (completion != null && completion.player() == player) { PhantomNativeTravelActions.cancelWalk(leg.walk); }
-			}
+			// Exact cancellation of previously issued native work also applies while durable handoff resolves.
+			PlayerNativeWork.run(player, "SCOUT_WALK_CANCEL", () -> PhantomNativeTravelActions.cancelWalk(leg.walk));
 		}
+		if (!walkSettled(leg.walk)) { return; }
 		scout.leg = null;
-		witness(scout, memory, player, null, leg.arrival.edge.from(), leg.walk.destination(), PhantomNativeTravelActions.point(player), leg.wallClock, leg.started, now, leg.id, leg.samples, reason);
+		leg.execution.close();
+		witness(scout, memory, player, null, leg.arrival.edge.from(), leg.walk.destination(), PhantomNativeTravelActions.point(player), leg.wallClock, leg.started, now, leg.id, leg.samples, leg.cancelReason);
+	}
+
+	private static boolean walkSettled(OwnedWalk walk)
+	{
+		return !walk.owner().isCurrent() || walk.owner().sealed()
+			|| !walk.equals(PhantomNativeTravelActions.captureWalk(walk.player()))
+				&& !MovementTaskManager.getInstance().isPlayerMovementScheduled(walk.player())
+				&& walk.owner() instanceof PhantomNativeWorkScope scope && !scope.hasMovementWork();
 	}
 
 	private void release(Scout scout, PhantomRouteLearning memory, long now, String reason)
@@ -567,23 +612,22 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 			}
 		}
 		// Keep ordinary work fenced while this actor's scheduled STORE is pending.
-		if (entry != null && !_stopped && (!scout.yieldToOrdinary || scout.died || scout.leg != null)) { return; }
-		if (scout.leg != null && !_stopped) { return; }
+		if (scout.leg != null || entry != null && !_stopped && (!scout.yieldToOrdinary || scout.died)) { return; }
 		_presence.releaseBusy(scout.id, SOURCE);
 		_scouts.remove(scout.id, scout);
 		if (_retry.size() >= 128) { _retry.remove(_retry.keySet().iterator().next()); }
 		_retry.put(scout.id, now + (scout.died ? TimeUnit.HOURS.toNanos(1) : 180 * SECOND));
 	}
 
-	public synchronized void beginStop()
+	public synchronized boolean beginStop()
 	{
-		if (_stopped) { return; }
 		_stopped = true;
 		final var memory = _navigation.routeLearning();
 		final long now = System.nanoTime();
 		for (var scout : _scouts.values()) { release(scout, memory, now, "SERVER_STOP"); }
 		_reason = "SERVER_STOP";
 		report(memory);
+		return _scouts.isEmpty();
 	}
 
 	private boolean witness(Scout scout, PhantomRouteLearning memory, Player player, Edge arrived,
@@ -664,15 +708,19 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	{
 		final OwnedWalk walk;
 		final Arrival arrival;
+		final PhantomExecutionAdmission.Permit execution;
 		final PhantomExecutionAdmission.Stamp stamp;
 		final long id, wallClock, started, deadline;
 		PhantomNavigationPoint previous;
 		long lastChange;
 		int samples;
-		Leg(OwnedWalk walk, Arrival arrival, PhantomExecutionAdmission.Stamp stamp, long id, long wallClock, long started, long deadline, PhantomNavigationPoint previous)
+		String cancelReason;
+		Leg(OwnedWalk walk, Arrival arrival, PhantomExecutionAdmission.Permit execution, PhantomExecutionAdmission.Stamp stamp, long id, long wallClock, long started,
+			long deadline, PhantomNavigationPoint previous)
 		{
 			this.walk = walk;
 			this.arrival = arrival;
+			this.execution = execution;
 			this.stamp = stamp;
 			this.id = id;
 			this.wallClock = wallClock;

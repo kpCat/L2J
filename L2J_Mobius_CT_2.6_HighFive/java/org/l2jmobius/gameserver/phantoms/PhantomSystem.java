@@ -1563,7 +1563,7 @@ public final class PhantomSystem
 				// Admission closes once; accepted writers retain their executors and dependencies.
 				if (_historicalBackgroundService != null) { _historicalBackgroundService.revokeForegroundDecisions(); }
 				if (_autonomousMarketProducer != null) { _autonomousMarketProducer.beginStop(); }
-				if (_physicalGeoScouts != null) { _physicalGeoScouts.beginStop(); }
+				if (_physicalGeoScouts != null && !_physicalGeoScouts.beginStop()) { return pendingStop(StopPhase.CLOSE_PRODUCERS, "physical_scout_walk"); }
 				if (_populationEcology != null) { _populationEcology.beginStop(); }
 				if (_scheduler != null) { _scheduler.beginStop(); }
 				if (_decisionEngine != null) { _decisionEngine.beginStop(); }

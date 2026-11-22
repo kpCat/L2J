@@ -324,6 +324,13 @@ public final class PhantomNativeWorkScope implements Owner
 	}
 
 	public int outstanding() { synchronized (_monitor) { return _outstanding.size(); } }
+	public boolean hasMovementWork()
+	{
+		synchronized (_monitor)
+		{
+			return _outstanding.values().stream().anyMatch(ticket -> "MOVEMENT".equals(ticket._kind));
+		}
+	}
 	/** The hook only publishes a service control task; it never performs cleanup inline. */
 	public void onQuiescent(Runnable enqueue)
 	{

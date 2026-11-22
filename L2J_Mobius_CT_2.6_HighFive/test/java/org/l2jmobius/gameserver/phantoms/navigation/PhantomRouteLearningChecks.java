@@ -73,24 +73,47 @@ public final class PhantomRouteLearningChecks
 		final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1);
 		final long profile = 7;
 		final var owner = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profile);
-		gate.publish(profile, 0, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(owner));
+		final var grant = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(owner);
+		gate.publish(profile, 0, grant);
+		final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp ordinaryStamp;
 		try (var ongoing = gate.tryAcquire(profile, owner))
 		{
 			check(ongoing != null && gate.tryAcquireExclusiveIdle(profile, owner) == null, "Scout preempted an admitted ordinary action");
+			ordinaryStamp = ongoing.stamp();
 		}
+		final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp walkStamp;
 		try (var scout = gate.tryAcquireExclusiveIdle(profile, owner))
 		{
 			check(scout != null && scout.valid(), "Idle grant rejected the low-priority action");
+			walkStamp = scout.stamp();
+			check(gate.tryAcquire(profile, owner) == null, "A different controller on the same scheduler thread entered during WALK");
+			check(gate.tryAcquireCompletionScoped(profile, ordinaryStamp) == null, "An ordinary receipt entered during WALK");
 			final var competed = new java.util.concurrent.atomic.AtomicBoolean();
+			final var continued = new java.util.concurrent.atomic.AtomicBoolean();
 			Thread.startVirtualThread(() ->
 			{
 				try (var other = gate.tryAcquire(profile, owner)) { competed.set(other != null); }
+				try (var nativeChild = gate.tryAcquireScoped(profile, walkStamp)) { continued.set(nativeChild != null && nativeChild.valid()); }
 			}).join();
-			check(!competed.get(), "An ordinary owner entered during the scout action");
-			try (var nativeChild = gate.tryAcquireContinuationScoped(profile, scout.stamp()))
+			check(!competed.get() && continued.get(), "A polling worker could not use the exact WALK grant without admitting ordinary work");
+			gate.publish(profile, 1, grant.request(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("test", "next"), "handoff-walk", 1, 100));
+			check(!scout.valid() && scout.yieldRequested() && !gate.quiescentCurrent(profile, 1), "Ownership could move before pending WALK drained");
+			check(gate.tryAcquireScoped(profile, walkStamp) == null, "Handoff permitted another WALK");
+			try (var completion = gate.tryAcquireCompletionScoped(profile, walkStamp))
 			{
-				check(nativeChild != null && nativeChild.valid(), "The scout could not enter the native action lease");
+				check(completion != null && completion.valid(), "Handoff rejected cancellation of the exact WALK");
 			}
+		}
+		check(gate.quiescentCurrent(profile, 1), "WALK release retained the old owner");
+		check(gate.tryAcquireCompletionScoped(profile, walkStamp) == null, "Released WALK could still cancel movement");
+		gate.publish(profile, 2, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(owner));
+		try (var next = gate.tryAcquireExclusiveIdle(profile, owner);
+			var child = gate.tryAcquireScoped(profile, next.stamp()))
+		{
+			check(child != null, "Next WALK could not enter its own action");
+			check(gate.tryAcquireCompletionScoped(profile, walkStamp) == null, "Old WALK receipt borrowed the next grant");
+			next.close();
+			check(gate.tryAcquire(profile, owner) == null, "Owner released before the final action scope closed");
 		}
 		try (var ordinary = gate.tryAcquire(profile, owner)) { check(ordinary != null && ordinary.valid(), "Scout retained ownership after release"); }
 		System.out.println("PASS idle admission, competing owner rejection, native continuation and release");

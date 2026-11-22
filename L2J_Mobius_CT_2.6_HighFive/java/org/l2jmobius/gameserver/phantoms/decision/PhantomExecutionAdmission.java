@@ -40,9 +40,12 @@ public final class PhantomExecutionAdmission
 	private final int _limit;
 	private final ThreadLocal<Scope> _context = new ThreadLocal<>();
 	private long _publicationSequence;
-	public record Stamp(long profileId, long generation, PhantomDomainRef owner, long admissionEpoch, Purpose purpose)
+	private long _exclusiveSequence;
+	public record Stamp(long profileId, long generation, PhantomDomainRef owner, long admissionEpoch, Purpose purpose, long exclusiveId)
 	{
-		public Stamp { if (profileId <= 0 || generation <= 0 || admissionEpoch <= 0) { throw new IllegalArgumentException("Invalid captured execution grant."); } Objects.requireNonNull(owner); Objects.requireNonNull(purpose); }
+		public Stamp(long profileId, long generation, PhantomDomainRef owner, long admissionEpoch, Purpose purpose)
+		{ this(profileId, generation, owner, admissionEpoch, purpose, 0); }
+		public Stamp { if (profileId <= 0 || generation <= 0 || admissionEpoch <= 0 || exclusiveId < 0) { throw new IllegalArgumentException("Invalid captured execution grant."); } Objects.requireNonNull(owner); Objects.requireNonNull(purpose); }
 	}
 	public PhantomExecutionAdmission(int limit)
 	{
@@ -73,14 +76,16 @@ public final class PhantomExecutionAdmission
 	}
 	private long nextPublication() { _publicationSequence = Math.incrementExact(_publicationSequence); return _publicationSequence; }
 	public synchronized boolean permits(long id, PhantomDomainRef owner)
-	{ return permits(id, owner, Purpose.NORMAL); }
-	private boolean permits(long id, PhantomDomainRef owner, Purpose purpose)
-	{ return permits(id, owner, purpose, false); }
-	private boolean permits(long id, PhantomDomainRef owner, Purpose purpose, boolean continuation)
+	{
+		final var stamp = currentCapturedStamp(id);
+		final long exclusiveId = stamp != null && sameGrant(id, _slots.get(id), stamp) ? stamp.exclusiveId() : 0;
+		return permits(id, owner, Purpose.NORMAL, false, exclusiveId);
+	}
+	private boolean permits(long id, PhantomDomainRef owner, Purpose purpose, boolean continuation, long exclusiveId)
 	{
 		final var slot = _slots.get(id);
 		return slot != null && !slot.uncertain && !slot.boundary && slot.state.owner().equals(owner)
-			&& (slot.exclusiveThread == null || slot.exclusiveThread == Thread.currentThread())
+			&& slot.exclusiveId == exclusiveId && !slot.exclusiveReleasing
 			&& (slot.refreshThread == null || purpose == Purpose.COMPLETION && slot.refreshThread == Thread.currentThread())
 			&& (purpose == Purpose.NORMAL ? slot.state.phase() == PhantomExecutionHandoff.Phase.ACTIVE && (continuation || slot.blocked == 0) : slot.state.ownerMayComplete(owner));
 	}
@@ -91,22 +96,22 @@ public final class PhantomExecutionAdmission
 	public synchronized Permit tryAcquireExclusiveIdle(long id, PhantomDomainRef owner)
 	{
 		final var slot = _slots.get(id);
-		if (slot == null || slot.running != 0 || slot.exclusiveThread != null) { return null; }
-		final var permit = tryAcquire(id, owner, Purpose.NORMAL);
-		if (permit != null)
-		{
-			slot.exclusiveThread = Thread.currentThread();
-			permit._exclusive = true;
-		}
+		if (slot == null || slot.running != 0 || !permits(id, owner, Purpose.NORMAL, false, 0)) { return null; }
+		_exclusiveSequence = Math.incrementExact(_exclusiveSequence);
+		slot.exclusiveId = _exclusiveSequence;
+		final var permit = tryAcquire(id, owner, Purpose.NORMAL, false, slot.exclusiveId);
+		permit._exclusive = true;
 		return permit;
 	}
 	private Permit tryAcquire(long id, PhantomDomainRef owner, Purpose purpose)
 	{ return tryAcquire(id, owner, purpose, false); }
 	private Permit tryAcquire(long id, PhantomDomainRef owner, Purpose purpose, boolean continuation)
+	{ return tryAcquire(id, owner, purpose, continuation, 0); }
+	private Permit tryAcquire(long id, PhantomDomainRef owner, Purpose purpose, boolean continuation, long exclusiveId)
 	{
-		if (!permits(id, owner, purpose, continuation)) { return null; }
+		if (!permits(id, owner, purpose, continuation, exclusiveId)) { return null; }
 		final var slot = _slots.get(id); slot.running++;
-		return new Permit(id, slot, slot.state.generation(), owner, slot.activatedAt, purpose);
+		return new Permit(id, slot, slot.state.generation(), owner, slot.activatedAt, purpose, exclusiveId);
 	}
 	/** Explicit inherited authority never falls back to a fresh owner when stale. */
 	public Permit tryAcquireScoped(long id, Stamp inherited)
@@ -136,7 +141,7 @@ public final class PhantomExecutionAdmission
 	private synchronized Permit acquireCaptured(long id, Stamp stamp, Purpose purpose, boolean continuation)
 	{
 		final var slot = _slots.get(id);
-		return sameGrant(id, slot, stamp) && (purpose != Purpose.NORMAL || stamp.purpose() == Purpose.NORMAL) ? tryAcquire(id, stamp.owner(), purpose, continuation) : null;
+		return sameGrant(id, slot, stamp) && (purpose != Purpose.NORMAL || stamp.purpose() == Purpose.NORMAL) ? tryAcquire(id, stamp.owner(), purpose, continuation, stamp.exclusiveId()) : null;
 	}
 	/** Acknowledged durable obligation facts close fresh conflicting actions, preserving already issued completion rights. */
 	public synchronized void blocker(long id, String component, long rowVersion, boolean blocked)
@@ -153,7 +158,7 @@ public final class PhantomExecutionAdmission
 	}
 	private record Blocker(long version, boolean blocked) { }
 	private static boolean sameGrant(long id, Slot slot, Stamp stamp)
-	{ return id == stamp.profileId() && slot != null && slot.state.generation() == stamp.generation() && slot.activatedAt == stamp.admissionEpoch() && slot.state.owner().equals(stamp.owner()); }
+	{ return id == stamp.profileId() && slot != null && slot.state.generation() == stamp.generation() && slot.activatedAt == stamp.admissionEpoch() && slot.state.owner().equals(stamp.owner()) && slot.exclusiveId == stamp.exclusiveId(); }
 	/** Native earned descendants/cancellation retain source rights until YIELD; no new admission is granted here. */
 	public synchronized boolean acceptsContinuation(Stamp stamp)
 	{
@@ -325,11 +330,12 @@ public final class PhantomExecutionAdmission
 		private final PhantomDomainRef _owner;
 		private final long _admissionEpoch;
 		private final Purpose _purpose;
+		private final long _exclusiveId;
 		private boolean _closed;
 		private boolean _exclusive;
-		private Permit(long id, Slot slot, long generation, PhantomDomainRef owner, long epoch, Purpose purpose)
-		{ _profileId = id; _slot = slot; _generation = generation; _owner = owner; _admissionEpoch = epoch; _purpose = purpose; }
-		public Stamp stamp() { return new Stamp(_profileId, _generation, _owner, _admissionEpoch, _purpose); }
+		private Permit(long id, Slot slot, long generation, PhantomDomainRef owner, long epoch, Purpose purpose, long exclusiveId)
+		{ _profileId = id; _slot = slot; _generation = generation; _owner = owner; _admissionEpoch = epoch; _purpose = purpose; _exclusiveId = exclusiveId; }
+		public Stamp stamp() { return new Stamp(_profileId, _generation, _owner, _admissionEpoch, _purpose, _exclusiveId); }
 		public Scope enterScope()
 		{
 			synchronized (PhantomExecutionAdmission.this)
@@ -353,7 +359,7 @@ public final class PhantomExecutionAdmission
 		{
 			synchronized (PhantomExecutionAdmission.this)
 			{
-				return !_closed && sameGrant(_profileId, _slot, stamp()) && permits(_profileId, _owner, _purpose, true);
+				return !_closed && sameGrant(_profileId, _slot, stamp()) && permits(_profileId, _owner, _purpose, true, _exclusiveId);
 			}
 		}
 		@Override public long executionGeneration() { return _generation; }
@@ -373,7 +379,12 @@ public final class PhantomExecutionAdmission
 				{
 					_closed = true;
 					_slot.running--;
-					if (_exclusive) { _slot.exclusiveThread = null; }
+					if (_exclusive) { _slot.exclusiveReleasing = true; }
+					if (_slot.exclusiveReleasing && _slot.running == 0)
+					{
+						_slot.exclusiveId = 0;
+						_slot.exclusiveReleasing = false;
+					}
 				}
 			}
 		}
@@ -384,7 +395,8 @@ public final class PhantomExecutionAdmission
 		private long activatedAt;
 		private final Map<String, Blocker> blockers = new HashMap<>();
 		private int blocked;
-		private Thread exclusiveThread;
+		private long exclusiveId;
+		private boolean exclusiveReleasing;
 		private Slot(long version, PhantomExecutionHandoff state, long activatedAt) { this.version = version; this.state = state; this.activatedAt = activatedAt; }
 	}
 }
