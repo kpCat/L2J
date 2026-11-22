@@ -345,6 +345,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				case ROUTE_UNUSABLE, NATIVE_ACTION_REJECTED, INDETERMINATE_ROUTE ->
 				{
+					if (failure.spatialBackoff()) { yield true; }
 					if (failure.disposition() == PhantomVisibleFarmTravel.Disposition.INDETERMINATE_ROUTE || failure.stepId().startsWith("live.approach." + PhantomBackgroundGoalSpec.parse(failure.goal()).anchorId() + "@"))
 					{
 						final long now = _visibleClock.getAsLong();
@@ -1644,9 +1645,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public boolean visibleFarmReady(long profileId, PhantomGoal goal)
 	{
 		final var failures = _visibleFailures.get(profileId);
-		final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		final long epoch = lifetime == null ? 0 : lifetime.materializedAtNanos();
 		final var episode = _visibleEpisodes.get(profileId);
-		if ((episode != null) && (episode.epoch == epoch) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.cooldown"); }
+		if ((episode != null) && (episode.epoch == epoch) && !episode.spatialWait && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.cooldown"); }
+		if (lifetime != null && _visibleTravel != null
+			&& _visibleTravel.searchHeld(profileId, goal, org.l2jmobius.gameserver.model.World.getInstance().getPlayer(lifetime.characterObjectId()), epoch)
+			&& !freshLocalAction(profileId, goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.farm_search_backoff"); }
 		if (failures != null)
 		{
 			if (failures.protocolBlocked(goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.protocol_blocked"); }
@@ -1953,7 +1958,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if ((failures != null) && failures.protocolBlocked(stored.goal(), lifetime.materializedAtNanos())) { return false; }
 			stage = "cooldown";
 			final var episode = _visibleEpisodes.get(profileId);
-			if ((episode != null) && (episode.epoch == lifetime.materializedAtNanos()) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
+			if ((episode != null) && (episode.epoch == lifetime.materializedAtNanos()) && !episode.spatialWait && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
 			stage = "baseline";
 			var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
 			if (baseline == null) { return false; }
@@ -2033,8 +2038,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
-			final boolean routeRecovery = !historicalIdle && (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
+			final boolean spatialRecovery = sharedFarmSource == null && !historicalIdle && _visibleTravel != null
+				&& _visibleTravel.searchHeld(profileId, stored.goal(), player, lifetime.materializedAtNanos())
 				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
+			if (spatialRecovery && !authorityRenewal && episode != null && episode.epoch == lifetime.materializedAtNanos()
+				&& episode.spatialWait && _visibleClock.getAsLong() < episode.cooldownUntil) { return false; }
+			final boolean exactRouteRecovery = !historicalIdle && failures != null && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
+				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
+			final boolean routeRecovery = spatialRecovery || exactRouteRecovery;
 			stage = "logical_assembly";
 			if (logicalAssemblyHoldsRoot(profileId, stored.goal(), sharedFarmSource != null)) { return false; }
 			stage = "suitability_travel";
@@ -2064,16 +2075,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final long now = _visibleClock.getAsLong();
 			stage = "local_replan";
 			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
-			if (routeRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
-			else if (sharedFarmSource == null && !authorityRenewal && !historicalIdle) { recovery.targets.add(targetKey(stored.goal())); }
-			if ((recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now); return false; }
-			final var excluded = new java.util.HashSet<>(exclusions.targets()); excluded.addAll(recovery.targets);
+			if (exactRouteRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
+			else if (!spatialRecovery && sharedFarmSource == null && !authorityRenewal && !historicalIdle) { recovery.targets.add(targetKey(stored.goal())); }
+			if (!spatialRecovery && (recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now, false); return false; }
+			final var excluded = new java.util.HashSet<>(exclusions.targets());
+			if (!spatialRecovery) { excluded.addAll(recovery.targets); }
 			if (routeRecovery) { excluded.add(targetKey(stored.goal())); }
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
-			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate -> _planner.isVisibleLocal(candidate, live)
-				|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player));
+			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate -> !spatialRecovery && _planner.isVisibleLocal(candidate, live)
+				|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player, spatialRecovery));
 			final boolean travelOnly = rendezvousTravelPreparation(profileId, stored.goal(), sharedFarmSource != null);
-			final var replacement = sharedFarmSource == null
+			final var replacement = spatialRecovery
+				? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel,
+					anchor -> !_visibleTravel.searchHeldAtAnchor(profileId, player, lifetime.materializedAtNanos(), anchor))
+				: sharedFarmSource == null
 				? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
@@ -2087,7 +2102,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 						"live=" + live.x() + "," + live.y() + "," + live.z() + ";reject=" + replacement.candidateRejections().stream().limit(2).toList(),
 						stored.goal().goalId(), lifetime.materializedAtNanos(), stored.goal().revision());
 				}
-				recovery.unavailable(now); return false;
+				recovery.unavailable(now, spatialRecovery); return false;
 			}
 			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
 			final var state = catchup.state();
@@ -2543,9 +2558,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final Set<String> targets = ConcurrentHashMap.newKeySet();
 		final Set<String> routes = ConcurrentHashMap.newKeySet();
 		volatile long cooldownUntil;
+		volatile boolean spatialWait;
 		volatile String reason = "";
 		VisibleEpisode(int objectId, long epoch, long started) { this.objectId = objectId; this.epoch = epoch; this.started = started; }
-		void unavailable(long now) { reason = "LOCAL_FARM_UNAVAILABLE"; cooldownUntil = Math.max(now + 10_000_000_000L, started + 60_000_000_000L); }
+		void unavailable(long now, boolean spatial)
+		{
+			reason = "LOCAL_FARM_UNAVAILABLE";
+			cooldownUntil = spatial ? now + 30_000_000_000L : Math.max(now + 10_000_000_000L, started + 60_000_000_000L);
+			spatialWait = spatial;
+		}
 	}
 
 	private static final class VisiblePublication

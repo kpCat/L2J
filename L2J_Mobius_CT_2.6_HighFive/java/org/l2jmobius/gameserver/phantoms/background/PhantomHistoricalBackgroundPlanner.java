@@ -149,14 +149,20 @@ public final class PhantomHistoricalBackgroundPlanner
 	/** Prefer factual local anchors; exhaustion may propose an existing topology itinerary, never movement. */
 	public Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
+		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, _ -> true);
+	}
+
+	private Result replanVisibleLocalPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<Candidate> available)
+	{
 		final var previous = visiblePredecessor(profileId, previousGoal);
 		final var loadout = state.loadout();
 		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
-		final var local = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state));
+		final var local = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state), false, available);
 		if (local.ready() || !"LOCAL_FARM_UNAVAILABLE".equals(local.reasonKey()) || live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return local; }
 		// Use the same finite knowledge pages, native viability and route exclusions as historical
 		// planning. The foreground owner must separately admit the actual departure and paid legs.
-		final var distant = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state));
+		final var distant = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state), false, available);
 		return distant.ready() ? new Result(distant.goal(), distant.spec(), distant.planIdentity(), distant.generation(), distant.routeEdgeIds(), "planner.topology_fallback") : distant;
 	}
 
@@ -171,6 +177,22 @@ public final class PhantomHistoricalBackgroundPlanner
 			final var candidate = replanVisibleLocal(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps);
 			if (!candidate.ready() || admitted.test(candidate.goal())) { return candidate; }
 			excluded.add(candidate.spec().npcId() + "@" + candidate.spec().anchorId());
+		}
+		return Result.blocked("planner.visible_route.unavailable");
+	}
+
+	/** Spend the native verification budget on distinct anchors outside the current failed approach. */
+	Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted,
+		java.util.function.Predicate<PhantomTopologyAnchor> availableAnchor)
+	{
+		final var availability = new java.util.HashMap<String, Boolean>();
+		final java.util.function.Predicate<Candidate> available = candidate -> availability.computeIfAbsent(candidate.anchor().id(), _ -> availableAnchor.test(candidate.anchor()));
+		for (int attempt = 0; attempt < 3; attempt++)
+		{
+			final var candidate = replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, available);
+			if (!candidate.ready() || admitted.test(candidate.goal())) { return candidate; }
+			availability.put(candidate.spec().anchorId(), false);
 		}
 		return Result.blocked("planner.visible_route.unavailable");
 	}
