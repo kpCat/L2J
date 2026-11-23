@@ -1681,6 +1681,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (journey.submittedSearch != null && PhantomFarmRouteBackoff.indeterminate(proof.kind())
 				&& navigationFailureDisposition(result.status()) == Disposition.INDETERMINATE_ROUTE)
 			{
+				final var site = journey.submittedSearch.site();
+				if (journey.submittedSearch.origin().equals(proof.origin()) && journey.submittedSearch.destination().equals(proof.submittedDestination()))
+				{
+					org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.observeFarmRefusal(profileId, journey.player,
+						journey.epoch, result.requestId(), site.geodata(), site.zones(), proof);
+				}
 				if (beginDryRecovery(profileId, journey, proof) || (journey.dryRecovery == null && retryVerifiedCheckpoint(profileId, journey, proof))
 					|| beginSwimRecovery(profileId, journey, stamp)) { return false; }
 				// Let the historical owner choose a different verified approach or wait.
@@ -1747,7 +1753,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var rejected = journey.submittedSearch;
 		final var player = journey.player;
 		if (!journey.currentAnchorReturn || journey.attempt.dryRecovery != null || journey.nativeBudget == null
-			|| journey.nativeBudget.expired(_clock.getAsLong()) || !rejected.destination().equals(journey.arrivalPoint)
+			|| journey.nativeBudget.expired(_clock.getAsLong()) || !dryRecoveryRequestMatches(rejected, proof, journey.arrivalPoint)
 			|| !rejected.origin().equals(PhantomNativeTravelActions.point(player)) || !dryRecoveryAuthority(profileId, journey)
 			|| !rejected.site().equals(searchSite(profileId, player, journey.epoch)) || player.isMoving()
 			|| player.isInsideZone(ZoneId.WATER) || ZoneManager.getInstance().getZone(rejected.origin().x(), rejected.origin().y(), rejected.origin().z(), WaterZone.class) != null)
@@ -1762,6 +1768,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		journey.reason = "travel.recovery_walk_pending";
 		recordDryRecovery(profileId, journey, "STARTED", proof.diagnostic());
 		return true;
+	}
+
+	static boolean dryRecoveryRequestMatches(PhantomFarmRouteBackoff.Probe rejected, PhantomNavigationResult.BudgetProof proof, PhantomNavigationPoint arrival)
+	{
+		// A refused intermediate corridor may start the same bounded recovery to the journey's arrival.
+		return rejected.destination().equals(arrival) || (proof.kind() == PhantomNavigationResult.LimitKind.SEARCH_LIMIT
+			&& "CORRIDOR".equals(proof.requestKind()) && rejected.origin().equals(proof.origin())
+			&& rejected.destination().equals(proof.destination()) && rejected.destination().equals(proof.submittedDestination()));
 	}
 
 	private boolean currentDryRecovery(long profileId, Journey journey)

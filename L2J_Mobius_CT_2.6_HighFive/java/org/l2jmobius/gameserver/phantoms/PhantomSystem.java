@@ -2672,6 +2672,13 @@ public final class PhantomSystem
 			? PhantomPopulationManager.Snapshot.inactive() : _configuredInstance._populationManager.snapshot();
 	}
 
+	/** Snapshot the materialization registry without evaluating retention or advancing the native evidence clock. */
+	public static synchronized java.util.Optional<PhantomMaterializationService.MaterializationSnapshot> operatorMaterialization(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		return configured == null || configured._materializationService == null ? java.util.Optional.empty() : configured._materializationService.find(profileId);
+	}
+
 	public static synchronized java.util.Optional<OperatorAdmissionProfile> operatorAdmissionProfile(long profileId)
 	{
 		final PhantomSystem configured = _configuredInstance;

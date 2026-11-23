@@ -16,7 +16,6 @@ import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.UserPrincipal;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +23,7 @@ import java.util.UUID;
 
 final class HumanRouteMailbox implements AutoCloseable
 {
-	enum Action { STATUS, ARM, ARRIVED, SKIP, STOP, NEXT }
+	enum Action { STATUS, ARM, ARRIVED, SKIP, STOP, NEXT, RENEW, RELOAD }
 	record Request(UUID id, long sequence, long deadline, Action action, String scene) { }
 	record Permit(String account, int objectId, long expires) { }
 
@@ -37,7 +36,7 @@ final class HumanRouteMailbox implements AutoCloseable
 	private final FileChannel _lockChannel;
 	private final FileLock _lock;
 	private final UUID _incarnation = UUID.randomUUID();
-	private final Set<UUID> _seen = new HashSet<>();
+	private final Map<UUID, Long> _seen = new HashMap<>();
 	private long _sequence = 1;
 
 	HumanRouteMailbox(Path root) throws IOException
@@ -97,13 +96,17 @@ final class HumanRouteMailbox implements AutoCloseable
 		}
 	}
 
-	Permit permit(long now) throws IOException
+	Permit permit(Request request, long now) throws IOException
 	{
-		final var fields = fields(read(_root.resolve("permit.txt"), MAX_REQUEST), Set.of("EnableHumanRouteDemonstration", "account", "objectId", "expires"));
+		final var fields = fields(read(_root.resolve("permit-" + request.id() + ".txt"), MAX_REQUEST),
+			Set.of("EnableHumanRouteDemonstration", "incarnation", "id", "sequence", "requestDeadline", "account", "objectId", "expires"));
 		final long expires = Long.parseLong(fields.get("expires"));
 		final int objectId = Integer.parseInt(fields.get("objectId"));
 		final String account = fields.get("account");
-		if (!"True".equals(fields.get("EnableHumanRouteDemonstration")) || !account.matches("[A-Za-z0-9_]{1,32}") || objectId <= 0 || expires <= now || expires > now + MAX_PERMIT_LIFETIME)
+		if (!"True".equals(fields.get("EnableHumanRouteDemonstration")) || !_incarnation.toString().equals(fields.get("incarnation"))
+			|| !request.id().toString().equals(fields.get("id")) || !account.matches("[A-Za-z0-9_]{1,32}") || objectId <= 0
+			|| !Long.toString(request.sequence()).equals(fields.get("sequence")) || !Long.toString(request.deadline()).equals(fields.get("requestDeadline"))
+			|| expires <= now || expires > now + MAX_PERMIT_LIFETIME || request.deadline() <= now)
 		{
 			throw new IllegalArgumentException("Invalid private permit.");
 		}
@@ -114,7 +117,7 @@ final class HumanRouteMailbox implements AutoCloseable
 	{
 		final ProcessHandle process = ProcessHandle.current();
 		final Instant start = process.info().startInstant().orElseThrow(() -> new IOException("Process incarnation unavailable."));
-		write(_root.resolve("server.txt"), "version=1\nincarnation=" + _incarnation + "\npid=" + process.pid() + "\nstarted=" + start.toEpochMilli() + "\n");
+		write(_root.resolve("server.txt"), "version=2\nincarnation=" + _incarnation + "\npid=" + process.pid() + "\nstarted=" + start.toEpochMilli() + "\n");
 	}
 
 	Request receive(long now) throws IOException
@@ -146,15 +149,14 @@ final class HumanRouteMailbox implements AutoCloseable
 		try
 		{
 			final Request request = parseRequest(read(claimed, MAX_REQUEST), _incarnation, now);
-			if (stop != (request.action() == Action.STOP) || (!stop && request.sequence() != _sequence) || !_seen.add(request.id()))
+			_seen.values().removeIf(deadline -> deadline <= now);
+			if (stop != (request.action() == Action.STOP) || (!stop && request.sequence() != _sequence)
+				|| _seen.size() >= MAX_REQUESTS || _seen.putIfAbsent(request.id(), request.deadline()) != null)
 			{
 				return null;
 			}
-			if (_seen.size() > MAX_REQUESTS)
-			{
-				throw new IOException("Request budget exhausted.");
-			}
-			if (!stop) { _sequence++; }
+			// A priority STOP also fences a command already queued at this sequence.
+			_sequence++;
 			return request;
 		}
 		catch (IllegalArgumentException rejected)
@@ -202,9 +204,13 @@ final class HumanRouteMailbox implements AutoCloseable
 		return fields;
 	}
 
-	String input(String name, int maximum) throws IOException
+	Path queue(Request request) { return _root.resolve("queue-" + request.id()); }
+	Path root() { return _root; }
+
+	String input(Path directory, String name, int maximum) throws IOException
 	{
-		return read(_root.resolve(name), maximum);
+		check(directory, true);
+		return read(directory.resolve(name), maximum);
 	}
 
 	private String read(Path path, int maximum) throws IOException

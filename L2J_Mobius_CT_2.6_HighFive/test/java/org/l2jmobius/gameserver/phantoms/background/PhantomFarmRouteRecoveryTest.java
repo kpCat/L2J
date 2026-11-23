@@ -9,6 +9,9 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.Cap
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.BudgetProof;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.LimitKind;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 
@@ -40,8 +43,29 @@ public final class PhantomFarmRouteRecoveryTest
 		PhantomAssertions.assertEquals(beforeLoop, budget.suspend(5), "A rejected loop must preserve the charged route, time and visited set.");
 		PhantomAssertions.assertEquals(1, PhantomVisibleFarmTravel.nextWalkWaypoint(from, route.waypoints(), 0, policy.arrivalRadius(), (_, _) -> true),
 			"A geometrically revalidated nearby-waypoint shortcut remains allowed.");
+		verifyCheckpointRefusal();
 		verifyFarmSettlement();
+		verifyPassiveEvidence();
 		System.out.println("PASS ordinary farm WALK keeps a mandatory corner and consumes the bounded checkpoint once");
+	}
+
+	private static void verifyCheckpointRefusal()
+	{
+		final var origin = new PhantomNavigationPoint(12207, 15907, -4552, 0);
+		final var checkpoint = new PhantomNavigationPoint(15147, 15312, -4552, 0);
+		final var arrival = new PhantomNavigationPoint(25304, 13256, -3648, 0);
+		final var site = new PhantomFarmRouteBackoff.Site(7, 268484815, 38561671478300L, 1, 1, 1);
+		final var rejected = new PhantomFarmRouteBackoff.Probe(site, origin, checkpoint);
+		final var policy = PhantomNavigationPolicy.productionDefaults();
+		final var request = new PhantomNavigationRequest(site.profileId(), origin, checkpoint, 1, 2, policy.maximumRouteDistance());
+		final var refusal = BudgetProof.context(LimitKind.SEARCH_LIMIT, "CORRIDOR", request, policy);
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.dryRecoveryRequestMatches(rejected, refusal, arrival),
+			"A search limit at the current checkpoint can trigger a bounded dry WALK to the original arrival.");
+		PhantomAssertions.assertFalse(PhantomVisibleFarmTravel.dryRecoveryRequestMatches(rejected, refusal.submission(
+			new PhantomNavigationRequest(site.profileId(), origin, arrival, 1, 2, policy.maximumRouteDistance()), "CORRIDOR"), arrival),
+			"A refusal for a different submitted destination cannot trigger dry recovery.");
+		PhantomAssertions.assertFalse(PhantomVisibleFarmTravel.dryRecoveryRequestMatches(rejected, refusal.submission(request, "EPISODE"), arrival),
+			"An episode refusal cannot start another intermediate recovery.");
 	}
 
 	private static void verifyFarmSettlement()
@@ -62,5 +86,15 @@ public final class PhantomFarmRouteRecoveryTest
 		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.settledFarmAfter(evidence, arrival, 0), "Exact fresh kill and settled EXP/SP close the incident.");
 		PhantomAssertions.assertFalse(PhantomVisibleFarmTravel.settledFarmAfter(evidence, evidence.snapshot(), 0), "A prior reward cannot close a later incident.");
 		PhantomAssertions.assertFalse(PhantomVisibleFarmTravel.settledFarmAfter(evidence, arrival, 1), "A different instance cannot consume the farm receipt.");
+	}
+
+	private static void verifyPassiveEvidence()
+	{
+		final var evidence = new PlayerNativeEvidence(41, 7);
+		evidence.phase(PlayerNativeEvidence.Phase.ROUTE, 10, 20);
+		final var committed = evidence.currentSnapshot();
+		PhantomAssertions.assertEquals(committed, evidence.currentSnapshot(), "A private status read cannot advance the evidence clock.");
+		PhantomAssertions.assertFalse(committed.overflow(), "The status read must preserve the producer's deadline decision.");
+		PhantomAssertions.assertTrue(evidence.snapshot(20).overflow(), "Native producer polling still checks the deadline.");
 	}
 }

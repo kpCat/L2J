@@ -3,7 +3,9 @@ package org.l2jmobius.gameserver.phantoms.navigation;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
@@ -13,21 +15,26 @@ import java.util.logging.Logger;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.GeoEngineConfig;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.network.ConnectionState;
 import org.l2jmobius.gameserver.network.GameClient;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.navigation.HumanRouteMailbox.Permit;
 import org.l2jmobius.gameserver.phantoms.navigation.HumanRouteMailbox.Request;
 import org.l2jmobius.gameserver.phantoms.navigation.HumanRouteScenes.Scene;
 import org.l2jmobius.gameserver.phantoms.navigation.HumanRouteTrace.Point;
 import org.l2jmobius.gameserver.phantoms.navigation.HumanRouteTrace.Report;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.BudgetProof;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.LimitKind;
 
-/** A short, private observation of one consenting real client. The scheduler owns command and export ordering. */
+/** Private operator mailbox, with at most one consenting real client and one passage at a time. */
 public final class HumanRouteService
 {
 	private static final Logger LOGGER = Logger.getLogger(HumanRouteService.class.getName());
@@ -40,39 +47,47 @@ public final class HumanRouteService
 	private static volatile HumanRouteService ACTIVE;
 
 	private enum Phase { WAITING_LOGIN, TELEPORT_PENDING, RECORDING, SEALED, SKIPPED, OFF }
-	private record Capture(Scene scene, HumanRouteTrace trace, long started) { }
+	private record Capture(UUID id, Scene scene, Binding binding, HumanRouteTrace trace, long started) { }
 	private record Landing(Scene scene, Point expected, long deadline) { }
 	private record Receipt(String result, String detail, Report report) { }
+	private record Consent(Permit permit, long deadline)
+	{
+		static Consent from(Permit permit)
+		{
+			return new Consent(permit, monotonicMillis() + Math.min(CONSENT_MILLIS, permit.expires() - System.currentTimeMillis()));
+		}
+	}
 
 	private static final class Binding
 	{
 		final Player player;
 		final GameClient client;
-		final long deadline;
+		volatile Consent consent;
 		volatile Thread issuingTeleport;
 		volatile String interruption;
 
-		Binding(Player player, GameClient client, long deadline)
+		Binding(Player player, GameClient client, Permit permit)
 		{
 			this.player = player;
 			this.client = client;
-			this.deadline = deadline;
+			consent = Consent.from(permit);
 		}
 	}
 
 	private final HumanRouteMailbox _mailbox;
-	private final Permit _permit;
+	private final HumanRouteFarmRefusals _farmRefusals;
+	private final List<Long> _farmProfiles;
+	private HumanRouteScenes.Queue _queue = new HumanRouteScenes.Queue(List.of(), 0);
+	private final String _fingerprint;
+	private final long _geoGeneration;
 	private final Set<String> _attempted = new HashSet<>();
-	private final UUID _run = UUID.randomUUID();
 	private volatile boolean _stopping;
 	private volatile Binding _binding;
 	private volatile Capture _capture;
 	private volatile Point _lastObserved;
 	private ScheduledFuture<?> _worker;
-	private HumanRouteScenes.Queue _queue;
 	private Landing _landing;
-	private String _fingerprint;
-	private long _geoGeneration;
+	private UUID _passageId;
 	private String _lastScene;
 	private String _lastResult = "WAITING_LOGIN";
 	private String _lastDetail = "-";
@@ -80,13 +95,69 @@ public final class HumanRouteService
 	private Phase _phase = Phase.WAITING_LOGIN;
 	private long _nextCheckpoint;
 	private int _sealed;
-	private boolean _used;
-	private boolean _released;
+	private boolean _mailboxFault;
 
-	private HumanRouteService(HumanRouteMailbox mailbox, Permit permit)
+	private HumanRouteService(HumanRouteMailbox mailbox) throws IOException
 	{
 		_mailbox = mailbox;
-		_permit = permit;
+		_farmRefusals = new HumanRouteFarmRefusals(mailbox.incarnation());
+		_farmProfiles = farmProfiles(System.getProperty("phantom.humanRoute.observeFarmProfiles", ""));
+		_geoGeneration = GeoEngine.getInstance().generation();
+		_fingerprint = PhantomGeoTrainer.fingerprint(GeoEngineConfig.GEODATA_PATH, () -> _stopping);
+		if (!geoCurrent()) { throw new IOException("GeoData changed during fingerprinting."); }
+	}
+
+	static List<Long> farmProfiles(String csv)
+	{
+		if (csv.isEmpty()) { return List.of(); }
+		if (!csv.matches("[1-9][0-9]{0,8}(,[1-9][0-9]{0,8}){0,3}")) { throw new IllegalArgumentException("Invalid farm observation profiles."); }
+		return Arrays.stream(csv.split(",")).map(Long::valueOf).distinct().toList();
+	}
+
+	/** Called by the farm owner only after consuming the matching bounded native search result. */
+	public static void observeFarmRefusal(long profileId, Player player, long epoch, long requestId, long geoGeneration, long zoneGeneration, BudgetProof proof)
+	{
+		final HumanRouteService service = ACTIVE;
+		if (service == null || service._stopping) { return; }
+		try { service.recordFarmRefusal(profileId, player, epoch, requestId, geoGeneration, zoneGeneration, proof); }
+		catch (RuntimeException failure) { LOGGER.warning("Human route demonstration could not record a farm refusal."); }
+	}
+
+	private void recordFarmRefusal(long profileId, Player player, long epoch, long requestId, long geoGeneration, long zoneGeneration, BudgetProof proof)
+	{
+		final var origin = proof.origin();
+		final var target = proof.submittedDestination();
+		final long now = System.currentTimeMillis();
+		if (geoGeneration != _geoGeneration || !geoCurrent() || zoneGeneration < 0
+			|| ZoneManager.getInstance().loadedGeneration() != zoneGeneration || requestId <= 0 || epoch <= 0
+			|| (proof.kind() != LimitKind.SEARCH_LIMIT && proof.kind() != LimitKind.NO_PATH_WITHIN_SEARCH)
+			|| origin == null || target == null || !target.equals(proof.destination()) || origin.instanceId() != 0 || target.instanceId() != 0
+			|| player.getInstanceId() != 0 || origin.x() != player.getX() || origin.y() != player.getY() || origin.z() != player.getZ()
+			|| currentFarmEpoch(player) != epoch) { return; }
+		final int objectId = player.getObjectId();
+		final Point start = new Point(origin.x(), origin.y(), origin.z(), 0);
+		final Point end = new Point(target.x(), target.y(), target.z(), 0);
+		_farmRefusals.observe(new HumanRouteFarmRefusals.Evidence(_mailbox.incarnation(), _fingerprint, geoGeneration, zoneGeneration,
+			profileId, objectId, epoch, requestId, start, end, now, proof.kind()));
+	}
+
+	private boolean sourceCurrent(Scene scene)
+	{
+		final var source = scene.farmSource();
+		if (source == null) { return true; }
+		final long now = System.currentTimeMillis();
+		final var signed = _farmRefusals.find(scene, now);
+		if (signed == null || !geoCurrent()) { return false; }
+		final var player = World.getInstance().getPlayer(source.objectId());
+		return _farmRefusals.matches(signed, scene, _fingerprint, _geoGeneration, ZoneManager.getInstance().loadedGeneration(),
+			currentFarmEpoch(player), now);
+	}
+
+	private static long currentFarmEpoch(Player player)
+	{
+		if (player == null || player.getInstanceId() != 0 || !player.isNativeWorkManaged() || World.getInstance().getPlayer(player.getObjectId()) != player) { return -1; }
+		final var owner = player.getNativeWorkOwner();
+		return owner != null && owner.player() == player && owner.isCurrent() && !owner.sealed() ? owner.epoch() : -1;
 	}
 
 	public static synchronized void startConfigured()
@@ -98,7 +169,9 @@ public final class HumanRouteService
 		{
 			mailbox = new HumanRouteMailbox(Path.of(root));
 			mailbox.validate();
-			final var service = new HumanRouteService(mailbox, mailbox.permit(System.currentTimeMillis()));
+			final var service = new HumanRouteService(mailbox);
+			mailbox.announce();
+			mailbox.status(service.describe(service.current()));
 			ACTIVE = service;
 			service._worker = ThreadPool.scheduleAtFixedRateOrThrow(service::poll, 250, 250);
 		}
@@ -167,7 +240,7 @@ public final class HumanRouteService
 		final HumanRouteService service = ACTIVE;
 		final Binding binding = service == null ? null : service._binding;
 		final Capture capture = service == null ? null : service._capture;
-		if (capture == null || binding == null || binding.player != actor || actor.isTeleporting() || !service.ownerValid(binding, monotonicMillis())) { return; }
+		if (capture == null || capture.binding() != binding || binding.player != actor || actor.isTeleporting() || !service.ownerValid(binding, monotonicMillis())) { return; }
 		final Point position = position(binding.player);
 		if (position.x() != previousX || position.y() != previousY || position.z() != previousZ)
 		{
@@ -180,7 +253,7 @@ public final class HumanRouteService
 		final HumanRouteService service = ACTIVE;
 		final Binding binding = service == null ? null : service._binding;
 		final Capture capture = service == null ? null : service._capture;
-		if (capture != null && binding != null && binding.player == actor && service.ownerValid(binding, monotonicMillis()) && !actor.isTeleporting())
+		if (capture != null && capture.binding() == binding && binding.player == actor && service.ownerValid(binding, monotonicMillis()) && !actor.isTeleporting())
 		{
 			capture.trace().water(System.currentTimeMillis(), zone, entered);
 		}
@@ -190,43 +263,27 @@ public final class HumanRouteService
 	{
 		synchronized (binding)
 		{
-			if (binding.interruption != null) { return; }
+			if (_binding != binding || binding.interruption != null) { return; }
 			binding.interruption = reason;
 			final Capture capture = _capture;
-			if (capture != null) { capture.trace().breakTrace(reason); }
+			if (capture != null && capture.binding() == binding) { capture.trace().breakTrace(reason); }
 		}
 	}
 
 	private synchronized void poll()
 	{
 		if (_stopping) { return; }
+		Request request = null;
 		try
 		{
 			_mailbox.validate();
 			final long wall = System.currentTimeMillis();
 			final Phase before = _phase;
-			if (_phase != Phase.OFF && wall >= _permit.expires())
-			{
-				stop("CONSENT_EXPIRED");
-			}
-			else if (_phase != Phase.OFF && !_permit.equals(_mailbox.permit(wall)))
-			{
-				stop("PERMIT_CHANGED");
-			}
-			if (_queue == null)
-			{
-				_geoGeneration = GeoEngine.getInstance().generation();
-				_fingerprint = PhantomGeoTrainer.fingerprint(GeoEngineConfig.GEODATA_PATH, () -> _stopping);
-				if (!geoCurrent()) { throw new IOException("GeoData changed during fingerprinting."); }
-				_queue = HumanRouteScenes.read(_mailbox, _fingerprint);
-				_mailbox.announce();
-				_mailbox.status(describe(current()));
-			}
-			final Request request = _mailbox.receive(System.currentTimeMillis());
+			request = _mailbox.receive(wall);
 			if (request != null && request.action() == HumanRouteMailbox.Action.STOP)
 			{
 				respond(request, stop("OWNER_STOP"));
-				release();
+				_mailboxFault = false;
 				return;
 			}
 			advance();
@@ -234,15 +291,27 @@ public final class HumanRouteService
 			{
 				respond(request, dispatch(request));
 			}
-			else if (_phase != before)
+			else if (_phase != before || _mailboxFault)
 			{
 				_mailbox.status(describe(current()));
 			}
-			if (_phase == Phase.OFF && !_mailbox.stopPending()) { release(); }
+			_mailboxFault = false;
 		}
 		catch (IOException | RuntimeException failure)
 		{
 			failClosed();
+			if (request != null)
+			{
+				try
+				{
+					_mailbox.validate();
+					_mailbox.reply(request, describe(result("FAILED", "OPERATOR_OR_EXPORT_FAILURE")));
+				}
+				catch (IOException | RuntimeException unavailable)
+				{
+					// There is no trustworthy reply channel. The last checkpoint remains unsealed.
+				}
+			}
 		}
 	}
 
@@ -256,26 +325,73 @@ public final class HumanRouteService
 			case ARRIVED, SKIP -> finishCommand(request);
 			case NEXT -> next(request);
 			case STOP -> stop("OWNER_STOP");
+			case RENEW -> renew(request);
+			case RELOAD -> reload(request);
 		};
 	}
 
 	private Receipt arm(Request request) throws IOException
 	{
-		if (_phase != Phase.WAITING_LOGIN || _used) { return result("REJECTED", "LEASE_UNAVAILABLE"); }
-		final Player player = World.getInstance().getPlayer(_permit.objectId());
+		if (_phase != Phase.WAITING_LOGIN || _binding != null) { return result("REJECTED", "LEASE_UNAVAILABLE"); }
+		final Permit permit = readConsent(request);
+		if (permit == null) { return result("REJECTED", "INVALID_PERMIT"); }
+		final Player player = World.getInstance().getPlayer(permit.objectId());
 		if (player == null || !player.isOnline()) { return result("WAITING_LOGIN", "-"); }
 		final GameClient client = player.getClient();
-		if (client == null || !_permit.account().equals(client.getAccountName()) || !clientMatches(player, client)) { return result("REJECTED", "IDENTITY_MISMATCH"); }
+		if (client == null || !permit.account().equals(client.getAccountName()) || !clientMatches(player, client)) { return result("REJECTED", "IDENTITY_MISMATCH"); }
 		if (!idle(player)) { return result("REJECTED", "PLAYER_BUSY"); }
 		checkExportBudget();
-		_binding = new Binding(player, client, monotonicMillis() + CONSENT_MILLIS);
-		_used = true;
-		return beginNext(request);
+		_binding = new Binding(player, client, permit);
+		final Receipt receipt = beginNext(request);
+		if (_phase == Phase.WAITING_LOGIN) { _binding = null; }
+		return receipt;
+	}
+
+	private Permit readConsent(Request request)
+	{
+		try { return _mailbox.permit(request, System.currentTimeMillis()); }
+		catch (IOException | IllegalArgumentException failure) { return null; }
+	}
+
+	private Receipt renew(Request request)
+	{
+		if (!request.scene().equals("-")) { return result("REJECTED", "UNEXPECTED_SCENE"); }
+		final Binding binding = _binding;
+		if (!ownerValid(binding, monotonicMillis())) { return result("REJECTED", "LEASE_UNAVAILABLE"); }
+		final Permit permit = readConsent(request);
+		if (permit == null || permit.objectId() != binding.consent.permit().objectId() || !permit.account().equals(binding.consent.permit().account()))
+		{
+			return result("REJECTED", "INVALID_PERMIT");
+		}
+		synchronized (binding)
+		{
+			if (!ownerValid(binding, monotonicMillis())) { return result("REJECTED", "LEASE_UNAVAILABLE"); }
+			if (request.deadline() <= System.currentTimeMillis() || _mailbox.stopPending()) { return result("REJECTED", "RENEWAL_FENCED"); }
+			final Consent renewed = Consent.from(permit);
+			if (renewed.deadline() <= binding.consent.deadline()) { return result("REJECTED", "CONSENT_NOT_EXTENDED"); }
+			binding.consent = renewed;
+		}
+		return result("RENEWED", "-");
+	}
+
+	private Receipt reload(Request request)
+	{
+		if (!request.scene().equals("-")) { return result("REJECTED", "UNEXPECTED_SCENE"); }
+		if (_landing != null || _capture != null) { return result("REJECTED", "ACTIVE_SCENE"); }
+		if (!geoCurrent()) { return result("REJECTED", "GEODATA_CHANGED"); }
+		final HumanRouteScenes.Queue staged;
+		try { staged = HumanRouteScenes.read(_mailbox, _mailbox.queue(request), _fingerprint); }
+		catch (IOException | IllegalArgumentException failure) { return result("REJECTED", "INVALID_QUEUE"); }
+		if (!geoCurrent()) { return result("REJECTED", "GEODATA_CHANGED"); }
+		if (request.deadline() <= System.currentTimeMillis()) { return result("REJECTED", "REQUEST_EXPIRED"); }
+		_queue = staged;
+		_attempted.clear();
+		return result("QUEUE_LOADED", "-");
 	}
 
 	private Receipt next(Request request) throws IOException
 	{
-		if ((_phase != Phase.SEALED && _phase != Phase.SKIPPED) || !_lastScene.equals(request.scene()))
+		if ((_phase != Phase.SEALED && _phase != Phase.SKIPPED) || !request.scene().equals(_lastScene))
 		{
 			return result("REJECTED", "SEALED_SCENE_REQUIRED");
 		}
@@ -288,11 +404,14 @@ public final class HumanRouteService
 		final Binding binding = _binding;
 		if (!ownerValid(binding, monotonicMillis())) { return stop("LEASE_LOST"); }
 		if (!idle(binding.player)) { return _phase == Phase.WAITING_LOGIN ? stop("PLAYER_BUSY") : result("REJECTED", "PLAYER_BUSY"); }
+		boolean waitingRefusal = false;
 		for (Scene scene : _queue.ready())
 		{
 			if (_attempted.contains(scene.id())) { continue; }
+			if (!sourceCurrent(scene)) { waitingRefusal = true; continue; }
 			if (request.deadline() <= System.currentTimeMillis()) { return stop("REQUEST_EXPIRED"); }
-			if (!HumanRouteScenes.safeLanding(scene.start(), 24) || !HumanRouteScenes.knownTarget(scene.target(), scene.height()))
+			if (!HumanRouteScenes.safeLanding(scene.start(), 24) || !HumanRouteScenes.knownTarget(scene.target(), scene.height())
+				|| (scene.farmSource() != null && !HumanRouteScenes.knownDryPoint(scene.target(), scene.height())))
 			{
 				writeSkipped(scene, "SKIP_UNSAFE");
 				_attempted.add(scene.id());
@@ -308,26 +427,29 @@ public final class HumanRouteService
 				continue;
 			}
 			_mailbox.validate();
-			if (!_permit.equals(_mailbox.permit(System.currentTimeMillis()))) { return stop("PERMIT_CHANGED"); }
 			final Player player = binding.player;
 			synchronized (player)
 			{
+				if (!sourceCurrent(scene)) { waitingRefusal = true; continue; }
 				if (!ownerValid(binding, monotonicMillis()) || !idle(player)) { return stop("PLAYER_CHANGED"); }
 				if (request.deadline() <= System.currentTimeMillis()) { return stop("REQUEST_EXPIRED"); }
 				// The private local STOP marker is the final admission fence, including time spent waiting for the player monitor.
 				if (_mailbox.stopPending()) { return stop("OWNER_STOP_PENDING"); }
 				_attempted.add(scene.id());
+				_passageId = request.id();
 				_landing = new Landing(scene, landing, monotonicMillis() + LANDING_MILLIS);
 				_phase = Phase.TELEPORT_PENDING;
 				_lastResult = "TELEPORT_PENDING";
 				_lastDetail = "-";
+				_lastReport = null;
 				binding.issuingTeleport = Thread.currentThread();
 				try { player.teleToLocation(new Location(landing.x(), landing.y(), height, player.getHeading(), 0), false); }
 				finally { binding.issuingTeleport = null; }
 			}
 			return result("TELEPORT_PENDING", "-");
 		}
-		return stop(_queue.needsLandmark() > 0 ? "NEEDS_LANDMARK" : "QUEUE_EMPTY");
+		if (waitingRefusal) { return result("WAITING_REFUSAL", "NO_CURRENT_FARM_REFUSAL"); }
+		return result(_queue.needsLandmark() > 0 ? "NEEDS_LANDMARK" : "QUEUE_EMPTY", "-");
 	}
 
 	private void advance() throws IOException
@@ -337,7 +459,8 @@ public final class HumanRouteService
 		final long now = monotonicMillis();
 		if (!ownerValid(binding, now))
 		{
-			stop(binding.interruption != null ? binding.interruption : !geoCurrent() ? "GEODATA_CHANGED" : "LEASE_OR_PLAYER_LOST");
+			stop(binding.interruption != null ? binding.interruption : !geoCurrent() ? "GEODATA_CHANGED"
+				: consentExpired(binding.consent, now) ? "CONSENT_EXPIRED" : "LEASE_OR_PLAYER_LOST");
 			return;
 		}
 		final Player player = binding.player;
@@ -349,9 +472,14 @@ public final class HumanRouteService
 		final Capture capture = _capture;
 		if (capture == null) { return; }
 		final String interrupted = capture.trace().interrupted();
-		if (interrupted != null || player.isTeleporting() || now - capture.started() >= SCENE_MILLIS)
+		if (interrupted != null || player.isTeleporting())
 		{
-			stop(interrupted != null ? interrupted : (player.isTeleporting() ? "UNEXPECTED_TELEPORT" : "SCENE_TIMEOUT"));
+			stop(interrupted != null ? interrupted : "UNEXPECTED_TELEPORT");
+			return;
+		}
+		if (now - capture.started() >= SCENE_MILLIS)
+		{
+			finishPassage(capture, capture.trace().finish(_lastObserved, "PARTIAL", "SCENE_TIMEOUT"));
 			return;
 		}
 		final Point observed = position(player);
@@ -385,7 +513,7 @@ public final class HumanRouteService
 			stop("LANDING_INVALID");
 			return;
 		}
-		final Capture capture = new Capture(scene, new HumanRouteTrace(actual, scene.target(), scene.radius(), scene.height(), now), now);
+		final Capture capture = new Capture(UUID.randomUUID(), scene, _binding, new HumanRouteTrace(actual, scene.target(), scene.radius(), scene.height(), now), now);
 		_lastObserved = actual;
 		checkpoint(capture);
 		_nextCheckpoint = now + CHECKPOINT_MILLIS;
@@ -412,6 +540,7 @@ public final class HumanRouteService
 		final Report report;
 		synchronized (binding)
 		{
+			if (request.deadline() <= System.currentTimeMillis() || _mailbox.stopPending()) { return result("REJECTED", "SEAL_FENCED"); }
 			if (!ownerValid(binding, monotonicMillis()) || binding.player.isTeleporting())
 			{
 				report = null;
@@ -425,15 +554,19 @@ public final class HumanRouteService
 			}
 		}
 		if (report == null) { return stop(!geoCurrent() ? "GEODATA_CHANGED" : "LEASE_OR_PLAYER_LOST"); }
+		return finishPassage(capture, report);
+	}
+
+	private Receipt finishPassage(Capture capture, Report report) throws IOException
+	{
 		publish(capture, report);
 		if (report.outcome().equals("INTERRUPTED"))
 		{
-			_binding = null;
-			_phase = Phase.OFF;
+			releaseBinding();
 		}
 		else
 		{
-			_phase = skip ? Phase.SKIPPED : Phase.SEALED;
+			_phase = report.outcome().equals("SKIPPED") ? Phase.SKIPPED : Phase.SEALED;
 		}
 		return new Receipt(report.outcome(), report.reason(), report);
 	}
@@ -442,10 +575,7 @@ public final class HumanRouteService
 	{
 		if (_phase == Phase.OFF) { return current(); }
 		final Capture capture = _capture;
-		_phase = Phase.OFF;
-		_used = true;
-		_binding = null;
-		_landing = null;
+		releaseBinding();
 		if (capture != null)
 		{
 			capture.trace().breakTrace(reason);
@@ -453,42 +583,55 @@ public final class HumanRouteService
 			publish(capture, report);
 			return new Receipt(report.outcome(), report.reason(), report);
 		}
-		_lastResult = "OFF";
+		_lastResult = "WAITING_LOGIN";
 		_lastDetail = reason;
-		return result("OFF", reason);
+		_lastReport = null;
+		return current();
+	}
+
+	private void releaseBinding()
+	{
+		_binding = null;
+		_capture = null;
+		_landing = null;
+		_attempted.clear();
+		_phase = Phase.WAITING_LOGIN;
 	}
 
 	private void checkpoint(Capture capture) throws IOException
 	{
 		final Report report = capture.trace().report(_lastObserved, "UNSEALED", "PROCESS_LOST_IF_UNSEALED");
-		_mailbox.write(path(capture.scene(), ".partial"), envelope(capture.scene(), report.body()));
+		_mailbox.write(path(capture.id(), capture.scene(), ".partial"), envelope(capture.id(), capture.scene(), report.body()));
 	}
 
 	private void publish(Capture capture, Report report) throws IOException
 	{
 		_capture = null;
-		_mailbox.write(path(capture.scene(), ".trace"), envelope(capture.scene(), report.body()));
+		_mailbox.write(path(capture.id(), capture.scene(), ".trace"), envelope(capture.id(), capture.scene(), report.body()));
 		_sealed++;
 		_lastScene = capture.scene().id();
 		_lastReport = report;
 		_lastResult = report.outcome();
 		_lastDetail = report.reason();
-		Files.deleteIfExists(path(capture.scene(), ".partial"));
+		try { Files.deleteIfExists(path(capture.id(), capture.scene(), ".partial")); }
+		catch (IOException failure) { LOGGER.warning("Human route sealed; its previous checkpoint could not be removed."); }
 	}
 
 	private void writeSkipped(Scene scene, String reason) throws IOException
 	{
-		_mailbox.write(path(scene, ".trace"), envelope(scene, "type=HUMAN_DEMONSTRATED\nresult=SKIPPED\nreason=" + reason + "\nsamples=0\n"));
+		final UUID id = UUID.randomUUID();
+		_mailbox.write(path(id, scene, ".trace"), envelope(id, scene, "type=HUMAN_DEMONSTRATED\nresult=SKIPPED\nreason=" + reason + "\nsamples=0\n"));
 	}
 
-	private Path path(Scene scene, String suffix)
+	private Path path(UUID id, Scene scene, String suffix)
 	{
-		return _mailbox.evidence().resolve(_run + "-" + scene.id() + suffix);
+		return _mailbox.evidence().resolve(id + "-" + scene.id() + suffix);
 	}
 
-	private String envelope(Scene scene, String body)
+	private String envelope(UUID id, Scene scene, String body)
 	{
-		final String payload = "schema=1\nrun=" + _run + "\nscene=" + scene.id() + "\nincarnation=" + _mailbox.incarnation() + "\ngeodata=" + _fingerprint + "\n" + body;
+		final String payload = "schema=1\nrun=" + id + "\nscene=" + scene.id() + "\nincarnation=" + _mailbox.incarnation() + "\ngeodata=" + _fingerprint
+			+ "\nselection_reason=" + scene.reason() + "\n" + body;
 		return "sha256=" + HumanRouteScenes.sha256(payload) + "\n" + payload;
 	}
 
@@ -513,7 +656,47 @@ public final class HumanRouteService
 	private void respond(Request request, Receipt result) throws IOException
 	{
 		_mailbox.status(describe(current()));
-		_mailbox.reply(request, describe(result));
+		_mailbox.reply(request, describe(result) + (request.action() == HumanRouteMailbox.Action.STATUS && _phase != Phase.OFF ? farmStatus() : ""));
+	}
+
+	private String farmStatus()
+	{
+		final var text = new StringBuilder();
+		for (long profileId : _farmProfiles)
+		{
+			final var actor = PhantomSystem.operatorMaterialization(profileId).orElse(null);
+			if (actor == null || !actor.worldPresent() || !actor.identityLeaseRetained()) { continue; }
+			final int objectId = actor.characterObjectId();
+			final var player = World.getInstance().getPlayer(objectId);
+			if (player == null || player.getClient() != null || currentFarmEpoch(player) != actor.materializedAtNanos()) { continue; }
+			final var owner = player.getNativeWorkOwner();
+			final var evidence = owner == null ? null : owner.evidence();
+			if (evidence == null || !evidence.matches(objectId, actor.materializedAtNanos())) { continue; }
+			final PlayerNativeEvidence.Snapshot progress;
+			final PlayerNativeEvidence.TargetReceipts receipts;
+			synchronized (evidence)
+			{
+				progress = evidence.currentSnapshot();
+				receipts = evidence.targetReceipts();
+			}
+			final long exp = player.getExp(), sp = player.getSp();
+			if (currentFarmEpoch(player) != actor.materializedAtNanos() || player.getNativeWorkOwner() != owner) { continue; }
+			text.append("farm_").append(profileId).append("=object:").append(objectId).append(",epoch:").append(actor.materializedAtNanos())
+				.append(",instance:").append(player.getInstanceId()).append(",admission:").append(actor.actionAdmissionOpen())
+				.append(",moving:").append(player.isMoving()).append(",attacking:").append(player.isAttackingNow())
+				.append(",casting:").append(player.isCastingNow()).append(",target:").append(player.getTargetId()).append(",phase:").append(progress.phase())
+				.append(",sampleNanos:").append(progress.sampleNanos()).append(",damage:").append(progress.damageSequence()).append(",kill:").append(progress.killSequence())
+				.append(",reward:").append(progress.rewardSequence()).append(",cycle:").append(progress.farmCycleSequence()).append(",overflow:").append(progress.overflow())
+				.append(",exp:").append(exp).append(",sp:").append(sp).append(",expGained:").append(progress.expGained()).append(",spGained:").append(progress.spGained())
+				.append(",killed:").append(targetIdentity(receipts.killTarget())).append(",rewarded:").append(targetIdentity(receipts.rewardTarget()))
+				.append(",settled:").append(targetIdentity(receipts.settledTarget())).append(",settledReward:").append(receipts.settledRewardSequence()).append('\n');
+		}
+		return text.toString();
+	}
+
+	private static String targetIdentity(PlayerNativeEvidence.Target target)
+	{
+		return target == null ? "-" : target.objectId() + "/" + target.instanceId() + "/" + target.spawnGeneration();
 	}
 
 	private Receipt current() { return new Receipt(_lastResult, _lastDetail, _lastReport); }
@@ -521,8 +704,11 @@ public final class HumanRouteService
 	private String describe(Receipt receipt)
 	{
 		final StringBuilder result = new StringBuilder("phase=").append(_phase).append("\nresult=").append(receipt.result()).append("\ndetail=").append(receipt.detail()).append("\nsaved=").append(_sealed);
-		result.append("\nremaining=").append(_queue == null ? 0 : _queue.ready().size() - _attempted.size());
-		result.append("\nneeds_landmark=").append(_queue == null ? 0 : _queue.needsLandmark());
+		if (_passageId != null) { result.append("\npassage_id=").append(_passageId); }
+		result.append("\nremaining=").append(_queue.ready().size() - _attempted.size());
+		result.append("\nneeds_landmark=").append(_queue.needsLandmark());
+		result.append("\nconfirmed_runtime=").append(_phase == Phase.OFF ? 0 : _queue.ready().stream()
+			.filter(scene -> scene.farmSource() != null && !_attempted.contains(scene.id()) && sourceCurrent(scene)).count());
 		final Capture capture = _capture;
 		if (capture != null)
 		{
@@ -539,38 +725,32 @@ public final class HumanRouteService
 
 	private void failClosed()
 	{
-		final Capture capture = _capture;
-		_binding = null;
-		_landing = null;
-		_capture = null;
-		_phase = Phase.OFF;
-		_stopping = true;
-		if (_worker != null) { _worker.cancel(false); }
+		releaseBinding();
+		_lastResult = "WAITING_LOGIN";
+		_lastDetail = "OPERATOR_OR_EXPORT_FAILURE";
+		_lastReport = null;
+		if (_mailboxFault) { return; }
+		_mailboxFault = true;
 		try
 		{
 			_mailbox.validate();
-			if (capture != null)
-			{
-				capture.trace().breakTrace("OPERATOR_OR_EXPORT_FAILURE");
-				publish(capture, capture.trace().finish(_lastObserved, "INTERRUPTED", "OPERATOR_OR_EXPORT_FAILURE"));
-			}
-			_mailbox.status(describe(new Receipt("OFF", "OPERATOR_OR_EXPORT_FAILURE", _lastReport)));
+			_mailbox.status(describe(current()));
 		}
 		catch (IOException | RuntimeException failure)
 		{
-			// An unsafe or unavailable mailbox must not be used for retries. The last checkpoint stays unsealed.
+			// The next poll validates the mailbox again. The last checkpoint stays unsealed.
 		}
-		finally { release(); }
-		LOGGER.warning("Human route demonstration closed: operator boundary or export failure.");
+		LOGGER.warning("Human route consent released: operator boundary or export failure.");
 	}
 
 	private synchronized void drain()
 	{
-		if (_released) { return; }
 		try
 		{
 			_mailbox.validate();
-			_mailbox.status(describe(stop("SERVER_SHUTDOWN")));
+			stop("SERVER_SHUTDOWN");
+			_phase = Phase.OFF;
+			_mailbox.status(describe(result("OFF", "SERVER_SHUTDOWN")));
 		}
 		catch (IOException | RuntimeException failure)
 		{
@@ -578,16 +758,7 @@ public final class HumanRouteService
 			_capture = null;
 			LOGGER.warning("Human route shutdown could not seal; last checkpoint remains unsealed.");
 		}
-		finally { release(); }
-	}
-
-	private void release()
-	{
-		if (_released) { return; }
-		_released = true;
-		_stopping = true;
-		if (_worker != null) { _worker.cancel(false); }
-		closeMailbox(_mailbox);
+		finally { closeMailbox(_mailbox); }
 	}
 
 	private static void closeMailbox(HumanRouteMailbox mailbox)
@@ -603,10 +774,17 @@ public final class HumanRouteService
 
 	private boolean ownerValid(Binding binding, long now)
 	{
-		return !_stopping && binding != null && _binding == binding && binding.interruption == null && now < binding.deadline && System.currentTimeMillis() < _permit.expires()
-			&& binding.player.getInstanceId() == 0 && !binding.player.isDead() && World.getInstance().getPlayer(_permit.objectId()) == binding.player
+		if (_stopping || binding == null || _binding != binding || binding.interruption != null) { return false; }
+		final Consent consent = binding.consent;
+		return !consentExpired(consent, now) && binding.player.getInstanceId() == 0 && !binding.player.isDead()
+			&& World.getInstance().getPlayer(consent.permit().objectId()) == binding.player
 			&& !binding.player.isAutoPlaying() && !binding.player.isInVehicle() && !binding.player.isFlying() && !binding.player.isMounted()
-			&& _permit.account().equals(binding.client.getAccountName()) && clientMatches(binding.player, binding.client) && geoCurrent();
+			&& consent.permit().account().equals(binding.client.getAccountName()) && clientMatches(binding.player, binding.client) && geoCurrent();
+	}
+
+	private static boolean consentExpired(Consent consent, long now)
+	{
+		return now >= consent.deadline() || System.currentTimeMillis() >= consent.permit().expires();
 	}
 
 	private boolean geoCurrent() { return GeoEngine.getInstance().generation() == _geoGeneration; }

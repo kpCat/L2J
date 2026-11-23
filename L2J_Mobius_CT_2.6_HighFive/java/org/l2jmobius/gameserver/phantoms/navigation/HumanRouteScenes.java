@@ -2,6 +2,7 @@ package org.l2jmobius.gameserver.phantoms.navigation;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -26,16 +27,24 @@ final class HumanRouteScenes
 	private static final int MAX_SCENES = 8;
 	private static final int MAX_SHARDS = 4;
 	private static final int MAX_SHARD_BYTES = 2 * 1024 * 1024;
+	static final String FARM_REFUSAL = "RUNTIME_FARM_REFUSAL";
 	private static final int[][] EXITS = { { 0, 128 }, { 128, 0 }, { 0, -128 }, { -128, 0 } };
 
-	record Scene(String id, Point start, Point target, int radius, int height, String startLandmark, String directions, String reason, long failures) { }
+	record Scene(String id, Point start, Point target, int radius, int height, String startLandmark, String directions,
+		String reason, long failures, FarmSource farmSource) { }
+	record FarmSource(long profileId, int objectId) { }
 	record Queue(List<Scene> ready, int needsLandmark) { }
 	private record Edge(Point start, Point end) { }
 	private record Failure(int geometry, int transientCount) { }
 
 	static Queue read(HumanRouteMailbox mailbox, String fingerprint) throws IOException
 	{
-		final String text = mailbox.input("scenes.tsv", 8192);
+		return read(mailbox, mailbox.root(), fingerprint);
+	}
+
+	static Queue read(HumanRouteMailbox mailbox, Path bundle, String fingerprint) throws IOException
+	{
+		final String text = mailbox.input(bundle, "scenes.tsv", 8192);
 		final List<Scene> result = new ArrayList<>();
 		final Set<String> ids = new HashSet<>();
 		final Set<Edge> used = new HashSet<>();
@@ -44,7 +53,9 @@ final class HumanRouteScenes
 		for (String line : text.lines().toList())
 		{
 			final String[] fields = line.split("\t", -1);
-			if (fields.length != 12 || !fields[0].matches("[a-z0-9][a-z0-9-]{0,47}") || !ids.add(fields[0]) || ids.size() > MAX_SCENES)
+			final boolean learned = fields.length == 12 && "LEARNED_FAILURE".equals(fields[11]);
+			final boolean farm = fields.length == 15 && FARM_REFUSAL.equals(fields[11]);
+			if ((!learned && !farm) || !fields[0].matches("[a-z0-9][a-z0-9-]{0,47}") || !ids.add(fields[0]) || ids.size() > MAX_SCENES)
 			{
 				throw new IOException("Invalid or duplicate route scene.");
 			}
@@ -53,15 +64,26 @@ final class HumanRouteScenes
 			final int radius = Integer.parseInt(fields[7]);
 			final int height = Integer.parseInt(fields[8]);
 			final Edge evidence = new Edge(start, target);
-			if (radius < 16 || radius > 128 || height < 8 || height > 48 || start.within(target, radius + 32, height + 16) || !used.add(evidence) || !fields[11].equals("LEARNED_FAILURE"))
+			if (radius < 16 || radius > 128 || height < 8 || height > 48 || start.within(target, radius + 32, height + 16) || !used.add(evidence))
 			{
 				throw new IOException("Invalid scene area or provenance.");
+			}
+			if (farm)
+			{
+				final var actor = new FarmSource(Long.parseLong(fields[12]), Integer.parseInt(fields[13]));
+				if (actor.profileId() <= 0 || actor.objectId() <= 0 || !fingerprint.equals(fields[14]))
+				{
+					throw new IOException("Invalid runtime refusal source.");
+				}
+				if (!landmark(fields[9]) || !landmark(fields[10])) { needsLandmark++; continue; }
+				result.add(new Scene(fields[0], start, target, radius, height, fields[9], fields[10], FARM_REFUSAL, 0, actor));
+				continue;
 			}
 			final String source = "region-" + (start.x() >> 15) + "_" + (start.y() >> 15) + ".tsv";
 			if (!shards.containsKey(source))
 			{
 				if (shards.size() == MAX_SHARDS) { throw new IOException("Too many source shards."); }
-				shards.put(source, failures(mailbox.input(source, MAX_SHARD_BYTES), fingerprint));
+				shards.put(source, failures(mailbox.input(bundle, source, MAX_SHARD_BYTES), fingerprint));
 			}
 			final Failure failure = shards.get(source).get(evidence);
 			if (failure == null) { throw new IOException("Scene has no matching failed directed edge."); }
@@ -71,7 +93,7 @@ final class HumanRouteScenes
 				continue;
 			}
 			final String reason = failure.geometry() > 0 ? "GEOMETRY_FAILURE" : "TRANSIENT_ROUTE_FAILURE";
-			result.add(new Scene(fields[0], start, target, radius, height, fields[9], fields[10], reason, (long) failure.geometry() + failure.transientCount()));
+			result.add(new Scene(fields[0], start, target, radius, height, fields[9], fields[10], reason, (long) failure.geometry() + failure.transientCount(), null));
 		}
 		result.sort(Comparator.comparingLong(Scene::failures).reversed().thenComparing(Scene::id));
 		return new Queue(List.copyOf(result), needsLandmark);
@@ -179,10 +201,17 @@ final class HumanRouteScenes
 
 	private static boolean restricted(Point point, boolean dry)
 	{
-		for (ZoneType zone : ZoneManager.getInstance().getZones(point.x(), point.y(), point.z()))
+		final var loaded = ZoneManager.getInstance().getLoadedZones(point.x(), point.y(), point.z());
+		if (loaded.isEmpty()) { return true; }
+		for (ZoneType zone : loaded.get())
 		{
-			if (zone.getInstanceId() != 0 || zone instanceof SiegeZone || zone instanceof NoRestartZone || (dry && zone instanceof WaterZone)) { return true; }
+			if (!worldZone(zone.getInstanceId(), zone.getInstanceTemplateId()) || zone instanceof SiegeZone || zone instanceof NoRestartZone || (dry && zone instanceof WaterZone)) { return true; }
 		}
 		return false;
+	}
+
+	static boolean worldZone(int instanceId, int templateId)
+	{
+		return (instanceId == 0 || instanceId == -1) && templateId == -1;
 	}
 }

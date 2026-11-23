@@ -458,6 +458,8 @@ public class GameServer
 			OfflinePlayTable.getInstance().restoreOfflinePlayers();
 		}
 
+		// Arm the private observer before the first ordinary route can be evaluated.
+		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.startConfigured();
 		// Phantom World depends on the fully initialized World, data, scripts, managers, and restored offline owners.
 		if (PhantomPlayersConfig.isEnabled())
 		{
@@ -468,7 +470,6 @@ public class GameServer
 			}
 		}
 		LocalPlayPilotService.getInstance().startConfigured();
-		org.l2jmobius.gameserver.phantoms.navigation.HumanRouteService.startConfigured();
 		
 		if (ServerConfig.SERVER_RESTART_SCHEDULE_ENABLED)
 		{

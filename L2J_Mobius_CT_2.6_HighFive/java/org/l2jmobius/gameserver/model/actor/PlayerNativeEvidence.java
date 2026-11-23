@@ -860,6 +860,12 @@ public final class PlayerNativeEvidence
 		if ((_regenSinceNanos != 0) && ((_regenSinceNanos > Long.MAX_VALUE - MAX_PHASE_NANOS) || (_regenSinceNanos + MAX_PHASE_NANOS <= _observedNanos))) { invalidate(UnprovenReason.PHASE_DEADLINE, _observedNanos); }
 		if ((_combatEpisode != null) && _combatEpisode._published && ((_combatEpisode._since > Long.MAX_VALUE - MAX_PHASE_NANOS) || (_combatEpisode._since + MAX_PHASE_NANOS <= _observedNanos))) { invalidate(UnprovenReason.PHASE_DEADLINE, _observedNanos); }
 		if ((_phase != Phase.NONE) && ((_phaseSinceNanos > _observedNanos) || (_phaseDeadlineNanos <= _observedNanos))) { invalidate(UnprovenReason.PHASE_DEADLINE, _observedNanos); }
+		return currentSnapshot();
+	}
+
+	/** Read committed observations without advancing the native evidence clock. */
+	public synchronized Snapshot currentSnapshot()
+	{
 		return new Snapshot(_objectId, _epoch, _observedNanos, _overflow, _sequence, _damageSequence, _killSequence, _rewardSequence, _targetSequence, _farmCycleSequence, _expGained, _spGained, _lootSequence, _lastProgressNanos, _phase, _phaseSinceNanos, _phaseDeadlineNanos, _usefulProgressNanos, _lootCount, _targets.size(), _firstUnprovenReason, _firstUnprovenNanos);
 	}
 
