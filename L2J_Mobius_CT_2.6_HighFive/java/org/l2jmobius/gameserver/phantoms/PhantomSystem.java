@@ -1545,10 +1545,21 @@ public final class PhantomSystem
 	{
 		if (_offlineMerchantService != null && !_offlineMerchantService.beginStop()) { _metrics.recordShutdownFailure(); return false; }
 		if ((_stopProgress == null) && (_state != State.RUNNING)) { return shutdownLegacyFailureCleanup(); }
-		if (_stopProgress == null)
+		final boolean dedicatedScoutDrain = _physicalGeoScouts != null && _physicalGeoScouts.dedicated();
+		final boolean resumeLegacyScoutDrain = dedicatedScoutDrain && !_shutdownFailureForTesting && _state == State.FAILED
+			&& _stopProgress != null && _stopProgress.outcome() == StopOutcome.FAILED && _stopProgress.phase() == StopPhase.CLOSE_PRODUCERS
+			&& "deadline:physical_scout_walk".equals(_stopProgress.blocker());
+		if (_stopProgress == null || resumeLegacyScoutDrain)
 		{
-			_stopProgress = new StopProgress(StopPhase.CLOSE_PRODUCERS, StopOutcome.PENDING, "closing", System.nanoTime() + 10_000_000_000L);
+			// Dedicated owners cancel their exact WALK and STORE one at a time before the ordinary STOP phases.
+			final long budget = dedicatedScoutDrain ? 60_000_000_000L : 10_000_000_000L;
+			final String blocker = dedicatedScoutDrain ? "dedicated_scout_store" : "closing";
+			_stopProgress = new StopProgress(StopPhase.CLOSE_PRODUCERS, StopOutcome.PENDING, blocker, System.nanoTime() + budget);
 			_state = State.STOPPING;
+			if (resumeLegacyScoutDrain)
+			{
+				java.util.logging.Logger.getLogger(PhantomSystem.class.getName()).info("Phantom World: Resuming legacy dedicated scout STORE drain.");
+			}
 		}
 		if (_stopProgress.outcome() == StopOutcome.FAILED)
 		{
@@ -1567,7 +1578,15 @@ public final class PhantomSystem
 				// Admission closes once; accepted writers retain their executors and dependencies.
 				if (_historicalBackgroundService != null) { _historicalBackgroundService.revokeForegroundDecisions(); }
 				if (_autonomousMarketProducer != null) { _autonomousMarketProducer.beginStop(); }
-				if (_physicalGeoScouts != null && !_physicalGeoScouts.beginStop()) { return pendingStop(StopPhase.CLOSE_PRODUCERS, "physical_scout_walk"); }
+				if (_physicalGeoScouts != null && !_physicalGeoScouts.beginStop())
+				{
+					return pendingStop(StopPhase.CLOSE_PRODUCERS, dedicatedScoutDrain ? "dedicated_scout_store" : "physical_scout_walk");
+				}
+				if (dedicatedScoutDrain)
+				{
+					// Start the original shutdown budget only after the dedicated owners have released.
+					_stopProgress = new StopProgress(StopPhase.CLOSE_PRODUCERS, StopOutcome.PENDING, "closing", System.nanoTime() + 10_000_000_000L);
+				}
 				if (_populationEcology != null) { _populationEcology.beginStop(); }
 				if (_scheduler != null) { _scheduler.beginStop(); }
 				if (_decisionEngine != null) { _decisionEngine.beginStop(); }
