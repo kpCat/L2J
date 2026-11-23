@@ -61,3 +61,9 @@
 Квитанции находятся в `D:\Backups\PhantomWorld\008-live-001\operator\stop-recovery`. SHA-256 `bartz-live-hot-recovery.json` — `D966FB9C062181C74C248D253A9616F67F00A351186D8DD717386044B0A4DC69`, `bartz-live-count8.json` — `D44C7FBE6F0ED9FEC819298CB4FF7452F6B0C93C91CFF33367FE6076E9F2E5F8`, `bartz-count8-native-arrivals.tsv` — `02EE2099F7705DB734B6BCE86810E1A47D0C84394FFBADD992E35A4E3B2EE95F`. Суммарно эти три файла занимают 54 645 байт. В `restart-candidate-8021` сохранены проверенная пара и квитанции сборки, 12 859 791 байт. Исходная проверенная резервная точка сохранена.
 
 Собственные каталоги `D:\Temp\Codex\PhantomWorld\008-live-001\restart-8021-2744` и `D:\Temp\Codex\PhantomWorld\008-live-001\bartz-count8-8021` удалены после закрытия writers. Освобождено соответственно 82 980 715 и 12 864 333 байта. `sql-toxp99-d5jt` используется работающими Bartz-процессами и сохранён. Файлы задачи в C: Temp не размещались.
+
+## Ручная игровая приёмка после перезапуска, 23.11.2026
+
+По отдельному запросу владельца включено `AutoCreateAccounts` на локальном LoginServer. Сохранена штатная проверка файлов launcher. Прежние GS и LS завершились штатно, STORE подтверждён, у всех 32 персонажей roster был `online=0` перед запуском. MariaDB `12576` осталась на прежней базе и datadir. После запуска зарегистрирован `Server 1: Bartz` и загружены 200 offline traders. Работающие PID — LoginServer `19584`, GameServer `15096`. Режим `DEDICATED / ALWAYS`, Count8 и heap 8 ГиБ сохранены.
+
+Владелец лично подтвердил игровой вход. Точечный read-only запрос к рабочей базе подтвердил существование обычного аккаунта с `accessLevel=0` и персонажа в мире с `online=1`. Сохранены 200 магазинов, 33 обычных профиля и 32 записи roster. Ручная приёмка входа `CONFIRMED`, итог поставки `LIVE_PARTIAL`. Bartz оставлен работающим на Count8. Временные каталоги AccountManager и подготовки конфигурации удалены. Резервная точка сохранена.
