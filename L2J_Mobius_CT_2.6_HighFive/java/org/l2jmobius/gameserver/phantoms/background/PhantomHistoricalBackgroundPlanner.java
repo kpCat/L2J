@@ -105,7 +105,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	Result replan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps, boolean allowOffscreen)
 	{
 		final PhantomBackgroundGoalSpec previous = PhantomBackgroundGoalSpec.parse(previousGoal);
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state), allowOffscreen && offscreenSupplied(state));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state), allowOffscreen && canProposeOffscreen(state));
 	}
 
 	public Result replaceFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
@@ -132,7 +132,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			return Result.blocked("planner.previous_goal.unsupported");
 		}
 		final PhantomBackgroundState.Loadout loadout = state.loadout();
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state), offscreenSupplied(state), candidate -> !affordableTravel || affordableTravel(candidate, state));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state), canProposeOffscreen(state), candidate -> !affordableTravel || affordableTravel(candidate, state));
 	}
 
 	private boolean affordableTravel(Candidate candidate, PhantomBackgroundState state)
@@ -145,11 +145,19 @@ public final class PhantomHistoricalBackgroundPlanner
 				.mapToLong(step -> PhantomNormalGatekeeperTravel.phantomMaximumFee(step.gatekeeper(), state.identity().classIndex(), state.progress().level())).reduce(0, Math::addExact) <= wallet).orElse(false);
 	}
 
-	private static boolean offscreenSupplied(PhantomBackgroundState state)
+	private boolean canProposeOffscreen(PhantomBackgroundState state)
 	{
 		final var loadout = state.loadout();
-		return (loadout.shotItemId() == 0 || state.inventory().itemCount(loadout.shotItemId()) >= loadout.shotsPerEncounter())
-			&& (loadout.summonResourceItemId() == 0 || state.inventory().itemCount(loadout.summonResourceItemId()) >= loadout.summonResourcesPerEncounter());
+		if ((loadout.shotItemId() > 0 && state.inventory().itemCount(loadout.shotItemId()) < loadout.shotsPerEncounter())
+			|| (loadout.summonResourceItemId() > 0 && state.inventory().itemCount(loadout.summonResourceItemId()) < loadout.summonResourcesPerEncounter()))
+		{
+			return false;
+		}
+		final var position = state.position();
+		final var source = _topology.findAnchor(position.committedAnchorId()).orElse(null);
+		if (source == null || position.instanceId() != source.point().instanceId()) { return false; }
+		// Ground normalization changes Z only. An off-anchor XY cannot pass native departure proof.
+		return Math.hypot((long) position.x() - source.point().x(), (long) position.y() - source.point().y()) <= source.validationTolerance();
 	}
 
 	/** Prefer factual local anchors; exhaustion may propose an existing topology itinerary, never movement. */
@@ -756,7 +764,9 @@ public final class PhantomHistoricalBackgroundPlanner
 					final List<Candidate> local = new ArrayList<>(); addLocalCandidates(local, live, List.of(target));
 					return local.stream().anyMatch(value -> value.anchor().id().equals(spec.anchorId()));
 				}
-				return candidate(state.position().committedAnchorId(), target, spec.anchorId(), true) != null;
+				final boolean pending = PhantomOffscreenOutdoorTravel.pending(goal);
+				final Candidate current = candidate(state.position().committedAnchorId(), target, spec.anchorId(), pending && canProposeOffscreen(state));
+				return current != null && (current.mode() == PhantomOffscreenOutdoorTravel.Mode.OFFSCREEN_OUTDOOR_PENDING) == pending;
 			}
 			cursor = page.nextCursor();
 			if (cursor == null)

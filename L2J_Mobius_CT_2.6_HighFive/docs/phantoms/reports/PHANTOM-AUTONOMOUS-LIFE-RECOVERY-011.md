@@ -41,6 +41,13 @@
 
 Наблюдение закрыто по границе 011. Текущие открытые случаи — повторная остановка в новом catch-up окне, GeoData отказы даже для альтернативных ферм и отсутствие подтверждённого ordinary фарма. Bartz работает с 011. Автоматического повторного рестарта или отката не было.
 
+## Исправление повторного выбора offscreen
+
+- После исходного окна read-only снимок показал у 7 курсор 29925487 и ревизию 349. Сохранённая позиция оставалась почти в 960 единицах от исходного якоря при допуске 110. Planner продолжал проверять только ID якоря и разрешал выбрать offscreen повторно при replan. Authority использует фактическую позицию для допуска виртуального перехода. При неизменной позиции такая заявка не может пройти native departure proof.
+- `PhantomHistoricalBackgroundPlanner.java` теперь исключает виртуальный переход за пределами горизонтального допуска исходного якоря. Обычная цель и штатный historical idle остаются доступны. При проверке действующей цели planner учитывает ожидаемый режим перехода. Полные проверки GeoData, Z, уникальности якоря, транзакционных receipt и owner остаются в существующем штатном пути.
+- Добавлен режим `PhantomFarmRouteRecoveryTest --offscreen-origin011 <module-root>`. На живом JAR первого выпуска 011 тест дал RED, exit 1, на сохранённом ID и смещённой позиции. Новый JAR дал GREEN, exit 0. Адресные режимы `--offscreen-refusal011`, `--alternative011`, обычный `PhantomFarmRouteRecoveryTest` и `PhantomOffscreen092Checks contracts <module-root>` также завершились с exit 0. Команды использовали JDK25, `javac -encoding UTF-8 -cp <jar-and-libs> -sourcepath <module>/test/java -d <scratch>/classes <runner>` и `java -Xmx1g -cp <classes-and-jar-and-libs> <runner> <args>`.
+- Повторный изолированный Ant `jar` в `D:/Temp/Codex/PhantomWorld/011/r05-origin` завершился с exit 0 за 27 с, OwnerProfile 38/38, 2450 исходников. Новый кандидат SHA-256 `E7B61097D1C9062A9053F83AAC35A5557A5E4075BA9FFD89765B209485E2BA2E`, 12 558 535 байт.
+
 ## Артефакт и публикация
 
 - Кандидат `D:/Temp/Codex/PhantomWorld/011/r02-delivery/GameServer.jar`, 12 558 331 байт. SHA-256 `1622868950650B269FB5FFCA35B50B0603D29C14D58EBB35E546B0FC6497FA5E`. Путь поставки и хеш повторно сверены после копирования.

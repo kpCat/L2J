@@ -1,11 +1,13 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.gameserver.phantoms.background;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomOffscreen092Checks;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.CapabilitySnapshot;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
@@ -19,7 +21,7 @@ import org.l2jmobius.tests.phantoms.PhantomAssertions;
 /** Ordinary WALK release over a dry corner captured from the profile 32 GeoData route. */
 public final class PhantomFarmRouteRecoveryTest
 {
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
 		if (args.length == 1 && "--offscreen-refusal011".equals(args[0]))
 		{
@@ -29,6 +31,11 @@ public final class PhantomFarmRouteRecoveryTest
 		if (args.length == 1 && "--alternative011".equals(args[0]))
 		{
 			verifyAlternativeFarm();
+			return;
+		}
+		if (args.length == 2 && "--offscreen-origin011".equals(args[0]))
+		{
+			verifyOffscreenOrigin(Path.of(args[1]));
 			return;
 		}
 		final var from = new PhantomNavigationPoint(115016, -164632, -528, 0);
@@ -89,6 +96,27 @@ public final class PhantomFarmRouteRecoveryTest
 		final var unavailable = planner.proposeVisibleRecovery(74, state, predecessor, 740074, 1, point, java.util.Set.of(), java.util.Set.of(), _ -> false);
 		PhantomAssertions.assertFalse(unavailable.ready(), "Refusal of every approach cannot grant a goal.");
 		System.out.println("PASS the route owner proposes a distinct farm beyond the local straight-line limit");
+	}
+
+	private static void verifyOffscreenOrigin(Path module) throws Exception
+	{
+		final var witness = PhantomOffscreen092Checks.witness(module);
+		final var state = PhantomOffscreen092Checks.state(witness.origin(), List.of());
+		final var planner = PhantomOffscreen092Checks.planner(witness, false, true);
+		final var previous = PhantomOffscreen092Checks.goal(witness, 1, 1);
+		final var eligible = planner.replaceFromState(92, state, previous, 920092, 1);
+		PhantomAssertions.assertTrue(eligible.ready() && PhantomOffscreenOutdoorTravel.pending(eligible.goal()),
+			"A valid departure still supports offscreen travel.");
+		final var at = state.position();
+		final var offset = new PhantomBackgroundState.Position(at.x() + witness.origin().validationTolerance() + 1, at.y(), at.z(),
+			at.instanceId(), at.heading(), at.committedAnchorId());
+		final var displaced = state.after(state.progress(), state.vitals(), offset, state.inventory(), state.autoGetSkills(), state.clock(), state.receipt());
+		PhantomAssertions.assertFalse(planner.remainsSuitable(displaced, eligible.goal()), "The saved anchor ID alone cannot retain a refused offscreen goal.");
+		final var replacement = planner.replaceFromState(92, displaced, eligible.goal(), 920092, 2);
+		PhantomAssertions.assertEquals("planner.target_or_route.absent", replacement.reasonKey(), "Reconsideration must leave the historical idle path available.");
+		final var certified = PhantomOffscreen092Checks.planner(witness, true, true).replaceFromState(92, displaced, eligible.goal(), 920092, 2);
+		PhantomAssertions.assertEquals(List.of("fixture092.certified"), certified.routeEdgeIds(), "Ordinary route planning must still work.");
+		System.out.println("PASS offscreen selection and reconsideration use the saved departure");
 	}
 
 	private static void verifyCheckpointRefusal()
