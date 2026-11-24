@@ -172,11 +172,31 @@ public final class PhantomHistoricalBackgroundPlanner
 	public Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted)
 	{
+		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, admitted, _ -> true);
+	}
+
+	Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted,
+		Map<Integer, List<PhantomTopologyPoint>> selectableTargets)
+	{
+		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, admitted, candidate ->
+		{
+			if (localFarmDistance(candidate.anchor(), live) > 4_000_000L) { return true; }
+			final var targets = selectableTargets.get(candidate.target().npc().npcId());
+			return targets != null && _topology.findNode(candidate.anchor().nodeId())
+				.map(node -> targets.stream().anyMatch(node.area()::contains)).orElse(false);
+		});
+	}
+
+	private Result replanVisibleLocalPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted,
+		java.util.function.Predicate<Candidate> available)
+	{
 		Objects.requireNonNull(admitted, "admitted");
 		final var excluded = new java.util.HashSet<>(excludedTargets);
 		for (int attempt = 0; attempt < 3; attempt++)
 		{
-			final var candidate = replanVisibleLocal(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps);
+			final var candidate = replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps, available);
 			if (!candidate.ready() || admitted.test(candidate.goal())) { return candidate; }
 			excluded.add(candidate.spec().npcId() + "@" + candidate.spec().anchorId());
 		}

@@ -2115,11 +2115,27 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				_planner.isVisibleLocal(candidate, live)
 					|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player));
 			final boolean travelOnly = rendezvousTravelPreparation(profileId, stored.goal(), sharedFarmSource != null);
+			Map<Integer, List<PhantomTopologyPoint>> selectableTargets = null;
+			if (!historicalIdle && !authorityRenewal && !routeRecovery && sharedFarmSource == null
+				&& exclusions.targets().contains(targetKey(stored.goal())) && _visibleAutoPlay != null)
+			{
+				try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
+				{
+					final var nativeOwner = player.getNativeWorkOwner();
+					if (action == null || action.player() != player || !action.executionValid() || !quietVisiblePlayer(player)
+						|| nativeOwner == null || !nativeOwner.isCurrent() || nativeOwner.epoch() != lifetime.materializedAtNanos()
+						|| player.getX() != live.x() || player.getY() != live.y() || player.getZ() != live.z() || player.getInstanceId() != live.instanceId())
+					{ return false; }
+					selectableTargets = _visibleAutoPlay.selectableFarmTargets(player);
+				}
+			}
 			final var replacement = spatialRecovery
 				? _planner.proposeVisibleRecovery(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
 					anchor -> _visibleTravel.recoveryAnchorAvailable(stored.goal(), player, anchor))
 				: sharedFarmSource == null
-				? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
+				? (selectableTargets == null
+					? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
+					: _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, selectableTargets))
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
 			if (!replacement.ready())
@@ -2297,8 +2313,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (_foregroundDecisionsRevoked || (lifetime == null) || (lifetime.characterObjectId() != player.getObjectId()) || (lifetime.materializedAtNanos() != epoch) || !lifetime.actionAdmissionOpen() || (lifetime.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
 		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
-			return (action != null) && (action.player() == player) && !player.isDead() && !player.isInParty() && !player.hasPendingOwnedStore() && !player.isAttackingNow() && !player.isCastingNow() && !player.isTeleporting() && !player.isMoving() && !player.isAutoPlaying();
+			return (action != null) && (action.player() == player) && quietVisiblePlayer(player);
 		}
+	}
+
+	private static boolean quietVisiblePlayer(Player player)
+	{
+		return !player.isDead() && !player.isInParty() && !player.hasPendingOwnedStore() && !player.isAttackingNow()
+			&& !player.isCastingNow() && !player.isTeleporting() && !player.isMoving() && !player.isAutoPlaying();
 	}
 
 	private static boolean runtimeMatches(PhantomDecisionEngine.RuntimeSnapshot runtime, StoredGoal goal)

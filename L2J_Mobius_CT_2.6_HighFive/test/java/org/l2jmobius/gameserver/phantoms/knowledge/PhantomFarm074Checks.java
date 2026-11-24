@@ -27,6 +27,7 @@ public final class PhantomFarm074Checks
 	public static void main(String[] args) throws Exception
 	{
 		if (args.length == 1 && "--route-matrix129".equals(args[0])) { routeMatrix129(); return; }
+		if (args.length == 1 && "--native-target010".equals(args[0])) { nativeTargetRecovery010(); return; }
 		sourcePreflight129();
 		rendezvous();
 		supportRendezvous();
@@ -69,6 +70,33 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertFalse(rejected.ready(), "No admitted remote source must remain unavailable.");
 		PhantomAssertions.assertTrue(inspections.get() <= 3, "Remote admission exceeded the existing bounded retry budget.");
 		System.out.println("FARM074_ADMISSION_PASS; rejected preferred source skipped; affordable alternative selected; max3; DB_WRITES=0");
+	}
+
+	private static void nativeTargetRecovery010() throws Exception
+	{
+		final var admission = PhantomHistoricalBackgroundPlanner.class.getDeclaredMethod("replanVisibleLocal", long.class,
+			PhantomBackgroundState.class, PhantomGoal.class, long.class, long.class, PhantomTopologyPoint.class, Set.class, Set.class,
+			java.util.function.Predicate.class, Map.class);
+		PhantomAssertions.assertTrue(admission.trySetAccessible(), "Cannot reach historical planner's native admission.");
+		final var planner = planner(true);
+		final var before = state();
+		final var previous = goal();
+		final java.util.function.Predicate<PhantomGoal> permits = _ -> true;
+		final var wrongNpcVisible = Map.of(999, List.of(LOCAL), 101, List.of(FAR));
+		final var fallback = (PhantomHistoricalBackgroundPlanner.Result) admission.invoke(planner, 74L, before, previous, 740074L, 1L,
+			LOCAL, Set.of(), Set.of(), permits, wrongNpcVisible);
+		PhantomAssertions.assertTrue(fallback.ready() && fallback.spec().npcId() == 102 && fallback.spec().anchorId().equals("farm.far"),
+			"The catalog-only local NPC must not outrank the canonical distant alternative.");
+		final var exactNpcVisible = Map.of(101, List.of(LOCAL));
+		final var local = (PhantomHistoricalBackgroundPlanner.Result) admission.invoke(planner, 74L, before, previous, 740074L, 1L,
+			LOCAL, Set.of(), Set.of(), permits, exactNpcVisible);
+		PhantomAssertions.assertTrue(local.ready() && local.spec().npcId() == 101 && local.spec().anchorId().equals("farm.local"),
+			"A locally selectable exact NPC must keep priority.");
+		final var blocked = (PhantomHistoricalBackgroundPlanner.Result) admission.invoke(planner, 74L, before, previous, 740074L, 1L,
+			LOCAL, Set.of(), Set.of("farm.link"), permits, wrongNpcVisible);
+		PhantomAssertions.assertFalse(blocked.ready(), "Rejected local target and excluded remote edge must leave an honest refusal.");
+		PhantomAssertions.assertEquals(before, state(), "Target recovery cannot mutate the earned baseline.");
+		System.out.println("PASS target recovery preserves exact NPC and certified alternative, with no writes");
 	}
 
 	private static void sourcePreflight129()

@@ -86,6 +86,7 @@ final class PhantomRouteGraph
 	private final double _chordLimit;
 	private final int _waypointLimit;
 	private final boolean _episode;
+	private final boolean _provenOnly;
 	private final PriorityQueue<Label> _queue = new PriorityQueue<>(Comparator.comparingDouble(Label::priority).thenComparingLong(Label::sequence));
 	private final Map<PhantomNavigationPoint, Label> _best = new HashMap<>();
 	private final Map<Edge, Boolean> _verified = new HashMap<>();
@@ -93,12 +94,13 @@ final class PhantomRouteGraph
 	private int _relaxed;
 	private long _sequence;
 
-	PhantomRouteGraph(Map<Region, Shard> shards, PhantomNavigationRequest request, PhantomNavigationPolicy policy, boolean episode,
+	PhantomRouteGraph(Map<Region, Shard> shards, PhantomNavigationRequest request, PhantomNavigationPolicy policy, boolean episode, boolean provenOnly,
 		Set<PhantomNavigationPoint> visited, Set<Edge> blocked, long nowMillis, BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> walk, BooleanSupplier interrupted)
 	{
 		_shards = shards;
 		_request = request;
 		_episode = episode;
+		_provenOnly = provenOnly;
 		_visited = visited;
 		_blocked = blocked;
 		_nowMillis = nowMillis;
@@ -159,7 +161,7 @@ final class PhantomRouteGraph
 	{
 		final var point = current.point();
 		final var next = edge.to();
-		if ((!evidence.candidate() && evidence.successes() == 0) || evidence.retryAfter() > _nowMillis || _blocked.contains(edge)
+		if ((evidence.successes() == 0 && (_provenOnly || !evidence.candidate())) || evidence.retryAfter() > _nowMillis || _blocked.contains(edge)
 			|| !connector(point, edge.from()) || next.equals(point) || _request.origin().distanceTo(next) > _chordLimit) { return; }
 		final double length = point.distanceTo(edge.from()) + edge.from().distanceTo(next);
 		final double distance = current.distance() + length;

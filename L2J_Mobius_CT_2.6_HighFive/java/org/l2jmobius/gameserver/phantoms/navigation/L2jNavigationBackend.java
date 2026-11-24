@@ -95,6 +95,15 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 			&& canWalkDirect(from, to) && zones.loadedGeneration() == generation;
 	}
 
+	boolean canWalkLearnedFromStage(PhantomNavigationPoint from, PhantomNavigationPoint to, PhantomNavigationPoint origin)
+	{
+		if (canWalkLearned(from, to)) { return true; }
+		if (!from.equals(origin)) { return false; }
+		// The native GK/Return receipt can place the actor exactly five units over the floor.
+		final var floor = learnedSurface(from, 5);
+		return floor != null && from.z() == floor.z() + 5 && canWalkLearned(floor, to) && canWalkDirect(from, to);
+	}
+
 	/** The existing visible-travel dry-cell/height contract, plus factual doors/NSWE. */
 	@Override
 	public boolean canWalkDirect(PhantomNavigationPoint from, PhantomNavigationPoint to)
@@ -183,17 +192,50 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	/** A decorated native backend still sees each actual bounded stock query. */
 	public TravelPlan planTravel(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomTravelStrategy.Options options, PhantomNavigationBackend paths)
 	{
+		return planTravel(request, cancellation, policy, clock, options, paths, null, new PhantomWalkCorridorPlanner.Budget());
+	}
+
+	TravelPlan planTravel(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomTravelStrategy.Options options, PhantomNavigationBackend paths,
+		PhantomRouteLearning memory, PhantomWalkCorridorPlanner.Budget budget)
+	{
 		if (cancellation.changedSince(0)) { return new TravelPlan(PhantomNavigationResult.Status.CANCELLED, null); }
 		final long generation = cancellation.generation();
 		final List<PhantomTravelStrategy.Candidate> candidates = new ArrayList<>();
-		final var budget = new PhantomWalkCorridorPlanner.Budget();
 		final var corridors = new java.util.HashMap<PhantomWalkCorridorPlanner.Edge, PhantomWalkCorridorPlanner.Result>();
 		final java.util.function.BiFunction<PhantomNavigationPoint, PhantomNavigationPoint, PhantomWalkCorridorPlanner.Result> walk = (from, to) -> corridors.computeIfAbsent(new PhantomWalkCorridorPlanner.Edge(from, to), edge ->
-			findWalkCorridor(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance(), request.pveThreats()), cancellation, policy, clock, paths, options.blockedEdges(), budget));
+		{
+			final var stage = new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance(), request.pveThreats());
+			final var blocked = options.blockedEdges();
+			List<PhantomNavigationPoint> learned = List.of();
+			if (memory != null && from.instanceId() == 0 && to.instanceId() == 0 && !from.equals(to)
+				&& from.distanceTo(to) <= policy.maximumLocalStraightDistance() && !budget.learnedChecksExhausted() && !cancellation.changedSince(generation)
+				&& clock.getAsLong() < request.deadlineLogicalNanos()
+				&& (blocked.contains(edge) || !stage.permitsWalkSegment(from, to) || !canWalkDirect(from, to))
+				&& budget.reserveLearnedProbe())
+			{
+				final long geoGeneration = GeoEngine.getInstance().generation();
+				final long zoneGeneration = ZoneManager.getInstance().loadedGeneration();
+				learned = memory.provenTravelWalk(stage, policy, blocked, System.currentTimeMillis(),
+					(start, end) -> stage.permitsWalkSegment(start, end) && budget.reserveLearnedCheck() && canWalkLearnedFromStage(start, end, from),
+					() -> cancellation.changedSince(generation) || clock.getAsLong() >= request.deadlineLogicalNanos() || budget.learnedChecksExhausted());
+				if (geoGeneration != GeoEngine.getInstance().generation() || zoneGeneration != ZoneManager.getInstance().loadedGeneration()) { learned = List.of(); }
+			}
+			final var stock = findWalkCorridor(stage, cancellation, policy, clock, paths, blocked, budget);
+			// Preserve the stock itinerary whenever the learned option needs more time or waypoints.
+			if (!learned.isEmpty() && (stock.status() == PhantomWalkCorridorPlanner.Status.NO_ROUTE_WITHIN_BUDGET
+				|| stock.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT
+				|| stock.status() == PhantomWalkCorridorPlanner.Status.FOUND && learned.size() <= stock.points().size()
+					&& PhantomTravelStrategy.distance(from, learned) <= PhantomTravelStrategy.distance(from, stock.points())))
+			{
+				return new PhantomWalkCorridorPlanner.Result(PhantomWalkCorridorPlanner.Status.FOUND, learned, stock.nodes(), stock.edges(), stock.queries(), stock.labels());
+			}
+			return stock;
+		});
 		PhantomNavigationResult.Status absent = PhantomNavigationResult.Status.NO_PATH;
 		if (request.origin().distanceTo(request.destination()) <= policy.maximumLocalStraightDistance())
 		{
 			final var corridor = walk.apply(request.origin(), request.destination());
+			budget.recordDirectWalk(corridor);
 			if (corridor.status() == PhantomWalkCorridorPlanner.Status.FOUND) { candidates.add(new PhantomTravelStrategy.Candidate("walk", List.of(walkStage(request.origin(), request.destination(), corridor.points(), options.speed())))); }
 			else if (corridor.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; }
 		}

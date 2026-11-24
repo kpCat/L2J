@@ -29,7 +29,29 @@ public final class PhantomWalkCorridorPlanner
 	/** One request may share the unchanged search limits across several WALK legs. */
 	public static final class Budget
 	{
+		private static final int MAX_LEARNED_PROBES = 4, MAX_LEARNED_CHECKS = 128;
 		private int nodes, edges, queries, labels;
+		private int learnedProbes, learnedChecks;
+		private Result directWalk;
+
+		boolean reserveLearnedProbe()
+		{
+			if (learnedChecksExhausted() || learnedProbes >= MAX_LEARNED_PROBES) { return false; }
+			learnedProbes++;
+			return true;
+		}
+
+		boolean reserveLearnedCheck()
+		{
+			if (learnedChecksExhausted()) { return false; }
+			learnedChecks++;
+			return true;
+		}
+		boolean learnedChecksExhausted() { return learnedChecks >= MAX_LEARNED_CHECKS; }
+
+		void recordDirectWalk(Result result) { directWalk = result; }
+		Result directWalk() { return directWalk; }
+
 		boolean reserve(int addedNodes, int addedEdges)
 		{
 			if (addedNodes < 0 || addedEdges < 0 || nodes + addedNodes > MAX_NODES || edges + addedEdges > MAX_EDGES) { return false; }

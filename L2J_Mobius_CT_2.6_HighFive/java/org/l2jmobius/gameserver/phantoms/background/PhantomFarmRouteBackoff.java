@@ -17,6 +17,7 @@ final class PhantomFarmRouteBackoff
 {
 	private static final Logger LOGGER = Logger.getLogger(PhantomVisibleFarmTravel.class.getName());
 	private static final long RETRY_NANOS = 120_000_000_000L;
+	private static final int MAX_RETRY_SHIFT = 3;
 	private static final long SUMMARY_NANOS = 30_000_000_000L;
 	private static final int MAX_ROUTES_PER_PROFILE = 8;
 	private static final int MAX_CHECKS_PER_PROFILE = 16;
@@ -68,10 +69,10 @@ final class PhantomFarmRouteBackoff
 			}
 			profile.checks.remove(probe);
 			profile.backoffChecks++;
-			profile.failures.removeIf(failure -> failure.expiresAt() - now <= 0);
 			boolean equivalent = false;
 			for (var failure : profile.failures)
 			{
+				if (failure.expiresAt() - now <= 0) { continue; }
 				if (!equivalent(failure.probe(), probe)) { continue; }
 				equivalent = true;
 				if (!stillUnproven(failure)) { continue; }
@@ -119,20 +120,29 @@ final class PhantomFarmRouteBackoff
 		{
 			profile.failedPathSearches++;
 			profile.pathfindingQueries += Math.max(0, nativeQueries);
-			profile.failures.removeIf(failure -> failure.expiresAt() - now <= 0);
-			for (var failure : profile.failures)
+			final long provenTraversals = _provenTraversals.applyAsLong(probe);
+			int retryShift = 0;
+			for (var failures = profile.failures.iterator(); failures.hasNext(); )
 			{
-				if (failure.kind() == kind && equivalent(failure.probe(), probe) && stillUnproven(failure))
+				final var failure = failures.next();
+				if (!equivalent(failure.probe(), probe)) { continue; }
+				final boolean unchanged = provenTraversals <= failure.provenTraversals();
+				if (unchanged && failure.expiresAt() - now > 0)
 				{
 					profile.summarize(now);
 					return;
 				}
+				if (unchanged) { retryShift = Math.min(MAX_RETRY_SHIFT, failure.retryShift() + 1); }
+				failures.remove();
+				break;
 			}
 			if (profile.failures.size() >= MAX_ROUTES_PER_PROFILE) { profile.failures.removeFirst(); }
-			profile.activeUntil = now + RETRY_NANOS;
-			profile.failures.add(new Failure(probe, kind, profile.activeUntil, _provenTraversals.applyAsLong(probe)));
+			final long retry = RETRY_NANOS << retryShift;
+			final long expiresAt = now + retry;
+			profile.activeUntil = Math.max(profile.activeUntil, expiresAt);
+			profile.failures.add(new Failure(probe, expiresAt, provenTraversals, retryShift));
 			profile.checks.clear();
-			LOGGER.info(diagnostic + ";nextRetryMs=" + RETRY_NANOS / 1_000_000L);
+			LOGGER.info(diagnostic + ";nextRetryMs=" + retry / 1_000_000L);
 			profile.summarize(now);
 		}
 	}
@@ -155,7 +165,7 @@ final class PhantomFarmRouteBackoff
 			&& (a.z() == b.z() || _sameSurface.test(a, b));
 	}
 
-	private record Failure(Probe probe, LimitKind kind, long expiresAt, long provenTraversals) { }
+	private record Failure(Probe probe, long expiresAt, long provenTraversals, int retryShift) { }
 
 	private record Checked(Failure witness, long until) { }
 

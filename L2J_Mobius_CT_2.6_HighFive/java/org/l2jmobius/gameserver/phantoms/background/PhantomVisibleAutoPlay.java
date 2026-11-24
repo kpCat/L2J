@@ -3,6 +3,7 @@
  */
 package org.l2jmobius.gameserver.phantoms.background;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,6 +21,7 @@ import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.skill.AbnormalType;
 import org.l2jmobius.gameserver.model.skill.Skill;
@@ -41,6 +43,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease;
@@ -62,6 +65,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private static final long RECOVERY_DELAY_NANOS = 30_000_000_000L;
 	private static final long STALL_DELAY_NANOS = 90_000_000_000L;
 	private static final long RESOURCE_RECOVERY_NANOS = 45_000_000_000L;
+	private static final int RECOVERY_TARGET_PROBES = 16;
 	private final PhantomMaterializationService _materialization;
 	private final L2jCombatBackend _recoveryBackend;
 	private final Supplier<PhantomDecisionEngine> _decision;
@@ -425,8 +429,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				if (!session._current.get() || (_sessions.get(profileId) != session)) { return false; }
 				final long now = _clock.getAsLong();
 				final var selected = player.getTarget();
-				final boolean offensive = (player.isMoving() || player.isAttackingNow() || player.isCastingNow()) && (selected instanceof Creature creature) && selectableTarget(player, creature, npcId);
-				final boolean target = offensive || World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(creature -> selectableTarget(player, creature, npcId));
+				final boolean offensive = (player.isMoving() || player.isAttackingNow() || player.isCastingNow()) && (selected instanceof Creature creature)
+					&& selectableTarget(player, creature, npcId) && _targetScope.test(player, creature);
+				final boolean target = offensive || World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE)
+					.stream().anyMatch(creature -> selectableTarget(player, creature, npcId) && _targetScope.test(player, creature));
 				if (target) { session.noTargetSince = -1; }
 				else if (session.noTargetSince < 0) { session.noTargetSince = now; }
 				// A depleted local target set needs time for the existing alternate-goal route
@@ -443,10 +449,15 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				// One native repair, outside the Session monitor, never a registration restart or debt reset.
 				player.abortAttack(); player.abortCast(); player.stopMove(null);
 				player.getAI().setIntention(Intention.IDLE);
-				if (!(player.getTarget() instanceof Creature selected) || !selectableTarget(player, selected, npcId)) { player.setTarget(null); }
+				if (!(player.getTarget() instanceof Creature selected) || !selectableTarget(player, selected, npcId) || !_targetScope.test(player, selected)) { player.setTarget(null); }
 				LOGGER.info("Phantom visible farm repair profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason);
 			}
-			if (reportStall) { LOGGER.warning("Phantom visible farm stalled profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason); }
+			if (reportStall)
+			{
+				final String rejected = "NO_SELECTABLE_NATIVE_FARM_TARGET".equals(reason) ? targetRejectionSummary(player, npcId) : "";
+				LOGGER.warning("Phantom visible farm stalled profile=" + profileId + " object=" + player.getObjectId()
+					+ " epoch=" + session._epoch + " goal=" + goal.revision() + " npc=" + npcId + " reason=" + reason + rejected);
+			}
 			return stopExpiredCombat(session, player, expired);
 		}
 		}
@@ -635,15 +646,62 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	static boolean selectableTarget(Player player, Creature creature, int npcId)
 	{
-		if (!creature.isMonster() || creature.isRaid() || creature.isAlikeDead() || !creature.isTargetable() || creature.isInvul() || !creature.asNpc().isShowName() || !creature.isAutoAttackable(player) || (creature.getInstanceId() != player.getInstanceId()) || (creature.asNpc().getId() != npcId))
-		{
-			return false;
-		}
+		return targetRejection(player, creature, npcId) == TargetRejection.NONE;
+	}
+
+	private enum TargetRejection { NONE, WRONG_NPC, UNAVAILABLE, INSTANCE, OCCUPIED, REWARD, VIABILITY, FLOOR, LINE_OF_SIGHT, DIRECT_WALK, SCOPE }
+
+	private static TargetRejection targetRejection(Player player, Creature creature, int npcId)
+	{
+		if (!creature.isMonster() || creature.asNpc().getId() != npcId) { return TargetRejection.WRONG_NPC; }
+		if (creature.isRaid() || creature.isAlikeDead() || !creature.isTargetable() || creature.isInvul() || !creature.asNpc().isShowName() || !creature.isAutoAttackable(player)) { return TargetRejection.UNAVAILABLE; }
+		if (creature.getInstanceId() != player.getInstanceId()) { return TargetRejection.INSTANCE; }
 		if (player.getAutoPlaySettings().isRespectfulHunting() && (creature.getTarget() != null) && (creature.getTarget() != player) && !(player.hasSummon() && (player.getSummon().getObjectId() == creature.getTarget().getObjectId())))
 		{
-			return false;
+			return TargetRejection.OCCUPIED;
 		}
-		return PhantomEngagementPlanner.rewardingFarmTarget(player, creature) && PhantomEngagementPlanner.viable(player, creature) && (Math.abs((long) player.getZ() - creature.getZ()) < 800) && GeoEngine.getInstance().canSeeTarget(player, creature) && GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), creature.getX(), creature.getY(), creature.getZ(), player.getInstanceId());
+		if (!PhantomEngagementPlanner.rewardingFarmTarget(player, creature)) { return TargetRejection.REWARD; }
+		if (Math.abs((long) player.getZ() - creature.getZ()) >= 800) { return TargetRejection.FLOOR; }
+		final var geo = GeoEngine.getInstance();
+		if (!geo.canSeeTarget(player, creature)) { return TargetRejection.LINE_OF_SIGHT; }
+		if (!geo.canMoveToTarget(player.getX(), player.getY(), player.getZ(), creature.getX(), creature.getY(), creature.getZ(), player.getInstanceId())) { return TargetRejection.DIRECT_WALK; }
+		return PhantomEngagementPlanner.viable(player, creature) ? TargetRejection.NONE : TargetRejection.VIABILITY;
+	}
+
+	private String targetRejectionSummary(Player player, int npcId)
+	{
+		final var counts = new java.util.EnumMap<TargetRejection, Integer>(TargetRejection.class);
+		final var visible = World.getInstance().getVisibleObjectsInRange(player, Monster.class,
+			player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE);
+		final int sampled = Math.min(visible.size(), 64);
+		for (int index = 0; index < sampled; index++)
+		{
+			final var target = visible.get(index);
+			var rejection = targetRejection(player, target, npcId);
+			if (rejection == TargetRejection.NONE && !_targetScope.test(player, target)) { rejection = TargetRejection.SCOPE; }
+			counts.merge(rejection, 1, Integer::sum);
+		}
+		return " visibleMonsters=" + visible.size() + " sampled=" + sampled + " targetChecks=" + counts;
+	}
+
+	/** Snapshot at a quiet replan while the historical owner holds the current action lease. */
+	Map<Integer, List<PhantomTopologyPoint>> selectableFarmTargets(Player player)
+	{
+		final Map<Integer, List<PhantomTopologyPoint>> targets = new java.util.HashMap<>();
+		final var nearby = World.getInstance().getVisibleObjectsInRange(player, Monster.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream()
+			.filter(target -> !target.isAlikeDead() && !target.isRaid() && Math.abs(player.getLevel() - target.getLevel()) <= 4 && _targetScope.test(player, target))
+			.sorted(java.util.Comparator.<Monster>comparingDouble(player::calculateDistance2D).thenComparingInt(Creature::getObjectId))
+			.limit(RECOVERY_TARGET_PROBES).toList();
+		for (var target : nearby)
+		{
+			final int id = target.getId();
+			if (selectableTarget(player, target, id))
+			{
+				targets.computeIfAbsent(id, _ -> new java.util.ArrayList<>()).add(new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId()));
+			}
+		}
+		targets.replaceAll((_, positions) -> List.copyOf(positions));
+		return Map.copyOf(targets);
 	}
 
 	private boolean current(long profileId, PhantomGoal goal)

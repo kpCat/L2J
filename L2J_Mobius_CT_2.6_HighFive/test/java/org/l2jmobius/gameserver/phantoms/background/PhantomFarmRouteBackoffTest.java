@@ -24,6 +24,7 @@ public final class PhantomFarmRouteBackoffTest
 		check(failures, () -> replay(32, 268486156, 346380924728600L, 161, point(113965, -165718, 40),
 			List.of(point(114053, -165883, 288), point(114007, -165900, 272)), LimitKind.SEARCH_LIMIT));
 		check(failures, PhantomFarmRouteBackoffTest::expiryAndIsolation);
+		check(failures, PhantomFarmRouteBackoffTest::profile27RepeatedRefusal);
 		check(failures, PhantomFarmRouteBackoffTest::stationaryPulses);
 		check(failures, PhantomFarmRouteBackoffTest::compactCounters);
 		if (!failures.isEmpty()) { throw new AssertionError(failures.size() + " focused cases failed"); }
@@ -114,6 +115,20 @@ public final class PhantomFarmRouteBackoffTest
 			System.out.println("profile=" + failure.site().profileId() + " geometryChecks=" + (geometryChecks.get() - before) + "/180");
 		}
 		PhantomAssertions.assertEquals(4, geometryChecks.get(), "Each profile should compare the unchanged surface once across 180 pulses.");
+	}
+
+	private static void profile27RepeatedRefusal()
+	{
+		final long second = 1_000_000_000L;
+		final var guard = new PhantomFarmRouteBackoff(32, _ -> 0, (_, _) -> true);
+		final var probe = new Probe(new Site(27, 270, 1, 1, 1, 1), point(-90856, 246584, -3704), point(-84312, 252645, -3664));
+		guard.failed(probe, LimitKind.NO_PATH_WITHIN_SEARCH, 23, 1, "profile=27");
+		PhantomAssertions.assertFalse(guard.blocked(probe, 120 * second + 1), "Initial refusal gets a bounded retry.");
+		guard.failed(probe, LimitKind.NO_PATH_WITHIN_SEARCH, 23, 120 * second + 1, "profile=27 repeat");
+		PhantomAssertions.assertTrue(guard.blocked(probe, 240 * second + 1), "An unchanged failed search must not repeat every 120 seconds.");
+		final var alternate = new Probe(probe.site(), probe.origin(), point(-85400, 252000, -3656));
+		PhantomAssertions.assertFalse(guard.blocked(alternate, 240 * second + 1), "Another farm remains eligible during cooldown.");
+		PhantomAssertions.assertFalse(guard.blocked(probe, 360 * second + 1), "Even a repeated refusal expires.");
 	}
 
 	private static void compactCounters()

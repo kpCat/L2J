@@ -39,6 +39,11 @@ public final class PhantomRouteLearningChecks
 {
 	public static void main(String[] args) throws Exception
 	{
+		if (args.length == 3 && "--snapshot010".equals(args[0]))
+		{
+			farmSnapshot010(Path.of(args[1]), Path.of(args[2]));
+			return;
+		}
 		final Path root = Path.of(args[0]);
 		physicalScoutArrival();
 		physicalScoutExecutionAdmission();
@@ -52,6 +57,30 @@ public final class PhantomRouteLearningChecks
 		regionalRecoveryWake(root.resolve("farm-recovery"));
 		journeyOutcomes(root.resolve("journeys"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
+	}
+
+	private static void farmSnapshot010(Path learnedCopy, Path geoCorpus) throws Exception
+	{
+		check(Files.isRegularFile(learnedCopy.toRealPath().getParent().resolve(".codex-owned.json")), "Snapshot must be copied to the owned scratch run.");
+		final var origin = new PhantomNavigationPoint(-90856, 246584, -3704, 0);
+		final var destination = new PhantomNavigationPoint(-84312, 252645, -3664, 0);
+		final var policy = PhantomNavigationPolicy.productionDefaults();
+		final String fingerprint = PhantomGeoTrainer.fingerprint(geoCorpus, () -> false);
+		check(fingerprint.equals("46b8d2d574d0b6c48dcd84a5163c2953d227f9f36207bf769cbf26ead0b6a80c"), "Bartz snapshot and local GeoData fingerprint differ.");
+		try (var memory = PhantomRouteLearning.open(learnedCopy, fingerprint))
+		{
+			final var totals = memory.legTotals();
+			check(totals.regions() == 160 && totals.proven() == 52117 && totals.candidate() == 6626, "Bartz learned corpus failed to load completely: " + totals);
+			final var knownIncoming = memory.find(new Edge(new PhantomNavigationPoint(-91064, 246808, -3600, 0), origin));
+			check(knownIncoming != null && knownIncoming.successes() > 0, "Missing recorded incoming edge for profile 27.");
+			final long now = System.nanoTime();
+			final var request = new PhantomNavigationRequest(27, origin, destination, now, now + policy.defaultRequestDeadlineNanos(), policy.maximumRouteDistance());
+			final var checks = new java.util.concurrent.atomic.AtomicInteger();
+			final var route = memory.provenTravelWalk(request, policy, Set.of(), System.currentTimeMillis(),
+				(_, _) -> { checks.incrementAndGet(); return true; }, () -> false);
+			check(route.isEmpty() && checks.get() == 0, "Profile 27's snapshot unexpectedly has an outgoing PROVEN connector.");
+			System.out.println("PASS Bartz learned snapshot " + totals + "; profile27 incoming PROVEN, zero eligible outgoing connectors");
+		}
 	}
 
 	private static void regionalRecoveryWake(Path root) throws Exception
@@ -542,6 +571,9 @@ public final class PhantomRouteLearningChecks
 		// As in GameServer boot, initialize GeoData, zones and world collision before timing the requests.
 		check(navigationBackend.canWalkLearned(a, b), "Fixture native geometry did not initialize");
 		check(!navigationBackend.canWalkLearned(new PhantomNavigationPoint(a.x(), a.y(), a.z() + 16, 0), b), "Wrong floor passed learned GeoData validation");
+		final var landing = new PhantomNavigationPoint(a.x(), a.y(), a.z() + 5, 0);
+		check(navigationBackend.canWalkLearnedFromStage(landing, b, landing), "Native landing offset prevented learned egress");
+		check(!navigationBackend.canWalkLearnedFromStage(landing, b, a), "Native landing exception leaked into a later learned segment");
 		final var navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), navigationBackend,
 			work -> { work.run(); return true; }, System::nanoTime, new PhantomMetrics());
 		check(navigation.start(), "Navigation did not start");
@@ -559,6 +591,27 @@ public final class PhantomRouteLearningChecks
 			check(learnedResult != null && learnedResult.route() != null && learnedResult.route().destination().equals(b), "Learned intermediate leg did not influence the normal Solo worker");
 			final var fallback = navigation.submitSoloWalk(new PhantomNavigationRequest(2, a, goal, now, now + 3_000_000_000L, 20_000), true, Set.of(a), Set.of(ab)).immediateResult();
 			check(fallback != null && fallback.route() != null && !fallback.route().waypoints().contains(b), "Blacklisted leg returned instead of stock corridor");
+
+			final var egress = new PhantomNavigationPoint(b.x() + 528, b.y(), b.z(), b.instanceId());
+			final var direct = new Edge(a, egress);
+			final var learnedEgress = new Edge(b, egress);
+			memory.arrived(ab);
+			memory.arrived(learnedEgress);
+			final var options = new PhantomTravelStrategy.Options(List.of(), 120, 0, 0, 0, 20, 0, false, "", null, 0, 120_000, Set.of(direct));
+			final long travelNow = System.nanoTime();
+			final var arrived = navigation.submitTravelPlan(new PhantomNavigationRequest(3, a, egress, travelNow, travelNow + 3_000_000_000L, 20_000), options);
+			final var plan = navigation.consumeTravelPlan(arrived.requestId()).orElseThrow();
+			check(plan.stages().getFirst().points().equals(List.of(b, egress)), "Ordinary travel did not select the verified directed learned detour");
+			final var reverseOptions = new PhantomTravelStrategy.Options(List.of(), 120, 0, 0, 0, 20, 0, false, "", null, 0, 120_000, Set.of(new Edge(egress, a)));
+			final var reverseRequest = new PhantomNavigationRequest(4, egress, a, travelNow, travelNow + 3_000_000_000L, 20_000);
+			final var reversed = navigation.submitTravelPlan(reverseRequest, reverseOptions);
+			final var reversePlan = navigation.consumeTravelPlan(reversed.requestId()).orElseThrow();
+			final var stock = navigationBackend.planTravel(reverseRequest, new PhantomNavigationCancellationToken(), navigation.policy(), System::nanoTime, reverseOptions);
+			check(reversePlan.equals(stock.candidate()), "Ordinary travel invented reverse learned edges or lost the stock fallback");
+			final var noTime = new PhantomTravelStrategy.Options(List.of(), 120, 0, 0, 0, 20, 0, false, "", null, 0, 0, Set.of());
+			final var timeRefusal = navigation.submitTravelPlan(new PhantomNavigationRequest(5, a, egress, travelNow, travelNow + 3_000_000_000L, 20_000), noTime).immediateResult();
+			check(timeRefusal != null && timeRefusal.route() == null && timeRefusal.proof().kind() == PhantomNavigationResult.LimitKind.UNKNOWN,
+				"Unusable travel time became a native search refusal");
 		}
 		finally
 		{
@@ -568,7 +621,7 @@ public final class PhantomRouteLearningChecks
 		try (var reloaded = PhantomRouteLearning.open(learned, PhantomGeoTrainer.fingerprint(geo, () -> false)))
 		{
 			final var evidence = reloaded.find(ab);
-			check(evidence != null && evidence.candidate() && evidence.successes() == 0, "STOP did not flush GeoData candidate");
+			check(evidence != null && evidence.candidate() && evidence.successes() == 1, "STOP did not flush directed travel evidence");
 			check(reloaded.find(ba) == null, "A cancelled future probe produced a reverse route");
 		}
 		System.out.println("PASS one stock GeoData probe, pacing, Solo reuse, blacklist fallback and STOP/readback");

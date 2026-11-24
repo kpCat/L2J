@@ -476,8 +476,8 @@ public final class PhantomNavigationService
 		{
 			capability = Objects.requireNonNull(_backend.capability(entry._request.origin(), entry._request.destination()), "Backend capability must not be null.");
 			entry._capability = capability;
-			direct = entry._swim == null && (!entry._walkEpisode || directDistance <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
-				&& (entry._travelOptions == null || directDistance <= _policy.maximumLocalStraightDistance()) && canMove(entry, entry._request.origin(), entry._request.destination());
+			direct = entry._swim == null && entry._travelOptions == null && (!entry._walkEpisode || directDistance <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
+				&& canMove(entry, entry._request.origin(), entry._request.destination());
 		}
 		catch (Throwable throwable)
 		{
@@ -780,9 +780,20 @@ public final class PhantomNavigationService
 					if (validated == null && entry._travelOptions != null)
 					{
 						final var nativeBackend = _backend instanceof L2jNavigationBackend nativeValue ? nativeValue : new L2jNavigationBackend();
-						final var planned = nativeBackend.planTravel(entry._request, entry._cancellation, _policy, _clock, entry._travelOptions, _backend);
+						final var budget = new PhantomWalkCorridorPlanner.Budget();
+						final var planned = nativeBackend.planTravel(entry._request, entry._cancellation, _policy, _clock, entry._travelOptions, _backend,
+							_backend instanceof L2jNavigationBackend ? routeLearning() : null, budget);
 						corridorStatus = planned.status(); entry._selectedPlan = planned.candidate();
 						backendPath = entry._selectedPlan == null ? null : entry._selectedPlan.stages().getFirst().points();
+						final var directWalk = budget.directWalk();
+						if ((corridorStatus == Status.NO_PATH || corridorStatus == Status.ROUTE_BUDGET_EXCEEDED) && directWalk != null
+							&& (directWalk.status() == PhantomWalkCorridorPlanner.Status.NO_ROUTE_WITHIN_BUDGET || directWalk.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT))
+						{
+							final boolean limited = directWalk.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT;
+							entry._proof = PhantomNavigationResult.BudgetProof.context(limited ? PhantomNavigationResult.LimitKind.SEARCH_LIMIT
+								: PhantomNavigationResult.LimitKind.NO_PATH_WITHIN_SEARCH, requestKind(entry), entry._request, _policy)
+								.search(directWalk);
+						}
 					}
 					else if (validated == null && entry._walkCorridor && (!entry._geoProbe || entry._soloWalk))
 					{
@@ -893,12 +904,15 @@ public final class PhantomNavigationService
 	{
 		final var memory = routeLearning();
 		if (memory == null || !(_backend instanceof L2jNavigationBackend nativeBackend) || entry._request.origin().instanceId() != 0) { return null; }
+		final var origin = entry._request.origin();
+		final java.util.function.BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> geometry = entry._geoProbe ? nativeBackend::canWalkLearned
+			: (from, to) -> nativeBackend.canWalkLearnedFromStage(from, to, origin);
 		final var points = memory.route(entry._request, _policy, entry._walkEpisode, entry._episodeVisited, entry._blockedEdges, System.currentTimeMillis(),
-			(from, to) -> permitsSegment(entry, from, to) && nativeBackend.canWalkLearned(from, to),
+			(from, to) -> permitsSegment(entry, from, to) && geometry.test(from, to),
 			() -> interruption(entry, cancellationGeneration) != Status.PATH_FOUND);
 		if (points.isEmpty()) { return null; }
 		if (entry._walkEpisode) { entry._episodeDestination = points.getLast(); }
-		final var validated = validateBackendPath(entry, points, cancellationGeneration, nativeBackend::canWalkLearned);
+		final var validated = validateBackendPath(entry, points, cancellationGeneration, geometry);
 		if (validated._status == Status.PATH_FOUND) { return validated; }
 		entry._episodeDestination = null;
 		return null;
@@ -1187,7 +1201,9 @@ public final class PhantomNavigationService
 
 	private static boolean permitsSegment(RequestEntry entry, PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
-		return entry._request.permitsWalkSegment(from, to) && !entry._blockedEdges.contains(new PhantomWalkCorridorPlanner.Edge(from, to));
+		final var edge = new PhantomWalkCorridorPlanner.Edge(from, to);
+		return entry._request.permitsWalkSegment(from, to) && !entry._blockedEdges.contains(edge)
+			&& (entry._travelOptions == null || !entry._travelOptions.blockedEdges().contains(edge));
 	}
 
 	private static String requestKind(RequestEntry entry) { return entry._swim != null ? "FARM_SWIM" : entry._travelOptions != null ? "TRAVEL" : entry._walkEpisode ? "EPISODE" : entry._walkCorridor ? "CORRIDOR" : "PATH"; }

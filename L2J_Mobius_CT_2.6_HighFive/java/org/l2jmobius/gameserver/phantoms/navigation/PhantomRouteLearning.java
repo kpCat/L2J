@@ -266,7 +266,13 @@ public final class PhantomRouteLearning implements AutoCloseable
 	List<PhantomNavigationPoint> route(PhantomNavigationRequest request, PhantomNavigationPolicy policy, boolean episode,
 		Set<PhantomNavigationPoint> visited, Set<Edge> blocked, long nowMillis, BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> walk, BooleanSupplier interrupted)
 	{
-		return new PhantomRouteGraph(_snapshot, request, policy, episode, visited, blocked, nowMillis, walk, interrupted).search();
+		return new PhantomRouteGraph(_snapshot, request, policy, episode, false, visited, blocked, nowMillis, walk, interrupted).search();
+	}
+
+	List<PhantomNavigationPoint> provenTravelWalk(PhantomNavigationRequest request, PhantomNavigationPolicy policy,
+		Set<Edge> blocked, long nowMillis, BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> walk, BooleanSupplier interrupted)
+	{
+		return new PhantomRouteGraph(_snapshot, request, policy, false, true, Set.of(), blocked, nowMillis, walk, interrupted).search();
 	}
 
 	LegTotals legTotals()
