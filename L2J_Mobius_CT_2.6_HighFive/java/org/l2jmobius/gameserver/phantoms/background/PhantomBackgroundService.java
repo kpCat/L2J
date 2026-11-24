@@ -953,7 +953,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		// Completed arrival retains its typed fence until canonical capture of the exact World Player.
 		final boolean completedOffscreen = state != null && state.state() == State.READY
 			&& PhantomOffscreenOutdoorTravel.taggedReceipt(state) && !PhantomOffscreenOutdoorTravel.pendingDebt(state);
-		return partyNativeOnly || completedOffscreen || !context.permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
+		// Dead-idle has no farm/travel policy mutation. If its scalar proof is insufficient,
+		// let the existing native owner recover the saved body before retrying this minute.
+		final boolean deadNeedsRecovery = state != null && state.state() == State.DEAD && !context.simulationEligible();
+		return partyNativeOnly || completedOffscreen || deadNeedsRecovery || !context.permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
 	}
 
 	/** Uses the ordinary historical identity lease and transaction receipt to finish a pending commit. */

@@ -368,12 +368,28 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			"A normally captured and stored READY body returns to existing native-policy admission.");
 		PhantomAssertions.assertTrue(PhantomBackgroundService.historicalNativeContextRequired(arrived, context),
 			"A completed typed offscreen receipt requires the existing canonical native handoff even when its context permits FARM.");
+
+		final var dead = generic.after(generic.progress(), new PhantomBackgroundState.Vitals(0, 100, 100, 100, 100, 100),
+			generic.position(), generic.inventory(), generic.autoGetSkills(), generic.clock(), PhantomBackgroundState.Receipt.empty());
+		final var deadContext = permittedHistoricalContext(dead, 10);
+		PhantomAssertions.assertTrue(dead.state() == PhantomBackgroundState.State.DEAD && !deadContext.simulationEligible()
+			&& deadContext.permits(PhantomBackgroundSimulationPolicy.Operation.FARM, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()),
+			"Saved DEAD with a current farm policy must reproduce the legacy dead-idle mismatch.");
+		PhantomAssertions.assertTrue(PhantomBackgroundService.historicalNativeContextRequired(dead, deadContext),
+			"A saved DEAD body unable to commit dead-idle must request the existing native recovery owner.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.historicalNativeContextRequired(dead, permittedHistoricalContext(dead)),
+			"The legacy scalar eligible for historical dead-idle keeps its original admission.");
 	}
 	private static PhantomNativeContext permittedHistoricalContext(PhantomBackgroundState state)
 	{
-		final var policy = new PhantomBackgroundSimulationPolicy(2, 76, 1, 1, true, true, true, true, false, 1,
+		return permittedHistoricalContext(state, 1);
+	}
+	private static PhantomNativeContext permittedHistoricalContext(PhantomBackgroundState state, int vitalityPoints)
+	{
+		final var policy = new PhantomBackgroundSimulationPolicy(2, 76, vitalityPoints, vitalityPoints, true, true, true, true, false, 1,
 			1, 0.6, 1.5, 2, 2.5, 3, 0, 0, 3.5, 3.5, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint(), 126.5, 60_000, 0);
-		return PhantomNativeContext.completed(state.identity(), new PhantomNativeContext.Capture(1, PhantomNativeContext.Eligibility.SUPPORTED, policy),
+		final var eligibility = vitalityPoints == 1 ? PhantomNativeContext.Eligibility.SUPPORTED : PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE;
+		return PhantomNativeContext.completed(state.identity(), new PhantomNativeContext.Capture(vitalityPoints, eligibility, policy),
 			270, new PhantomBackgroundStateCodec().encode(state));
 	}
 
