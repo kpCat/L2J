@@ -49,6 +49,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.DetachRe
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.MutationResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.RuntimeState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
@@ -111,6 +113,7 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		registry.add("37-revoked-admission-cancels-already-running-handler", _ -> testRevokedAdmission());
 		registry.add("38-execution-transfer-waits-for-real-decision-lease", _ -> testExecutionTransferLease());
 		registry.add("39-transfer-invalidates-old-plan-before-candidate-producers", _ -> testTransferInvalidatesPlan());
+		registry.add("40-priority-interrupt-keeps-solo-owner-and-durable-goal", _ -> testPriorityInterruptKeepsSoloOwner());
 	}
 
 	private void testTransferInvalidatesPlan()
@@ -488,6 +491,67 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(1L, snapshot.goalRevision(), "Stale handler restored old goal revision.");
 		PhantomAssertions.assertEquals(RuntimeState.NEEDS_REPLAN, snapshot.runtimeState(), "Stale handler result mutated replacement goal.");
 		fixture.stop();
+	}
+
+	private void testPriorityInterruptKeepsSoloOwner() throws Exception
+	{
+		final var scheduledIntent = new AtomicBoolean();
+		final var candidates = new PhantomCandidateRegistry();
+		candidates.register(weightedCandidate("candidate.farm", _ -> new PhantomConsideration.Evaluation(500, "farm.available")));
+		candidates.register(weightedCandidate("candidate.scheduled", _ -> new PhantomConsideration.Evaluation(scheduledIntent.get() ? 1000 : 0, "scheduled.priority")));
+		candidates.seal();
+
+		final var farm = new BlockingHandler();
+		final var scheduledCalls = new AtomicInteger();
+		final var handlers = new PhantomStepHandlerRegistry();
+		handlers.register("action.test", context ->
+		{
+			if ("candidate.farm".equals(context.plan().candidateKey())) { return farm.execute(context); }
+			scheduledCalls.incrementAndGet();
+			return PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "scheduled.selected");
+		});
+		handlers.seal();
+
+		final var store = new InMemoryGoalStore();
+		store.profiles.add(1L);
+		final var solo = PhantomExecutionHandoff.initial(PhantomExecutionHandoff.solo(1));
+		final var admission = new PhantomExecutionAdmission(1);
+		admission.publish(1, 0, solo);
+		final var engine = new PhantomDecisionEngine(store, candidates, handlers, new PhantomMetrics(), 1, null, admission.decisionAdmission(solo.owner()));
+		engine.start();
+		PhantomAssertions.assertEquals(AttachResult.ATTACHED, engine.attach(1), "SOLO fixture did not attach.");
+		final var root = goal(0);
+		PhantomAssertions.assertEquals(MutationResult.APPLIED, engine.insertGoal(1, root), "SOLO fixture goal did not insert.");
+
+		final Thread worker = new Thread(() -> engine.accept(work(1, 1, 1, 0)), "t012-voluntary-action");
+		try
+		{
+			worker.start();
+			try
+			{
+				farm.awaitEntered();
+				scheduledIntent.set(true);
+				engine.accept(work(1, 2, 2, 1));
+				PhantomAssertions.assertEquals(0, scheduledCalls.get(), "The next intent ran alongside the in-flight handler.");
+			}
+			finally
+			{
+				farm.release();
+				join(worker);
+			}
+			PhantomAssertions.assertTrue(farm.cancelled.get(), "The old handler kept its plan after the interrupt.");
+			PhantomAssertions.assertEquals(RuntimeState.NEEDS_REPLAN, engine.find(1).orElseThrow().runtimeState(), "The stale result changed the new plan state.");
+			engine.accept(work(1, 2, 3, 2));
+			PhantomAssertions.assertEquals(1, scheduledCalls.get(), "The higher-priority candidate did not execute.");
+			PhantomAssertions.assertEquals("candidate.scheduled", engine.find(1).orElseThrow().selectedCandidateKey(), "The planner retained the displaced candidate.");
+			PhantomAssertions.assertEquals(root, engine.currentGoal(1).orElseThrow(), "The interrupt replaced the durable goal.");
+			PhantomAssertions.assertEquals(1, store.writes, "The interrupt wrote a new durable goal.");
+			PhantomAssertions.assertTrue(admission.current(1, 0, solo), "The interrupt changed the active SOLO grant.");
+		}
+		finally
+		{
+			new EngineFixture(engine, store).stop();
+		}
 	}
 
 	private void testDetachCancellation() throws Exception
