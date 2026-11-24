@@ -66,7 +66,6 @@ public final class PhantomHistoricalBackgroundPlanner
 	private static final int FALLBACK_TARGETS = 256;
 	private static final int MAXIMUM_TARGET_PAGES = 8;
 	private static final int MAXIMUM_OFFSCREEN_NATIVE_PROOFS = 256;
-	private static final int RECOVERY_WALK_DISTANCE = PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance();
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomBackgroundAuthority _authority;
@@ -100,8 +99,13 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	public Result replan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
+		return replan(profileId, state, previousGoal, deterministicSeed, planOrdinal, excludedTargets, excludedSteps, true);
+	}
+
+	Result replan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps, boolean allowOffscreen)
+	{
 		final PhantomBackgroundGoalSpec previous = PhantomBackgroundGoalSpec.parse(previousGoal);
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state), offscreenSupplied(state));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state), allowOffscreen && offscreenSupplied(state));
 	}
 
 	public Result replaceFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
@@ -181,6 +185,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	{
 		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, admitted, candidate ->
 		{
+			if (Math.abs(candidate.target().npc().level() - state.progress().level()) > 4) { return false; }
 			if (localFarmDistance(candidate.anchor(), live) > 4_000_000L) { return true; }
 			final var targets = selectableTargets.get(candidate.target().npc().npcId());
 			return targets != null && _topology.findNode(candidate.anchor().nodeId())
@@ -229,8 +234,10 @@ public final class PhantomHistoricalBackgroundPlanner
 		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(),
 			previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed,
 			planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, live, PlanningCombat.from(state), false,
-			candidate -> !previous.anchorId().equals(candidate.anchor().id())
-				&& availability.computeIfAbsent(candidate.anchor().id(), _ -> availableAnchor.test(candidate.anchor())), new java.util.HashMap<>(), null, RECOVERY_WALK_DISTANCE);
+			candidate -> Math.abs(candidate.target().npc().level() - state.progress().level()) <= 4
+				&& !previous.anchorId().equals(candidate.anchor().id())
+				&& availability.computeIfAbsent(candidate.anchor().id(), _ -> availableAnchor.test(candidate.anchor())), new java.util.HashMap<>(), null,
+			PhantomNavigationPolicy.productionDefaults().maximumRouteDistance());
 	}
 	/** Select only the agreed farm source through the existing bounded target/route planner. */
 	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,

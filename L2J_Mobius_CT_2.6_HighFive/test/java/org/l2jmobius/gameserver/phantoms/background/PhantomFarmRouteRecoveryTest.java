@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.CapabilitySnapshot;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
@@ -20,6 +21,16 @@ public final class PhantomFarmRouteRecoveryTest
 {
 	public static void main(String[] args)
 	{
+		if (args.length == 1 && "--offscreen-refusal011".equals(args[0]))
+		{
+			verifyOffscreenRefusal();
+			return;
+		}
+		if (args.length == 1 && "--alternative011".equals(args[0]))
+		{
+			verifyAlternativeFarm();
+			return;
+		}
 		final var from = new PhantomNavigationPoint(115016, -164632, -528, 0);
 		final var corner = new PhantomNavigationPoint(115048, -164664, -528, 0);
 		final var checkpoint = new PhantomNavigationPoint(115128, -165160, -384, 0);
@@ -47,6 +58,37 @@ public final class PhantomFarmRouteRecoveryTest
 		verifyFarmSettlement();
 		verifyPassiveEvidence();
 		System.out.println("PASS ordinary farm WALK keeps a mandatory corner and consumes the bounded checkpoint once");
+	}
+
+	private static void verifyOffscreenRefusal()
+	{
+		PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.isRecoverableFailure("catchup.offscreen.proof_or_residual_stale"),
+			"A refused offscreen approach must return to the durable recovery owner.");
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.isRecoverableFailure("transaction.commit_outcome_unknown"),
+			"An ambiguous transaction may not enter ordinary replanning.");
+		System.out.println("PASS the historical owner classifies an offscreen refusal as recoverable");
+	}
+
+	private static void verifyAlternativeFarm()
+	{
+		final var planner = PhantomFarm074Checks.planner(true, true);
+		final var state = PhantomFarm074Checks.state();
+		final var predecessor = PhantomFarm074Checks.goal();
+		final var point = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, 0, 0);
+		final var examined = new java.util.HashSet<String>();
+		final var alternate = planner.proposeVisibleRecovery(74, state, predecessor, 740074, 1, point, java.util.Set.of(), java.util.Set.of(), anchor ->
+		{
+			examined.add(anchor.id());
+			return anchor.id().equals("farm.alternative");
+		});
+		PhantomAssertions.assertTrue(examined.contains("farm.far") && alternate.ready(),
+			"The rejected near approach must leave the distinct farm within the existing native route range eligible.");
+		PhantomAssertions.assertEquals("farm.alternative", alternate.spec().anchorId(), "A refused farm was selected again.");
+		PhantomAssertions.assertEquals(predecessor.goalId(), alternate.goal().goalId(), "Recovery lost its root identity.");
+		PhantomAssertions.assertEquals(predecessor.revision() + 1, alternate.goal().revision(), "Recovery must propose exactly one next revision.");
+		final var unavailable = planner.proposeVisibleRecovery(74, state, predecessor, 740074, 1, point, java.util.Set.of(), java.util.Set.of(), _ -> false);
+		PhantomAssertions.assertFalse(unavailable.ready(), "Refusal of every approach cannot grant a goal.");
+		System.out.println("PASS the route owner proposes a distinct farm beyond the local straight-line limit");
 	}
 
 	private static void verifyCheckpointRefusal()

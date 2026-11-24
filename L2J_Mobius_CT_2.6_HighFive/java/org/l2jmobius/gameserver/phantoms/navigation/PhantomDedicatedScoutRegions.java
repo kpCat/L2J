@@ -211,12 +211,21 @@ final class PhantomDedicatedScoutRegions
 			final var candidate = _tiles.get(index);
 			if (candidate.lease != null || candidate.probedPulse == _pulse || candidate.retryAfter > nowMillis) { continue; }
 			final TileState current = best < 0 ? null : _tiles.get(best);
-			if (current == null || candidate.arrivals < current.arrivals || candidate.arrivals == current.arrivals && candidate.assignments < current.assignments)
+			if (current == null || preferredTile(candidate, current, _budget <= PROBES_PER_PULSE / 2))
 			{
 				best = index;
 			}
 		}
 		return best;
+	}
+
+	private static boolean preferredTile(TileState candidate, TileState current, boolean preferVisited)
+	{
+		if (preferVisited && (candidate.arrivals > 0) != (current.arrivals > 0))
+		{
+			return candidate.arrivals > 0;
+		}
+		return candidate.arrivals < current.arrivals || candidate.arrivals == current.arrivals && candidate.assignments < current.assignments;
 	}
 
 	private PhantomNavigationPoint sample(TileState state)

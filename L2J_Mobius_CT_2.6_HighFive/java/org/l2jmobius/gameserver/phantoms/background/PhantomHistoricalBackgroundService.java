@@ -912,6 +912,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		int advanced = 0;
 		boolean repairedInterval = false;
+		boolean offscreenReplanned = false;
 		final int limit = Math.min(maximumIntervals, maximumSimulatedMinutes);
 		while ((advanced < limit) && (current.state().status() == Status.RUNNING))
 		{
@@ -937,7 +938,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			storedGoal = _goals.load(profileId).orElse(null);
 			final String remaining = recoveryPrerequisite(profileId, current, backgroundState, storedGoal);
 			if (!remaining.isEmpty()) { return Result.rejected(ResultStatusCode.RETRY, remaining, current); }
-			if (backgroundState.state() == PhantomBackgroundState.State.READY)
+			if (backgroundState.state() == PhantomBackgroundState.State.READY && !offscreenReplanned)
 			{
 				final PhantomGoal previousGoal = storedGoal.goal();
 				final var logical = logicalGroup(profileId, previousGoal);
@@ -982,6 +983,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				current = observed;
 				advanced++;
 				repairedInterval = false;
+				offscreenReplanned = false;
 				continue;
 			}
 			if (operation.status() == PhantomBackgroundService.OperationStatus.RETRY)
@@ -996,7 +998,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				repairedInterval = true;
 				final Result repaired = recoverKnown(profileId, failed.snapshot());
-				if (repaired.successful()) { current = repaired.snapshot(); continue; }
+				if (repaired.successful())
+				{
+					current = repaired.snapshot();
+					// The refused offscreen proposal has already been replaced for this minute.
+					offscreenReplanned = PhantomBackgroundService.HISTORICAL_OFFSCREEN_REFUSED.equals(operation.reason());
+					continue;
+				}
 				return repaired;
 			}
 			return failed;
@@ -1017,7 +1025,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var generation = _planner.generation();
 			if (!current.state().authorityHashes().equals(generation.authorityHashes()) || (current.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (current.state().topologyGeneration() != generation.topologyGeneration()) || !baseline.hashes().equals(generation.authorityHashes()))
 			{
-				return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.authority_hash_or_generation_stale", current);
+				return Result.rejected(ResultStatusCode.RETRY, "catchup.authority_hash_or_generation_stale", current);
 			}
 			final var logical = logicalGroup(profileId, goal.goal());
 			final boolean logicalPreparation = logicalPreparationRequired(profileId, goal.goal(), current.state(), logical, System.currentTimeMillis(),
@@ -1152,7 +1160,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Only classified recoverable failures may re-enter the same optimistic history ownership. */
 	public static boolean isRecoverableFailure(String reason)
 	{
-		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "catchup.travel.anchor_mismatch", "catchup.travel.insufficient_adena", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
+		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "catchup.travel.anchor_mismatch", "catchup.travel.insufficient_adena", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot", PhantomBackgroundService.HISTORICAL_OFFSCREEN_REFUSED).contains(reason);
 	}
 
 	/** Resolve durable ownership before baseline/FAILED/policy gates, without granting simulation eligibility. */
@@ -1299,11 +1307,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			excludedSteps = Set.of(failedStep);
 		}
 		final long ordinal = Math.addExact(current.state().planOrdinal(), 1);
-		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, exclusions, excludedSteps, "catchup.travel.insufficient_adena".equals(reason));
+		final boolean offscreenRefused = PhantomBackgroundService.HISTORICAL_OFFSCREEN_REFUSED.equals(reason);
+		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, exclusions, excludedSteps, "catchup.travel.insufficient_adena".equals(reason), !offscreenRefused);
 		if (!plan.ready()) { return fail(profileId, current, plan.reasonKey()); }
 		try
 		{
-			if (!excludedSteps.isEmpty() && (!currentClaim(profileId, current) || !Objects.equals(goal, _goals.load(profileId).orElse(null))
+			if ((offscreenRefused || !excludedSteps.isEmpty()) && (!currentClaim(profileId, current) || !Objects.equals(goal, _goals.load(profileId).orElse(null))
 				|| !Objects.equals(state, _background.acquisitionSnapshot(profileId).orElse(null)) || _materialization.find(profileId).isPresent()
 				|| _acceptedIntent.test(profileId, goal.goal()) || !_planner.generation().equals(plan.generation())))
 			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.failed_step_prerequisite_changed", current); }
@@ -1333,11 +1342,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
 		Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel)
 	{
+		return planOrIdle(profileId, state, previous, seed, ordinal, excludedTargets, excludedSteps, affordableTravel, true);
+	}
+
+	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
+		Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel, boolean allowOffscreen)
+	{
 		if (_acceptedIntent.test(profileId, previous)) { return PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey"); }
 		final var logical = logicalGroup(profileId, previous);
 		if (logical != null) { return _planner.replanLogicalRendezvous(profileId, state, previous, seed, ordinal, logical.objective(), excludedTargets, excludedSteps, affordableTravel); }
 		var plan = affordableTravel ? _planner.replaceAffordableFromState(profileId, state, previous, seed, ordinal)
-			: excludedTargets.isEmpty() && excludedSteps.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, excludedSteps);
+			: allowOffscreen && excludedTargets.isEmpty() && excludedSteps.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, excludedSteps, allowOffscreen);
 		if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleFromState(profileId, state, previous, seed, ordinal); }
 		return plan;
 	}
@@ -2131,7 +2146,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 			final var replacement = spatialRecovery
 				? _planner.proposeVisibleRecovery(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
-					anchor -> _visibleTravel.recoveryAnchorAvailable(stored.goal(), player, anchor))
+					anchor -> _visibleTravel.recoveryAnchorAvailable(player, anchor))
 				: sharedFarmSource == null
 				? (selectableTargets == null
 					? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
@@ -2155,7 +2170,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 						"live=" + live.x() + "," + live.y() + "," + live.z() + ";reject=" + replacement.candidateRejections().stream().limit(2).toList(),
 						stored.goal().goalId(), lifetime.materializedAtNanos(), stored.goal().revision());
 				}
-				recovery.unavailable(now, spatialRecovery ? spatialWait : null); return false;
+				recovery.unavailable(now, spatialRecovery ? spatialWait : null, replacement.reasonKey()); return false;
 			}
 			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
 			if (spatialRecovery)
@@ -2652,7 +2667,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		void unavailable(long now, SpatialWait spatial)
 		{
-			reason = "LOCAL_FARM_UNAVAILABLE";
+			unavailable(now, spatial, "LOCAL_FARM_UNAVAILABLE");
+		}
+		void unavailable(long now, SpatialWait spatial, String why)
+		{
+			reason = why;
 			final long until = spatial != null ? now + 30_000_000_000L : Math.max(now + 10_000_000_000L, started + 60_000_000_000L);
 			cooldown = new VisibleCooldown(until, spatial);
 		}

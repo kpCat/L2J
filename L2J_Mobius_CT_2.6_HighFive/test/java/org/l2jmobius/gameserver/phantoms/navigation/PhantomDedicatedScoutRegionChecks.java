@@ -26,6 +26,37 @@ public final class PhantomDedicatedScoutRegionChecks
 		Files.createDirectories(root);
 		leasesAndBackoff(root.resolve("leases"));
 		boundedProbeAndGeneration(root.resolve("budget"));
+		visitedWorkSurvivesSeedStarvation(root.resolve("fairness"));
+	}
+
+	private static void visitedWorkSurvivesSeedStarvation(Path root) throws Exception
+	{
+		Files.createDirectory(root);
+		final long now = System.currentTimeMillis();
+		final var terrain = new Terrain();
+		terrain.allLoaded = true;
+		terrain.safeTile = new Tile(World.TILE_X_MIN, World.TILE_Y_MIN);
+		try (var memory = PhantomRouteLearning.open(root, FINGERPRINT))
+		{
+			final var regions = PhantomDedicatedScoutRegions.open(memory, terrain);
+			regions.beginPulse();
+			final var visited = regions.claim(1, now);
+			check(visited != null && visited.tile().equals(terrain.safeTile), "fixture requires a native-arrived safe first tile");
+			regions.seeded(visited);
+			regions.arrived(visited);
+			regions.release(visited, now, "STORED", false);
+			regions.save(memory);
+		}
+		try (var memory = PhantomRouteLearning.open(root, FINGERPRINT))
+		{
+			final var regions = PhantomDedicatedScoutRegions.open(memory, terrain);
+			final int before = terrain.projects;
+			regions.beginPulse();
+			final var work = regions.claim(2, now);
+			check(work != null && work.tile().equals(terrain.safeTile) && regions.validateSeed(work), "unsafe unvisited tiles must leave probe budget for a currently usable visited tile");
+			check(terrain.projects - before > 1 && terrain.projects - before <= 8, "hard tiles receive probes within the shared budget");
+			check(regions.status().contains("dedicated_tiles_native_arrived=1\n"), "a new lease cannot manufacture an arrival");
+		}
 	}
 
 	private static void leasesAndBackoff(Path root) throws Exception
@@ -110,6 +141,7 @@ public final class PhantomDedicatedScoutRegionChecks
 	private static final class Terrain implements SeedOracle
 	{
 		private final Set<Tile> tiles = Set.of(FIRST, SECOND);
+		private Tile safeTile;
 		private int projects;
 		private long generation;
 		private boolean allLoaded;
@@ -123,6 +155,9 @@ public final class PhantomDedicatedScoutRegionChecks
 			check(x >= World.WORLD_X_MIN && x < World.WORLD_X_MAX && y >= World.WORLD_Y_MIN && y < World.WORLD_Y_MAX, "seed is inside world bounds");
 			return new PhantomNavigationPoint(x, y, -3200, 0);
 		}
-		@Override public Rejection reject(PhantomNavigationPoint point) { return rejection; }
+		@Override public Rejection reject(PhantomNavigationPoint point)
+		{
+			return safeTile != null && !safeTile.contains(point) ? Rejection.WATER : rejection;
+		}
 	}
 }

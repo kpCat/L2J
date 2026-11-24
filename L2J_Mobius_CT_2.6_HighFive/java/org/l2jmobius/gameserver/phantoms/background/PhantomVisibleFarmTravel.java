@@ -157,10 +157,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	enum RecoveryWalkAdmission { PENDING, VERIFIED, REJECTED, STALE }
 
-	boolean recoveryAnchorAvailable(PhantomGoal predecessor, Player player, PhantomTopologyAnchor anchor)
+	boolean recoveryAnchorAvailable(Player player, PhantomTopologyAnchor anchor)
 	{
 		final var lifetime = _materialization.findByCharacterObjectId(player.getObjectId()).orElse(null);
-		final var alternatives = lifetime == null ? null : _alternatives.get(lifetime.profileId());
+		if (lifetime == null || searchHeldAtAnchor(lifetime.profileId(), player, lifetime.materializedAtNanos(), anchor)) { return false; }
+		final var alternatives = _alternatives.get(lifetime.profileId());
 		if (alternatives == null || !alternatives.matches(player, lifetime.materializedAtNanos())) { return true; }
 		synchronized (alternatives)
 		{
@@ -199,9 +200,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				alternatives.nextEpisode = alternatives.deadline;
 			}
 		}
-		final var step = proposedStep(player, state.position().committedAnchorId(), anchor, true);
-		if (step == null || step.type() != PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND) { return rejectRecoveryAnchor(profileId, alternatives, anchor); }
-		final var first = _travel.topology().findAnchor(step.toAnchorId()).orElse(null);
+		final var first = _travel.topology().findAnchor(anchor).orElse(null);
+		// Verify the replacement's own approach from the live Player. A failed
+		// common ingress to the old itinerary cannot veto a different farm.
+		final var step = localFarmApproach(first, live, _navigation.policy().maximumRouteDistance());
+		if (step == null) { return rejectRecoveryAnchor(profileId, alternatives, anchor); }
 		final var canonical = first == null ? null : L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(first, player.getHeading()).orElse(null);
 		if (canonical == null) { return rejectRecoveryAnchor(profileId, alternatives, anchor); }
 		final var point = new PhantomNavigationPoint(canonical.x(), canonical.y(), canonical.z(), canonical.instanceId());
@@ -275,6 +278,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				|| (landingApproach ? route.destination().equals(origin) : !route.destination().equals(destination))
 				|| proposal.result.profileId() != profileId || proposal.result.requestId() != proposal.requestId)
 			{
+				final var proof = proposal.result == null ? null : proposal.result.proof();
+				if (proof != null && origin.equals(proof.origin()) && destination.equals(proof.submittedDestination()))
+				{
+					_farmSearches.failed(proposal.probe, proof.kind(), proof.queries(), now,
+						"Alternative farm route profile=" + profileId + ";anchor=" + anchor + ";proof=" + proof.diagnostic());
+				}
 				discardProposal(profileId, alternatives);
 				return RecoveryWalkAdmission.REJECTED;
 			}
@@ -1076,7 +1085,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((attempt == null) || attempt.terminal) { return false; }
 			if (journey == null)
 			{
-				var step = proposedStep(player, state.position().committedAnchorId(), spec.anchorId(), !idle);
+				final var alternatives = _alternatives.get(profileId);
+				final var proposal = alternatives == null ? null : alternatives.proposal;
+				var step = proposal != null && proposal.successor.equals(goal) && proposal.owner == player.getNativeWorkOwner()
+					&& proposal.probe.site().equals(searchSite(profileId, player, epoch))
+					&& proposal.probe.origin().equals(PhantomNativeTravelActions.point(player))
+					? proposal.step : proposedStep(player, state.position().committedAnchorId(), spec.anchorId(), !idle);
 				if (idle && step != null && step.type() == PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND)
 				{
 					// A connected source itinerary is guidance. Native WALK may approach the

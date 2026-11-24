@@ -108,6 +108,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public static final String DEATH_SIGNAL_SOURCE = "background.death";
 	public static final String NATIVE_CONTEXT_SIGNAL_SOURCE = "background.native_context";
 	public static final long NATIVE_CONTEXT_SIGNAL_TTL_MILLIS = 60_000;
+	static final String HISTORICAL_OFFSCREEN_REFUSED = "catchup.offscreen.proof_or_residual_stale";
 	// Optional exact-argument test observer. Transactions have returned; absent-Player ownership still fences admission.
 	private static volatile BiConsumer<Long, PhantomBackgroundState> _recoveryObserver;
     private static volatile BiConsumer<PhantomBackgroundTransaction.Command, PhantomBackgroundTransaction.Result> _commitObserver;
@@ -627,11 +628,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 						PhantomOffscreenOutdoorTravel.RECEIPT_TICK, ActionKind.HISTORICAL_OFFSCREEN_TRAVEL, spec.npcId(), spec.anchorId(),
 						PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
 					final var advance = _authority.advanceOffscreenTravel(state, goal, key, FARM_TRAVEL_BUDGET_MILLIS, claim._nativeContext.afterPolicy());
-					if (!advance.mutated()) { return retry("catchup.offscreen.proof_or_residual_stale"); }
+					if (!advance.mutated()) { return OperationResult.replan(HISTORICAL_OFFSCREEN_REFUSED); }
 					final var admission = _offscreenAdmission;
 					// A partial step still checks the final destination, not the unchanged source.
 					final var destination = _authority.offscreenDestination(state, spec).orElse(null);
-					if (destination == null) { return retry("catchup.offscreen.destination_stale"); }
+					if (destination == null) { return OperationResult.replan(HISTORICAL_OFFSCREEN_REFUSED); }
 					final var proof = new PhantomBackgroundTransaction.OffscreenProof(admission, _authority, _authority.topologyGeneration(), FARM_TRAVEL_BUDGET_MILLIS, destination);
 					final var policy = claim._nativeContext.afterPolicy().withPosition(_authority.canFarmAt(advance.position(), spec), claim._nativeContext.afterPolicy().travelPosition());
 					final var command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(),
