@@ -280,8 +280,12 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			}
 			else
 			{
-				_firstFailure.compareAndSet("", "death.control_terminal:profile=" + profileId + ":object=" + death.characterObjectId() + ":epoch=" + epoch
-					+ ":" + result + ":nativeReturned=" + death.nativeRecovery().get() + ":deadlineExpired=" + (System.nanoTime() >= death.deadline().get()) + goalCheck);
+				// Background owns INCONSISTENT controls and reconciles their exact STORE evidence.
+				if (result == null || result.status() != PhantomBackgroundService.OperationStatus.INCONSISTENT)
+				{
+					_firstFailure.compareAndSet("", "death.control_terminal:profile=" + profileId + ":object=" + death.characterObjectId() + ":epoch=" + epoch
+						+ ":" + result + ":nativeReturned=" + death.nativeRecovery().get() + ":deadlineExpired=" + (System.nanoTime() >= death.deadline().get()) + goalCheck);
+				}
 				forget(profileId, death);
 			}
 		}

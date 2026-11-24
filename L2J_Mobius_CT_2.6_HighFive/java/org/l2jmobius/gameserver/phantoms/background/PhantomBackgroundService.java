@@ -182,7 +182,6 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private PhantomExecutionAdmission _recoveryExecution;
 	private final ConcurrentHashMap<Long, Boolean> _recoveries = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, RecoveryControl> _recoveryControls = new ConcurrentHashMap<>();
-	private final java.util.concurrent.atomic.AtomicReference<String> _firstRecoveryFailure = new java.util.concurrent.atomic.AtomicReference<>("");
 	private static final class RecoveryControl
 	{
 		final long profileId, deadline;
@@ -1891,6 +1890,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			if (control != null && control.result == null) { return retry("recovery.control_pending"); }
 			final var materialization = _materialization.get();
 			final var entry = materialization == null ? null : materialization.find(profileId).orElse(null);
+			if (control != null) { reconcileStoreDeadline(control, entry); }
 			final var returned = _nativeTownReturns.get(profileId);
 			final boolean acceptedTownReturn = expectedEpoch > 0 && sameRecoveryOwner(entry, expectedObject, expectedEpoch)
 				&& returned != null && returned.matches(expectedObject, expectedEpoch);
@@ -1899,6 +1899,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				if (control != null && control.acceptedTownReturn)
 				{
 					if (control.objectId != expectedObject || control.epoch != expectedEpoch || !control.goal.equals(goal)) { return retry("recovery.accepted_control_conflict"); }
+					if (control.result.status() == OperationStatus.INCONSISTENT) { return control.result; }
 					_recoveryControls.remove(profileId, control);
 					if (control.result.successful()) { consumeNativeTownReturn(profileId, expectedObject, expectedEpoch); }
 					if (control.result.status() != OperationStatus.REPLAN) { return control.result; }
@@ -1913,6 +1914,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			if (acceptedDeadline != 0 && (System.nanoTime() >= acceptedDeadline || !acceptedTownReturn)) { return retry("recovery.accepted_owner_or_deadline"); }
 			if (control != null)
 			{
+				if (control.result.status() == OperationStatus.INCONSISTENT) { return control.result; }
 				_recoveryControls.remove(profileId, control);
 				if (expectedEpoch == 0 && control.goal.equals(goal)) { return control.result; }
 			}
@@ -1951,7 +1953,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var returned = _nativeTownReturns.get(control.profileId);
 		final boolean storedReturn = control.acceptedTownReturn && !control.baselinePending
 			&& storedTownReturn(returned, entry, control.objectId, control.epoch, control.deadline);
-		if (storedReturn && (!control.storeRequested || entry != null))
+		if (storedReturn && (!control.storeRequested || entry != null || System.nanoTime() >= control.deadline))
 		{
 			finishRecovery(control, OperationResult.success("death.recovered_at_town"));
 			return;
@@ -2034,12 +2036,38 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		if (control.finished.compareAndSet(false, true))
 		{
-			if (result.status() == OperationStatus.INCONSISTENT) { _firstRecoveryFailure.compareAndSet("", "profile=" + control.profileId + ":object=" + control.objectId + ":epoch=" + control.epoch + ":" + result); }
 			control.result = result; _recoveries.remove(control.profileId); _currentOperations.decrementAndGet();
 		}
 	}
 
-	public String firstRecoveryFailure() { return _firstRecoveryFailure.get(); }
+	private void reconcileStoreDeadline(RecoveryControl control, PhantomMaterializationService.MaterializationSnapshot entry)
+	{
+		final var result = control.result;
+		if (result == null || result.status() != OperationStatus.INCONSISTENT || !control.acceptedTownReturn || control.baselinePending) { return; }
+		if (!result.reason().equals("recovery.accepted_store_deadline") && !result.reason().startsWith("recovery.control_deadline:")) { return; }
+		// A known-success STORE may be followed by delayed release of the same native owner.
+		// Expiry never turns missing, late or foreign evidence into a verified STORE.
+		if (storedTownReturn(_nativeTownReturns.get(control.profileId), entry, control.objectId, control.epoch, control.deadline))
+		{
+			control.result = OperationResult.success("death.recovered_at_town");
+		}
+	}
+
+	public String firstRecoveryFailure()
+	{
+		final var materialization = _materialization.get();
+		for (var control : _recoveryControls.values())
+		{
+			final var result = control.result;
+			if (result == null || result.status() != OperationStatus.INCONSISTENT) { continue; }
+			reconcileStoreDeadline(control, materialization == null ? null : materialization.find(control.profileId).orElse(null));
+			if (control.result.status() == OperationStatus.INCONSISTENT)
+			{
+				return "profile=" + control.profileId + ":object=" + control.objectId + ":epoch=" + control.epoch + ":" + result;
+			}
+		}
+		return "";
+	}
 
 	public Optional<OperationResult> recoveryControlOutcome(long profileId)
 	{

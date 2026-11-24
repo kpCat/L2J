@@ -1503,14 +1503,19 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return false;
 			}
 			if (!_permitsOrdinary.test(profileId) || !currentJourney(profileId, journey)) { return false; }
-			player.getAI().setIntention(Intention.MOVE_TO, new Location(waypoint.x(), waypoint.y(), waypoint.z()));
-			journey.moveIssued = player.isMoving();
-			journey.moveCurrent = player.captureNativeMoveIdentity();
-			journey.moveX = player.getXdestination();
-			journey.moveY = player.getYdestination();
-			journey.moveZ = player.getZdestination();
-			journey.moveInstance = player.getInstanceId();
-			journey.nativeLeg = null;
+			synchronized (journey)
+			{
+				// Cancellation and the issue/capture of one native MOVE are one route-local boundary.
+				if (_journeys.get(profileId) != journey) { return false; }
+				player.getAI().setIntention(Intention.MOVE_TO, new Location(waypoint.x(), waypoint.y(), waypoint.z()));
+				journey.moveIssued = player.isMoving();
+				journey.moveCurrent = player.captureNativeMoveIdentity();
+				journey.moveX = player.getXdestination();
+				journey.moveY = player.getYdestination();
+				journey.moveZ = player.getZdestination();
+				journey.moveInstance = player.getInstanceId();
+				journey.nativeLeg = null;
+			}
 			if (journey.moveIssued)
 			{
 				// Native swimming may shorten a leg; validate the actual native destination too.
@@ -2641,18 +2646,25 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean remove(long profileId, Journey journey)
 	{
-		synchronized (_attempts)
-		{
-			if ((journey == null) || !_journeys.remove(profileId, journey)) { return false; }
-			closeRoutePhase(profileId, journey);
-		}
+		if (journey == null) { return false; }
 		final var swim = journey.swim;
-		try (var action = (swim == null ? _materialization.tryAcquireAction(profileId) : _materialization.tryAcquireAction(profileId, swim.stamp)).orElse(null))
+		try (var action = (swim == null ? _materialization.tryAcquireCompletionAction(profileId) : _materialization.tryAcquireCompletionAction(profileId, swim.stamp)).orElse(null))
 		{
-			if ((action != null) && (action.player() == journey.player))
+			synchronized (journey)
 			{
-				if (journey.returnOperation != null) { journey.returnOperation.cancel(); journey.returnOperation=null; }
-				stopOwnedMove(journey, action.player());
+				final boolean canCancel = action != null && action.player() == journey.player;
+				final var owner = journey.attempt.nativeOwner;
+				if (!canCancel && owner != null && owner.isCurrent() && (ownsMove(journey, journey.player) || journey.returnOperation != null)) { return false; }
+				synchronized (_attempts)
+				{
+					if (!_journeys.remove(profileId, journey)) { return false; }
+					closeRoutePhase(profileId, journey);
+				}
+				if (canCancel)
+				{
+					if (journey.returnOperation != null) { journey.returnOperation.cancel(); journey.returnOperation = null; }
+					stopOwnedMove(journey, action.player());
+				}
 			}
 		}
 		clearRoute(profileId, journey);
@@ -2724,15 +2736,21 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private static void stopOwnedMove(Journey journey, Player player)
 	{
-		if (journey != null && journey.swim != null && !ownedSwimMove(journey, player)) { return; }
-		if (journey != null && journey.swim == null && (journey.moveCurrent == null || !journey.moveCurrent.getAsBoolean()
-			|| player.getNativeWorkOwner() != journey.attempt.nativeOwner || player.getInstanceId() != journey.moveInstance
-			|| player.getZdestination() != journey.moveZ)) { return; }
-		if ((journey != null) && journey.moveIssued && (player.getObjectId() == journey.objectId) && player.hasAI() && (player.getAI().getIntention() == Intention.MOVE_TO) && player.isMoving() && (player.getXdestination() == journey.moveX) && (player.getYdestination() == journey.moveY))
+		if (ownsMove(journey, player))
 		{
 			player.stopMove(null);
 			player.getAI().setIntention(Intention.IDLE);
 		}
+	}
+
+	private static boolean ownsMove(Journey journey, Player player)
+	{
+		if (journey == null || (journey.swim != null && !ownedSwimMove(journey, player))) { return false; }
+		if (journey.swim == null && (journey.moveCurrent == null || !journey.moveCurrent.getAsBoolean()
+			|| player.getNativeWorkOwner() != journey.attempt.nativeOwner || player.getInstanceId() != journey.moveInstance
+			|| player.getZdestination() != journey.moveZ)) { return false; }
+		return journey.moveIssued && player.getObjectId() == journey.objectId && player.hasAI() && player.getAI().getIntention() == Intention.MOVE_TO
+			&& player.isMoving() && player.getXdestination() == journey.moveX && player.getYdestination() == journey.moveY;
 	}
 
 	@Override

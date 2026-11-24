@@ -135,7 +135,6 @@ public final class PhantomShutdown103Checks
 		final var background = new PhantomBackgroundService(repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transactions, authority, new PhantomBackgroundCompetitionRegistry(), signals, fixture::service);
 		final var death = new PhantomOrdinaryDeathRecovery(fixture.service(), goals, background);
 		final var failure = (AtomicReference<String>) field(PhantomOrdinaryDeathRecovery.class, "_firstFailure").get(death);
-		final var backgroundFailure = (AtomicReference<String>) field(PhantomBackgroundService.class, "_firstRecoveryFailure").get(background);
 		final var accepted = (AtomicInteger) field(PhantomOrdinaryDeathRecovery.class, "_acceptedReconciliations").get(death);
 		final var operations = (AtomicInteger) field(PhantomBackgroundService.class, "_currentOperations").get(background);
 		final var configure = PhantomSystem.class.getDeclaredMethod("configureOperatorRuntimeForTesting", boolean.class); configure.setAccessible(true); configure.invoke(null, false);
@@ -143,8 +142,10 @@ public final class PhantomShutdown103Checks
 		field(PhantomSystem.class, "_materializationService").set(configured, fixture.service());
 		field(PhantomSystem.class, "_backgroundService").set(configured, background);
 		field(PhantomSystem.class, "_ordinaryDeathRecovery").set(configured, death);
-		failure.set("death.control_terminal:TEST121"); accepted.set(1); operations.set(1);
-		if (backgroundIncident) { backgroundFailure.set("profile=29:object=268486148:epoch=153918477612200:" + PhantomBackgroundService.OperationResult.inconsistent("recovery.accepted_store_unverified")); }
+		accepted.set(1); operations.set(1);
+		final long originalDeadline = System.nanoTime() - 1;
+		if (backgroundIncident) { recordRecoveryDeadline(background, operations, originalDeadline); }
+		else { failure.set("death.control_terminal:TEST121"); }
 		try
 		{
 			configured.shutdown();
@@ -163,19 +164,53 @@ public final class PhantomShutdown103Checks
 			while (configured.snapshot().state() != PhantomSystem.State.FAILED && System.nanoTime() < deadline);
 			if (configured.snapshot().state() != PhantomSystem.State.FAILED || fixture.service().snapshot().state() != PhantomMaterializationService.ServiceState.STOPPED || !fixture.service().snapshot().materializations().isEmpty()) { throw new AssertionError("STOP121_OTHER_ACTORS_RETAINED_BEFORE_DEATH_FAILURE"); }
 			for (var actor : fixture.actors()) { if ((boolean) field(PhantomMaterializedPlayer.class, "_actionAdmissionOpen").get(actor)) { throw new AssertionError("STOP121_OTHER_ACTOR_ADMISSION_OPEN"); } }
-			if (!failure.get().equals("death.control_terminal:TEST121") || PhantomSystem.shutdownIfStarted() || !PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121_UNRESOLVED_FAILURE_LOST"); }
-			if (backgroundIncident && !configured.shutdownProgress().blocker().equals("background.recovery:" + backgroundFailure.get())) { throw new AssertionError("STOP012_LOST_UNVERIFIED_STORE"); }
-			System.out.println("TASK121_STOP_FAILURE_DRAIN_PASS accepted-control/background gates; other partial actors drained; FAILED preserved; DB0 World0 NATIVE_STOP_NOT_PROVEN");
+			if (PhantomSystem.shutdownIfStarted() || !PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121_UNRESOLVED_FAILURE_LOST"); }
+			if (backgroundIncident)
+			{
+				if (background.firstRecoveryFailure().isEmpty()) { throw new AssertionError("STOP012_LOST_UNVERIFIED_STORE"); }
+				publishStoreWitness(background, 8, originalDeadline - 1);
+				if (PhantomSystem.shutdownIfStarted()) { throw new AssertionError("STOP012_WRONG_EPOCH_RELEASED"); }
+				publishStoreWitness(background, 7, originalDeadline);
+				if (PhantomSystem.shutdownIfStarted()) { throw new AssertionError("STOP012_AFTER_DEADLINE_RELEASED"); }
+				publishStoreWitness(background, 7, originalDeadline - 1);
+				if (!PhantomSystem.shutdownIfStarted() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP012_VERIFIED_STORE_REMAINED_STICKY"); }
+			}
+			System.out.println("STOP_RECOVERY_DRAIN_PASS DB0 World0 witnessModel=" + backgroundIncident);
 		}
 		finally
 		{
 			accepted.set(0); operations.set(0);
-			failure.set(""); backgroundFailure.set(""); // Simulate resolution by the fixture before a fresh STOP request.
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
 			while (fixture.service().requestShutdown(deadline).state() == PhantomMaterializationService.ServiceState.STOPPING && System.nanoTime() < deadline) { Thread.sleep(1); }
-			PhantomSystem.shutdownIfStarted();
-			if (DatabaseFactory.isInitialized() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121_FIXTURE_CLEANUP_FAILED"); }
+			if (DatabaseFactory.isInitialized() || !fixture.service().snapshot().materializations().isEmpty()) { throw new AssertionError("STOP121_FIXTURE_CLEANUP_FAILED"); }
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void recordRecoveryDeadline(PhantomBackgroundService background, AtomicInteger operations, long deadline) throws Exception
+	{
+		final var type = Class.forName(PhantomBackgroundService.class.getName() + "$RecoveryControl");
+		final var constructor = type.getDeclaredConstructors()[0];
+		constructor.setAccessible(true);
+		final var control = constructor.newInstance(29L, null, null, null, null, deadline, null, true);
+		field(type, "objectId").setInt(control, 268486148);
+		field(type, "epoch").setLong(control, 7);
+		field(type, "storeRequested").setBoolean(control, true);
+		((java.util.Map<Long, Object>) field(PhantomBackgroundService.class, "_recoveryControls").get(background)).put(29L, control);
+		final var finish = PhantomBackgroundService.class.getDeclaredMethod("finishRecovery", type, PhantomBackgroundService.OperationResult.class);
+		finish.setAccessible(true);
+		operations.incrementAndGet();
+		finish.invoke(background, control, PhantomBackgroundService.OperationResult.inconsistent("recovery.control_deadline:object=268486148:epoch=7"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void publishStoreWitness(PhantomBackgroundService background, long epoch, long storedAt) throws Exception
+	{
+		final var type = Class.forName(PhantomBackgroundService.class.getName() + "$NativeTownReturn");
+		final var constructor = type.getDeclaredConstructors()[0];
+		constructor.setAccessible(true);
+		final var witness = constructor.newInstance(268486148, epoch, null, storedAt);
+		((java.util.Map<Long, Object>) field(PhantomBackgroundService.class, "_nativeTownReturns").get(background)).put(29L, witness);
 	}
 
 	@SuppressWarnings("unchecked")
