@@ -79,7 +79,8 @@ public final class PhantomResilientActivity012Native
 					final long id = profile.profile().profileId();
 					final var life = PhantomSystem.operatorLifeProgress(id);
 					System.out.println("NATIVE012_ACTOR " + id + " walk=" + life.get("farm.travel.reason")
-						+ " preparation=" + life.get("historical.visiblePreparation") + " decision=" + life.get("decision"));
+						+ " preparation=" + life.get("historical.visiblePreparation") + " supply.reason=" + life.get("supply.reason")
+						+ " supply=" + life.get("supply") + " decision=" + life.get("decision"));
 				}
 			}
 			throw failure;
