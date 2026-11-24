@@ -177,14 +177,14 @@ public final class PhantomShutdown103Checks
 		service.start();
 		final var actors = List.of(new PhantomMaterializedPlayer(910103001, registry, new HeadlessPlayerOutboundSession(8, 64)), new PhantomMaterializedPlayer(910103002, registry, new HeadlessPlayerOutboundSession(8, 64)));
 		final Class<?> entryType = Class.forName(PhantomMaterializationService.class.getName() + "$Entry");
-		final var entryConstructor = entryType.getDeclaredConstructor(long.class, int.class, PhantomMaterializedPlayer.class);
+		final var entryConstructor = entryType.getDeclaredConstructor(long.class, int.class, long.class, boolean.class, PhantomMaterializedPlayer.class);
 		entryConstructor.setAccessible(true);
 		final var entries = (Map<Long, Object>) field(PhantomMaterializationService.class, "_activeByProfile").get(service);
 		for (int index = 0; index < actors.size(); index++)
 		{
 			final var actor = actors.get(index);
 			field(PhantomMaterializedPlayer.class, "_actionAdmissionOpen").set(actor, true);
-			final Object entry = entryConstructor.newInstance(index + 1L, 910103001 + index, actor);
+			final Object entry = entryConstructor.newInstance(index + 1L, 910103001 + index, 0L, false, actor);
 			((CountDownLatch) field(entryType, "_materializationCompletion").get(entry)).countDown();
 			entries.put(index + 1L, entry);
 		}
