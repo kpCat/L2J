@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
+import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
@@ -37,6 +38,8 @@ public final class PhantomLearnedEscape
 {
 	private static final int RETURN = 1050;
 	private static final int PARTY_RECALL = 1255;
+	private static final int ADVENTURER_ESCAPE_SCROLL = 10650;
+	private static final int ADVENTURER_ESCAPE_SKILL = 2531;
 	private static final int MAX_PARTY = 9;
 	private static final ThreadLocal<Attempt> DISPATCH = new ThreadLocal<>();
 	private static final ThreadLocal<Attempt> IMPACT = new ThreadLocal<>();
@@ -100,13 +103,40 @@ public final class PhantomLearnedEscape
 
 	public static Attempt startSolo(Player caster, BooleanSupplier authority)
 	{
-		return caster == null ? null : start(caster, RETURN, List.of(caster), authority);
+		return caster == null ? null : start(caster, caster.getKnownSkill(RETURN), List.of(caster), authority);
+	}
+
+	public static boolean isSoloRecoverySkill(int skillId)
+	{
+		return skillId == RETURN || skillId == ADVENTURER_ESCAPE_SKILL;
+	}
+
+	/** An owned beginner scroll is the stock fallback when Return is unavailable. */
+	public static Skill soloRecoverySkill(Player caster)
+	{
+		final var learned = caster.getKnownSkill(RETURN);
+		if (stockEscape(learned, RETURN)) { return learned; }
+		final var scroll = caster.getInventory().getItemByItemId(ADVENTURER_ESCAPE_SCROLL);
+		if (scroll == null || scroll.getCount() < 1 || scroll.getEtcItem() == null || scroll.getEtcItem().getSkills() == null) { return null; }
+		final var skill = SkillData.getInstance().getSkill(ADVENTURER_ESCAPE_SKILL, 1);
+		if (!stockEscape(skill, ADVENTURER_ESCAPE_SKILL)) { return null; }
+		for (var holder : scroll.getEtcItem().getSkills())
+		{
+			if (holder != null && holder.getSkill() == skill) { return skill; }
+		}
+		return null;
+	}
+
+	public static Attempt startSoloRecovery(Player caster, Skill expected, BooleanSupplier authority)
+	{
+		return caster != null && expected != null && expected == soloRecoverySkill(caster)
+			? start(caster, expected, List.of(caster), authority) : null;
 	}
 
 	/** The caller supplies the complete currently authorized party, including the caster. */
 	public static Attempt startParty(Player caster, List<Player> approvedRoster, BooleanSupplier authority)
 	{
-		return start(caster, PARTY_RECALL, approvedRoster, authority);
+		return caster == null ? null : start(caster, caster.getKnownSkill(PARTY_RECALL), approvedRoster, authority);
 	}
 
 	public static boolean knowsPartyRecall(Player caster)
@@ -114,14 +144,14 @@ public final class PhantomLearnedEscape
 		return managedPhantom(caster) && stockEscape(caster.getKnownSkill(PARTY_RECALL), PARTY_RECALL);
 	}
 
-	private static Attempt start(Player caster, int skillId, List<Player> approved, BooleanSupplier authority)
+	private static Attempt start(Player caster, Skill skill, List<Player> approved, BooleanSupplier authority)
 	{
-		if (!managedPhantom(caster) || approved == null || approved.isEmpty() || approved.size() > MAX_PARTY
+		if (!managedPhantom(caster) || skill == null || approved == null || approved.isEmpty() || approved.size() > MAX_PARTY
 			|| authority == null || !authority.getAsBoolean() || DISPATCH.get() != null)
 		{
 			return null;
 		}
-		final var skill = caster.getKnownSkill(skillId);
+		final int skillId = skill.getId();
 		final Party party = skillId == PARTY_RECALL ? caster.getParty() : null;
 		if (!stockEscape(skill, skillId) || (skillId == PARTY_RECALL
 			&& (party == null || approved.size() < 2 || !sameRecipients(approved, party.getMembers()))))
@@ -179,14 +209,18 @@ public final class PhantomLearnedEscape
 
 	private static boolean stockEscape(Skill skill, int skillId)
 	{
+		final boolean scroll = skillId == ADVENTURER_ESCAPE_SKILL;
+		final boolean solo = isSoloRecoverySkill(skillId);
 		if (skill == null || skill.getId() != skillId || skill.getLevel() < 1 || skill.getLevel() > 2
-			|| !skill.isActive() || !skill.isMagic() || skill.isStatic() || skill.isToggle() || skill.isChanneling() || !skill.hasCastPreconditions()
+			|| !skill.isActive() || (scroll ? !skill.isStatic() || skill.getLevel() != 1 : !skill.isMagic())
+			|| skill.isToggle() || skill.isChanneling() || !skill.hasCastPreconditions()
 			|| skill.isSimultaneousCast() || skill.isDebuff() || skill.hasNegativeEffect() || skill.getHitTime() <= 0
-			|| skill.getReferenceItemId() != 0 || skill.getItemConsumeCount() != 0 || skill.getHpConsume() != 0
+			|| skill.getReferenceItemId() != 0 || skill.getItemConsumeId() != (scroll ? ADVENTURER_ESCAPE_SCROLL : 0)
+			|| skill.getItemConsumeCount() != (scroll ? 1 : 0) || skill.getHpConsume() != 0
 			|| skill.getChargeConsumeCount() != 0 || skill.getMaxSoulConsumeCount() != 0 || skill.getFlyType() != null
 			|| skill.nextActionIsAttack() || skill.useSoulShot()
-			|| skill.getTargetType() != (skillId == RETURN ? TargetType.SELF : TargetType.PARTY)
-			|| skill.getAffectRange() != (skillId == RETURN ? 0 : 1000))
+			|| skill.getTargetType() != (solo ? TargetType.SELF : TargetType.PARTY)
+			|| skill.getAffectRange() != (solo ? 0 : 1000))
 		{
 			return false;
 		}
@@ -212,7 +246,7 @@ public final class PhantomLearnedEscape
 	/** This hook does not affect connected players or other stock teleport skills. */
 	public static boolean requiresAuthority(Creature actor, Skill skill)
 	{
-		return skill != null && (skill.getId() == RETURN || skill.getId() == PARTY_RECALL)
+		return skill != null && (isSoloRecoverySkill(skill.getId()) || skill.getId() == PARTY_RECALL)
 			&& actor instanceof Player player && player.isNativeWorkManaged() && player.hasHeadlessOutboundSession();
 	}
 
@@ -307,8 +341,11 @@ public final class PhantomLearnedEscape
 		private boolean authorized()
 		{
 			final Player caster = _caster.player();
+			// Mobius debits the scroll on cast admission. Impact checks the same stock skill,
+			// so consuming the last scroll does not invalidate an already paid cast.
+			final var current = _skill.getId() == ADVENTURER_ESCAPE_SKILL ? SkillData.getInstance().getSkill(ADVENTURER_ESCAPE_SKILL, 1) : caster.getKnownSkill(_skill.getId());
 			return !_cancelRequested && _receipt == null && _authority.getAsBoolean()
-				&& caster.getKnownSkill(_skill.getId()) == _skill && _caster.current()
+				&& current == _skill && _caster.current()
 				&& (_party == null || caster.getParty() == _party && sameRecipients(_targets, _party.getMembers()));
 		}
 

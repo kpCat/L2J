@@ -2124,7 +2124,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!spatialRecovery && (recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now, null); return false; }
 			final var excluded = new java.util.HashSet<>(exclusions.targets());
 			if (!spatialRecovery) { excluded.addAll(recovery.targets); }
-			if (routeRecovery) { excluded.add(targetKey(stored.goal())); }
+			if (routeRecovery && !historicalIdle) { excluded.add(targetKey(stored.goal())); }
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
 			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate ->
 				_planner.isVisibleLocal(candidate, live)

@@ -46,7 +46,12 @@ public final class PhantomFarmRouteRecoveryReturnTest
 		final var paid = new Receipt(1050, 1, 41, 7, 800, 10, 25, before, hit, List.of(arrival), Status.ARRIVED);
 		final var interrupted = new Receipt(1050, 1, 41, 7, 800, 10, 25, before, hit, List.of(arrival), Status.INTERRUPTED);
 		final var otherSkill = new Receipt(2099, 1, 41, 7, 800, 10, 25, before, hit, List.of(arrival), Status.ARRIVED);
+		final var scroll = new Receipt(2531, 1, 41, 7, 20_000, 10, 20_000_000_010L, null, null, List.of(arrival), Status.ARRIVED);
+		final var cancelledScroll = new Receipt(2531, 1, 41, 7, 20_000, 10, 20_000_000_010L, null, null, List.of(), Status.INTERRUPTED);
 		PhantomAssertions.assertEquals(landing, PhantomVisibleFarmTravel.verifiedReturnLanding(paid, 41, 7, origin, landing), "Native learned Return supplies the factual landing.");
+		PhantomAssertions.assertEquals(landing, PhantomVisibleFarmTravel.verifiedReturnLanding(scroll, 41, 7, origin, landing), "The stock Escape scroll supplies a factual landing for its own Player.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.verifiedReturnLanding(scroll, 41, 8, origin, landing), "A scroll from a stale owner may not release WALK.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.verifiedReturnLanding(cancelledScroll, 41, 7, origin, landing), "A cancelled scroll cannot supply an arrival.");
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.verifiedReturnLanding(interrupted, 41, 7, origin, landing), "An interrupted paid cast must not release a subsequent itinerary.");
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.verifiedReturnLanding(paid, 41, 8, origin, landing), "A prior materialization epoch does not own the landing.");
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.verifiedReturnLanding(paid, 41, 7, origin, origin), "A missing factual landing does not authorize a replan.");

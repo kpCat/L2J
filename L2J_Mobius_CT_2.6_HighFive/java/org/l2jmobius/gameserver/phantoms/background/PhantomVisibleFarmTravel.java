@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
+import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.model.zone.type.CastleZone;
 import org.l2jmobius.gameserver.model.zone.type.WaterZone;
@@ -349,8 +350,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	boolean queueRecoveryReturn(long profileId, PhantomGoal goal, Player player, long epoch, PhantomTopologyPoint live,
 		PhantomBackgroundState baseline, BooleanSupplier currentRoot)
 	{
-		if (!currentGoal(profileId, goal) || !currentRoot.getAsBoolean() || _groupTravelSafety.test(profileId, goal)
-			|| !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()) || _journeys.containsKey(profileId)) { return false; }
+		if (!_permitsOrdinary.test(profileId) || !currentGoal(profileId, goal) || !currentRoot.getAsBoolean() || _groupTravelSafety.test(profileId, goal)
+			|| !(PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()) || PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal))
+			|| _journeys.containsKey(profileId)) { return false; }
 		final long now = _clock.getAsLong();
 		final long duration = _navigation.policy().maximumAttemptDurationNanos();
 		final var alternatives = _alternatives.computeIfAbsent(profileId, _ -> new AlternativeWalks(player, epoch, now, duration));
@@ -362,7 +364,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				|| !navigationPoint(live).equals(PhantomNativeTravelActions.point(player))
 				|| hasFreshLocalActionUnderLease(profileId, goal, player, baseline)
 				|| !(player.getNativeWorkOwner() instanceof PhantomNativeWorkScope owner)) { return false; }
-			final var skill = player.getKnownSkill(1050);
+			final var skill = PhantomLearnedEscape.soloRecoverySkill(player);
 			if (skill == null) { return false; }
 			final int castMillis = player.calculateSkillCastTime(skill);
 			final long required = castMillis * 1_000_000L + _navigation.policy().defaultRequestDeadlineNanos();
@@ -374,7 +376,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				// WAIT releases this episode. Its next slice runs Return before restarting WALK.
 				final long start = alternatives.deadline - now >= required ? now : Math.max(now, alternatives.nextEpisode);
 				final long deadline = start == now && alternatives.deadline - now >= required ? alternatives.deadline : start + duration;
-				recovery = new LearnedReturn(goal, player, owner, action.executionStamp(), navigationPoint(live),
+				recovery = new LearnedReturn(goal, player, skill, owner, action.executionStamp(), navigationPoint(live),
 					searchSite(profileId, player, epoch), currentRoot, start, deadline);
 				alternatives.remainingReturnEvaluations--;
 				alternatives.learnedReturn = recovery;
@@ -413,16 +415,15 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			try (var action = _materialization.tryAcquireAction(profileId, recovery.stamp).orElse(null))
 			{
 				final var state = _background.acquisitionSnapshot(profileId).orElse(null);
-				final var skill = player.getKnownSkill(1050);
-				if (action == null || action.player() != player || !returnIdle(player) || skill == null || state == null
+				if (action == null || action.player() != player || !returnIdle(player) || state == null
 					|| hasFreshLocalActionUnderLease(profileId, recovery.goal, player, state)
-					|| recovery.deadline - now < player.calculateSkillCastTime(skill) * 1_000_000L + _navigation.policy().defaultRequestDeadlineNanos()
+					|| recovery.deadline - now < player.calculateSkillCastTime(recovery.skill) * 1_000_000L + _navigation.policy().defaultRequestDeadlineNanos()
 					|| !returnCastCurrent(profileId, incident, recovery))
 				{
 					deferUnissuedReturn(profileId, incident, recovery, now, "travel.return_admission_changed");
 					return RecoveryReturn.NONE;
 				}
-				recovery.attempt = PhantomLearnedEscape.startSolo(player, () -> returnCastCurrent(profileId, incident, recovery));
+				recovery.attempt = PhantomLearnedEscape.startSoloRecovery(player, recovery.skill, () -> returnCastCurrent(profileId, incident, recovery));
 			}
 			if (recovery.attempt == null)
 			{
@@ -566,7 +567,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	static PhantomNavigationPoint verifiedReturnLanding(PhantomLearnedEscape.Receipt receipt, int objectId, long epoch,
 		PhantomNavigationPoint origin, PhantomNavigationPoint actual)
 	{
-		if (receipt == null || receipt.skillId() != 1050 || receipt.status() != PhantomLearnedEscape.Status.ARRIVED
+		if (receipt == null || !PhantomLearnedEscape.isSoloRecoverySkill(receipt.skillId()) || receipt.status() != PhantomLearnedEscape.Status.ARRIVED
 			|| receipt.casterObjectId() != objectId || receipt.casterEpoch() != epoch || receipt.arrivals().size() != 1
 			|| actual.instanceId() != 0 || origin.equals(actual)) { return null; }
 		final var arrival = receipt.arrivals().getFirst();
@@ -1186,7 +1187,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	/** The caller holds the current actor's action lease and has already read the baseline. */
 	boolean hasFreshLocalActionUnderLease(long profileId, PhantomGoal goal, Player player, PhantomBackgroundState state)
 	{
-		if (!_permitsOrdinary.test(profileId) || player.isDead() || player.isInParty() || player.hasPendingOwnedStore()
+		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()) || !_permitsOrdinary.test(profileId)
+			|| player.isDead() || player.isInParty() || player.hasPendingOwnedStore()
 			|| state == null || state.state() != PhantomBackgroundState.State.MATERIALIZED || state.identity().characterObjectId() != player.getObjectId()) { return false; }
 		final var spec = PhantomBackgroundGoalSpec.parse(goal);
 		if (!state.position().committedAnchorId().equals(spec.anchorId())) { return false; }
@@ -2865,6 +2867,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		final PhantomGoal goal;
 		final Player player;
+		final Skill skill;
 		final PhantomNativeWorkScope owner;
 		final Stamp stamp;
 		final PhantomNavigationPoint origin;
@@ -2876,11 +2879,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		volatile PhantomLearnedEscape.Receipt receipt;
 		volatile boolean settled, cancelled, cancelCastRequested, checkpointed, unreconciled;
 
-		LearnedReturn(PhantomGoal goal, Player player, PhantomNativeWorkScope owner, Stamp stamp,
+		LearnedReturn(PhantomGoal goal, Player player, Skill skill, PhantomNativeWorkScope owner, Stamp stamp,
 			PhantomNavigationPoint origin, PhantomFarmRouteBackoff.Site site, BooleanSupplier currentRoot, long start, long deadline)
 		{
 			this.goal = goal;
 			this.player = player;
+			this.skill = skill;
 			this.owner = owner;
 			this.stamp = stamp;
 			this.origin = origin;
