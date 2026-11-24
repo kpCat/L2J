@@ -671,7 +671,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var route = from == null ? null : _travel.route(from, destination).orElse(null);
 		final long minute = java.time.Instant.now().toEpochMilli() / 60000;
 		final var affordable = route != null && itineraryAffordable(route, player.getClassIndex(), player.getLevel(), minute, player.getAdena()) ? route : null;
-		final var canonical = departure == null && committed != null ? L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(committed, player.getHeading()).orElse(null) : null;
+		final var canonical = committed != null && (departure == null || recoverOffAnchor && destination.equals(committedAnchorId))
+			? L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(committed, player.getHeading()).orElse(null) : null;
 		if (!recoverOffAnchor) { return affordable == null ? null : resumeStep(affordable, departure == null ? null : departure.id(), canonical, live, destination); }
 		return resumeWithIngress(affordable, departure == null ? null : departure.id(), canonical, live, destination,
 			_travel.topology().snapshot().anchors(), _navigation.policy().maximumRouteDistance(), anchor ->
@@ -695,8 +696,15 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		if (resumed != null || (factualDeparture == null && committed == null)) { return resumed; }
 		final var ingress = idleIngress(anchors, live, destination, maximumDistance, connected);
 		// This is a bounded WALK proposal. Its actual arrival/store must establish the new departure.
-		return ingress == null ? null : new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND,
-			"live.approach." + ingress.id(), ingress.id(), ingress.id(), 0, null);
+		if (ingress != null)
+		{
+			return new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND,
+				"live.approach." + ingress.id(), ingress.id(), ingress.id(), 0, null);
+		}
+		if (committed == null || !destination.equals(committed.committedAnchorId())) { return null; }
+		// The exact saved farm can be approached from the current position in native WALK segments.
+		return anchors.stream().filter(anchor -> destination.equals(anchor.id())).findFirst()
+			.map(anchor -> localFarmApproach(anchor, live, maximumDistance)).orElse(null);
 	}
 
 	/** A local WALK proposal starts at the live Player, without claiming any factual anchor departure. */

@@ -769,6 +769,15 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", outsideStraightLeg, policy.maximumLocalStraightDistance(), _ -> true), "No ingress in one straight-leg radius is not a physical no-path witness.");
 		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", outsideStraightLeg, policy.maximumRouteDistance(), _ -> true) != null,
 			"The existing segmented native WALK budget can approach an ingress beyond one straight leg; its unchanged route/phase limits still own the work.");
+		final var distantFarm = entry("saved-farm", 14_024, 0);
+		final var savedFarm = new PhantomBackgroundState.Position(0, 14_024, 0, 0, 0, distantFarm.id());
+		final var farmReturn = PhantomVisibleFarmTravel.resumeWithIngress(List.of(), null, savedFarm, live, distantFarm.id(), List.of(distantFarm), policy.maximumRouteDistance(), _ -> false);
+		PhantomAssertions.assertEquals(PhantomVisibleFarmTravel.localFarmApproach(distantFarm, live, policy.maximumRouteDistance()), farmReturn,
+			"A live actor displaced from the saved farm must be able to request its own segmented WALK when no ingress is available.");
+		PhantomAssertions.assertEquals(farmReturn, PhantomVisibleFarmTravel.resumeWithIngress(null, "disconnected", savedFarm, live, distantFarm.id(), List.of(distantFarm), policy.maximumRouteDistance(), _ -> false),
+			"A different factual departure with no onward route must still allow the exact saved farm return.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(List.of(), null, savedFarm, live, distantFarm.id(), List.of(distantFarm), policy.maximumLocalStraightDistance(), _ -> false),
+			"The saved farm return cannot exceed the caller's route budget.");
 		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomVisibleFarmTravel.NativeWalkBudget(new PhantomNavigationPoint(0, 0, 0, 0), new PhantomNavigationPoint(policy.maximumRouteDistance(), 0, 1, 0), 1, 100, policy),
 			"Canonical Z or standpoint projection beyond the actual route-distance bound remains rejected by the budget owner.");
 		PhantomAssertions.assertEquals(original, PhantomVisibleFarmTravel.resumeWithIngress(route, "old", null, live, "final", anchors, 12000,
