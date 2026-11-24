@@ -109,6 +109,13 @@ public final class PhantomLivingWorld114Checks
 
 	private static void ordinaryGoalReconciliation()
 	{
+		final var stored = PhantomBackgroundService.OperationResult.success("death.recovered_at_town");
+		final var deferred = org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.CATCHUP_FENCED;
+		final var rejected = org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED;
+		check(PhantomBackgroundService.recoveryAfterVerifiedStore(deferred, stored).equals(stored),
+			"Catch-up denied a new admission after verified STORE and poisoned shutdown.");
+		check(PhantomBackgroundService.recoveryAfterVerifiedStore(rejected, stored).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT,
+			"A real retained native owner failure must stay visible.");
 		final var changed = PhantomBackgroundService.OperationResult.replan("recovery.control_goal_changed");
 		check(PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(changed, true, true, true, 100, 200), "RED129: lawful goal change poisoned accepted native corpse reconciliation and STOP");
 		check(!PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(changed, true, false, true, 100, 200), "A stale original epoch rebound to another native owner");

@@ -2206,8 +2206,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var restored = restoreRecoveryAfterStore(control.profileId, control.goal, control.objectId, false, control.handoff, control.epoch, complete);
 		if (restored.status() != OperationStatus.INCONSISTENT) { return restored; }
 		final var successor = materialization.find(control.profileId).orElse(null);
-		if ((successor != null && storedTownReturn(returned, successor, control.objectId, control.epoch, control.deadline))
-			|| ("recovery.rematerialization_catchup_fenced".equals(restored.reason()) && !recoveryGoalStillCurrent(control))) { return complete; }
+		if (successor != null && storedTownReturn(returned, successor, control.objectId, control.epoch, control.deadline)) { return complete; }
 		return restored;
 	}
 
@@ -2234,15 +2233,21 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			final PhantomMaterializationService.MaterializeResult restored = handoff == null ? _materialization.get().materialize(profileId)
 				: _nativeRecoveryHistory.resumeNativeRecoveryHandoff(handoff, characterObjectId, originalEpoch);
-			// The verified store is complete; another admission may temporarily own its released slot.
-			// Retain the accepted recovery control and its original deadline until capacity or stop.
+			// The released native slot may temporarily have another owner.
 			if (restored.status() == ResultStatus.CAPACITY_REACHED) { return retry("recovery.rematerialization_capacity_reached"); }
-			if ((restored.status() != ResultStatus.SUCCESS) && (restored.status() != ResultStatus.ALREADY_ACTIVE))
-			{
-				return OperationResult.inconsistent("recovery.rematerialization_" + restored.status().name().toLowerCase());
-			}
+			return recoveryAfterVerifiedStore(restored.status(), complete);
 		}
 		return complete;
+	}
+
+	static OperationResult recoveryAfterVerifiedStore(ResultStatus readmission, OperationResult complete)
+	{
+		return switch (readmission)
+		{
+			// Catch-up still owns future admission. The preceding STORE is already verified.
+			case SUCCESS, ALREADY_ACTIVE, CATCHUP_FENCED -> complete;
+			default -> OperationResult.inconsistent("recovery.rematerialization_" + readmission.name().toLowerCase(java.util.Locale.ROOT));
+		};
 	}
 
 	private static boolean sameRecoveryOwner(PhantomMaterializationService.MaterializationSnapshot entry, int objectId, long epoch)
