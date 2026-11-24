@@ -4,6 +4,8 @@ package org.l2jmobius.tests.phantoms;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -17,6 +19,7 @@ import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.groups.PartyMessageType;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
@@ -36,6 +39,7 @@ public final class PhantomResilientActivity012Native
 	private static final String JDBC = "jdbc:mysql://127.0.0.1:33349/" + SCHEMA + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
 	private static final String ATTACKER = "test012attacker";
 	private record Actor(long profile, int object, long epoch, Player player) { }
+	private record PartyGrant(Actor actor, Party party, long soloGeneration, long partyGeneration) { }
 
 	public static void main(String[] args) throws Exception
 	{
@@ -60,10 +64,19 @@ public final class PhantomResilientActivity012Native
 			else
 			{
 				require(actor.object() == Integer.parseInt(before[1]) && actor.epoch() != Long.parseLong(before[2]), "COLD_LIFETIME");
-				final var solo = new PhantomExecutionHandoffStore(profiles).load(actor.profile()).orElseThrow().state();
+				final var handoffs = new PhantomExecutionHandoffStore(profiles);
+				final var solo = handoffs.load(actor.profile()).orElseThrow().state();
 				require(solo.phase() == Phase.ACTIVE && solo.owner().namespace().equals("execution.solo"), "INITIAL_SOLO");
+				final Map<Long, Long> soloGenerations = new LinkedHashMap<>();
+				for (var managed : profiles.listManagedAfter(PhantomPopulationState.COMPONENT_TYPE, 0, 8))
+				{
+					final long id = managed.profile().profileId();
+					handoffs.load(id).map(PhantomExecutionHandoffStore.Stored::state)
+						.filter(state -> state.phase() == Phase.ACTIVE && state.owner().namespace().equals("execution.solo"))
+						.ifPresent(state -> soloGenerations.put(id, state.generation()));
+				}
 				preempt(actor, profiles);
-				handoff(actor, profiles, solo.generation());
+				handoff(handoffs, soloGenerations);
 			}
 			require(PhantomSystem.shutdownIfStarted() && !PhantomSystem.hasConfiguredInstance(), "PHANTOM_DRAIN");
 			System.out.println("NATIVE012_PASS " + args[0]);
@@ -111,16 +124,22 @@ public final class PhantomResilientActivity012Native
 		{
 			final long id = managed.profile().profileId();
 			if (required != 0 && required != id) { continue; }
-			final var entry = PhantomSystem.operatorMaterialization(id).orElse(null);
-			if (entry == null || !entry.worldPresent() || !entry.actionAdmissionOpen()) { continue; }
-			final Player player = World.getInstance().getPlayer(entry.characterObjectId());
-			if (player != null && player.hasHeadlessOutboundSession() && !player.isAlikeDead()
-				&& (pve(player) || player.isMoving() && "travel.native_walking".equals(PhantomSystem.operatorLifeProgress(id).get("farm.travel.reason"))))
+			final Actor actor = nativeActor(id);
+			if (actor != null && (pve(actor.player()) || actor.player().isMoving() && "travel.native_walking".equals(PhantomSystem.operatorLifeProgress(id).get("farm.travel.reason"))))
 			{
-				return new Actor(id, entry.characterObjectId(), entry.materializedAtNanos(), player);
+				return actor;
 			}
 		}
 		return null;
+	}
+
+	private static Actor nativeActor(long profile)
+	{
+		final var entry = PhantomSystem.operatorMaterialization(profile).orElse(null);
+		if (entry == null || !entry.worldPresent() || !entry.actionAdmissionOpen()) { return null; }
+		final Player player = World.getInstance().getPlayer(entry.characterObjectId());
+		return player != null && player.hasHeadlessOutboundSession() && !player.isAlikeDead()
+			? new Actor(profile, entry.characterObjectId(), entry.materializedAtNanos(), player) : null;
 	}
 
 	private static boolean pve(Player player)
@@ -176,19 +195,34 @@ public final class PhantomResilientActivity012Native
 		System.out.println("NATIVE012_RESUMED profile=" + actor.profile() + " epoch=" + resumed.epoch());
 	}
 
-	private static void handoff(Actor actor, PhantomProfileRepository profiles, long originalGeneration) throws Exception
+	private static void handoff(PhantomExecutionHandoffStore store, Map<Long, Long> soloGenerations) throws Exception
 	{
-		final var store = new PhantomExecutionHandoffStore(profiles);
-		final var party = await("ACTUAL_PARTY_GRANT", 35, () -> store.load(actor.profile())
-			.filter(row -> row.state().phase() == Phase.ACTIVE && row.state().owner().namespace().equals("execution.party") && row.state().generation() > originalGeneration
-				&& actor.player().getParty() != null && actor.player().getParty().getMembers().stream().allMatch(Player::hasHeadlessOutboundSession))
-			.orElse(null));
-		require(actor.player().getParty() != null, "NATIVE_PARTY_GONE");
-		actor.player().getParty().removePartyMember(actor.player(), PartyMessageType.LEFT);
-		final var solo = await("RETURN_TO_SOLO", 35, () -> store.load(actor.profile())
-			.filter(row -> row.state().phase() == Phase.ACTIVE && row.state().owner().namespace().equals("execution.solo")
-				&& row.state().generation() > party.state().generation() && actor.player().getParty() == null).orElse(null));
-		System.out.println("NATIVE012_HANDOFF party=" + party.state().generation() + " solo=" + solo.state().generation());
+		require(!soloGenerations.isEmpty(), "NO_BASELINE_SOLO_GRANTS");
+		final var grant = await("ACTUAL_PARTY_GRANT", 35, () ->
+		{
+			for (var baseline : soloGenerations.entrySet())
+			{
+				final var state = store.load(baseline.getKey()).map(PhantomExecutionHandoffStore.Stored::state).orElse(null);
+				if (state == null || state.phase() != Phase.ACTIVE || !state.owner().namespace().equals("execution.party") || state.generation() <= baseline.getValue()) { continue; }
+				final Actor actor = nativeActor(baseline.getKey());
+				final Party party = actor == null ? null : actor.player().getParty();
+				if (party == null) { continue; }
+				final var members = party.getMembers();
+				if (members.size() >= 2 && members.contains(actor.player()) && members.stream().allMatch(Player::hasHeadlessOutboundSession))
+				{
+					return new PartyGrant(actor, party, baseline.getValue(), state.generation());
+				}
+			}
+			return null;
+		});
+		final Actor actor = grant.actor();
+		require(actor.player().getParty() == grant.party(), "NATIVE_PARTY_GONE");
+		grant.party().removePartyMember(actor.player(), PartyMessageType.LEFT);
+		final var solo = await("RETURN_TO_SOLO", 35, () -> store.load(actor.profile()).map(PhantomExecutionHandoffStore.Stored::state)
+			.filter(state -> state.phase() == Phase.ACTIVE && state.owner().namespace().equals("execution.solo")
+				&& state.generation() > grant.partyGeneration() && actor.player().getParty() == null).orElse(null));
+		System.out.printf("NATIVE012_HANDOFF profile=%d soloBefore=%d party=%d soloAfter=%d%n",
+			actor.profile(), grant.soloGeneration(), grant.partyGeneration(), solo.generation());
 	}
 
 	private static <T> T await(String reason, int seconds, Supplier<T> observation) throws InterruptedException

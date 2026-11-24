@@ -135,3 +135,13 @@
 - Mojibake-маркеры в изменённых файлах проверены.
 - Escaped Cyrillic в изменённых файлах проверен.
 - Для этой правки использованы `git rev-parse --short HEAD`, `git status --short --untracked-files=no`, `git diff -- <suite>`, `git diff --name-only -- <suite and report>`, `git -c core.whitespace=cr-at-eol diff --check -- <suite and report>`, `git diff --cached --name-only` и `git ls-remote --exit-code origin refs/heads/feature/phantom-world`. Публикация ограничена `git commit --only -m "Verify Phantom World 012 priority interrupt under the same owner" -- <suite and report>`, `git diff-tree --no-commit-id --name-only -r HEAD`, `git push origin HEAD:refs/heads/feature/phantom-world` и повторной сверкой `git ls-remote`.
+
+### Выбор участника нативного handoff
+
+- В квитанции `baseline012.evidence.txt` профиль 1 подготовлен на уровне 20, профили 2 и 3 на уровне 76. Если бы исходный runner выбрал профиль 1 для WALK/PvE, он ждал бы его перехода в PARTY с разницей уровней 56. Production `PhantomAutonomousFarmParty` допускает максимум восемь. Измеренный прогон остановился раньше, на поиске WALK/PvE.
+- Runner проверяет атаку и возврат к обычной деятельности на одном и том же фантоме. Для G4 он фиксирует начальные ACTIVE SOLO generations в том же тестовом наборе. Затем ждёт ACTIVE PARTY с новым поколением и настоящей группой из двух или более headless `Player`, выводит участника через штатное `Party.removePartyMember` и сверяет следующее ACTIVE SOLO generation того же профиля.
+- Адресный `javac -encoding UTF-8 -cp <candidate and binary dependencies> -d <scratch>/classes <runner>` дал exit 0. Production JAR прежний, новый GameServer и БД не запускались. Результаты G2/G3 и настоящего G4 остаются открыты. Bartz оставлен работающим. MAIN не использовалась.
+- Из `D:/Temp/Codex/PhantomWorld/012/party-lane` удалено 29 941 байт, включая marker и классы runner. Новых backup, процессов TEST и блокеров очистки нет. Кандидат, BUILD_INFO, старые квитанции и адресная точка возврата 011 сохранены.
+- Mojibake-маркеры в изменённых файлах проверены.
+- Escaped Cyrillic в изменённых файлах проверен.
+- Git scope ограничен runner и отчётом. Использованы `git rev-parse HEAD`, `git status --short -- <runner>`, `git diff --name-only -- <runner and report>`, `git -c core.whitespace=cr-at-eol diff --check -- <runner and report>`, `git diff --cached --name-only`, `git ls-remote --exit-code origin refs/heads/feature/phantom-world`. Публикация использует `git commit --only -m "Use compatible native participants for Phantom World 012 handoff" -- <runner and report>`, `git diff-tree --no-commit-id --name-only -r HEAD`, `git push origin HEAD:refs/heads/feature/phantom-world` и повторную сверку `git ls-remote`.
