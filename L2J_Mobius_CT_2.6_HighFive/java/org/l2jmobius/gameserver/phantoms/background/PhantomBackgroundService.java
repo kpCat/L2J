@@ -624,6 +624,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					final var materialization = _materialization.get();
 					if (materialization == null || materialization.find(profileId).isPresent() || state.state() != State.READY
 						|| claim._nativeContext.afterPolicy() == null) { return retry("catchup.offscreen.materialization_busy"); }
+					if (offscreenDepartureNeedsNative(state)) { return requestNativeTravel(claim); }
 					final var key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0,
 						PhantomOffscreenOutdoorTravel.RECEIPT_TICK, ActionKind.HISTORICAL_OFFSCREEN_TRAVEL, spec.npcId(), spec.anchorId(),
 						PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
@@ -3071,6 +3072,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return (advance.mutated() && advance.feeAdena() > 0)
 			|| (advance.status() == TravelAdvance.Status.NO_ROUTE) && "local-return".equals(advance.edgeId())
 			&& (policy != null) && !policy.farmPosition();
+	}
+
+	/** A fresh outdoor trip cannot reuse a historical receipt after a later native STORE. */
+	static boolean offscreenDepartureNeedsNative(PhantomBackgroundState state)
+	{
+		return !PhantomOffscreenOutdoorTravel.taggedReceipt(state)
+			&& !PhantomBackgroundTransaction.offscreenReceiptHashCurrent(state, PhantomBackgroundTransaction.expectedAfterHash(state));
 	}
 
 	private OperationResult requestNativeTravel(OperationClaim claim)

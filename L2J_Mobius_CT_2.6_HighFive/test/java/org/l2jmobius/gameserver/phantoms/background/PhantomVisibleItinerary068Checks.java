@@ -322,6 +322,10 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		PhantomAssertions.assertFalse(context.binds(generic.identity(), 269, payload), "The independent native-context owner still rejects a stale component version.");
 		PhantomAssertions.assertFalse(PhantomOffscreenOutdoorTravel.taggedReceipt(generic), "A generic historical receipt is not typed offscreen travel debt.");
 		PhantomAssertions.assertFalse(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(generic, currentHash), "F7: an untagged nonempty stale receipt must fail closed, even with a current native context.");
+		PhantomAssertions.assertTrue(PhantomBackgroundService.offscreenDepartureNeedsNative(generic), "A stale generic receipt must send a fresh offscreen departure to the native owner.");
+		final var current = offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, PhantomBackgroundTransaction.expectedAfterHash(generic)), 0);
+		PhantomAssertions.assertFalse(PhantomBackgroundService.offscreenDepartureNeedsNative(current), "An exact historical receipt still permits the normal offscreen attempt.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.offscreenDepartureNeedsNative(offscreenReceiptState(PhantomBackgroundState.Receipt.empty(), 0)), "An empty receipt still permits the normal offscreen attempt.");
 		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, currentHash), 0), currentHash), "An exact untagged hash remains admissible.");
 		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, ""), 0), currentHash), "A receipt without an expected hash retains the legacy empty-hash contract.");
 		for (long debt : List.of(0L, 60_000L))
@@ -331,6 +335,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertTrue(PhantomOffscreenOutdoorTravel.taggedReceipt(matching), "Both pending and completed offscreen receipts retain the typed fence.");
 			PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(matching, currentHash), "The exact typed receipt may continue only with its matching hash.");
 			PhantomAssertions.assertFalse(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(mismatching, currentHash), "Typed offscreen replay must remain fenced on hash mismatch, including zero residual debt.");
+			PhantomAssertions.assertFalse(PhantomBackgroundService.offscreenDepartureNeedsNative(mismatching), "Typed offscreen debt keeps its existing owner and recovery rules.");
 		}
 		PhantomAssertions.assertEquals(staleHash, generic.receipt().expectedAfterHash(), "Hash admission cannot clear or overwrite the old receipt.");
 		System.out.println("TASK130_STRICT_RECEIPT_HASH_PASS; tagged and untagged mismatch rejected; DB_CONNECTIONS=0; SQL_REPLAY=NOT_RUN");
