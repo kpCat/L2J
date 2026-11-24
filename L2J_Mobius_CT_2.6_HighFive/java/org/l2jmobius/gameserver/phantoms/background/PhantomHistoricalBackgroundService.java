@@ -2417,9 +2417,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				return state.state() != PhantomBackgroundState.State.INCONSISTENT && state.state() != PhantomBackgroundState.State.VERIFY_PENDING
 					&& state.hashes().equals(_planner.generation().authorityHashes());
 			}
-			final var handoff = _foregroundHandoffs.get(profileId);
-			return (handoff != null) && exactForegroundHandoff(profileId, handoff) && (_foregroundHandoffs.get(profileId) == handoff);
+			return hasCurrentForegroundHandoff(profileId);
 		}
+		catch (RuntimeException exception) { return false; }
+	}
+
+	/** An admitted native prerequisite runs under the same claim that still fences normal scheduling. */
+	public boolean hasCurrentForegroundHandoff(long profileId)
+	{
+		final var handoff = _foregroundHandoffs.get(profileId);
+		if (handoff == null || _visiblePublications.containsKey(profileId)) { return false; }
+		try { return exactForegroundHandoff(profileId, handoff) && (_foregroundHandoffs.get(profileId) == handoff); }
 		catch (RuntimeException exception) { return false; }
 	}
 

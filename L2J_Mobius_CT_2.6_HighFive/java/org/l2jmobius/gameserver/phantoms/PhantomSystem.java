@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongFunction;
+import java.util.function.LongPredicate;
 
 import org.l2jmobius.gameserver.Shutdown;
 import org.l2jmobius.gameserver.config.NpcConfig;
@@ -3718,20 +3719,25 @@ public final class PhantomSystem
 	private boolean permitsNewOrdinaryFarmActions(long profileId)
 	{
 		return permitsNewOrdinaryFarmActions(profileId, pvpHoldsOrdinaryFarm(profileId), _materializationRetention,
-			id -> _populationManager.admissionProfile(id).orElse(null), this::currentPhysicalDemand);
+			id -> _populationManager.admissionProfile(id).orElse(null), this::currentPhysicalDemand,
+			_historicalBackgroundService::hasCurrentForegroundHandoff);
 	}
 
 	static boolean permitsNewOrdinaryFarmActions(long profileId, boolean pvpHeld, PhantomMaterializationRetentionPolicy retention,
-		LongFunction<AdmissionProfileSnapshot> populationAdmission, LongFunction<PhantomPhysicalDemand> physicalDemand)
+		LongFunction<AdmissionProfileSnapshot> populationAdmission, LongFunction<PhantomPhysicalDemand> physicalDemand, LongPredicate foregroundHandoff)
 	{
 		if (pvpHeld || retention == null) { return false; }
 		if (retention.permitsNewActions(profileId)) { return true; }
 
 		// Ambient population admission can sustain native Solo farm without a human observer.
 		final var demand = physicalDemand.apply(profileId);
-		if (demand == null || demand.kind() != PhantomPhysicalDemand.Kind.AMBIENT_TARGET || demand.sourceProfileId() != profileId) { return false; }
 		final var admission = populationAdmission.apply(profileId);
-		return admission != null && demand.ordinaryAdmission(admission.calendarOnline(), admission.admitted(), System.currentTimeMillis());
+		if (admission == null || !admission.calendarOnline() || admission.populationState() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY) { return false; }
+		if (demand != null && demand.kind() == PhantomPhysicalDemand.Kind.AMBIENT_TARGET && demand.sourceProfileId() == profileId
+			&& demand.ordinaryAdmission(true, admission.admitted(), System.currentTimeMillis())) { return true; }
+
+		// The historical claim cannot finish until its already admitted native owner earns a farm cycle.
+		return foregroundHandoff.test(profileId);
 	}
 
 	private FarmYield preparePvpFarmYield(long id, Runnable holdFarm)

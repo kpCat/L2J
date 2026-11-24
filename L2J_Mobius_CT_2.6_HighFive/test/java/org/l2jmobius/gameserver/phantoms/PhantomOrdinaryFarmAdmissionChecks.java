@@ -49,7 +49,19 @@ public final class PhantomOrdinaryFarmAdmissionChecks
 			{
 				admitted.set(false);
 				return ambient;
-			}), "Admission revoked during demand lookup must be observed before issuing a grant.");
+			}, _ -> false), "Admission revoked during demand lookup must be observed before issuing a grant.");
+
+		// A pending historical request excludes ordinary allocation until the native prerequisite finishes.
+		PhantomAssertions.assertTrue(PhantomSystem.permitsNewOrdinaryFarmActions(PROFILE, false, retention,
+			_ -> admission(false, true), _ -> null, id -> id == PROFILE),
+			"The current native-context owner must be able to finish its farm prerequisite without normal admission.");
+		PhantomAssertions.assertFalse(PhantomSystem.permitsNewOrdinaryFarmActions(PROFILE, false, retention,
+			_ -> admission(false, true), _ -> null, id -> id == PROFILE + 1),
+			"A different profile's handoff cannot grant native farm.");
+		PhantomAssertions.assertFalse(PhantomSystem.permitsNewOrdinaryFarmActions(PROFILE, false, retention,
+			_ -> admission(false, false), _ -> null, _ -> true), "An offline calendar cannot start a new pull during handoff.");
+		PhantomAssertions.assertFalse(PhantomSystem.permitsNewOrdinaryFarmActions(PROFILE, true, retention,
+			_ -> admission(false, true), _ -> null, _ -> true), "A PvP hold also applies to farm during handoff.");
 
 		final var observed = new PhantomMaterializationRetentionPolicy(_ -> new Facts(true, true, true, false, false), () -> 1, 60_000);
 		PhantomAssertions.assertTrue(permits(false, observed, admission(false, true), null), "Ordinary human-local farm must keep its existing permission.");
@@ -65,6 +77,6 @@ public final class PhantomOrdinaryFarmAdmissionChecks
 	private static boolean permits(boolean pvpHeld, PhantomMaterializationRetentionPolicy retention,
 		AdmissionProfileSnapshot profile, PhantomPhysicalDemand demand)
 	{
-		return PhantomSystem.permitsNewOrdinaryFarmActions(PROFILE, pvpHeld, retention, _ -> profile, _ -> demand);
+		return PhantomSystem.permitsNewOrdinaryFarmActions(PROFILE, pvpHeld, retention, _ -> profile, _ -> demand, _ -> false);
 	}
 }
