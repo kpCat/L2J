@@ -1502,6 +1502,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				replanEdge(profileId, player, journey, current, waypoint, unsafe);
 				return false;
 			}
+			if (!_permitsOrdinary.test(profileId) || !currentJourney(profileId, journey)) { return false; }
 			player.getAI().setIntention(Intention.MOVE_TO, new Location(waypoint.x(), waypoint.y(), waypoint.z()));
 			journey.moveIssued = player.isMoving();
 			journey.moveCurrent = player.captureNativeMoveIdentity();
@@ -2460,6 +2461,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean currentJourney(long profileId, Journey journey)
 	{
+		if (_journeys.get(profileId) != journey) { return false; }
 		final var lifetime = _materialization.find(profileId).orElse(null);
 		return (lifetime != null) && (lifetime.characterObjectId() == journey.objectId) && (lifetime.materializedAtNanos() == journey.epoch) && currentGoal(profileId, journey.attempt.goal);
 	}

@@ -88,7 +88,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private final PhantomKarmaRecoveryPolicy _karmaRecoveryPolicy;
 	private final PhantomKarmaRecoveryContextPort _karmaRecoveryContext;
 	private final LongSupplier _clock;
-	private final BiFunction<Long, Runnable, FarmYield> _prepareOrdinaryFarmYield;
+	private final BiFunction<Encounter, Runnable, FarmYield> _prepareOrdinaryFarmYield;
 	private final ArrayBlockingQueue<Long> _ready = new ArrayBlockingQueue<>(MAXIMUM_TRACKED_PROFILES);
 	private final Set<Long> _membership = ConcurrentHashMap.newKeySet();
 	private final Set<Long> _ordinaryFarmHolds = ConcurrentHashMap.newKeySet();
@@ -132,12 +132,12 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		this(policy, store, context, combat, conversation, social, retreat, karmaRecoveryPolicy, karmaRecoveryContext, clock, null);
 	}
 
-	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, BiFunction<Long, Runnable, FarmYield> prepareOrdinaryFarmYield)
+	public PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, BiFunction<Encounter, Runnable, FarmYield> prepareOrdinaryFarmYield)
 	{
 		this(policy, store, context, combat, conversation, social, retreat, karmaRecoveryPolicy, karmaRecoveryContext, PhantomPvpService::epochNanos, Objects.requireNonNull(prepareOrdinaryFarmYield));
 	}
 
-	private PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, LongSupplier clock, BiFunction<Long, Runnable, FarmYield> prepareOrdinaryFarmYield)
+	private PhantomPvpService(PhantomPvpPolicy policy, PhantomPvpPersistencePort store, PhantomPvpContext context, PhantomCombatService combat, PhantomPvpConversationBridge conversation, PhantomPvpSocialBridge social, PhantomPvpRetreatCoordinator retreat, PhantomKarmaRecoveryPolicy karmaRecoveryPolicy, PhantomKarmaRecoveryContextPort karmaRecoveryContext, LongSupplier clock, BiFunction<Encounter, Runnable, FarmYield> prepareOrdinaryFarmYield)
 	{
 		_policy = Objects.requireNonNull(policy);
 		_store = Objects.requireNonNull(store);
@@ -805,7 +805,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	{
 		if (_prepareOrdinaryFarmYield == null || encounter.source() == Source.PARTY_DEFENSE || encounter.source() == Source.CLAN_WAR) { return true; }
 		final long profileId = encounter.profileId();
-		final FarmYield result = _prepareOrdinaryFarmYield.apply(profileId, () -> _ordinaryFarmHolds.add(profileId));
+		final FarmYield result = _prepareOrdinaryFarmYield.apply(encounter, () -> _ordinaryFarmHolds.add(profileId));
 		if (result == FarmYield.UNAVAILABLE) { _ordinaryFarmHolds.remove(profileId); }
 		return result == FarmYield.READY;
 	}

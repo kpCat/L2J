@@ -2122,7 +2122,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (!restoreExistingMaterialization)
 		{
 			if (control != null && control.acceptedTownReturn) { return retry("recovery.accepted_owner_transition"); }
-			if (stopping && (control == null)) { return retry("recovery.stop_no_new_materialization"); }
+			if (stopping) { return retry("recovery.stop_no_new_materialization"); }
 			final PhantomMaterializationService.MaterializeResult materialized = _nativeRecoveryHistory == null ? materialization.materialize(profileId)
 				: _nativeRecoveryHistory.materializeColdNativeRecovery(profileId, goal);
 			if ((materialized.status() != ResultStatus.SUCCESS) && (materialized.status() != ResultStatus.ALREADY_ACTIVE))

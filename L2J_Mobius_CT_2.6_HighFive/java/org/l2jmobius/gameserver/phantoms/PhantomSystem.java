@@ -1564,10 +1564,23 @@ public final class PhantomSystem
 		}
 		if (_stopProgress.outcome() == StopOutcome.FAILED)
 		{
-			// Later cleanup may release retained entries; this failed attempt never becomes healthy.
-			if (!_shutdownFailureForTesting && !unsafeStopWait(this) && backgroundReadyForMaterializationShutdown()
-				&& ((_materializationService == null) || _materializationService.failedCleanupReady())) { shutdownLegacyFailureCleanup(); }
-			return false;
+			final var phase = _stopProgress.phase();
+			final String blocker = _stopProgress.blocker();
+			final boolean acceptedWaitExpired = phase == StopPhase.WAIT_ACCEPTED_CONTROL && blocker.startsWith("deadline:");
+			final boolean recoveryFailed = phase == StopPhase.DRAIN_PLAYERS && (blocker.startsWith("background.recovery:") || blocker.startsWith("ordinary_death:"));
+			if (recoveryFailed && !stopRecoveryFailure().isEmpty()) { return false; }
+			if (acceptedWaitExpired || recoveryFailed)
+			{
+				// Only a new STOP request reaches FAILED. Resume the same phase with the producer fence closed.
+				_stopProgress = new StopProgress(phase, StopOutcome.PENDING, "resuming", System.nanoTime() + 10_000_000_000L);
+				_state = State.STOPPING;
+			}
+			else
+			{
+				if (!_shutdownFailureForTesting && !unsafeStopWait(this) && backgroundReadyForMaterializationShutdown()
+					&& ((_materializationService == null) || _materializationService.failedCleanupReady())) { shutdownLegacyFailureCleanup(); }
+				return false;
+			}
 		}
 		if (_stopProgress.outcome() == StopOutcome.COMPLETE) { return false; }
 		if (System.nanoTime() >= _stopProgress.deadlineNanos()) { return failStop("deadline:" + _stopProgress.blocker()); }
@@ -1643,7 +1656,6 @@ public final class PhantomSystem
 				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.drained()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
 				if (_backgroundService != null)
 				{
-					if (!_backgroundService.firstRecoveryFailure().isEmpty()) { return failStop("background.recovery:" + _backgroundService.firstRecoveryFailure()); }
 					if (_backgroundService.snapshot().state() == PhantomBackgroundService.ServiceState.FAILED) { return failStop("background.failed:" + _backgroundService.snapshot()); }
 					final var background = _backgroundService.materializationQuiescence();
 					if (!background.ready()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "background:" + background); }
@@ -1658,8 +1670,9 @@ public final class PhantomSystem
 					if (result.state() == ServiceState.FAILED) { return failStop("materialization:" + _materializationService.cleanupBlockers()); }
 					if (result.state() != ServiceState.STOPPED) { return pendingStop(StopPhase.DRAIN_PLAYERS, "materialization:" + _materializationService.cleanupBlockers()); }
 				}
-				// Preserve the terminal failure after accepted writers and the other actors have drained.
-				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.snapshot().firstFailure().isEmpty()) { return failStop("ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
+				// Preserve unresolved effects after draining accepted writers and independent native owners.
+				final String recoveryFailure = stopRecoveryFailure();
+				if (!recoveryFailure.isEmpty()) { return failStop(recoveryFailure); }
 				pendingStop(StopPhase.FINISH_DEPENDENCIES, "dependencies");
 			}
 			if (_stopProgress.phase() == StopPhase.FINISH_DEPENDENCIES)
@@ -1683,6 +1696,14 @@ public final class PhantomSystem
 			return false;
 		}
 		catch (RuntimeException failure) { return failStop(failure.getClass().getName() + ":" + failure.getMessage()); }
+	}
+
+	private String stopRecoveryFailure()
+	{
+		final String backgroundFailure = _backgroundService == null ? "" : _backgroundService.firstRecoveryFailure();
+		if (!backgroundFailure.isEmpty()) { return "background.recovery:" + backgroundFailure; }
+		final var death = _ordinaryDeathRecovery == null ? null : _ordinaryDeathRecovery.snapshot();
+		return death == null || death.firstFailure().isEmpty() ? "" : "ordinary_death:" + death;
 	}
 
 	private boolean pendingStop(StopPhase phase, String blocker)
@@ -3718,7 +3739,12 @@ public final class PhantomSystem
 
 	private boolean permitsNewOrdinaryFarmActions(long profileId)
 	{
-		return permitsNewOrdinaryFarmActions(profileId, pvpHoldsOrdinaryFarm(profileId), _materializationRetention,
+		return !pvpHoldsOrdinaryFarm(profileId) && permitsOrdinaryFarmContext(profileId);
+	}
+
+	private boolean permitsOrdinaryFarmContext(long profileId)
+	{
+		return permitsNewOrdinaryFarmActions(profileId, false, _materializationRetention,
 			id -> _populationManager.admissionProfile(id).orElse(null), this::currentPhysicalDemand,
 			_historicalBackgroundService::hasCurrentForegroundHandoff);
 	}
@@ -3740,16 +3766,21 @@ public final class PhantomSystem
 		return foregroundHandoff.test(profileId);
 	}
 
-	private FarmYield preparePvpFarmYield(long id, Runnable holdFarm)
+	private FarmYield preparePvpFarmYield(org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Encounter encounter, Runnable holdFarm)
 	{
+		final long id = encounter.profileId();
 		if (_partyCoordinator.blocksBackground(id)) { return FarmYield.READY; }
-		if (!soloExecution(id) || !_materializationRetention.permitsNewActions(id) || _phantomStoreService.blocksDecision(id) || hasAcceptedNativeJourney(id)) { return FarmYield.UNAVAILABLE; }
+		if (!soloExecution(id) || _phantomStoreService.blocksDecision(id) || hasAcceptedNativeJourney(id)) { return FarmYield.UNAVAILABLE; }
+		final boolean actualAttack = encounter.source() == org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK;
+		if (!(actualAttack ? permitsOrdinaryFarmContext(id) : _materializationRetention.permitsNewActions(id))) { return FarmYield.UNAVAILABLE; }
 		try (var observation = _materializationService.tryAcquireObservation(id).orElse(null))
 		{
 			if (observation == null || observation.player().isAlikeDead() || observation.player().isInStoreMode() || observation.player().hasPendingOwnedStore()) { return FarmYield.UNAVAILABLE; }
 		}
 		holdFarm.run();
-		return _visibleAutoPlay.prepareExecutionYield(id, System.currentTimeMillis()) && _visibleFarmTravel.yieldForPreparation(id) ? FarmYield.READY : FarmYield.DRAINING;
+		final boolean travelYielded = _visibleFarmTravel.yieldForPreparation(id);
+		final boolean farmYielded = _visibleAutoPlay.prepareExecutionYield(id, 0);
+		return travelYielded && farmYielded ? FarmYield.READY : FarmYield.DRAINING;
 	}
 
 	private PhantomDomainRef executionPartyOwner(long id)
@@ -3954,7 +3985,12 @@ public final class PhantomSystem
 		try (var scope = _executionAdmission.enterCompletionOwner(_ -> row.state().owner()))
 		{
 			if (recovery) { _visibleAutoPlay.stop(id); }
-			else if (!_visibleAutoPlay.prepareExecutionYield(id, row.state().deadline())) { return executionWait("execution.owned_target", now); }
+			else
+			{
+				// A new root for the same SOLO owner only needs the in-flight native work to settle.
+				final boolean sameSoloPublication = !party && row.state().owner().equals(row.state().recipient()) && row.state().requestId().startsWith("goal.");
+				if (!_visibleAutoPlay.prepareExecutionYield(id, sameSoloPublication ? 0 : row.state().deadline())) { return executionWait("execution.owned_target", now); }
+			}
 			if (!_visibleFarmTravel.yieldForPreparation(id)) { return executionWait("execution.owned_travel", now); }
 			if (party)
 			{
@@ -4168,6 +4204,7 @@ public final class PhantomSystem
 
 	private boolean allowsRecoveryReadmission(long profileId, PhantomGoal goal)
 	{
+		if (_state != State.RUNNING) { return false; }
 		final var group = _logicalParties == null ? null : _logicalParties.groupFor(profileId).map(row -> row.group()).orElse(null);
 		if (group == null || !group.awaitingActivityReplan(profileId, goal.goalId(), goal.revision(), System.currentTimeMillis())
 			|| _executionGoals.load(profileId).filter(row -> goal.equals(row.goal())).isEmpty()) { return true; }

@@ -37,7 +37,8 @@ public final class PhantomShutdown103Checks
 		instant.set(null, executor);
 		try
 		{
-			if (args.length == 1 && args[0].equals("--stop121")) { ordinaryFailureDrainsOtherActors(); return; }
+			if (args.length == 1 && args[0].equals("--stop121")) { recoveryFailureDrainsOtherActors(false); return; }
+			if (args.length == 1 && args[0].equals("--stop012")) { recoveryFailureDrainsOtherActors(true); return; }
 			queuedCallback(executor);
 			expiredDeadline(executor);
 			concurrentClose(executor);
@@ -117,7 +118,7 @@ public final class PhantomShutdown103Checks
 	private record Fixture(PhantomMaterializationService service, List<PhantomMaterializedPlayer> actors) { }
 
 	@SuppressWarnings("unchecked")
-	private static void ordinaryFailureDrainsOtherActors() throws Exception
+	private static void recoveryFailureDrainsOtherActors(boolean backgroundIncident) throws Exception
 	{
 		if (DatabaseFactory.isInitialized() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121 requires DB-free isolated runtime"); }
 		final var fixture = fixture();
@@ -134,6 +135,7 @@ public final class PhantomShutdown103Checks
 		final var background = new PhantomBackgroundService(repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transactions, authority, new PhantomBackgroundCompetitionRegistry(), signals, fixture::service);
 		final var death = new PhantomOrdinaryDeathRecovery(fixture.service(), goals, background);
 		final var failure = (AtomicReference<String>) field(PhantomOrdinaryDeathRecovery.class, "_firstFailure").get(death);
+		final var backgroundFailure = (AtomicReference<String>) field(PhantomBackgroundService.class, "_firstRecoveryFailure").get(background);
 		final var accepted = (AtomicInteger) field(PhantomOrdinaryDeathRecovery.class, "_acceptedReconciliations").get(death);
 		final var operations = (AtomicInteger) field(PhantomBackgroundService.class, "_currentOperations").get(background);
 		final var configure = PhantomSystem.class.getDeclaredMethod("configureOperatorRuntimeForTesting", boolean.class); configure.setAccessible(true); configure.invoke(null, false);
@@ -142,23 +144,33 @@ public final class PhantomShutdown103Checks
 		field(PhantomSystem.class, "_backgroundService").set(configured, background);
 		field(PhantomSystem.class, "_ordinaryDeathRecovery").set(configured, death);
 		failure.set("death.control_terminal:TEST121"); accepted.set(1); operations.set(1);
+		if (backgroundIncident) { backgroundFailure.set("profile=29:object=268486148:epoch=153918477612200:" + PhantomBackgroundService.OperationResult.inconsistent("recovery.accepted_store_unverified")); }
 		try
 		{
 			configured.shutdown();
 			if (configured.snapshot().state() != PhantomSystem.State.STOPPING || fixture.service().snapshot().state() != PhantomMaterializationService.ServiceState.RUNNING) { throw new AssertionError("STOP121_TERMINAL_FAILURE_CUT_OFF_ACCEPTED_CONTROL"); }
 			accepted.set(0); configured.shutdown();
 			if (configured.snapshot().state() != PhantomSystem.State.STOPPING || fixture.service().snapshot().state() != PhantomMaterializationService.ServiceState.RUNNING) { throw new AssertionError("STOP121_DRAIN_BYPASSED_BACKGROUND_QUIESCENCE"); }
+			if (backgroundIncident)
+			{
+				final var pending = configured.shutdownProgress();
+				field(PhantomSystem.class, "_stopProgress").set(configured, new PhantomSystem.StopProgress(pending.phase(), pending.outcome(), pending.blocker(), System.nanoTime() - 1));
+				if (configured.shutdown() || configured.snapshot().state() != PhantomSystem.State.FAILED) { throw new AssertionError("STOP012_EXPIRED_WAIT_SUCCEEDED"); }
+			}
 			operations.set(0);
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
-			while (configured.snapshot().state() != PhantomSystem.State.FAILED && System.nanoTime() < deadline) { configured.shutdown(); Thread.sleep(1); }
+			do { configured.shutdown(); Thread.sleep(1); }
+			while (configured.snapshot().state() != PhantomSystem.State.FAILED && System.nanoTime() < deadline);
 			if (configured.snapshot().state() != PhantomSystem.State.FAILED || fixture.service().snapshot().state() != PhantomMaterializationService.ServiceState.STOPPED || !fixture.service().snapshot().materializations().isEmpty()) { throw new AssertionError("STOP121_OTHER_ACTORS_RETAINED_BEFORE_DEATH_FAILURE"); }
 			for (var actor : fixture.actors()) { if ((boolean) field(PhantomMaterializedPlayer.class, "_actionAdmissionOpen").get(actor)) { throw new AssertionError("STOP121_OTHER_ACTOR_ADMISSION_OPEN"); } }
-			if (!failure.get().equals("death.control_terminal:TEST121") || PhantomSystem.shutdownIfStarted() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121_FAILURE_ERASED_OR_CLEANUP_NOT_RELEASED"); }
+			if (!failure.get().equals("death.control_terminal:TEST121") || PhantomSystem.shutdownIfStarted() || !PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121_UNRESOLVED_FAILURE_LOST"); }
+			if (backgroundIncident && !configured.shutdownProgress().blocker().equals("background.recovery:" + backgroundFailure.get())) { throw new AssertionError("STOP012_LOST_UNVERIFIED_STORE"); }
 			System.out.println("TASK121_STOP_FAILURE_DRAIN_PASS accepted-control/background gates; other partial actors drained; FAILED preserved; DB0 World0 NATIVE_STOP_NOT_PROVEN");
 		}
 		finally
 		{
 			accepted.set(0); operations.set(0);
+			failure.set(""); backgroundFailure.set(""); // Simulate resolution by the fixture before a fresh STOP request.
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
 			while (fixture.service().requestShutdown(deadline).state() == PhantomMaterializationService.ServiceState.STOPPING && System.nanoTime() < deadline) { Thread.sleep(1); }
 			PhantomSystem.shutdownIfStarted();
