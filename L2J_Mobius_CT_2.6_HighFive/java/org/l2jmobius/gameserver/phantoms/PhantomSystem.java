@@ -1568,6 +1568,7 @@ public final class PhantomSystem
 			final String blocker = _stopProgress.blocker();
 			final boolean acceptedWaitExpired = phase == StopPhase.WAIT_ACCEPTED_CONTROL && blocker.startsWith("deadline:");
 			final boolean recoveryFailed = phase == StopPhase.DRAIN_PLAYERS && (blocker.startsWith("background.recovery:") || blocker.startsWith("ordinary_death:"));
+			final boolean materializationWaitExpired = phase == StopPhase.DRAIN_PLAYERS && blocker.startsWith("deadline:materialization");
 			if (recoveryFailed && !stopRecoveryFailure().isEmpty()) { return false; }
 			if (acceptedWaitExpired || recoveryFailed)
 			{
@@ -1578,7 +1579,15 @@ public final class PhantomSystem
 			else
 			{
 				if (!_shutdownFailureForTesting && !unsafeStopWait(this) && backgroundReadyForMaterializationShutdown()
-					&& ((_materializationService == null) || _materializationService.failedCleanupReady())) { shutdownLegacyFailureCleanup(); }
+					&& ((_materializationService == null) || _materializationService.failedCleanupReady())
+					&& (!materializationWaitExpired || stopRecoveryFailure().isEmpty()))
+				{
+					if (shutdownLegacyFailureCleanup() && materializationWaitExpired)
+					{
+						_stopProgress = new StopProgress(StopPhase.DONE, StopOutcome.COMPLETE, "", _stopProgress.deadlineNanos());
+						return true;
+					}
+				}
 				return false;
 			}
 		}

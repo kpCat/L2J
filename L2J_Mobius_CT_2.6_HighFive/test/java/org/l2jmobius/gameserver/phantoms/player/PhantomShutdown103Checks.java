@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,6 +40,7 @@ public final class PhantomShutdown103Checks
 		{
 			if (args.length == 1 && args[0].equals("--stop121")) { recoveryFailureDrainsOtherActors(false); return; }
 			if (args.length == 1 && args[0].equals("--stop012")) { recoveryFailureDrainsOtherActors(true); return; }
+			if (args.length == 1 && args[0].equals("--materialization-retry012")) { materializationDeadlineCanRecover(); return; }
 			queuedCallback(executor);
 			expiredDeadline(executor);
 			concurrentClose(executor);
@@ -115,7 +117,56 @@ public final class PhantomShutdown103Checks
 		if (fixture.service().requestShutdown(deadline).state() != PhantomMaterializationService.ServiceState.STOPPED) { throw new AssertionError("Existing STOPPING caller lost its finite deadline"); }
 	}
 
-	private record Fixture(PhantomMaterializationService service, List<PhantomMaterializedPlayer> actors) { }
+	private static void materializationDeadlineCanRecover() throws Exception
+	{
+		final var fixture = fixture(true);
+		final var configure = PhantomSystem.class.getDeclaredMethod("configureOperatorRuntimeForTesting", boolean.class);
+		configure.setAccessible(true);
+		configure.invoke(null, false);
+		final var configured = (PhantomSystem) field(PhantomSystem.class, "_configuredInstance").get(null);
+		field(PhantomSystem.class, "_materializationService").set(configured, fixture.service());
+		final Field scheduled = field(ThreadPool.class, "SCHEDULED_POOL");
+		final Object previous = scheduled.get(null);
+		final var executor = new ScheduledThreadPoolExecutor(1);
+		scheduled.set(null, executor);
+		try
+		{
+			if (configured.shutdown() || configured.shutdownProgress().phase() != PhantomSystem.StopPhase.DRAIN_PLAYERS)
+			{
+				throw new AssertionError("Expected STOP to wait for the first materialization");
+			}
+			final var pending = configured.shutdownProgress();
+			field(PhantomSystem.class, "_stopProgress").set(configured, new PhantomSystem.StopProgress(pending.phase(), pending.outcome(), pending.blocker(), System.nanoTime() - 1));
+			if (configured.shutdown() || configured.shutdownProgress().outcome() != PhantomSystem.StopOutcome.FAILED)
+			{
+				throw new AssertionError("An expired STOP must report failure");
+			}
+			if (PhantomSystem.shutdownIfStarted() || !PhantomSystem.hasConfiguredInstance())
+			{
+				throw new AssertionError("STOP bypassed incomplete materialization");
+			}
+			fixture.firstMaterialization().countDown();
+			final boolean stopped = PhantomSystem.shutdownIfStarted();
+			if (fixture.service().snapshot().retainedEntries() != 0 || configured.snapshot().state() != PhantomSystem.State.STOPPED)
+			{
+				throw new AssertionError("Stock cleanup did not release both actors after materialization completed");
+			}
+			if (!stopped || PhantomSystem.hasConfiguredInstance() || configured.shutdownProgress().outcome() != PhantomSystem.StopOutcome.COMPLETE)
+			{
+				throw new AssertionError("STOP012_MATERIALIZATION_RELEASE_UNCONFIRMED");
+			}
+			System.out.println("STOP012_MATERIALIZATION_RETRY_PASS DB0 World0");
+		}
+		finally
+		{
+			fixture.firstMaterialization().countDown();
+			executor.shutdown();
+			if (!executor.awaitTermination(5, TimeUnit.SECONDS)) { throw new AssertionError("TEST scheduled cleanup did not return its worker"); }
+			scheduled.set(null, previous);
+		}
+	}
+
+	private record Fixture(PhantomMaterializationService service, List<PhantomMaterializedPlayer> actors, CountDownLatch firstMaterialization) { }
 
 	@SuppressWarnings("unchecked")
 	private static void recoveryFailureDrainsOtherActors(boolean backgroundIncident) throws Exception
@@ -213,8 +264,13 @@ public final class PhantomShutdown103Checks
 		((java.util.Map<Long, Object>) field(PhantomBackgroundService.class, "_nativeTownReturns").get(background)).put(29L, witness);
 	}
 
-	@SuppressWarnings("unchecked")
 	private static Fixture fixture() throws Exception
+	{
+		return fixture(false);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Fixture fixture(boolean firstMaterializationPending) throws Exception
 	{
 		final var repositoryConstructor = PhantomProfileRepository.class.getDeclaredConstructor();
 		repositoryConstructor.setAccessible(true);
@@ -227,15 +283,18 @@ public final class PhantomShutdown103Checks
 		final var entryConstructor = entryType.getDeclaredConstructor(long.class, int.class, long.class, boolean.class, PhantomMaterializedPlayer.class);
 		entryConstructor.setAccessible(true);
 		final var entries = (Map<Long, Object>) field(PhantomMaterializationService.class, "_activeByProfile").get(service);
+		CountDownLatch firstMaterialization = null;
 		for (int index = 0; index < actors.size(); index++)
 		{
 			final var actor = actors.get(index);
 			field(PhantomMaterializedPlayer.class, "_actionAdmissionOpen").set(actor, true);
 			final Object entry = entryConstructor.newInstance(index + 1L, 910103001 + index, 0L, false, actor);
-			((CountDownLatch) field(entryType, "_materializationCompletion").get(entry)).countDown();
+			final var completion = (CountDownLatch) field(entryType, "_materializationCompletion").get(entry);
+			if (index == 0) { firstMaterialization = completion; }
+			if (index != 0 || !firstMaterializationPending) { completion.countDown(); }
 			entries.put(index + 1L, entry);
 		}
-		return new Fixture(service, actors);
+		return new Fixture(service, actors, firstMaterialization);
 	}
 
 	private static Field field(Class<?> type, String name) throws Exception
