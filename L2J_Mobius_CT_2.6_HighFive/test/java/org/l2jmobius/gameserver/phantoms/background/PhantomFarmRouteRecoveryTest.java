@@ -96,6 +96,13 @@ public final class PhantomFarmRouteRecoveryTest
 
 	private static void verifyAlternativeFarm()
 	{
+		final var running = PhantomBackgroundCatchupState.Status.RUNNING;
+		PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.needsRecoveryApproach(false, true, false, running),
+			"A terminal native route still needs the verified alternative and Return when ordinary replanning has no candidate.");
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.needsRecoveryApproach(false, false, false, running),
+			"A target selection failure alone must not start spatial recovery.");
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.needsRecoveryApproach(true, true, false, running),
+			"An active spatial recovery already owns verification and must not be restarted.");
 		final var planner = PhantomFarm074Checks.planner(true, true);
 		final var state = PhantomFarm074Checks.state();
 		final var predecessor = PhantomFarm074Checks.goal();

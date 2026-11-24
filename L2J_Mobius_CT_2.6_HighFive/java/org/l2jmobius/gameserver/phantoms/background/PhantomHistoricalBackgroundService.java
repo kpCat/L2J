@@ -2153,11 +2153,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					: _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, selectableTargets))
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
-			if (!replacement.ready() && historicalIdle && sharedFarmSource == null && _visibleTravel != null
-				&& catchup.state().status() == Status.COMPLETE)
+			if (!replacement.ready() && sharedFarmSource == null && _visibleTravel != null
+				&& needsRecoveryApproach(spatialRecovery, exactRouteRecovery, historicalIdle, catchup.state().status()))
 			{
-				// The historical idle position may have no authored itinerary to the next viable farm.
-				// Reuse ordinary recovery and its native WALK proof before publishing a farm goal.
+				// Reuse a verified native approach when the historical idle or failed route
+				// has no viable ordinary itinerary. The existing Return remains the fallback.
 				spatialRecovery = true;
 				replacement = _planner.proposeVisibleRecovery(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal,
 					live, excluded, exclusions.steps(), anchor -> _visibleTravel.recoveryAnchorAvailable(player, anchor));
@@ -2243,6 +2243,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		return !_foregroundDecisionsRevoked && reservationCurrent.getAsBoolean()
 			&& Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), expectedGoal);
+	}
+
+	static boolean needsRecoveryApproach(boolean spatialRecovery, boolean exactRouteRecovery, boolean historicalIdle, Status catchupStatus)
+	{
+		return !spatialRecovery && (exactRouteRecovery || historicalIdle && catchupStatus == Status.COMPLETE);
 	}
 
 	private boolean finishVisiblePublication(long profileId, PhantomDecisionEngine decision, VisiblePublication receipt)
