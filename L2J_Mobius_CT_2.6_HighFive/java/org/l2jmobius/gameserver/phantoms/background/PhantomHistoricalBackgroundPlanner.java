@@ -237,13 +237,17 @@ public final class PhantomHistoricalBackgroundPlanner
 		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomTopologyAnchor> availableAnchor)
 	{
 		if (live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return Result.blocked("planner.visible_route.unavailable"); }
-		final var previous = PhantomBackgroundGoalSpec.parse(previousGoal);
+		final var previous = visiblePredecessor(profileId, previousGoal);
+		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
+		final var loadout = state.loadout();
 		final var availability = new java.util.HashMap<String, Boolean>();
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(),
-			previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed,
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
+			idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
+			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
+			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed,
 			planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, live, PlanningCombat.from(state), false,
 			candidate -> Math.abs(candidate.target().npc().level() - state.progress().level()) <= 4
-				&& !previous.anchorId().equals(candidate.anchor().id())
+				&& (idle || !previous.anchorId().equals(candidate.anchor().id()))
 				&& availability.computeIfAbsent(candidate.anchor().id(), _ -> availableAnchor.test(candidate.anchor())), new java.util.HashMap<>(), null,
 			PhantomNavigationPolicy.productionDefaults().maximumRouteDistance());
 	}

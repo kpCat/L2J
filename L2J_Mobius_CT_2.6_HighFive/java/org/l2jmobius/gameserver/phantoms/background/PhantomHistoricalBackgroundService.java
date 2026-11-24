@@ -2083,7 +2083,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, combat.vitals(), baseline.position(), combat.combat(), loadout, baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
-			final boolean spatialRecovery = returned || spatialWait != null
+			boolean spatialRecovery = returned || spatialWait != null
 				&& !(freshLocal && Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), stored.goal()));
 			if (spatialCooldown && spatialRecovery) { return false; }
 			final boolean exactRouteRecovery = !historicalIdle && failures != null && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
@@ -2144,7 +2144,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					selectableTargets = _visibleAutoPlay.selectableFarmTargets(player);
 				}
 			}
-			final var replacement = spatialRecovery
+			var replacement = spatialRecovery
 				? _planner.proposeVisibleRecovery(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
 					anchor -> _visibleTravel.recoveryAnchorAvailable(player, anchor))
 				: sharedFarmSource == null
@@ -2153,6 +2153,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					: _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, selectableTargets))
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
+			if (!replacement.ready() && historicalIdle && sharedFarmSource == null && _visibleTravel != null
+				&& catchup.state().status() == Status.COMPLETE)
+			{
+				// The historical idle position may have no authored itinerary to the next viable farm.
+				// Reuse ordinary recovery and its native WALK proof before publishing a farm goal.
+				spatialRecovery = true;
+				replacement = _planner.proposeVisibleRecovery(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal,
+					live, excluded, exclusions.steps(), anchor -> _visibleTravel.recoveryAnchorAvailable(player, anchor));
+			}
 			if (!replacement.ready())
 			{
 				stage += ":" + replacement.reasonKey();

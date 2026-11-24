@@ -1,13 +1,19 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.gameserver.phantoms.background;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
+import org.l2jmobius.gameserver.config.GeoEngineConfig;
+import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomOffscreen092Checks;
+import org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.CapabilitySnapshot;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
@@ -16,6 +22,8 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.BudgetProof;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.LimitKind;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 
 /** Ordinary WALK release over a dry corner captured from the profile 32 GeoData route. */
@@ -33,9 +41,19 @@ public final class PhantomFarmRouteRecoveryTest
 			verifyAlternativeFarm();
 			return;
 		}
+		if (args.length == 1 && "--idle-farm011".equals(args[0]))
+		{
+			verifyIdleFarm();
+			return;
+		}
 		if (args.length == 2 && "--offscreen-origin011".equals(args[0]))
 		{
 			verifyOffscreenOrigin(Path.of(args[1]));
+			return;
+		}
+		if (args.length == 7 && Set.of("--geo-recovery011", "--geo-episode-required011").contains(args[0]))
+		{
+			verifyGeoRecovery(point(args, 1), point(args, 4), "--geo-episode-required011".equals(args[0]));
 			return;
 		}
 		final var from = new PhantomNavigationPoint(115016, -164632, -528, 0);
@@ -117,6 +135,75 @@ public final class PhantomFarmRouteRecoveryTest
 		final var certified = PhantomOffscreen092Checks.planner(witness, true, true).replaceFromState(92, displaced, eligible.goal(), 920092, 2);
 		PhantomAssertions.assertEquals(List.of("fixture092.certified"), certified.routeEdgeIds(), "Ordinary route planning must still work.");
 		System.out.println("PASS offscreen selection and reconsideration use the saved departure");
+	}
+
+	private static void verifyIdleFarm()
+	{
+		final var planner = PhantomFarm074Checks.planner(false);
+		final var state = PhantomFarm074Checks.state();
+		final var idle = planner.idleFromState(74, state, PhantomFarm074Checks.goal(), 740074, 1).goal();
+		final var point = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, 0, 0);
+		final var excluded = Set.of("101@farm.local");
+		PhantomAssertions.assertFalse(planner.replanVisibleLocal(74, state, idle, 740074, 2, point, excluded, Set.of()).ready(),
+			"A disconnected distant farm cannot be reached through the old local/topology plan.");
+		final var walk = planner.proposeVisibleRecovery(74, state, idle, 740074, 2, point, excluded, Set.of(),
+			anchor -> anchor.id().equals("farm.far"));
+		PhantomAssertions.assertTrue(walk.ready(), "Historical idle must be able to offer a different farm to the native WALK owner.");
+		PhantomAssertions.assertEquals("farm.far", walk.spec().anchorId(), "Recovery lost the lawful farming target.");
+		PhantomAssertions.assertEquals(idle.revision() + 1, walk.goal().revision(), "Recovery did not prepare the immediate successor.");
+		PhantomAssertions.assertEquals(idle.subject(), walk.goal().subject(), "Recovery changed the character owner.");
+		PhantomAssertions.assertTrue(walk.routeEdgeIds().isEmpty(), "A proposal must not invent an offscreen edge.");
+		System.out.println("PASS historical idle proposes an alternative farm to the native WALK owner");
+	}
+
+	private static PhantomNavigationPoint point(String[] args, int offset)
+	{
+		return new PhantomNavigationPoint(Integer.parseInt(args[offset]), Integer.parseInt(args[offset + 1]), Integer.parseInt(args[offset + 2]), 0);
+	}
+
+	/** Stock terrain comparison. There are no World Players or runtime PVE threats in this fixture. */
+	private static void verifyGeoRecovery(PhantomNavigationPoint from, PhantomNavigationPoint target, boolean checkpointRequired) throws Exception
+	{
+		final var game = Path.of(".").toRealPath();
+		PhantomAssertions.assertTrue(game.getFileName().toString().startsWith("geo-") && Files.isRegularFile(game.getParent().resolve(".codex-owned.json")),
+			"Expected an isolated GeoData fixture.");
+		ServerConfig.DATAPACK_ROOT = game.toFile();
+		GeoEngineConfig.load();
+		final var backend = new L2jNavigationBackend();
+		System.out.println("SOURCE_SURFACE " + backend.walkSurface(from, 16));
+		final var policy = PhantomNavigationPolicy.productionDefaults();
+		final var navigation = new PhantomNavigationService(policy, backend, work -> { work.run(); return true; }, System::nanoTime, new PhantomMetrics());
+		PhantomAssertions.assertTrue(navigation.start(), "The isolated navigation owner must start.");
+		final var rejectedChord = checkpointRequired ? Set.of(new PhantomWalkCorridorPlanner.Edge(from, target)) : Set.<PhantomWalkCorridorPlanner.Edge>of();
+		try
+		{
+			for (boolean episode : List.of(false, true))
+			{
+				final long now = Math.max(1, System.nanoTime());
+				final var request = new PhantomNavigationRequest(episode ? 2 : 1, from, target, now, now + policy.defaultRequestDeadlineNanos(), policy.maximumRouteDistance());
+				final var submission = navigation.submitSoloWalk(request, episode, Set.of(), rejectedChord);
+				final var result = submission.immediateResult() != null ? submission.immediateResult() : navigation.consume(submission.requestId()).orElseThrow();
+				final var route = result.route();
+				System.out.println((episode ? "EPISODE" : "CORRIDOR") + " " + result.status() + " checkpoint=" + (route == null ? "-" : route.destination())
+					+ " " + result.proof().diagnostic());
+				if (checkpointRequired)
+				{
+					PhantomAssertions.assertTrue(episode ? route != null && !route.destination().equals(target) : result.proof().kind() == LimitKind.CHORD_DISTANCE,
+						"The distant dry farm needs an episode checkpoint beyond the corridor limit.");
+				}
+				if (episode && route != null)
+				{
+					final var budget = new NativeWalkBudget(from, target, now, 100, policy);
+					PhantomAssertions.assertEquals(target, result.proof().submittedDestination(), "Checkpoint belongs to a different farm.");
+					PhantomAssertions.assertTrue(budget.admit(route, System.nanoTime()), "Checkpoint is outside the ordinary WALK budget.");
+				}
+			}
+		}
+		finally
+		{
+			navigation.beginStop();
+			PhantomAssertions.assertTrue(navigation.finishStop(), "The isolated navigation owner must stop.");
+		}
 	}
 
 	private static void verifyCheckpointRefusal()

@@ -247,7 +247,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				if (_farmSearches.blocked(probe, now)) { return rejectRecoveryAnchor(profileId, alternatives, anchor); }
 				final var request = new PhantomNavigationRequest(profileId, origin, destination, now,
 					Math.min(deadline, now + _navigation.policy().defaultRequestDeadlineNanos()), _navigation.policy().maximumRouteDistance(), threats);
-				final var submission = _navigation.submitSoloWalk(request, landingApproach, Set.of(), Set.of());
+				// The normal episode owner can verify and consume a checkpoint toward a distant farm.
+				final var submission = _navigation.submitSoloWalk(request, true, Set.of(), Set.of());
 				if (submission.requestId() <= 0)
 				{
 					alternatives.submitAt = now + _navigation.policy().pathfindingCooldownNanos();
@@ -274,11 +275,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return RecoveryWalkAdmission.PENDING;
 			}
 			final var route = proposal.result == null ? null : proposal.result.route();
+			final var proof = proposal.result == null ? null : proposal.result.proof();
 			if (route == null || route.mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA || !route.origin().equals(origin)
-				|| (landingApproach ? route.destination().equals(origin) : !route.destination().equals(destination))
+				|| route.destination().equals(origin) || proof == null || !destination.equals(proof.submittedDestination())
 				|| proposal.result.profileId() != profileId || proposal.result.requestId() != proposal.requestId)
 			{
-				final var proof = proposal.result == null ? null : proposal.result.proof();
 				if (proof != null && origin.equals(proof.origin()) && destination.equals(proof.submittedDestination()))
 				{
 					_farmSearches.failed(proposal.probe, proof.kind(), proof.queries(), now,
