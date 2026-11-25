@@ -1,0 +1,25 @@
+# PHANTOM-LIVING-POPULATION-015
+
+25 ноября 2026, Europe/Chisinau. Bartz. **CODE_READY / LIVE_OBSERVED** для цели 16 ordinary.
+
+## Население и поведение
+
+- До обновления имелось 32 связанных профиля уровней 2–13, у 11 был SQL-признак `online=2` при target 8. В нативных маршрутных квитанциях за две минуты до STOP отметились все восемь scouts. В пассивном срезе профили 4 и 9 уже имели завершённые боевые циклы. Полный исходный снимок допуска и retained slots недоступен на 014.
+- После запуска обычное население выросло с 15 до 16. В 17:24 пассивный census показал 26 календарно ACTIVE из 32, **16 ordinary в World и 16 с допуском к действиям, 8 scouts, 200 лавок, 0 игроков и 0 retained slots**. Физический лимит 48. В соседнем срезе 12 eligible и 12 admitted. Во время смены снимка ecology эти два счётчика временно возвращают 0. Принятые native-занятия обслуживаются своим путём допуска.
+- Профиль 9 в одной native-сессии завершил два цикла с совпадающими kill/reward/settlement, получил +2821 EXP и +161 SP и продолжил двигаться и наносить урон. Также наблюдалось восстановление здоровья и восстановление после смерти. Профиль 7 удерживает защитный флаг `INCONSISTENT` в `background.state`. Профили 11, 27 и 31 ожидали подготовки ecology или завершения прежнего намерения. Дальняя ordinary поездка и автономная Party в коротком окне не наблюдались. Проверенные уровни 2–13 входят в диапазон Party chance 0%.
+- Кандидаты сначала проходят существующие пороги и проверки. Свежие добровольные варианты ранжируются по назначенным personality, pace и сохранённым исходным чертам caution/persistence. Удержание работающего фарма даёт умеренный приоритет. При точном равенстве порядок стабилен для профиля и цели. Обязательное снабжение и принятые эффекты сохраняют приоритет. Отсутствие доступной сделки уступает рабочим вариантам, включая обучение. Действующие периоды повторного запроса, альтернативы источника, бюджеты и транзакционные квитанции сохранены.
+- Локально `dist/game/config/Custom/PhantomPlayers.ini` и соответствующий сохранённый ключ в `dist/game/config/OwnerConfig.json` изменены с 8 на 16. Действуют durable target 32, cap 48, scouts 8 и вероятности Party 0/20/35/50/80. Использованы действующие обработчики фарма, экипировки и снабжения, включая доступные сделки с лавками.
+
+## Проверки и поставка
+
+- После саморевью прошёл изолированный JDK 25 Ant `jar phantom-decision-core-test`, exit 0, owner rules 38/38, decision-core 42/42. Первый запуск остановился на отсутствующих четырёх XML/XSD-файлах валидатора. Повтор использовал эти входы из того же baseline. `PhantomSupply074Checks` exit 0. Проверены противоположный выбор для GRINDER/TRADER и приоритет обязательной работы после порога допуска.
+- Штатный STOP GS дал exit 0 и `stopped=true`. Срез после остановки подтвердил 0 строк `online=2` и 0 `background.owned-store`. Bartz запущен и оставлен работающим. Окна Mobius подтверждены в интерактивной сессии. GS 12256 на 7777, LS 20168 на 2106/9014. Bartz SQL33331 сохранила PID 28664, MAIN3308 — PID 8692. Рабочие SQL, Geo203 и 166 learned TSV остались на своих местах. После запуска PROVEN вырос с 86 461 до 86 515. TEST не запускался.
+- Установленный исходник `6cd9f62293e858dec226c8b03c5a7a66d42bb349`. SHA-256 GameServer JAR `817E2D981850F19D5AC670C6EFA69468192A3FA648280F423C0307C3A3CF7655`, BUILD_INFO `F2E38A5265628E6507A1AA8D9B867706AD8626E7D4F304A5C15AB1E943538F56`. Проверенная точка возврата содержит прежние JAR, BUILD_INFO и два файла настройки, SHA-256 и инструкцию. [Rollback 015](D:/Backups/PhantomWorld/PHANTOM-LIVING-POPULATION-015)
+- Из `D:\Temp\Codex\PhantomWorld\PHANTOM-LIVING-POPULATION-015\r01` удалено 190 814 736 байт после завершения сборки и проверки владельца каталога. Временных файлов и тестовых процессов задачи нет.
+
+## Git и область изменений
+
+- Ветка `feature/phantom-world`, baseline `1d78396ea0190e7d9c5eb49c11122d35ac0a928c`. Исходный commit включает только `PhantomSystem.java`, `PhantomBackgroundDecision.java`, `L2jPhantomSupplyJourney.java`, `PhantomConsideration.java`, `PhantomUtilitySelector.java`, `PhantomOrdinaryActivityPreference.java`, `HumanRouteService.java` и `PhantomDecisionCoreSuite.java`. Отчёт оформлен отдельно. Рабочие конфиги, JAR, learned и прочие локальные правки исключены из публикации.
+- Для baseline и scope использованы `git rev-parse HEAD`, `git symbolic-ref --short HEAD`, `git remote get-url origin`, `git merge-base --is-ancestor <baseline> HEAD`, `git status --short --branch`, `git diff --cached --quiet`, адресные `git diff --stat`, `git diff -w`, `git -c core.whitespace=cr-at-eol diff --check` и `git ls-remote --exit-code origin refs/heads/feature/phantom-world`. Два `git archive --format=tar --output=<scratch>/<файл>.tar <baseline> -- <точные входы>` использованы для сборки. Запись ограничена `git add -- <новый файл>`, двумя `git commit --only -m <сообщение> -- <точные пути>` и обычным `git push origin HEAD:refs/heads/feature/phantom-world`. Итоговый GitHub HEAD сверяется после push.
+- Mojibake-маркеры в изменённых файлах проверены.
+- Escaped Cyrillic в изменённых файлах проверены.
