@@ -187,3 +187,12 @@
 - Mojibake-маркеры в изменённых файлах проверены.
 - Escaped Cyrillic в изменённых файлах проверен.
 - Scope ограничен runner и отчётом. Использованы `git rev-parse HEAD`, `git diff --name-only -- <exact paths>`, `git -c core.whitespace=cr-at-eol diff --check -- <exact paths>`, `git diff --cached --name-only`, `git ls-remote --exit-code origin refs/heads/feature/phantom-world`. Публикация использует `git commit --only -m "Preserve native STOP evidence in Phantom World 012 runner" -- <exact paths>`, `git diff-tree --no-commit-id --name-only -r HEAD`, `git push origin HEAD:refs/heads/feature/phantom-world` и повторную сверку `git ls-remote`.
+
+### Доступность нативного PARTY-сценария на Bartz
+
+- Сверены действующий `PhantomPlayers.ini`, `PartySeekingSettings.seeks` и проверка отбора в `PhantomAutonomousFarmParty`. При `PhantomPartySeekChance1To39=0` ни один профиль этого диапазона не попадает в новый автономный состав группы.
+- Один `START TRANSACTION READ ONLY` на подтверждённой MariaDB Bartz `33331` дал 32 профиля с компонентом `population.state` и связанными персонажами, уровни 2–13. Все 32 входят в диапазон 1–39. Строк `party.logical_group` нет. Команда `mariadb --batch --execute <read-only census>` завершилась с exit 0. При текущем составе и настройках запуск Bartz сам по себе не даст требуемый phantom-only SOLO↔PARTY. Настоящий G4 остаётся открытым.
+- Кандидат `24256D6D4813C809FDF54F868D5786A3FE5E16227D46CF430812D15D3722E652` переиспользован. GameServer и LoginServer остались остановленными, MariaDB Bartz работает. MAIN не использовалась. Scratch, новые процессы и backup не создавались, очищать нечего. Существующая точка возврата 011 и квитанции сохранены.
+- Mojibake-маркеры в изменённом отчёте проверены.
+- Escaped Cyrillic в изменённом отчёте проверен.
+- Git ограничен отчётом. Использованы `git rev-parse HEAD`, `git diff --name-only -- <report>`, `git -c core.whitespace=cr-at-eol diff --check -- <report>`, `git diff --cached --name-only`, `git ls-remote --exit-code origin refs/heads/feature/phantom-world`. Публикация ограничена `git commit --only -m "Record Bartz party admission limit for Phantom World 012" -- <report>`, `git diff-tree --no-commit-id --name-only -r HEAD`, `git push origin HEAD:refs/heads/feature/phantom-world` и повторной сверкой `git ls-remote`.
