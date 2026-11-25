@@ -40,7 +40,8 @@ public final class PhantomShutdown103Checks
 		{
 			if (args.length == 1 && args[0].equals("--stop121")) { recoveryFailureDrainsOtherActors(false); return; }
 			if (args.length == 1 && args[0].equals("--stop012")) { recoveryFailureDrainsOtherActors(true); return; }
-			if (args.length == 1 && args[0].equals("--materialization-retry012")) { materializationDeadlineCanRecover(); return; }
+			if (args.length == 1 && args[0].equals("--materialization-retry012")) { materializationDeadlineCanRecover(false); return; }
+			if (args.length == 1 && args[0].equals("--materialization-service-retry012")) { materializationDeadlineCanRecover(true); return; }
 			queuedCallback(executor);
 			expiredDeadline(executor);
 			concurrentClose(executor);
@@ -117,7 +118,7 @@ public final class PhantomShutdown103Checks
 		if (fixture.service().requestShutdown(deadline).state() != PhantomMaterializationService.ServiceState.STOPPED) { throw new AssertionError("Existing STOPPING caller lost its finite deadline"); }
 	}
 
-	private static void materializationDeadlineCanRecover() throws Exception
+	private static void materializationDeadlineCanRecover(boolean serviceDeadlineFirst) throws Exception
 	{
 		final var fixture = fixture(true);
 		final var configure = PhantomSystem.class.getDeclaredMethod("configureOperatorRuntimeForTesting", boolean.class);
@@ -131,15 +132,29 @@ public final class PhantomShutdown103Checks
 		scheduled.set(null, executor);
 		try
 		{
+			if (serviceDeadlineFirst)
+			{
+				fixture.service().requestShutdown(System.nanoTime() - 1);
+			}
 			if (configured.shutdown() || configured.shutdownProgress().phase() != PhantomSystem.StopPhase.DRAIN_PLAYERS)
 			{
-				throw new AssertionError("Expected STOP to wait for the first materialization");
+				throw new AssertionError("Expected STOP to reach the materialization drain");
 			}
-			final var pending = configured.shutdownProgress();
-			field(PhantomSystem.class, "_stopProgress").set(configured, new PhantomSystem.StopProgress(pending.phase(), pending.outcome(), pending.blocker(), System.nanoTime() - 1));
-			if (configured.shutdown() || configured.shutdownProgress().outcome() != PhantomSystem.StopOutcome.FAILED)
+			final var progress = configured.shutdownProgress();
+			if (serviceDeadlineFirst)
 			{
-				throw new AssertionError("An expired STOP must report failure");
+				if (progress.outcome() != PhantomSystem.StopOutcome.FAILED || !progress.blocker().startsWith("materialization:"))
+				{
+					throw new AssertionError("STOP did not observe the failed materialization drain");
+				}
+			}
+			else
+			{
+				field(PhantomSystem.class, "_stopProgress").set(configured, new PhantomSystem.StopProgress(progress.phase(), progress.outcome(), progress.blocker(), System.nanoTime() - 1));
+				if (configured.shutdown() || configured.shutdownProgress().outcome() != PhantomSystem.StopOutcome.FAILED)
+				{
+					throw new AssertionError("An expired STOP must report failure");
+				}
 			}
 			if (PhantomSystem.shutdownIfStarted() || !PhantomSystem.hasConfiguredInstance())
 			{
