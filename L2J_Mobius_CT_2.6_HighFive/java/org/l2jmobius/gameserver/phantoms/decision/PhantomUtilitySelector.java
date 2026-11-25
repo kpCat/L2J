@@ -33,6 +33,7 @@ public final class PhantomUtilitySelector
 		final List<CandidateEvaluation> evaluations = new ArrayList<>(Math.min(candidates.size(), PhantomCandidateRegistry.MAX_CANDIDATES));
 		PhantomDecisionCandidate winner = null;
 		int winningScore = -1;
+		int winningPreference = 0;
 		int evaluated = 0;
 		int blocked = 0;
 		int failed = 0;
@@ -61,6 +62,7 @@ public final class PhantomUtilitySelector
 			}
 
 			long weightedScore = 0;
+			long weightedPreference = 0;
 			long totalWeight = 0;
 			String reasonKey = "candidate.scored";
 			boolean candidateFailed = false;
@@ -75,6 +77,7 @@ public final class PhantomUtilitySelector
 						break;
 					}
 					weightedScore += (long) result.score() * weighted.weight();
+					weightedPreference += (long) result.preference() * weighted.weight();
 					totalWeight += weighted.weight();
 					reasonKey = result.reasonKey();
 				}
@@ -91,17 +94,39 @@ public final class PhantomUtilitySelector
 			}
 			evaluated++;
 			final int score = (int) (weightedScore / totalWeight);
+			final int preference = (int) Math.floorDiv(weightedPreference, totalWeight);
 			final EvaluationStatus status = score >= candidate.minimumAcceptedScore() ? EvaluationStatus.ELIGIBLE : EvaluationStatus.BELOW_THRESHOLD;
 			evaluations.add(new CandidateEvaluation(candidate.key(), score, status, reasonKey));
-			if ((status == EvaluationStatus.ELIGIBLE) && ((score > winningScore) || ((score == winningScore) && ((winner == null) || (candidate.key().compareTo(winner.key()) < 0)))))
+			if (status == EvaluationStatus.ELIGIBLE && (score > winningScore || score == winningScore
+				&& (preference > winningPreference || preference == winningPreference && preferredTie(candidate, winner, context, preference))))
 			{
 				winner = candidate;
 				winningScore = score;
+				winningPreference = preference;
 			}
 		}
 		evaluations.sort(Comparator.comparingInt(CandidateEvaluation::score).reversed().thenComparing(CandidateEvaluation::candidateKey));
 		final List<CandidateEvaluation> bounded = List.copyOf(evaluations.subList(0, Math.min(MAX_EXPLANATIONS, evaluations.size())));
 		return new Selection(winner, winningScore, bounded, evaluated, blocked, failed);
+	}
+
+	private static boolean preferredTie(PhantomDecisionCandidate candidate, PhantomDecisionCandidate winner, PhantomPlanningContext context, int preference)
+	{
+		if (winner == null) { return true; }
+		if (preference < 0)
+		{
+			final long episode = context.profileId() * 0x9e3779b97f4a7c15L + context.goal().goalId();
+			final int tie = Long.compareUnsigned(episodeRank(episode, candidate.key()), episodeRank(episode, winner.key()));
+			if (tie != 0) { return tie > 0; }
+		}
+		return candidate.key().compareTo(winner.key()) < 0;
+	}
+
+	private static long episodeRank(long episode, String key)
+	{
+		long rank = (episode ^ key.hashCode()) * 0xbf58476d1ce4e5b9L;
+		rank = (rank ^ (rank >>> 30)) * 0x94d049bb133111ebL;
+		return rank ^ (rank >>> 31);
 	}
 
 	public enum EvaluationStatus

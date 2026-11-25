@@ -61,6 +61,12 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandler;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector;
+import org.l2jmobius.gameserver.phantoms.population.PhantomOrdinaryActivityPreference;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Pace;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Personality;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
 
 public final class PhantomDecisionCoreSuite implements PhantomTestSuite
@@ -87,6 +93,8 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		registry.add("11-handler-registry-seal-and-order", _ -> testHandlerRegistry());
 		registry.add("12-integer-weighted-floor", _ -> testIntegerScore());
 		registry.add("13-deterministic-ascii-tie", _ -> testTieBreak());
+		registry.add("13b-ordinary-activity-preference-after-eligibility", _ -> testOrdinaryActivityPreference());
+		registry.add("13c-assigned-grinder-and-trader-choose-different-activities", _ -> testAssignedOrdinaryPreference());
 		registry.add("14-capability-block-before-consideration", _ -> testCapabilityBlocksFirst());
 		registry.add("15-threshold-rejects-candidate", _ -> testThreshold());
 		registry.add("16-consideration-exception-isolated", _ -> testConsiderationException());
@@ -325,6 +333,45 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 			candidate("candidate.z", 500, context -> plan("candidate.z", context.goal().goalId(), context.logicalNowNanos(), 1)),
 			candidate("candidate.a", 500, context -> plan("candidate.a", context.goal().goalId(), context.logicalNowNanos(), 1))), planning());
 		PhantomAssertions.assertEquals("candidate.a", selection.candidate().key(), "Exact utility tie did not use ASCII key ascending.");
+	}
+
+	private void testOrdinaryActivityPreference()
+	{
+		final var context = planning();
+		final var selector = new PhantomUtilitySelector();
+		final var farm = ordinaryCandidate("candidate.farm", 1000, -40);
+		final var supplies = ordinaryCandidate("candidate.supplies", 1000, -20);
+		final var unavailable = ordinaryCandidate("candidate.unavailable", 999, -1);
+		final var recovery = candidate("candidate.z.recovery", 1000, context2 -> plan("candidate.z.recovery", context2.goal().goalId(), context2.logicalNowNanos(), 1));
+		PhantomAssertions.assertEquals(supplies, selector.select(List.of(farm, supplies, unavailable), context).candidate(), "Preference must rank eligible voluntary offers.");
+		PhantomAssertions.assertEquals(recovery, selector.select(List.of(farm, supplies, recovery), context).candidate(), "Voluntary preparation must yield to required work.");
+	}
+
+	private PhantomDecisionCandidate ordinaryCandidate(String key, int score, int preference)
+	{
+		return new PhantomDecisionCandidate(key, Set.of("goal.test"), Set.of(PhantomActivityState.WARM), List.of(), List.of(new PhantomWeightedConsideration("score.ordinary", 1, _ -> new PhantomConsideration.Evaluation(score, "score.ordinary", preference))), 1000, context -> plan(key, context.goal().goalId(), context.logicalNowNanos(), 1));
+	}
+
+	private void testAssignedOrdinaryPreference()
+	{
+		final var grinder = new PhantomOrdinaryActivityPreference(_ -> ordinaryAssignment(Personality.GRINDER, Pace.FAST), null);
+		final var trader = new PhantomOrdinaryActivityPreference(_ -> ordinaryAssignment(Personality.TRADER, Pace.CASUAL), null);
+		final var neutral = new PhantomOrdinaryActivityPreference(_ -> null, null);
+		final var context = planning();
+		final var selector = new PhantomUtilitySelector();
+		for (var preference : List.of(grinder, trader, neutral))
+		{
+			final var farm = ordinaryCandidate("candidate.farm", 1000, preference.farm(context.profileId(), true));
+			final var trade = ordinaryCandidate("candidate.trade", 1000, preference.preparation(context.profileId(), true));
+			final var best = selector.select(List.of(trade, farm), context).candidate();
+			PhantomAssertions.assertEquals(preference == trader ? trade : farm, best, "The same executable farm and trade should respect the assigned profile and an existing farm session.");
+		}
+	}
+
+	private PhantomPopulationEcologyState ordinaryAssignment(Personality personality, Pace pace)
+	{
+		return new PhantomPopulationEcologyState("0".repeat(64), Preset.values()[0], 1, 1, 0, 0, 0, 0, pace, 5000, 60, personality,
+			Map.of(1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0), "schedule", Disposition.MANAGED, 0, 0, "", 0, 0, 0, "");
 	}
 
 	private void testCapabilityBlocksFirst()

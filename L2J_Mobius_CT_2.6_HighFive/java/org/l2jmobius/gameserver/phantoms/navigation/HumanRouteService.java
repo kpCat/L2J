@@ -668,6 +668,17 @@ public final class HumanRouteService
 			text.append("work_").append(profileId).append('=').append(work.substring(0, Math.min(352, work.length())).replace('\r', ' ').replace('\n', ' ')).append('\n');
 		}
 		if (_farmProfiles.isEmpty()) { return text.toString(); }
+		final var census = PhantomSystem.operatorCoordinationCensus();
+		if (!census.isEmpty())
+		{
+			text.append("population=");
+			for (String key : List.of("durableManaged", "calendarActive", "scheduledEligible", "presenceAdmitted", "ordinaryWorld", "ordinaryActionAdmission",
+				"scoutWorld", "nativeOfflineMerchants", "humanOnline", "retainedPhysicalSlots", "physicalTarget", "physicalCap", "physicalTargetReason"))
+			{
+				text.append(key).append(':').append(census.get(key)).append(',');
+			}
+			text.setCharAt(text.length() - 1, '\n');
+		}
 		final var sample = new java.util.LinkedHashSet<>(_farmProfiles);
 		sample.addAll(PhantomSystem.operatorNativeOrdinaryProfiles());
 		int recorded = 0;

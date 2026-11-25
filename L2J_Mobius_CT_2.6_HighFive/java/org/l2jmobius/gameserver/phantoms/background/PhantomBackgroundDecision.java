@@ -47,6 +47,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
+import org.l2jmobius.gameserver.phantoms.population.PhantomOrdinaryActivityPreference;
 
 /**
  * Decision adapter for one explicit persisted farm.background goal. Visible
@@ -143,6 +144,11 @@ public final class PhantomBackgroundDecision
 
 	public void registerCandidates(PhantomCandidateRegistry registry)
 	{
+		registerCandidates(registry, null);
+	}
+
+	public void registerCandidates(PhantomCandidateRegistry registry, PhantomOrdinaryActivityPreference preference)
+	{
 		Objects.requireNonNull(registry, "registry");
 		registry.register(new PhantomDecisionCandidate(
 			PhantomBackgroundGoalSpec.CANDIDATE_KEY,
@@ -155,7 +161,9 @@ public final class PhantomBackgroundDecision
 				final boolean visible = visibleEligible(context.effectiveState(), directive);
 				final boolean recoverable = recoveryReady(context, directive);
 				final boolean executable = visible || (directive.kind() == DirectiveKind.FARM) || (directive.kind() == DirectiveKind.TRAVEL) || ((directive.kind() == DirectiveKind.RECOVER) && recoverable);
-				return new PhantomConsideration.Evaluation(executable ? 1000 : 0, executable ? "background.explicit.ready" : "background.explicit.blocked");
+				final int rank = preference != null && visible && "recovery.not_dead".equals(directive.reason())
+					? preference.farm(context.profileId(), _visibleRunning.apply(context.profileId(), context.goal())) : 0;
+				return new PhantomConsideration.Evaluation(executable ? 1000 : 0, executable ? "background.explicit.ready" : "background.explicit.blocked", rank);
 			})),
 			1000,
 			this::plan));

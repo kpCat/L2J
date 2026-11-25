@@ -25,11 +25,21 @@ public interface PhantomConsideration
 {
 	Evaluation evaluate(PhantomPlanningContext context);
 
-	record Evaluation(int score, String reasonKey)
+	/** Negative preference ranks voluntary activity after equal-scoring ordinary priority work. */
+	record Evaluation(int score, String reasonKey, int preference)
 	{
+		public Evaluation(int score, String reasonKey)
+		{
+			this(score, reasonKey, 0);
+		}
+
 		public Evaluation
 		{
 			reasonKey = PhantomDecisionKey.require(reasonKey, "Consideration reason key");
+			if (preference < -100 || preference > 0)
+			{
+				throw new IllegalArgumentException("Activity preference must be in -100..0.");
+			}
 		}
 	}
 }

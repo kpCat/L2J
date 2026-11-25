@@ -883,7 +883,7 @@ public final class PhantomSystem
 				_questInstanceService.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.ownsAutomaticIntent(profileId, root) || _learningJourney.ownsAutomaticIntent(profileId, root));
 				_questInstanceService.useFieldReturn((context, intent) -> _learningJourney.returnCareerToField(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos()), _learningJourney::suspendCareerReturn);
-				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || _questInstanceService.ownsAutonomousIntent(profileId, root));
+				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsRequiredPreparationOrOwns(profileId, root) || _questInstanceService.ownsAutonomousIntent(profileId, root));
 				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService)));
 				if (!_questInstanceService.start()) { throw new IllegalStateException("Phantom quest and instance service could not enter the running state."); }
 				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }
@@ -1001,12 +1001,14 @@ public final class PhantomSystem
 				final PhantomPopulationDecision populationDecision = new PhantomPopulationDecision(_populationManager);
 				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
+				final var ordinaryPreference = new org.l2jmobius.gameserver.phantoms.population.PhantomOrdinaryActivityPreference(
+					id -> _populationEcology == null ? null : _populationEcology.find(id).orElse(null), socialCatalog);
 				farmingDecision.registerCandidates(candidateRegistry);
 				acquisitionDecision.registerCandidates(candidateRegistry);
 				economyDecision.registerCandidates(candidateRegistry);
 				multipartyEconomyDecision.registerCandidates(candidateRegistry);
 				commerceDecision.registerCandidates(candidateRegistry);
-				backgroundDecision.registerCandidates(candidateRegistry);
+				backgroundDecision.registerCandidates(candidateRegistry, ordinaryPreference);
 				populationDecision.registerCandidates(candidateRegistry);
 				partyDecision.registerCandidates(candidateRegistry);
 				clanDecision.registerCandidates(candidateRegistry);
@@ -1015,7 +1017,7 @@ public final class PhantomSystem
 				siegeDecision.registerCandidates(candidateRegistry);
 				questInstanceDecision.registerCandidates(candidateRegistry);
 				_learningJourney.registerCandidates(candidateRegistry);
-				_supplyJourney.registerCandidates(candidateRegistry);
+				_supplyJourney.registerCandidates(candidateRegistry, ordinaryPreference);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -2878,7 +2880,12 @@ public final class PhantomSystem
 		if (configured == null || configured._materializationService == null || configured._populationManager == null) { return Map.of(); }
 		final var world = java.util.List.copyOf(World.getInstance().getPlayers());
 		final var lifecycle = configured._materializationService.snapshot();
+		final var ordinary = lifecycle.materializations().stream().filter(entry -> entry.worldPresent() && !configured.physicalScoutReserved(entry.profileId())).toList();
+		final var ordinaryIds = ordinary.stream().map(entry -> entry.characterObjectId()).collect(java.util.stream.Collectors.toSet());
 		final var managed = lifecycle.materializations().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.characterObjectId()).collect(java.util.stream.Collectors.toSet());
+		final long scoutsWorld = world.stream().filter(player -> (player.isDedicatedGeoScout() && configured._materializationService.ownsCharacterObjectId(player.getObjectId()))
+			|| (managed.contains(player.getObjectId()) && !ordinaryIds.contains(player.getObjectId()))).count();
+		world.stream().filter(Player::isDedicatedGeoScout).map(Player::getObjectId).filter(configured._materializationService::ownsCharacterObjectId).forEach(managed::add);
 		final var merchants = configured._offlineMerchantService == null ? java.util.Set.<Integer>of() : java.util.Set.copyOf(configured._offlineMerchantService.characterIds());
 		final var managedWorld = world.stream().filter(player -> managed.contains(player.getObjectId())).toList();
 		final var humans = world.stream().filter(player -> !managed.contains(player.getObjectId()) && !merchants.contains(player.getObjectId()) && humanObserver(player)).toList();
@@ -2890,13 +2897,16 @@ public final class PhantomSystem
 		final var pending = configured._scheduler.list().stream().filter(slot -> slot.requestedState() == org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.ACTIVE && !physicalProfiles.contains(slot.profileId())).toList();
 		final Map<String, Long> denied = pending.stream().collect(java.util.stream.Collectors.groupingBy(slot -> slot.lastTransitionReason().isBlank() ? "WAIT_UNKNOWN" : slot.lastTransitionReason(), java.util.TreeMap::new, java.util.stream.Collectors.counting()));
 		final Map<String, Object> result = new java.util.LinkedHashMap<>();
-		result.put("durableManaged", configured._populationManager.snapshot().managed()); result.put("scheduledEligible", admitted.eligibleActive()); result.put("presenceAdmitted", admitted.admittedActive());
+		final int ordinaryWorld = (int) world.stream().filter(player -> ordinaryIds.contains(player.getObjectId())).count();
+		result.put("durableManaged", configured._populationManager.snapshot().managed()); result.put("calendarActive", admitted.desiredActive()); result.put("scheduledEligible", admitted.eligibleActive()); result.put("presenceAdmitted", admitted.admittedActive());
 		result.put("logicalPartyCount", groups.size()); result.put("logicalPartyMembers", groups.stream().mapToInt(row -> row.group().members().size()).sum());
 		result.put("logicalInventoryComplete", configured._logicalParties != null && configured._logicalParties.inventoryComplete());
 		result.put("materializedManaged", worldCounts.get("materializedManaged").intValue()); result.put("physicalTarget", configured.physicalTarget()); result.put("physicalCap", lifecycle.physicalCeiling());
+		result.put("ordinaryWorld", ordinaryWorld); result.put("scoutWorld", scoutsWorld);
+		result.put("ordinaryActionAdmission", ordinary.stream().filter(entry -> entry.actionAdmissionOpen() && worldIds.contains(entry.characterObjectId())).count());
 		result.put("occupiedPhysicalSlots", lifecycle.occupiedSlots()); result.put("retainedPhysicalSlots", Math.max(0, lifecycle.occupiedSlots() - managedWorld.size()));
-		result.put("physicalTargetDeficit", Math.max(0, configured.physicalTarget() - managedWorld.size()));
-		result.put("physicalTargetReason", managedWorld.size() >= configured.physicalTarget() ? "TARGET_MET"
+		result.put("physicalTargetDeficit", Math.max(0, configured.physicalTarget() - ordinaryWorld));
+		result.put("physicalTargetReason", ordinaryWorld >= configured.physicalTarget() ? "TARGET_MET"
 			: lifecycle.occupiedSlots() >= lifecycle.physicalCeiling() ? "WAIT_PHYSICAL_CAPACITY"
 			: configured._populationManager.snapshot().managed() < configured.physicalTarget() ? "INSUFFICIENT_DURABLE_MANAGED"
 			: admitted.eligibleActive() < configured.physicalTarget() ? "WAIT_CALENDAR_OR_READINESS"
