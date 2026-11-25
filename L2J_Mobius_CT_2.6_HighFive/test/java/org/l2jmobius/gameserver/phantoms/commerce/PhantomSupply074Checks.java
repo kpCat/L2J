@@ -2,7 +2,13 @@
 package org.l2jmobius.gameserver.phantoms.commerce;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.LongStream;
+
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 
@@ -11,6 +17,17 @@ public final class PhantomSupply074Checks
 {
 	public static void main(String[] args)
 	{
+		final long started = 1_000_000L;
+		final long expiredAt = started + TimeUnit.DAYS.toMillis(1);
+		final var paused = new PhantomGoal(1, PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE,
+			new PhantomDomainRef("profile", "1"), new PhantomDomainRef("item", "113"), 1, 0, "equipment.buy", List.of(), null,
+			"supplies.autonomous", 500, 0, 100, started + 60_000,
+			Map.of("journey.started", started, "journey.paused", started + 10_000, "journey.remaining", 50_000L),
+			"supplies.equipment.prepare", 1);
+		PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.expiredOrdinaryIntent(paused, started), "A future pause cannot trigger cold settlement.");
+		PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.expiredOrdinaryIntent(paused, expiredAt - 1), "A resumable paused journey must keep its remaining budget.");
+		PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.expiredOrdinaryIntent(paused, expiredAt), "An expired ordinary journey must reach the SOLO recovery checkpoint even while the Player is absent.");
+
 		final var calls = new java.util.concurrent.atomic.AtomicInteger();
 		final java.util.function.Supplier<java.util.Optional<String>> gear = () -> { calls.incrementAndGet(); return java.util.Optional.of("new.equipment"); };
 		PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.optionalPreparation(true, gear).isEmpty(), "An accepted physical rendezvous started another optional equipment journey.");

@@ -3019,6 +3019,25 @@ public final class PhantomSystem
 		return Map.copyOf(result);
 	}
 
+	/** Passive work and preparation facts for the operator's already selected farm profiles. */
+	public static synchronized String operatorFarmWork(long profileId)
+	{
+		final var configured = _configuredInstance;
+		if (configured == null || configured._state != State.RUNNING || configured._populationManager == null) { return "unavailable"; }
+		final var admission = configured._populationManager.admissionProfile(profileId).orElse(null);
+		if (admission == null) { return "unknown_profile"; }
+		final var activity = configured._scheduler.find(profileId).orElse(null);
+		final var decision = configured._decisionEngine.find(profileId).orElse(null);
+		final var ecology = configured._populationEcology == null ? null : configured._populationEcology.dueSnapshot(profileId);
+		return "calendar:" + admission.desiredState() + ",admission:" + admission.reason()
+			+ ",readiness:" + (ecology == null ? "disabled" : ecology.reason())
+			+ (activity == null ? "" : ",state:" + activity.effectiveState() + ",requested:" + activity.requestedState() + ",transition:" + activity.lastTransitionReason())
+			+ (decision == null ? "" : ",goal:" + decision.goalType() + "." + decision.goalRevision() + ",candidate:" + decision.selectedCandidateKey() + ",result:" + decision.lastResult() + ",decisionReason:" + decision.reasonKey())
+			+ ",preparation:" + configured._historicalBackgroundService.visiblePreparationStage(profileId)
+			+ ",travel:" + configured._visibleFarmTravel.reason(profileId)
+			+ ",supply:" + configured._supplyJourney.reason(profileId);
+	}
+
 	/** Read-only test of the production prewarm gates for a consented human point. */
 	public static synchronized boolean operatorCanPrewarmAt(long profileId, PhantomTopologyPoint human)
 	{
@@ -3930,9 +3949,16 @@ public final class PhantomSystem
 	private PhantomDomainRef executionRecoveryDemand(long id)
 	{
 		final var stored = _commerceReceiptStore.find(id).orElse(null); final var receipt = stored == null ? null : stored.receipt();
-		if (stored != null) { _executionAdmission.blocker(id, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE, stored.rowVersion(), !receipt.state().terminal() || receipt.state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT); }
-		return receipt != null && (!receipt.state().terminal() || receipt.state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT)
-			? org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id) : null;
+		final boolean receiptPending = receipt != null && (!receipt.state().terminal() || receipt.state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT);
+		if (stored != null) { _executionAdmission.blocker(id, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE, stored.rowVersion(), receiptPending); }
+		final var solo = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id);
+		if (receiptPending) { return solo; }
+		// An expired paused supply child cannot request a Player, but still fences historical authority.
+		// The existing SOLO recovery checkpoint retires it under the native absence and receipt guards.
+		return _executionControl != null && solo.equals(_executionControl.owner(id)) && !_partyCoordinator.blocksBackground(id)
+			&& _materializationService.find(id).isEmpty() && _populationManager.admissionProfile(id)
+				.filter(fact -> fact.calendarOnline() && fact.desiredState() == PhantomActivityState.ACTIVE).isPresent()
+			&& _supplyJourney.expiredOrdinaryIntent(id, System.currentTimeMillis()) ? solo : null;
 	}
 	static org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort executionControlChain(java.util.List<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort> ports)
 	{
@@ -4125,8 +4151,10 @@ public final class PhantomSystem
 
 	private org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand currentPhysicalDemand(long profileId)
 	{
-		if (_populationManager == null || _materializationService == null || !_populationManager.admissionProfile(profileId).map(fact -> fact.calendarOnline()
-			&& fact.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).orElse(false)) { return null; }
+		if (_populationManager == null || _materializationService == null) { return null; }
+		final var admission = _populationManager.admissionProfile(profileId).orElse(null);
+		if (admission == null || !admission.calendarOnline()
+			|| admission.populationState() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY) { return null; }
 		final long now = System.currentTimeMillis();
 		final var scouts = _physicalGeoScouts;
 		if (scouts != null && physicalScoutReserved(profileId))
@@ -4145,6 +4173,9 @@ public final class PhantomSystem
 				&& source != null && source.worldPresent() && source.materializedAtNanos() == wake.sourceEpoch()) { return wake; }
 			_logicalWakeDemands.remove(profileId, wake);
 		}
+		// Ambient preparation competes for the ordinary ACTIVE target. Other calendar states
+		// can still use their explicit human, accepted journey or historical context demand.
+		if (admission.desiredState() != PhantomActivityState.ACTIVE) { return null; }
 		final int occupied = ordinaryOccupiedPhysicalSlots(), target = physicalTarget();
 		return org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(profileId,occupied,target,
 			occupied >= target && _materializationService.find(profileId).map(entry -> entry.worldPresent()).orElse(false),now);
@@ -4153,20 +4184,23 @@ public final class PhantomSystem
 	/** The calendar stays Background. A bounded ambient page requests ACTIVE through the ordinary reconcile gate. */
 	private void publishAmbientTargets(List<Long> page)
 	{
-		int remaining = physicalTarget() - ordinaryOccupiedPhysicalSlots();
-		if (remaining <= 0 || page.isEmpty()) { return; }
+		final int target = physicalTarget();
+		if (target == 0 || page.isEmpty()) { return; }
+		int remaining = target - ordinaryOccupiedPhysicalSlots();
 		final long sequence = ++_ambientSignalSequence;
 		for (long id : page)
 		{
-			if (physicalScoutReserved(id) || _materializationService.find(id).isPresent()) { continue; }
+			if (physicalScoutReserved(id)) { continue; }
+			final var lifetime = _materializationService.find(id).orElse(null);
+			if (lifetime == null ? remaining <= 0 : !lifetime.worldPresent() || !lifetime.actionAdmissionOpen()) { continue; }
 			final var admission = _populationManager.admissionProfile(id).orElse(null);
 			if (admission == null || !admission.admitted()) { continue; }
 			final var demand = currentPhysicalDemand(id);
 			final var signal = demand == null ? null : demand.ambientSignal(admission.calendarOnline(), admission.admitted(), sequence, System.currentTimeMillis());
 			if (signal != null)
 			{
-				_scheduler.submitSignal(id, signal);
-				if (--remaining == 0) { break; }
+				final var status = _scheduler.submitSignal(id, signal).status();
+				if (lifetime == null && (status == PhantomScheduler.SignalStatus.ACCEPTED || status == PhantomScheduler.SignalStatus.COALESCED)) { remaining--; }
 			}
 		}
 	}

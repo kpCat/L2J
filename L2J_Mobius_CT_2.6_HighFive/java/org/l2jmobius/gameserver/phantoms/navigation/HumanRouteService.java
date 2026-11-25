@@ -664,6 +664,8 @@ public final class HumanRouteService
 		final var text = new StringBuilder();
 		for (long profileId : _farmProfiles)
 		{
+			final String work = PhantomSystem.operatorFarmWork(profileId);
+			text.append("work_").append(profileId).append('=').append(work.substring(0, Math.min(512, work.length())).replace('\r', ' ').replace('\n', ' ')).append('\n');
 			final var actor = PhantomSystem.operatorMaterialization(profileId).orElse(null);
 			if (actor == null || !actor.worldPresent() || !actor.identityLeaseRetained()) { continue; }
 			final int objectId = actor.characterObjectId();

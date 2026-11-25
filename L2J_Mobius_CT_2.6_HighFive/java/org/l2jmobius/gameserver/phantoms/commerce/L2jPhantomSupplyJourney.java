@@ -297,6 +297,19 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	public boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root).isPresent(); }
 	public Optional<PhantomGoal> automaticIntent(long profileId) { return Optional.ofNullable(cached(profileId).goal); }
 
+	public boolean expiredOrdinaryIntent(long profileId, long now)
+	{
+		return _store.intent(profileId).filter(row -> expiredOrdinaryIntent(row.goal(), now)).isPresent();
+	}
+
+	static boolean expiredOrdinaryIntent(PhantomGoal child, long now)
+	{
+		return child.status() == PhantomGoalStatus.ACTIVE && PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(child.goalType())
+			&& "supplies.autonomous".equals(child.purposeKey()) && org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.valid(child)
+			&& child.constraints().getOrDefault("journey.started", 0L) <= now && child.constraints().getOrDefault("journey.paused", 0L) <= now
+			&& !alive(child, now);
+	}
+
 	public static boolean requiresSoloPreparation(PhantomGoal root, PhantomGoal child, PhantomCommerceReceipt.State receiptState)
 	{
 		return PhantomSupplyIntentStore.bound(child, root) && (child.status() == PhantomGoalStatus.ACTIVE || PhantomOfflineSupply.returning(child)
