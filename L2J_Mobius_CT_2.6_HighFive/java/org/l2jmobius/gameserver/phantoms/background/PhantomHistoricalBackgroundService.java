@@ -2083,7 +2083,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, combat.vitals(), baseline.position(), combat.combat(), loadout, baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
-			boolean spatialRecovery = returned || spatialWait != null
+			// A verified Return changes the real departure. Try ordinary travel from that departure
+			// before falling back to a local approach whose first WALK segment must be proved.
+			boolean spatialRecovery = !returned && spatialWait != null
 				&& !(freshLocal && Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), stored.goal()));
 			if (spatialCooldown && spatialRecovery) { return false; }
 			final boolean exactRouteRecovery = !historicalIdle && failures != null && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
@@ -2154,7 +2156,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
 			if (!replacement.ready() && sharedFarmSource == null && _visibleTravel != null
-				&& needsRecoveryApproach(spatialRecovery, exactRouteRecovery, historicalIdle, catchup.state().status()))
+				&& (returned || needsRecoveryApproach(spatialRecovery, exactRouteRecovery, historicalIdle, catchup.state().status())))
 			{
 				// Reuse a verified native approach when the historical idle or failed route
 				// has no viable ordinary itinerary. The existing Return remains the fallback.

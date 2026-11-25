@@ -665,7 +665,15 @@ public final class HumanRouteService
 		for (long profileId : _farmProfiles)
 		{
 			final String work = PhantomSystem.operatorFarmWork(profileId);
-			text.append("work_").append(profileId).append('=').append(work.substring(0, Math.min(512, work.length())).replace('\r', ' ').replace('\n', ' ')).append('\n');
+			text.append("work_").append(profileId).append('=').append(work.substring(0, Math.min(352, work.length())).replace('\r', ' ').replace('\n', ' ')).append('\n');
+		}
+		if (_farmProfiles.isEmpty()) { return text.toString(); }
+		final var sample = new java.util.LinkedHashSet<>(_farmProfiles);
+		sample.addAll(PhantomSystem.operatorNativeOrdinaryProfiles());
+		int recorded = 0;
+		for (long profileId : sample)
+		{
+			if (recorded == 4) { break; }
 			final var actor = PhantomSystem.operatorMaterialization(profileId).orElse(null);
 			if (actor == null || !actor.worldPresent() || !actor.identityLeaseRetained()) { continue; }
 			final int objectId = actor.characterObjectId();
@@ -692,6 +700,7 @@ public final class HumanRouteService
 				.append(",exp:").append(exp).append(",sp:").append(sp).append(",expGained:").append(progress.expGained()).append(",spGained:").append(progress.spGained())
 				.append(",killed:").append(targetIdentity(receipts.killTarget())).append(",rewarded:").append(targetIdentity(receipts.rewardTarget()))
 				.append(",settled:").append(targetIdentity(receipts.settledTarget())).append(",settledReward:").append(receipts.settledRewardSequence()).append('\n');
+			recorded++;
 		}
 		return text.toString();
 	}

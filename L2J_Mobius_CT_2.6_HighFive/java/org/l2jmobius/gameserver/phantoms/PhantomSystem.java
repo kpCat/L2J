@@ -3034,8 +3034,17 @@ public final class PhantomSystem
 			+ (activity == null ? "" : ",state:" + activity.effectiveState() + ",requested:" + activity.requestedState() + ",transition:" + activity.lastTransitionReason())
 			+ (decision == null ? "" : ",goal:" + decision.goalType() + "." + decision.goalRevision() + ",candidate:" + decision.selectedCandidateKey() + ",result:" + decision.lastResult() + ",decisionReason:" + decision.reasonKey())
 			+ ",preparation:" + configured._historicalBackgroundService.visiblePreparationStage(profileId)
+			+ ",recovery:" + configured._historicalBackgroundService.visibleRecoveryReason(profileId)
 			+ ",travel:" + configured._visibleFarmTravel.reason(profileId)
 			+ ",supply:" + configured._supplyJourney.reason(profileId);
+	}
+
+	public static synchronized List<Long> operatorNativeOrdinaryProfiles()
+	{
+		final var configured = _configuredInstance;
+		if (configured == null || configured._state != State.RUNNING || configured._materializationService == null) { return List.of(); }
+		return configured._materializationService.list().stream().filter(lifetime -> lifetime.worldPresent() && lifetime.actionAdmissionOpen()
+			&& !configured.physicalScoutReserved(lifetime.profileId())).map(lifetime -> lifetime.profileId()).sorted().limit(4).toList();
 	}
 
 	/** Read-only test of the production prewarm gates for a consented human point. */
@@ -4190,11 +4199,15 @@ public final class PhantomSystem
 		final long sequence = ++_ambientSignalSequence;
 		for (long id : page)
 		{
-			if (physicalScoutReserved(id)) { continue; }
+			if (!testRosterAllows(id) || physicalScoutReserved(id)) { continue; }
+			final var admission = _populationManager.admissionProfile(id).orElse(null);
+			if (admission == null || !admission.calendarOnline() || admission.desiredState() != PhantomActivityState.ACTIVE) { continue; }
+			// Ecology-fenced profiles can be SLEEPING in the scheduler. Let their owner reconcile
+			// accepted work before requiring a work tick or granting physical admission.
+			_executionControl.watch(id);
+			if (!admission.admitted()) { continue; }
 			final var lifetime = _materializationService.find(id).orElse(null);
 			if (lifetime == null ? remaining <= 0 : !lifetime.worldPresent() || !lifetime.actionAdmissionOpen()) { continue; }
-			final var admission = _populationManager.admissionProfile(id).orElse(null);
-			if (admission == null || !admission.admitted()) { continue; }
 			final var demand = currentPhysicalDemand(id);
 			final var signal = demand == null ? null : demand.ambientSignal(admission.calendarOnline(), admission.admitted(), sequence, System.currentTimeMillis());
 			if (signal != null)
