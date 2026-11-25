@@ -1,6 +1,7 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.tests.phantoms;
 
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
@@ -9,6 +10,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 import org.l2jmobius.gameserver.GameServer;
 import org.l2jmobius.gameserver.Shutdown;
@@ -38,6 +43,7 @@ public final class PhantomResilientActivity012Native
 	private static final String SCHEMA = "l2jmobiush5_phantom_test_012";
 	private static final String JDBC = "jdbc:mysql://127.0.0.1:33349/" + SCHEMA + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
 	private static final String ATTACKER = "test012attacker";
+	private static final PrintStream EVIDENCE = System.out;
 	private record Actor(long profile, int object, long epoch, Player player) { }
 	private record PartyGrant(Actor actor, Party party, long soloGeneration, long partyGeneration) { }
 
@@ -51,12 +57,13 @@ public final class PhantomResilientActivity012Native
 		{
 			GameServer.main(new String[0]);
 			booted = true;
+			retainStopEvidence();
 			final var profiles = PhantomProfileRepository.open();
 			final Path saved = root.resolve("activity012.saved");
 			final boolean seed = args[0].equals("seed");
 			final var before = seed ? null : Files.readString(saved).strip().split(" ");
 			final var actor = await("ORDINARY_NATIVE_ACTION", 60, () -> activeActor(profiles, before == null ? 0 : Long.parseLong(before[0])));
-			System.out.printf("NATIVE012_%s profile=%d object=%d epoch=%d pve=%s%n", args[0], actor.profile(), actor.object(), actor.epoch(), pve(actor.player()));
+			EVIDENCE.printf("NATIVE012_%s profile=%d object=%d epoch=%d pve=%s%n", args[0], actor.profile(), actor.object(), actor.epoch(), pve(actor.player()));
 			if (seed)
 			{
 				Files.writeString(saved, actor.profile() + " " + actor.object() + " " + actor.epoch());
@@ -79,19 +86,20 @@ public final class PhantomResilientActivity012Native
 				handoff(handoffs, soloGenerations);
 			}
 			require(PhantomSystem.shutdownIfStarted() && !PhantomSystem.hasConfiguredInstance(), "PHANTOM_DRAIN");
-			System.out.println("NATIVE012_PASS " + args[0]);
+			EVIDENCE.println("NATIVE012_PASS " + args[0]);
 		}
 		catch (Throwable failure)
 		{
-			System.out.println("NATIVE012_FAILED " + failure);
+			EVIDENCE.println("NATIVE012_FAILED " + failure);
+			failure.printStackTrace(EVIDENCE);
 			if (PhantomSystem.hasConfiguredInstance())
 			{
-				System.out.println("NATIVE012_STATUS " + PhantomSystem.operatorStatus());
+				EVIDENCE.println("NATIVE012_STATUS " + PhantomSystem.operatorStatus());
 				for (var profile : PhantomProfileRepository.open().listManagedAfter(PhantomPopulationState.COMPONENT_TYPE, 0, 8))
 				{
 					final long id = profile.profile().profileId();
 					final var life = PhantomSystem.operatorLifeProgress(id);
-					System.out.println("NATIVE012_ACTOR " + id + " walk=" + life.get("farm.travel.reason")
+					EVIDENCE.println("NATIVE012_ACTOR " + id + " walk=" + life.get("farm.travel.reason")
 						+ " preparation=" + life.get("historical.visiblePreparation") + " supply.reason=" + life.get("supply.reason")
 						+ " supply=" + life.get("supply") + " decision=" + life.get("decision"));
 				}
@@ -102,6 +110,25 @@ public final class PhantomResilientActivity012Native
 		{
 			if (booted) { Shutdown.getInstance().startShutdown(null, 0, false); }
 		}
+	}
+
+	private static void retainStopEvidence()
+	{
+		if (System.out == EVIDENCE) { return; }
+		// The game GUI redirects console streams. Keep the native runner's STOP evidence on the launcher stream.
+		final var output = new StreamHandler(EVIDENCE, new SimpleFormatter())
+		{
+			@Override public synchronized void publish(LogRecord record)
+			{
+				super.publish(record);
+				flush();
+			}
+
+			@Override public void close() { flush(); }
+		};
+		output.setFilter(record -> record.getMessage().startsWith("Phantom World stop failed:") || record.getMessage().startsWith("STOP_BLOCKED:"));
+		Logger.getLogger(PhantomSystem.class.getName()).addHandler(output);
+		Logger.getLogger(Shutdown.class.getName()).addHandler(output);
 	}
 
 	private static void verifyScope(Path root) throws Exception
@@ -174,14 +201,14 @@ public final class PhantomResilientActivity012Native
 			enemy.setTarget(phantom);
 			enemy.getAI().setIntention(Intention.ATTACK, phantom);
 			await("ACTUAL_ATTACK", 8, () -> phantom.recentPlayerAttackNanos(enemy.getObjectId()) > before ? phantom : null);
-			System.out.println("NATIVE012_ACTUAL_ATTACK object=" + phantom.getObjectId() + " attacker=" + enemy.getObjectId());
+			EVIDENCE.println("NATIVE012_ACTUAL_ATTACK object=" + phantom.getObjectId() + " attacker=" + enemy.getObjectId());
 			final Stage response = await("NATIVE_PVP_RESPONSE", 20, () -> store.load(actor.profile()).map(row -> row.encounter())
 				.filter(row -> row.source() == Source.ACTUAL_ATTACK && row.counterpart().currentObjectId() == enemy.getObjectId())
 				.filter(row -> row.stage() == Stage.ENGAGE && phantom.getTarget() == enemy && (phantom.isAttackingNow() || phantom.isCastingNow())
 					|| row.stage() == Stage.RETREAT && phantom.isMoving() && !oldMove.getAsBoolean())
 				.map(row -> row.stage()).orElse(null));
 			require(!oldMove.getAsBoolean() && !pve(phantom), "ROUTE_OR_PVE_AFTER_RESPONSE");
-			System.out.println("NATIVE012_RESPONSE " + response);
+			EVIDENCE.println("NATIVE012_RESPONSE " + response);
 		}
 		finally
 		{
@@ -192,7 +219,7 @@ public final class PhantomResilientActivity012Native
 		}
 		final Actor resumed = await("ORDINARY_RESUMED", 35, () -> activeActor(profiles, actor.profile()));
 		require(resumed.epoch() == actor.epoch(), "PREEMPTION_RECYCLED_LIFETIME");
-		System.out.println("NATIVE012_RESUMED profile=" + actor.profile() + " epoch=" + resumed.epoch());
+		EVIDENCE.println("NATIVE012_RESUMED profile=" + actor.profile() + " epoch=" + resumed.epoch());
 	}
 
 	private static void handoff(PhantomExecutionHandoffStore store, Map<Long, Long> soloGenerations) throws Exception
@@ -221,7 +248,7 @@ public final class PhantomResilientActivity012Native
 		final var solo = await("RETURN_TO_SOLO", 35, () -> store.load(actor.profile()).map(PhantomExecutionHandoffStore.Stored::state)
 			.filter(state -> state.phase() == Phase.ACTIVE && state.owner().namespace().equals("execution.solo")
 				&& state.generation() > grant.partyGeneration() && actor.player().getParty() == null).orElse(null));
-		System.out.printf("NATIVE012_HANDOFF profile=%d soloBefore=%d party=%d soloAfter=%d%n",
+		EVIDENCE.printf("NATIVE012_HANDOFF profile=%d soloBefore=%d party=%d soloAfter=%d%n",
 			actor.profile(), grant.soloGeneration(), grant.partyGeneration(), solo.generation());
 	}
 

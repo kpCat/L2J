@@ -177,3 +177,13 @@
 - Mojibake-маркеры в изменённом отчёте проверены.
 - Escaped Cyrillic в изменённом отчёте проверен.
 - Использованы `git rev-parse HEAD` и `git archive --format=tar HEAD -- <fixture inputs>` для точных входов. Scope проверен через `git diff --name-only -- <report>`, `git -c core.whitespace=cr-at-eol diff --check -- <report>`, `git diff --cached --name-only` и `git ls-remote --exit-code origin refs/heads/feature/phantom-world`. Публикация ограничена `git commit --only -m "Verify persisted cold resume on Phantom World 012 candidate" -- <report>`, `git diff-tree --no-commit-id --name-only -r HEAD`, `git push origin HEAD:refs/heads/feature/phantom-world` и повторной сверкой `git ls-remote`.
+
+### Диагностика нативного runner при включённом GUI
+
+- В прошлом TEST включённый `Gui` перенаправлял `System.out` и `System.err`. Launcher сохранил только `Running in GUI mode`. Точная причина `Phantom World stop failed` осталась в окне игрового сервера. Нативный `Test-Coordination130.ps1` использует `EnableGUI=False` и привязан к отдельному runtime, SQL-конфигу и защищённым хешам TASK130.
+- Runner 012 удерживает исходный консольный поток для `NATIVE012_*` и исключения. При перенаправлении GUI в этот поток дополнительно поступают существующие строки `Phantom World stop failed` и `STOP_BLOCKED` из логгеров `PhantomSystem` и `Shutdown`. В обычном консольном режиме используется прежний вывод сервера.
+- `javac -encoding UTF-8 -cp <candidate and binary dependencies> -d <scratch>/classes <runner>` и `javap -p -c` завершились с exit 0. В байткоде подтверждены оба логгера и фильтр сообщений. Нативный маршрут выдачи логов и игровая приёмка не запускались. Production JAR `24256D6D4813C809FDF54F868D5786A3FE5E16227D46CF430812D15D3722E652` переиспользован.
+- Из `D:/Temp/Codex/PhantomWorld/012/native-receipt` удалено 31 767 байт, пять файлов. Кандидат, квитанции и точка возврата 011 сохранены. Новых процессов, backup и блокеров очистки нет. Bartz GameServer и LoginServer остались выключенными, MariaDB Bartz `33331` работает. MAIN не использовалась.
+- Mojibake-маркеры в изменённых файлах проверены.
+- Escaped Cyrillic в изменённых файлах проверен.
+- Scope ограничен runner и отчётом. Использованы `git rev-parse HEAD`, `git diff --name-only -- <exact paths>`, `git -c core.whitespace=cr-at-eol diff --check -- <exact paths>`, `git diff --cached --name-only`, `git ls-remote --exit-code origin refs/heads/feature/phantom-world`. Публикация использует `git commit --only -m "Preserve native STOP evidence in Phantom World 012 runner" -- <exact paths>`, `git diff-tree --no-commit-id --name-only -r HEAD`, `git push origin HEAD:refs/heads/feature/phantom-world` и повторную сверку `git ls-remote`.
