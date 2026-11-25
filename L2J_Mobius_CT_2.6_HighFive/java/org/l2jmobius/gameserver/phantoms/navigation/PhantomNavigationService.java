@@ -236,6 +236,15 @@ public final class PhantomNavigationService
 		return submit(request, true, false, null, Set.of(), Set.copyOf(blocked), true, false, null, new ItineraryWalk(List.copyOf(points)));
 	}
 
+	/** Common submission boundary for a group's first route and each replacement section. */
+	public Submission submitPartyRoute(PhantomNavigationRequest request, boolean farmWalk, boolean segmented,
+		List<PhantomNavigationPoint> section, Set<PhantomNavigationPoint> visited, Set<PhantomWalkCorridorPlanner.Edge> blocked)
+	{
+		if (!section.isEmpty()) { return submitItinerarySection(request, section, blocked); }
+		if (segmented) { return submitCrossRegionWalk(request, visited, blocked); }
+		return farmWalk ? submitWalkCorridor(request) : submit(request);
+	}
+
 	public Submission submitFarmSwim(PhantomNavigationRequest request, PhantomFarmSwimRoute.Geometry geometry, double speed, long availableMillis)
 	{
 		return submit(request, true, true, null, Set.of(), Set.of(), false, false,

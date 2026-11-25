@@ -133,8 +133,7 @@ public final class PhantomPartyRouteCoordinator
 		final long requestDeadline = segmented ? Math.min(deadline, now + _navigation.policy().defaultRequestDeadlineNanos()) : deadline;
 		final var request = new PhantomNavigationRequest(leader.ref().profileId(), origin, destination, now, requestDeadline, 100000);
 		pending._visited.add(origin);
-		final Submission submission = segmented ? _navigation.submitCrossRegionWalk(request, pending._visited, Set.of())
-			: farmWalk ? _navigation.submitWalkCorridor(request) : _navigation.submit(request);
+		final Submission submission = submitRoute(request, pending, List.of(), pending._visited, Set.of());
 		final RouteAttempt immediate = submission.status() == SubmissionStatus.COMPLETED
 			? completed(routeId, generation, destinationRef, submission.immediateResult(), topologyHash, farmWalk) : null;
 		if (segmented && immediate != null) { learnContinuation(pending, submission.requestId()); }
@@ -193,6 +192,7 @@ public final class PhantomPartyRouteCoordinator
 			return RouteAttempt.pending(pending._routeId, pending._generation, pending._destination);
 		}
 		final RouteAttempt attempt = completed(pending._routeId, pending._generation, pending._destination, result.get(), pending._topologyHash, pending._farmWalk);
+		final var itinerary = pending._finalPoint == null ? null : _navigation.consumeTravelPlan(result.get().requestId()).orElse(null);
 		synchronized (_stateLock)
 		{
 			if (!_pending.remove(groupId, pending))
@@ -201,7 +201,7 @@ public final class PhantomPartyRouteCoordinator
 			}
 			if (attempt.status() == AttemptStatus.READY)
 			{
-				if (pending._finalPoint != null) { learnContinuation(pending, pending._requestId); }
+				if (itinerary != null) { retainSections(pending, itinerary); }
 				rememberRoute(groupId, pending);
 			}
 			else
@@ -364,8 +364,7 @@ public final class PhantomPartyRouteCoordinator
 		if (deadline <= now || continuation._finalPoint.instanceId() != from.instanceId()) { return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED); }
 		final var target = guidance == null ? continuation._finalPoint : guidance.to();
 		final var request = new PhantomNavigationRequest(continuation._leaderProfileId, from, target, now, deadline, 100000);
-		final var submission = guidance == null ? _navigation.submitCrossRegionWalk(request, visited, blocked)
-			: _navigation.submitItinerarySection(request, guidance.points(), blocked);
+		final var submission = submitRoute(request, continuation, guidance == null ? List.of() : guidance.points(), visited, blocked);
 		if (submission.status() != SubmissionStatus.ACCEPTED)
 		{
 			_navigation.consume(submission.requestId());
@@ -381,6 +380,12 @@ public final class PhantomPartyRouteCoordinator
 		}
 		_navigation.cancel(continuation._leaderProfileId, submission.requestId());
 		return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED);
+	}
+
+	private Submission submitRoute(PhantomNavigationRequest request, PendingRoute owner, List<PhantomNavigationPoint> section,
+		Set<PhantomNavigationPoint> visited, Set<Edge> blocked)
+	{
+		return _navigation.submitPartyRoute(request, owner._farmWalk, owner._finalPoint != null, section, visited, blocked);
 	}
 
 	private RouteManifest acceptSection(String groupId, RouteManifest route, MemberSnapshot leader, PendingRoute continuation,
