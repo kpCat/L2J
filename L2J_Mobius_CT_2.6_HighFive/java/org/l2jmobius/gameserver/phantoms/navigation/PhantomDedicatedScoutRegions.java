@@ -49,6 +49,8 @@ final class PhantomDedicatedScoutRegions
 	private static final int[] SAMPLE_OFFSETS = {1032, 360, 1704};
 	private static final int SAMPLES_PER_LAYER = 256;
 	private static final int SAMPLE_COUNT = SAMPLES_PER_LAYER * SAMPLE_HEIGHTS.length * SAMPLE_OFFSETS.length;
+	private static final int PASSAGE_WIDTH = 2400;
+	private static final int[][] TILE_NEIGHBORS = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 
 	record Tile(int x, int y)
 	{
@@ -59,6 +61,21 @@ final class PhantomDedicatedScoutRegions
 		{
 			return point != null && point.instanceId() == 0 && point.x() >= worldX() && point.x() < worldX() + World.TILE_SIZE
 				&& point.y() >= worldY() && point.y() < worldY() + World.TILE_SIZE;
+		}
+
+		static Tile at(PhantomNavigationPoint point)
+		{
+			return new Tile(Math.floorDiv(point.x(), World.TILE_SIZE) + World.TILE_ZERO_COORD_X,
+				Math.floorDiv(point.y(), World.TILE_SIZE) + World.TILE_ZERO_COORD_Y);
+		}
+	}
+
+	private record Passage(Tile neighbor, PhantomNavigationPoint crossing)
+	{
+		boolean contains(PhantomNavigationPoint point)
+		{
+			return neighbor.contains(point) && Math.abs((long) point.x() - crossing.x()) <= PASSAGE_WIDTH
+				&& Math.abs((long) point.y() - crossing.y()) <= PASSAGE_WIDTH;
 		}
 	}
 
@@ -91,6 +108,7 @@ final class PhantomDedicatedScoutRegions
 		private long retryAfter;
 		private String reason = "UNTESTED";
 		private Assignment lease;
+		private Passage passage;
 		private boolean leaseSeeded;
 		private boolean leaseArrived;
 
@@ -234,8 +252,19 @@ final class PhantomDedicatedScoutRegions
 		final int cell = (136 + state.sample * 149) % SAMPLES_PER_LAYER;
 		final int layer = state.sample / SAMPLES_PER_LAYER;
 		final int offset = SAMPLE_OFFSETS[layer / SAMPLE_HEIGHTS.length];
-		final int x = state.tile.worldX() + ((cell / 16) << World.SHIFT_BY) + offset;
-		final int y = state.tile.worldY() + ((cell % 16) << World.SHIFT_BY) + offset;
+		int x = state.tile.worldX() + ((cell / 16) << World.SHIFT_BY) + offset;
+		int y = state.tile.worldY() + ((cell % 16) << World.SHIFT_BY) + offset;
+		// Keep most samples in the tile interior. A rotating border sample gives
+		// an admitted lease a practical starting point for an actual crossing.
+		if (state.sample % 4 == 3)
+		{
+			final var direction = TILE_NEIGHBORS[(state.sample / 4) % TILE_NEIGHBORS.length];
+			if (_byTile.containsKey(new Tile(state.tile.x() + direction[0], state.tile.y() + direction[1])))
+			{
+				if (direction[0] != 0) { x = state.tile.worldX() + (direction[0] > 0 ? World.TILE_SIZE - 520 : 520); }
+				if (direction[1] != 0) { y = state.tile.worldY() + (direction[1] > 0 ? World.TILE_SIZE - 520 : 520); }
+			}
+		}
 		return _oracle.project(x, y, SAMPLE_HEIGHTS[layer % SAMPLE_HEIGHTS.length]);
 	}
 
@@ -268,7 +297,28 @@ final class PhantomDedicatedScoutRegions
 
 	synchronized boolean tracks(Assignment assignment, PhantomNavigationPoint point)
 	{
-		return owns(assignment) && assignment.tile().contains(point) && currentGeneration();
+		if (!owns(assignment) || !currentGeneration()) { return false; }
+		final var passage = _byTile.get(assignment.tile()).passage;
+		return assignment.tile().contains(point) || passage != null && passage.contains(point);
+	}
+
+	synchronized boolean canCross(Assignment assignment, PhantomNavigationPoint from, PhantomNavigationPoint to)
+	{
+		if (!owns(assignment) || !currentGeneration() || !assignment.tile().contains(from)
+			|| from.instanceId() != to.instanceId() || from.distanceTo(to) > PhantomNativeTravelActions.LOCAL_WALK_DISTANCE) { return false; }
+		final var tile = assignment.tile();
+		final var next = Tile.at(to);
+		final var passage = _byTile.get(tile).passage;
+		return Math.abs(next.x() - tile.x()) + Math.abs(next.y() - tile.y()) == 1 && _byTile.containsKey(next)
+			&& (passage == null || passage.contains(to));
+	}
+
+	synchronized boolean admitCrossing(Assignment assignment, PhantomNavigationPoint from, PhantomNavigationPoint to)
+	{
+		if (!canCross(assignment, from, to)) { return false; }
+		final var state = _byTile.get(assignment.tile());
+		if (state.passage == null) { state.passage = new Passage(Tile.at(to), to); }
+		return state.passage.contains(to);
 	}
 
 	synchronized void seeded(Assignment assignment)
@@ -305,6 +355,7 @@ final class PhantomDedicatedScoutRegions
 		final var state = _byTile.get(assignment.tile());
 		_byActor.remove(assignment.actorId());
 		state.lease = null;
+		state.passage = null;
 		state.reason = reason != null && RELEASE_REASON.matcher(reason).matches() ? reason : "RELEASED";
 		if (backoff && currentGeneration()) { defer(state, nowMillis); }
 		_revision++;

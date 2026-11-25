@@ -51,7 +51,7 @@ public final class PhantomRouteLearning implements AutoCloseable
 
 	record Region(int x, int y)
 	{
-		private static Region of(PhantomNavigationPoint point) { return new Region(point.x() >> 15, point.y() >> 15); }
+		static Region of(PhantomNavigationPoint point) { return new Region(point.x() >> 15, point.y() >> 15); }
 		private String filename() { return "region-" + x + "_" + y + ".tsv"; }
 	}
 
@@ -182,7 +182,8 @@ public final class PhantomRouteLearning implements AutoCloseable
 					if (edge.from().instanceId() != 0 || !evidence.candidate() || evidence.successes() > 0 || evidence.retryAfter() > now || !permitted.test(edge)) { continue; }
 					final double distance = origin.distanceTo(edge.from());
 					if (distance > range) { continue; }
-					final double priority = Math.max(0, distance - Math.min(700, 3 * Math.abs(edge.to().z() - edge.from().z())))
+					final double crossing = Region.of(edge.from()).equals(Region.of(edge.to())) ? 0 : 1800;
+					final double priority = Math.max(0, distance - Math.min(700, 3 * Math.abs(edge.to().z() - edge.from().z()))) - crossing
 						+ 600 * Math.min(8, evidence.geometryFailures() + evidence.transientFailures());
 					if (priority < score || priority == score && encodeEdge(edge).compareTo(encodeEdge(best)) < 0)
 					{
@@ -273,6 +274,21 @@ public final class PhantomRouteLearning implements AutoCloseable
 		Set<Edge> blocked, long nowMillis, BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> walk, BooleanSupplier interrupted)
 	{
 		return new PhantomRouteGraph(_snapshot, request, policy, false, true, Set.of(), blocked, nowMillis, walk, interrupted).search();
+	}
+
+	List<PhantomNavigationPoint> itinerary(PhantomNavigationRequest request, Set<Edge> blocked, long nowMillis,
+		BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> connector, BooleanSupplier interrupted)
+	{
+		return itinerary(request, blocked, nowMillis, connector, interrupted,
+			(from, to) -> connector.test(from, to) ? List.of(to) : List.of(), false);
+	}
+
+	List<PhantomNavigationPoint> itinerary(PhantomNavigationRequest request, Set<Edge> blocked, long nowMillis,
+		BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> connector, BooleanSupplier interrupted,
+		java.util.function.BiFunction<PhantomNavigationPoint, PhantomNavigationPoint, List<PhantomNavigationPoint>> attach, boolean scoutDemand)
+	{
+		return PhantomRouteGraph.itinerary(_snapshot, request, blocked, nowMillis, connector, interrupted, attach,
+			gap -> { if (scoutDemand && find(gap) == null) { propose(gap); } });
 	}
 
 	LegTotals legTotals()

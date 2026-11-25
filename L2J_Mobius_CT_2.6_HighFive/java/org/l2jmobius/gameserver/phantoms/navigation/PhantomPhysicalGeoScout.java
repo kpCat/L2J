@@ -555,8 +555,29 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 	private void selectFrontier(Scout scout, PhantomRouteLearning memory, PhantomNavigationPoint from, long now)
 	{
 		scout.candidate = memory.scoutFrontier(from, System.currentTimeMillis(), edge -> !scout.recent.contains(edge.to())
-			&& inAssignment(scout, edge.from()) && inAssignment(scout, edge.to())
+			&& inAssignment(scout, edge.from()) && (inAssignment(scout, edge.to()) || dedicated() && _regions.canCross(scout.assignment, edge.from(), edge.to()))
 			&& _scouts.values().stream().noneMatch(other -> other != scout && edge.equals(other.candidate)));
+		if (dedicated() && scout.candidate != null && !inAssignment(scout, scout.candidate.to())
+			&& !_regions.admitCrossing(scout.assignment, scout.candidate.from(), scout.candidate.to())) { scout.candidate = null; }
+		if (dedicated() && scout.candidate == null)
+		{
+			for (var direction : DIRECTIONS)
+			{
+				final var hint = new PhantomNavigationPoint(from.x() + direction[0] * 1250, from.y() + direction[1] * 1250, from.z(), 0);
+				if (!_regions.canCross(scout.assignment, from, hint) || PhantomWalkCorridorPlanner.nearVisited(hint, scout.recent)) { continue; }
+				final var target = _geo.learnedSurface(hint, 384);
+				if (target == null) { continue; }
+				final var edge = new Edge(from, target);
+				final var previous = memory.find(edge);
+				if (previous != null && (previous.successes() > 0 || previous.retryAfter() > System.currentTimeMillis())) { continue; }
+				if (_regions.admitCrossing(scout.assignment, from, target))
+				{
+					memory.propose(edge);
+					scout.candidate = edge;
+					break;
+				}
+			}
+		}
 		if (scout.candidate != null)
 		{
 			scout.approaching = !near(from, scout.candidate.from());

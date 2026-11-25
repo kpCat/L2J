@@ -184,6 +184,101 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	}
 
 	public record TravelPlan(PhantomNavigationResult.Status status, PhantomTravelStrategy.Candidate candidate) { }
+
+	List<PhantomTravelStrategy.Stage> learnedSections(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation,
+		PhantomNavigationPolicy policy, LongSupplier clock, PhantomRouteLearning memory, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, double speed)
+	{
+		if (memory == null || request.origin().instanceId() != 0) { return List.of(); }
+		final long geo = GeoEngine.getInstance().generation(), zones = ZoneManager.getInstance().loadedGeneration();
+		final long sliceEnd = Math.min(request.deadlineLogicalNanos(), clock.getAsLong() + 250_000_000L);
+		final var nativeQueries = new java.util.concurrent.atomic.AtomicInteger();
+		final java.util.function.BiPredicate<PhantomNavigationPoint, PhantomNavigationPoint> walk =
+			(from, to) -> request.permitsWalkSegment(from, to) && canWalkLearnedFromStage(from, to, request.origin());
+		final java.util.function.BooleanSupplier interrupted = () -> cancellation.changedSince(0) || clock.getAsLong() >= sliceEnd
+			|| geo != GeoEngine.getInstance().generation() || zones != ZoneManager.getInstance().loadedGeneration();
+		final List<PhantomNavigationPoint> path = memory.itinerary(request, blocked, System.currentTimeMillis(),
+			walk, interrupted, (from, to) ->
+			{
+				if (walk.test(from, to)) { return List.of(to); }
+				if (interrupted.getAsBoolean() || nativeQueries.incrementAndGet() > 4
+					|| learnedSurface(to, 0) == null || Math.abs((long) from.z() - to.z()) > 384) { return List.of(); }
+				final var connector = new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(),
+					sliceEnd, request.maximumRouteDistance(), request.pveThreats());
+				final var proof = PhantomNativeRouteContract.normalize(from, to, findPath(connector, cancellation), policy,
+					PhantomNativeTravelActions.LOCAL_WALK_DISTANCE, (a, b) -> !blocked.contains(new PhantomWalkCorridorPlanner.Edge(a, b)) && walk.test(a, b),
+					() -> interrupted.getAsBoolean() ? PhantomNavigationResult.Status.DEADLINE_EXPIRED : PhantomNavigationResult.Status.PATH_FOUND);
+				return proof.waypoints();
+			}, true);
+		return PhantomTravelStrategy.walkSections(request.origin(), path, speed, policy.maximumWaypoints());
+	}
+
+	/** The bounded legacy planner still owns its callers. Ordinary travel also accepts a segmented itinerary. */
+	PhantomTravelStrategy.Candidate planItinerary(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation,
+		PhantomNavigationPolicy policy, LongSupplier clock, PhantomTravelStrategy.Options options, PhantomRouteLearning memory)
+	{
+		if (memory == null || request.origin().instanceId() != 0) { return null; }
+		final long sliceDeadline = Math.min(request.deadlineLogicalNanos(), clock.getAsLong() + 400_000_000L);
+		if (sliceDeadline <= request.submittedLogicalNanos() || clock.getAsLong() >= sliceDeadline) { return null; }
+		final var sliced = new PhantomNavigationRequest(request.profileId(), request.origin(), request.destination(), request.submittedLogicalNanos(),
+			sliceDeadline, request.maximumRouteDistance(), request.pveThreats());
+		final var walk = itineraryWalk(sliced, sliced.origin(), sliced.destination(), cancellation, policy, clock, memory, options, false);
+		PhantomTravelStrategy.Candidate best = walk.isEmpty() ? null : new PhantomTravelStrategy.Candidate("learned.walk", walk, true);
+		if (!options.gatekeeperAllowed() || cancellation.changedSince(0) || clock.getAsLong() >= sliceDeadline) { return best; }
+		final var transfers = new ArrayList<PhantomTravelStrategy.Stage>();
+		if (options.returnLanding() != null)
+		{
+			transfers.add(new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.RETURN_GK, request.origin(), options.returnLanding(),
+				List.of(), null, options.returnMillis(), 0, 0));
+		}
+		for (var leg : options.legs())
+		{
+			final long reserve = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, options.classIndex(), options.level());
+			if (reserve > options.adena() || !PhantomNativeTravelActions.available(leg)) { continue; }
+			final var endpoints = PhantomNativeTravelActions.gatekeeperEndpoints(leg);
+			transfers.add(new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.GK, endpoints.source(), endpoints.landing(), List.of(), leg, 0, reserve, 0));
+		}
+		final var ranked = transfers.stream().sorted(Comparator.comparingDouble(stage -> stage.millis()
+			+ 1000 * (request.origin().distanceTo(stage.from()) + stage.to().distanceTo(request.destination())) / options.speed())).limit(3).toList();
+		for (var transfer : ranked)
+		{
+			if (cancellation.changedSince(0) || clock.getAsLong() >= sliceDeadline) { break; }
+			final double lowerMillis = transfer.millis() + 1000 * (request.origin().distanceTo(transfer.from()) + transfer.to().distanceTo(request.destination())) / options.speed();
+			if (best != null && lowerMillis >= best.millis()) { continue; }
+			final var ingress = itineraryWalk(sliced, sliced.origin(), transfer.from(), cancellation, policy, clock, memory, options, true);
+			if (ingress.isEmpty()) { continue; }
+			final var egress = itineraryWalk(sliced, transfer.to(), sliced.destination(), cancellation, policy, clock, memory, options, true);
+			if (egress.isEmpty()) { continue; }
+			final var stages = new ArrayList<>(ingress);
+			stages.add(transfer);
+			stages.addAll(egress);
+			if (stages.size() > PhantomTravelStrategy.MAX_ITINERARY_SECTIONS) { continue; }
+			final var candidate = new PhantomTravelStrategy.Candidate(transfer.mode() == PhantomTravelStrategy.Mode.GK ? "learned.gk." + transfer.gatekeeper().id()
+				: "learned.return", stages, true);
+			if (best == null || candidate.millis() < best.millis()) { best = candidate; }
+		}
+		return best;
+	}
+
+	private List<PhantomTravelStrategy.Stage> itineraryWalk(PhantomNavigationRequest request, PhantomNavigationPoint from, PhantomNavigationPoint to,
+		PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomRouteLearning memory,
+		PhantomTravelStrategy.Options options, boolean localFallback)
+	{
+		if (from.equals(to)) { return List.of(walkStage(from, to, List.of(to), options.speed())); }
+		final var stage = new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(),
+			request.deadlineLogicalNanos(), request.maximumRouteDistance(), request.pveThreats());
+		if (from.distanceTo(to) <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE && !options.blockedEdges().contains(new PhantomWalkCorridorPlanner.Edge(from, to))
+			&& stage.permitsWalkSegment(from, to) && canWalkDirect(from, to))
+		{
+			return List.of(walkStage(from, to, List.of(to), options.speed()));
+		}
+		final var learned = learnedSections(stage, cancellation, policy, clock, memory, options.blockedEdges(), options.speed());
+		if (!learned.isEmpty() || !localFallback || from.distanceTo(to) > PhantomNativeTravelActions.LOCAL_WALK_DISTANCE
+			|| cancellation.changedSince(0) || clock.getAsLong() >= request.deadlineLogicalNanos()) { return learned; }
+		final var corridor = findSoloWalk(stage, cancellation, policy, clock, this, options.blockedEdges(), false, java.util.Set.of());
+		return corridor.status() == PhantomWalkCorridorPlanner.Status.FOUND
+			? PhantomTravelStrategy.walkSections(from, corridor.points(), options.speed(), policy.maximumWaypoints()) : List.of();
+	}
+
 	/** WALK overlay plus at most seven complete GK candidates sharing bounded native corridor proofs. */
 	public TravelPlan planTravel(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomTravelStrategy.Options options)
 	{

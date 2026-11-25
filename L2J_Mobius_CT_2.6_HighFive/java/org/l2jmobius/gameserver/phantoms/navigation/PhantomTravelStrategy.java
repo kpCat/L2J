@@ -9,6 +9,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTrave
 /** Minimum among complete proven candidates; no Euclidean heuristic across teleports. */
 public final class PhantomTravelStrategy
 {
+	static final int MAX_ITINERARY_SECTIONS = 4096;
 	public enum Mode { WALK, GK, RETURN_GK }
 	public enum Status { FOUND, NO_LAWFUL_PLAN, SEARCH_LIMIT }
 	public record Stage(Mode mode, PhantomNavigationPoint from, PhantomNavigationPoint to, List<PhantomNavigationPoint> points, PhantomNormalGatekeeperTravel.Leg gatekeeper, long millis, long adena, int scrolls)
@@ -22,14 +23,16 @@ public final class PhantomTravelStrategy
 			if (mode == Mode.RETURN_GK && (gatekeeper != null || !points.isEmpty())) { throw new IllegalArgumentException("RETURN is a native action, not a WALK corridor."); }
 		}
 	}
-	public record Candidate(String id, List<Stage> stages)
+	public record Candidate(String id, List<Stage> stages, boolean segmented)
 	{
+		public Candidate(String id, List<Stage> stages) { this(id, stages, false); }
+
 		public Candidate
 		{
 			stages = List.copyOf(stages);
-			if (id == null || id.isBlank() || stages.isEmpty() || stages.size() > 64) { throw new IllegalArgumentException("Invalid complete travel candidate."); }
+			if (id == null || id.isBlank() || stages.isEmpty() || stages.size() > (segmented ? MAX_ITINERARY_SECTIONS : 64)) { throw new IllegalArgumentException("Invalid complete travel candidate."); }
 			for (int i = 1; i < stages.size(); i++) { if (!stages.get(i-1).to().equals(stages.get(i).from())) { throw new IllegalArgumentException("Unknown gap in complete native itinerary."); } }
-			if (stages.stream().mapToInt(s -> s.points().size()).sum() > 64) { throw new IllegalArgumentException("Complete itinerary exceeds unchanged waypoint bound."); }
+			if (segmented ? stages.stream().anyMatch(s -> s.points().size() > 64) : stages.stream().mapToInt(s -> s.points().size()).sum() > 64) { throw new IllegalArgumentException("Travel corridor exceeds its waypoint bound."); }
 		}
 		public long millis() { long value = 0; for (var stage : stages) { value = Math.addExact(value, stage.millis()); } return value; }
 		public long adena() { long value = 0; for (var stage : stages) { value = Math.addExact(value, stage.adena()); } return value; }
@@ -48,6 +51,37 @@ public final class PhantomTravelStrategy
 		}
 	}
 	private PhantomTravelStrategy() { }
+
+	/** Local windows of an advisory itinerary. The native executor proves each window when released. */
+	static List<Stage> walkSections(PhantomNavigationPoint origin, List<PhantomNavigationPoint> points, double speed, int maximumWaypoints)
+	{
+		final var sections = new java.util.ArrayList<Stage>();
+		var start = origin;
+		var previous = origin;
+		int first = 0;
+		double length = 0;
+		for (int i = 0; i < points.size(); i++)
+		{
+			final var point = points.get(i);
+			final double leg = previous.distanceTo(point);
+			if (point.instanceId() != origin.instanceId() || leg > PhantomNativeTravelActions.LOCAL_WALK_DISTANCE) { return List.of(); }
+			if (i > first && (i - first >= maximumWaypoints || length + leg > PhantomNativeTravelActions.LOCAL_WALK_DISTANCE))
+			{
+				sections.add(new Stage(Mode.WALK, start, previous, points.subList(first, i), null, (long) Math.ceil(1000 * length / speed), 0, 0));
+				if (sections.size() >= MAX_ITINERARY_SECTIONS) { return List.of(); }
+				first = i;
+				start = previous;
+				length = 0;
+			}
+			length += leg;
+			previous = point;
+		}
+		if (first < points.size())
+		{
+			sections.add(new Stage(Mode.WALK, start, previous, points.subList(first, points.size()), null, (long) Math.ceil(1000 * length / speed), 0, 0));
+		}
+		return List.copyOf(sections);
+	}
 	/** Complete candidates may contain several fees; resource checks apply to the entire itinerary. */
 	public static Selection select(List<Candidate> candidates, long adena, int scrolls, long remainingMillis)
 	{

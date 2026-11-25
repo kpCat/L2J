@@ -45,6 +45,11 @@ public final class PhantomRouteLearningChecks
 			return;
 		}
 		final Path root = Path.of(args[0]);
+		if (args.length == 2 && "--cross-region013".equals(args[1]))
+		{
+			crossRegionItinerary(root);
+			return;
+		}
 		physicalScoutArrival();
 		physicalScoutExecutionAdmission();
 		physicalScoutPreparationWait();
@@ -57,6 +62,45 @@ public final class PhantomRouteLearningChecks
 		regionalRecoveryWake(root.resolve("farm-recovery"));
 		journeyOutcomes(root.resolve("journeys"));
 		if (args.length == 2 && args[1].equals("--geo-fixture")) { geoFixture(); }
+	}
+
+	private static void crossRegionItinerary(Path root) throws Exception
+	{
+		Files.createDirectories(root);
+		final var start = new PhantomNavigationPoint(1_000, 1_000, 0, 0);
+		final var goal = new PhantomNavigationPoint(102_800, 1_000, 0, 0);
+		final var policy = PhantomNavigationPolicy.productionDefaults();
+		try (var memory = PhantomRouteLearning.open(root, "d".repeat(64)))
+		{
+			final var chain = new ArrayList<PhantomNavigationPoint>();
+			chain.add(new PhantomNavigationPoint(600, 1_000, 0, 0));
+			for (int i = 1; i <= 4; i++) { chain.add(new PhantomNavigationPoint(600, 1_000 + i * 1_450, 0, 0)); }
+			for (int i = 1; i <= 70; i++) { chain.add(new PhantomNavigationPoint(600 + i * 1_450, 6_800, 0, 0)); }
+			for (int i = 1; i <= 4; i++) { chain.add(new PhantomNavigationPoint(102_100, 6_800 - i * 1_450, 0, 0)); }
+			final var arcs = new java.util.HashSet<Edge>();
+			for (int i = 1; i < chain.size(); i++)
+			{
+				final var edge = new Edge(chain.get(i - 1), chain.get(i));
+				arcs.add(edge);
+				memory.arrived(edge);
+			}
+			arcs.add(new Edge(start, chain.getFirst()));
+			arcs.add(new Edge(chain.getLast(), goal));
+			final var request = new PhantomNavigationRequest(1, start, goal, 1, 100, policy.maximumRouteDistance());
+			final var path = memory.itinerary(request, Set.of(), 1, (a, b) -> arcs.contains(new Edge(a, b)), () -> false);
+			check(path.size() > 64 && path.getLast().equals(goal) && path.getFirst().distanceTo(goal) > start.distanceTo(goal), "Directed itinerary lost the backward detour or over-100k destination");
+			final var sections = PhantomTravelStrategy.walkSections(start, path, 100, policy.maximumWaypoints());
+			check(sections.stream().mapToInt(stage -> stage.points().size()).sum() == path.size(), "Local sections lost itinerary points");
+			for (var stage : sections)
+			{
+				check(stage.points().size() <= policy.maximumWaypoints() && PhantomTravelStrategy.distance(stage.from(), stage.points()) <= 3000, "WALK segment exceeds its local window");
+			}
+			final var reverse = new PhantomNavigationRequest(1, goal, start, 1, 100, policy.maximumRouteDistance());
+			check(memory.itinerary(reverse, Set.of(), 1, (a, b) -> arcs.contains(new Edge(a, b)), () -> false).isEmpty(), "Reverse traversal invented evidence");
+			check(memory.itinerary(request, Set.of(new Edge(chain.get(40), chain.get(41))), 1, (a, b) -> arcs.contains(new Edge(a, b)), () -> false).isEmpty(), "Blocked transition remained reachable");
+			check(memory.itinerary(request, Set.of(), 1, (a, b) -> true, () -> true).isEmpty(), "Cancelled search returned guidance");
+		}
+		System.out.println("PASS directed over-100k itinerary, detour, local windows, exclusion and cancellation");
 	}
 
 	private static void farmSnapshot010(Path learnedCopy, Path geoCorpus) throws Exception

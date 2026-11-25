@@ -27,6 +27,8 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.Submission;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.SubmissionStatus;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Edge;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -48,6 +50,7 @@ public final class PhantomPartyRouteCoordinator
 	private final Map<String, String> _routeByGroup = new HashMap<>();
 	private final Map<String, Long> _routeDeadlines = new HashMap<>();
 	private final Map<String, Long> _routeGenerations = new HashMap<>();
+	private final Map<String, PendingRoute> _continuations = new HashMap<>();
 	private final Map<String, FollowState> _followStates = new HashMap<>();
 	private final LinkedHashMap<String, RouteAttempt> _terminalByGroup = new LinkedHashMap<>();
 	private final Map<Long, MovementLease> _movement = new HashMap<>();
@@ -93,10 +96,16 @@ public final class PhantomPartyRouteCoordinator
 
 	RouteAttempt requestFarmWalk(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline)
 	{
-		return request(groupId, generation, leader, destinationRef, destination, topologyHash, now, deadline, true);
+		return request(groupId, generation, leader, destinationRef, destination, topologyHash, now, deadline, true, destination.instanceId() == 0);
 	}
 
 	private RouteAttempt request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline, boolean farmWalk)
+	{
+		return request(groupId, generation, leader, destinationRef, destination, topologyHash, now, deadline, farmWalk, false);
+	}
+
+	private RouteAttempt request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef,
+		PhantomNavigationPoint destination, String topologyHash, long now, long deadline, boolean farmWalk, boolean segmented)
 	{
 		final String routeId = PhantomPartyModel.sha256(groupId + '|' + generation + '|' + destinationRef.namespace() + ':' + destinationRef.key() + '|' + topologyHash
 			+ (farmWalk ? "|" + destination + "|" + now : ""));
@@ -104,7 +113,8 @@ public final class PhantomPartyRouteCoordinator
 		{
 			return RouteAttempt.unavailable(routeId, generation, destinationRef, "party.route.unavailable");
 		}
-		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash, deadline, farmWalk);
+		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash, deadline, farmWalk,
+			segmented ? destination : null);
 		synchronized (_stateLock)
 		{
 			final PendingRoute current = _pending.get(groupId);
@@ -120,8 +130,14 @@ public final class PhantomPartyRouteCoordinator
 			_pending.put(groupId, pending);
 		}
 		final PhantomNavigationPoint origin = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
-		final var request = new PhantomNavigationRequest(leader.ref().profileId(), origin, destination, now, deadline, 100000);
-		final Submission submission = farmWalk ? _navigation.submitWalkCorridor(request) : _navigation.submit(request);
+		final long requestDeadline = segmented ? Math.min(deadline, now + _navigation.policy().defaultRequestDeadlineNanos()) : deadline;
+		final var request = new PhantomNavigationRequest(leader.ref().profileId(), origin, destination, now, requestDeadline, 100000);
+		pending._visited.add(origin);
+		final Submission submission = segmented ? _navigation.submitCrossRegionWalk(request, pending._visited, Set.of())
+			: farmWalk ? _navigation.submitWalkCorridor(request) : _navigation.submit(request);
+		final RouteAttempt immediate = submission.status() == SubmissionStatus.COMPLETED
+			? completed(routeId, generation, destinationRef, submission.immediateResult(), topologyHash, farmWalk) : null;
+		if (segmented && immediate != null) { learnContinuation(pending, submission.requestId()); }
 		final boolean stillOwned;
 		synchronized (_stateLock)
 		{
@@ -133,6 +149,7 @@ public final class PhantomPartyRouteCoordinator
 			else if (stillOwned)
 			{
 				_pending.remove(groupId);
+				if (immediate != null && immediate.status() == AttemptStatus.READY) { rememberRoute(groupId, pending); }
 			}
 		}
 		if (!stillOwned)
@@ -150,12 +167,7 @@ public final class PhantomPartyRouteCoordinator
 		if (submission.status() == SubmissionStatus.COMPLETED)
 		{
 			_navigation.consume(submission.requestId());
-			final RouteAttempt result = completed(routeId, generation, destinationRef, submission.immediateResult(), topologyHash, farmWalk);
-			if (result.status() == AttemptStatus.READY)
-			{
-				rememberRoute(groupId, routeId, deadline, generation);
-			}
-			return result;
+			return immediate;
 		}
 		return RouteAttempt.pending(routeId, generation, destinationRef);
 	}
@@ -189,9 +201,8 @@ public final class PhantomPartyRouteCoordinator
 			}
 			if (attempt.status() == AttemptStatus.READY)
 			{
-				_routeByGroup.put(groupId, pending._routeId);
-				_routeDeadlines.put(groupId, pending._deadline);
-				_routeGenerations.put(groupId, pending._generation);
+				if (pending._finalPoint != null) { learnContinuation(pending, pending._requestId); }
+				rememberRoute(groupId, pending);
 			}
 			else
 			{
@@ -261,7 +272,7 @@ public final class PhantomPartyRouteCoordinator
 		}
 		else if (allAtWaypoint)
 		{
-			return new AdvanceResult(route.withProgress(waypointIndex, RouteStatus.ARRIVED), examined);
+			return new AdvanceResult(advanceSection(groupId, route, leaderSnapshot, logicalNow, token), examined);
 		}
 		final PhantomNavigationPoint sharedWaypoint = route.waypoints().get(waypointIndex);
 		int issued = 0;
@@ -310,6 +321,120 @@ public final class PhantomPartyRouteCoordinator
 			}
 		}
 		return new AdvanceResult(route.withProgress(waypointIndex, separated ? RouteStatus.REGROUPING : RouteStatus.MOVING), examined);
+	}
+
+	private RouteManifest advanceSection(String groupId, RouteManifest route, MemberSnapshot leader, long now, PhantomCancellationToken token)
+	{
+		final var checkpoint = route.waypoints().getLast();
+		final PendingRoute continuation;
+		final long outstanding;
+		final Set<PhantomNavigationPoint> visited;
+		final PhantomTravelStrategy.Stage guidance;
+		final Set<Edge> blocked;
+		synchronized (_stateLock)
+		{
+			if (!route.routeId().equals(_routeByGroup.get(groupId)) || token.isCancelled()) { return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED); }
+			continuation = _continuations.get(groupId);
+			if (continuation == null || checkpoint.equals(continuation._finalPoint)) { return route.withProgress(route.currentWaypoint(), RouteStatus.ARRIVED); }
+			if (continuation._sectionResult != null)
+			{
+				if (!continuation._sectionResult.navigationHash().equals(route.navigationHash())) { return continuation._sectionResult; }
+				continuation._sectionResult = null;
+			}
+			if (leader.moving()) { return route; }
+			outstanding = continuation._requestId;
+			if (outstanding == -1) { return route; }
+			if (outstanding == 0)
+			{
+				if (continuation._visited.size() >= 64) { continuation._visited.removeFirst(); }
+				if (!continuation._visited.add(checkpoint)) { return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED); }
+				continuation._requestId = -1;
+			}
+			visited = Set.copyOf(continuation._visited);
+			guidance = continuation._guided.peekFirst();
+			blocked = Set.copyOf(continuation._blocked);
+		}
+		if (outstanding > 0)
+		{
+			final var result = _navigation.consume(outstanding).orElse(null);
+			return result == null ? route : acceptSection(groupId, route, leader, continuation, outstanding, result, token);
+		}
+		final var from = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
+		final long deadline = Math.min(continuation._deadline, now + _navigation.policy().defaultRequestDeadlineNanos());
+		if (deadline <= now || continuation._finalPoint.instanceId() != from.instanceId()) { return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED); }
+		final var target = guidance == null ? continuation._finalPoint : guidance.to();
+		final var request = new PhantomNavigationRequest(continuation._leaderProfileId, from, target, now, deadline, 100000);
+		final var submission = guidance == null ? _navigation.submitCrossRegionWalk(request, visited, blocked)
+			: _navigation.submitItinerarySection(request, guidance.points(), blocked);
+		if (submission.status() != SubmissionStatus.ACCEPTED)
+		{
+			_navigation.consume(submission.requestId());
+			return acceptSection(groupId, route, leader, continuation, -1, submission.immediateResult(), token);
+		}
+		synchronized (_stateLock)
+		{
+			if (_continuations.get(groupId) == continuation && !token.isCancelled())
+			{
+				continuation._requestId = submission.requestId();
+				return route;
+			}
+		}
+		_navigation.cancel(continuation._leaderProfileId, submission.requestId());
+		return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED);
+	}
+
+	private RouteManifest acceptSection(String groupId, RouteManifest route, MemberSnapshot leader, PendingRoute continuation,
+		long requestId, PhantomNavigationResult result, PhantomCancellationToken token)
+	{
+		final var itinerary = result == null ? null : _navigation.consumeTravelPlan(result.requestId()).orElse(null);
+		synchronized (_stateLock)
+		{
+			if (_continuations.get(groupId) != continuation || continuation._requestId != requestId || token.isCancelled())
+			{
+				return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED);
+			}
+			continuation._requestId = 0;
+			final var from = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
+			if (result != null && result.route() != null && !result.route().origin().equals(from))
+			{
+				continuation._visited.remove(route.waypoints().getLast());
+				return route;
+			}
+			if (result == null || result.route() == null || continuation._visited.contains(result.route().destination()) && !continuation._finalPoint.equals(result.route().destination()))
+			{
+				final var broken = continuation._guided.peekFirst();
+				if (broken != null)
+				{
+					final var proof = result == null ? null : result.proof();
+					if (proof != null && proof.failedPoint() != null && proof.failedSegment() >= 0 && continuation._blocked.size() < 16)
+					{
+						final var failedFrom = proof.failedSegment() == 0 ? from : broken.points().get(proof.failedSegment() - 1);
+						continuation._blocked.add(new Edge(failedFrom, proof.failedPoint()));
+					}
+					continuation._guided.clear();
+					continuation._visited.remove(route.waypoints().getLast());
+					return route;
+				}
+				return route.withProgress(route.currentWaypoint(), RouteStatus.FAILED);
+			}
+			if (!continuation._guided.isEmpty()) { continuation._guided.removeFirst(); }
+			if (itinerary != null) { retainSections(continuation, itinerary); }
+			continuation._sectionResult = manifest(route.routeId(), route.generation(), route.destination(), result, route.topologyHash(), true);
+			return continuation._sectionResult;
+		}
+	}
+
+	private void learnContinuation(PendingRoute pending, long requestId)
+	{
+		_navigation.consumeTravelPlan(requestId).ifPresent(itinerary -> retainSections(pending, itinerary));
+	}
+
+	private static void retainSections(PendingRoute pending, PhantomTravelStrategy.Candidate itinerary)
+	{
+		if (itinerary.segmented() && itinerary.mode() == PhantomTravelStrategy.Mode.WALK && itinerary.stages().getLast().to().equals(pending._finalPoint))
+		{
+			pending._guided.addAll(itinerary.stages().subList(1, itinerary.stages().size()));
+		}
 	}
 
 	/** One follower owns its own path; neither the human nor another follower visits its old waypoints. */
@@ -581,6 +706,7 @@ public final class PhantomPartyRouteCoordinator
 	private void cancelOwnedRoute(String groupId, long expectedGeneration)
 	{
 		final PendingRoute pending;
+		final PendingRoute continuation;
 		final List<ExternalActionLease> movement;
 		synchronized (_stateLock)
 		{
@@ -592,10 +718,12 @@ public final class PhantomPartyRouteCoordinator
 				routeId = _routeByGroup.remove(groupId);
 				_routeDeadlines.remove(groupId);
 				_routeGenerations.remove(groupId);
+				continuation = _continuations.remove(groupId);
 			}
 			else
 			{
 				routeId = null;
+				continuation = null;
 			}
 			final RouteAttempt terminal = _terminalByGroup.get(groupId);
 			if ((terminal != null) && ((expectedGeneration == 0) || (terminal.generation() == expectedGeneration)))
@@ -613,6 +741,7 @@ public final class PhantomPartyRouteCoordinator
 				_navigation.cancel(pending._leaderProfileId, requestId);
 			}
 		}
+		if (continuation != null && continuation._requestId > 0) { _navigation.cancel(continuation._leaderProfileId, continuation._requestId); }
 		for (ExternalActionLease lease : movement)
 		{
 			lease.close();
@@ -712,14 +841,13 @@ public final class PhantomPartyRouteCoordinator
 		}
 	}
 
-	private void rememberRoute(String groupId, String routeId, long deadline, long generation)
+	private void rememberRoute(String groupId, PendingRoute pending)
 	{
-		synchronized (_stateLock)
-		{
-			_routeByGroup.put(groupId, routeId);
-			_routeDeadlines.put(groupId, deadline);
-			_routeGenerations.put(groupId, generation);
-		}
+		_routeByGroup.put(groupId, pending._routeId);
+		_routeDeadlines.put(groupId, pending._deadline);
+		_routeGenerations.put(groupId, pending._generation);
+		pending._requestId = 0;
+		if (pending._finalPoint != null) { _continuations.put(groupId, pending); }
 	}
 
 	private void rememberTerminalLocked(String groupId, RouteAttempt attempt)
@@ -904,9 +1032,15 @@ public final class PhantomPartyRouteCoordinator
 		private final String _topologyHash;
 		private final long _deadline;
 		private final boolean _farmWalk;
+		private final PhantomNavigationPoint _finalPoint;
+		private final java.util.LinkedHashSet<PhantomNavigationPoint> _visited = new java.util.LinkedHashSet<>();
+		private final java.util.ArrayDeque<PhantomTravelStrategy.Stage> _guided = new java.util.ArrayDeque<>();
+		private final Set<Edge> _blocked = new HashSet<>();
 		private volatile long _requestId;
+		private RouteManifest _sectionResult;
 
-		private PendingRoute(long leaderProfileId, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String topologyHash, long deadline, boolean farmWalk)
+		private PendingRoute(long leaderProfileId, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String topologyHash,
+			long deadline, boolean farmWalk, PhantomNavigationPoint finalPoint)
 		{
 			_leaderProfileId = leaderProfileId;
 			_routeId = routeId;
@@ -915,6 +1049,7 @@ public final class PhantomPartyRouteCoordinator
 			_topologyHash = topologyHash;
 			_deadline = deadline;
 			_farmWalk = farmWalk;
+			_finalPoint = finalPoint;
 		}
 	}
 

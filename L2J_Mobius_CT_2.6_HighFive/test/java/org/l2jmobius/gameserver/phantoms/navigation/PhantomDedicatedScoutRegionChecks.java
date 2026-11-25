@@ -73,10 +73,16 @@ public final class PhantomDedicatedScoutRegionChecks
 			check(first != null && first.tileX() == 20 && second != null && second.tileX() == 21, "actors receive distinct loaded regions");
 			check(regions.claim(1001L, now) == first && regions.claim(1003L, now) == null, "leases are exclusive per actor and region");
 			check(!regions.tracks(first, new PhantomNavigationPoint(first.seed().x(), first.seed().y(), first.seed().z(), 1)), "instance change breaks region tracking");
+			final var nearSide = new PhantomNavigationPoint(World.TILE_SIZE - 152, 3000, 0, 0);
+			final var farSide = new PhantomNavigationPoint(World.TILE_SIZE + 248, 3000, 0, 0);
+			check(!regions.tracks(first, farSide) && regions.admitCrossing(first, nearSide, farSide) && regions.tracks(first, farSide),
+				"only the admitted neighboring passage extends the lease");
+			check(!regions.tracks(first, new PhantomNavigationPoint(farSide.x(), 8000, farSide.z(), 0)), "passage cannot grant the rest of the neighbor");
 			check(regions.status().contains("dedicated_tiles_seeded=0\n"), "assignment alone is not a native seed");
 			regions.seeded(first);
 			regions.arrived(first);
 			regions.release(first, now, "STORED", false);
+			check(!regions.tracks(first, farSide), "released passage cannot publish an arrival");
 			regions.release(second, now, "DEAD", true);
 			regions.save(memory);
 		}

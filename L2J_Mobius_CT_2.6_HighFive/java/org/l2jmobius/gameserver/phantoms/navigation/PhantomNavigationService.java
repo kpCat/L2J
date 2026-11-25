@@ -215,6 +215,27 @@ public final class PhantomNavigationService
 		return submit(request, true, Objects.requireNonNull(options, "options"));
 	}
 
+	public Submission submitCrossRegionTravel(PhantomNavigationRequest request, PhantomTravelStrategy.Options options)
+	{
+		return submit(request, true, false, Objects.requireNonNull(options), Set.of(), Set.of(), false, false, null, new ItineraryWalk(List.of()));
+	}
+
+	/** Releases a bounded WALK window. Its destination may be short of the caller's goal. */
+	public Submission submitCrossRegionWalk(PhantomNavigationRequest request, Set<PhantomNavigationPoint> visited, Set<PhantomWalkCorridorPlanner.Edge> blocked)
+	{
+		if (visited.size() > 64 || blocked.size() > 16) { throw new IllegalArgumentException("Too many WALK checkpoints or exclusions."); }
+		return submit(request, true, true, null, Set.copyOf(visited), Set.copyOf(blocked), true, false, null, new ItineraryWalk(List.of()));
+	}
+
+	public Submission submitItinerarySection(PhantomNavigationRequest request, List<PhantomNavigationPoint> points, Set<PhantomWalkCorridorPlanner.Edge> blocked)
+	{
+		if (points.isEmpty() || points.size() > _policy.maximumWaypoints() || !points.getLast().equals(request.destination()) || blocked.size() > 16)
+		{
+			throw new IllegalArgumentException("Invalid WALK itinerary section.");
+		}
+		return submit(request, true, false, null, Set.of(), Set.copyOf(blocked), true, false, null, new ItineraryWalk(List.copyOf(points)));
+	}
+
 	public Submission submitFarmSwim(PhantomNavigationRequest request, PhantomFarmSwimRoute.Geometry geometry, double speed, long availableMillis)
 	{
 		return submit(request, true, true, null, Set.of(), Set.of(), false, false,
@@ -247,6 +268,13 @@ public final class PhantomNavigationService
 	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions,
 		java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe, SwimSearch swim)
 	{
+		return submit(request, walkCorridor, walkEpisode, travelOptions, visited, blocked, soloWalk, geoProbe, swim, null);
+	}
+
+	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions,
+		java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe,
+		SwimSearch swim, ItineraryWalk itinerary)
+	{
 		Objects.requireNonNull(request, "request");
 		final RequestEntry entry;
 		synchronized (_monitor)
@@ -273,7 +301,7 @@ public final class PhantomNavigationService
 				_metrics.recordNavigationSubmissionRejected();
 				return rejected(request.profileId(), Status.BACKEND_FAILURE);
 			}
-			entry = new RequestEntry(requestId, request, walkCorridor, walkEpisode, travelOptions, visited, blocked, soloWalk, geoProbe, swim);
+			entry = new RequestEntry(requestId, request, walkCorridor, walkEpisode, travelOptions, visited, blocked, soloWalk, geoProbe, swim, itinerary);
 			_activeByRequest.put(requestId, entry);
 			_activeByProfile.put(request.profileId(), entry);
 			if (geoProbe) { _geoProbes.add(entry); }
@@ -463,7 +491,7 @@ public final class PhantomNavigationService
 			return completeSubmission(entry, Status.DEADLINE_EXPIRED, null, false);
 		}
 		final double directDistance = entry._request.origin().distanceTo(entry._request.destination());
-		if (!Double.isFinite(directDistance) || (entry._travelOptions == null && directDistance > routeDistanceBudget(entry._request)))
+		if (!Double.isFinite(directDistance) || (entry._travelOptions == null && !(entry._walkEpisode && entry._itinerary != null) && directDistance > routeDistanceBudget(entry._request)))
 		{
 			entry._proof = new PhantomNavigationResult.BudgetProof(PhantomNavigationResult.LimitKind.PATH_DISTANCE, requestKind(entry), entry._request.origin(), entry._request.destination(), routeDistanceBudget(entry._request), Double.isFinite(directDistance) ? directDistance : -1, _policy.maximumWaypoints(), -1, -1, -1, -1, -1, -1, entry._request.destination(), entry._request.destination());
 			_metrics.recordNavigationRouteBudgetRejected();
@@ -476,7 +504,8 @@ public final class PhantomNavigationService
 		{
 			capability = Objects.requireNonNull(_backend.capability(entry._request.origin(), entry._request.destination()), "Backend capability must not be null.");
 			entry._capability = capability;
-			direct = entry._swim == null && entry._travelOptions == null && (!entry._walkEpisode || directDistance <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
+			direct = entry._swim == null && entry._travelOptions == null && (entry._itinerary == null || entry._itinerary.points().isEmpty())
+				&& (!entry._walkEpisode || directDistance <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
 				&& canMove(entry, entry._request.origin(), entry._request.destination());
 		}
 		catch (Throwable throwable)
@@ -776,15 +805,72 @@ public final class PhantomNavigationService
 							swim.geometry(), swim.speed(), swim.availableMillis(), () -> interruption(entry, cancellationGeneration) != Status.PATH_FOUND);
 						validated = new ValidatedPath(entry._swimPlan == null ? Status.NO_PATH : Status.SWIM_FOUND, null);
 					}
-					if (entry._soloWalk) { validated = learnedPath(entry, cancellationGeneration); }
+					if (entry._soloWalk)
+					{
+						if (entry._itinerary != null && _backend instanceof L2jNavigationBackend nativeBackend)
+						{
+							var points = entry._itinerary.points();
+							if (entry._walkEpisode)
+							{
+								final var sections = nativeBackend.learnedSections(entry._request, entry._cancellation, _policy, _clock, routeLearning(), entry._blockedEdges, 100);
+								points = sections.isEmpty() || entry._episodeVisited.contains(sections.getFirst().to()) ? List.of() : sections.getFirst().points();
+								if (!points.isEmpty()) { entry._selectedPlan = new PhantomTravelStrategy.Candidate("learned.walk", sections, true); }
+							}
+							if (!points.isEmpty())
+							{
+								if (entry._walkEpisode) { entry._episodeDestination = points.getLast(); }
+								final var origin = entry._request.origin();
+								validated = validateBackendPath(entry, points, cancellationGeneration, (from, to) -> nativeBackend.canWalkLearnedFromStage(from, to, origin));
+								if (entry._walkEpisode && validated._status != Status.PATH_FOUND)
+								{
+									validated = null;
+									entry._episodeDestination = null;
+									entry._selectedPlan = null;
+								}
+							}
+						}
+						if (validated == null) { validated = learnedPath(entry, cancellationGeneration); }
+					}
 					if (validated == null && entry._travelOptions != null)
 					{
 						final var nativeBackend = _backend instanceof L2jNavigationBackend nativeValue ? nativeValue : new L2jNavigationBackend();
 						final var budget = new PhantomWalkCorridorPlanner.Budget();
-						final var planned = nativeBackend.planTravel(entry._request, entry._cancellation, _policy, _clock, entry._travelOptions, _backend,
-							_backend instanceof L2jNavigationBackend ? routeLearning() : null, budget);
+						final var memory = _backend instanceof L2jNavigationBackend ? routeLearning() : null;
+						final boolean far = entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance();
+						var itinerary = entry._itinerary != null && far
+							? nativeBackend.planItinerary(entry._request, entry._cancellation, _policy, _clock, entry._travelOptions, memory) : null;
+						final var stock = itinerary == null ? nativeBackend.planTravel(entry._request, entry._cancellation, _policy, _clock, entry._travelOptions, _backend, memory, budget) : null;
+						if (stock != null && stock.candidate() == null && entry._itinerary != null && !far)
+						{
+							itinerary = nativeBackend.planItinerary(entry._request, entry._cancellation, _policy, _clock, entry._travelOptions, memory);
+						}
+						final var planned = itinerary == null ? stock : new L2jNavigationBackend.TravelPlan(Status.PATH_FOUND, itinerary);
 						corridorStatus = planned.status(); entry._selectedPlan = planned.candidate();
 						backendPath = entry._selectedPlan == null ? null : entry._selectedPlan.stages().getFirst().points();
+						if (itinerary != null && _backend instanceof L2jNavigationBackend)
+						{
+							validated = validateBackendPath(entry, backendPath, cancellationGeneration,
+								(from, to) -> nativeBackend.canWalkLearnedFromStage(from, to, entry._request.origin()));
+							if (validated._status == Status.ROUTE_OBSTRUCTED)
+							{
+								final var proof = validated._proof;
+								final var excluded = new java.util.HashSet<>(entry._travelOptions.blockedEdges());
+								final var failedFrom = proof.failedSegment() == 0 ? entry._request.origin() : backendPath.get(proof.failedSegment() - 1);
+								if (excluded.size() < 16 && excluded.add(new PhantomWalkCorridorPlanner.Edge(failedFrom, proof.failedPoint())))
+								{
+									final var options = entry._travelOptions;
+									final var retry = new PhantomTravelStrategy.Options(options.legs(), options.speed(), options.adena(), options.scrolls(),
+										options.classIndex(), options.level(), options.epochMinute(), options.gatekeeperAllowed(), options.returnUnavailableReason(),
+										options.returnLanding(), options.returnMillis(), options.remainingMillis(), excluded);
+									entry._selectedPlan = nativeBackend.planItinerary(entry._request, entry._cancellation, _policy, _clock, retry, memory);
+									if (entry._selectedPlan != null)
+									{
+										validated = validateBackendPath(entry, entry._selectedPlan.stages().getFirst().points(), cancellationGeneration,
+											(from, to) -> nativeBackend.canWalkLearnedFromStage(from, to, entry._request.origin()) && !excluded.contains(new PhantomWalkCorridorPlanner.Edge(from, to)));
+									}
+								}
+							}
+						}
 						final var directWalk = budget.directWalk();
 						if ((corridorStatus == Status.NO_PATH || corridorStatus == Status.ROUTE_BUDGET_EXCEEDED) && directWalk != null
 							&& (directWalk.status() == PhantomWalkCorridorPlanner.Status.NO_ROUTE_WITHIN_BUDGET || directWalk.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT))
@@ -1208,6 +1294,7 @@ public final class PhantomNavigationService
 
 	private static String requestKind(RequestEntry entry) { return entry._swim != null ? "FARM_SWIM" : entry._travelOptions != null ? "TRAVEL" : entry._walkEpisode ? "EPISODE" : entry._walkCorridor ? "CORRIDOR" : "PATH"; }
 	private record SwimSearch(PhantomFarmSwimRoute.Geometry geometry, double speed, long availableMillis) { }
+	private record ItineraryWalk(List<PhantomNavigationPoint> points) { }
 	private static final class RequestEntry
 	{
 		private PhantomNavigationResult.BudgetProof _proof = PhantomNavigationResult.BudgetProof.unknown();
@@ -1222,6 +1309,7 @@ public final class PhantomNavigationService
 		private final boolean _geoProbe;
 		private final PhantomTravelStrategy.Options _travelOptions;
 		private final SwimSearch _swim;
+		private final ItineraryWalk _itinerary;
 		private PhantomTravelStrategy.Candidate _selectedPlan;
 		private PhantomFarmSwimRoute.Plan _swimPlan;
 		private final PhantomNavigationCancellationToken _cancellation = new PhantomNavigationCancellationToken();
@@ -1232,7 +1320,7 @@ public final class PhantomNavigationService
 		private boolean _submissionCounted;
 
 		private RequestEntry(long requestId, PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions,
-			java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe, SwimSearch swim)
+			java.util.Set<PhantomNavigationPoint> visited, java.util.Set<PhantomWalkCorridorPlanner.Edge> blocked, boolean soloWalk, boolean geoProbe, SwimSearch swim, ItineraryWalk itinerary)
 		{
 			_requestId = requestId;
 			_request = request;
@@ -1244,6 +1332,7 @@ public final class PhantomNavigationService
 			_geoProbe = geoProbe;
 			_travelOptions = travelOptions;
 			_swim = swim;
+			_itinerary = itinerary;
 		}
 	}
 

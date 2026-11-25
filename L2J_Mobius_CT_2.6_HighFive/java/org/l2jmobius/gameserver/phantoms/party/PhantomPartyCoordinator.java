@@ -1562,7 +1562,13 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var intent = currentFarmIntentView(state);
 		synchronized (runtime)
 		{
-			if (runtime.farmTravelDeadline == 0) { runtime.farmTravelDeadline = now + java.util.concurrent.TimeUnit.MINUTES.toNanos(8); }
+			if (runtime.farmTravelDeadline == 0)
+			{
+				final var leader = roster.get(party.leader());
+				final double distance = leader == null ? 0 : point(leader).distanceTo(destination);
+				final long seconds = Math.clamp((long) Math.ceil(distance / 35), 480, 5400);
+				runtime.farmTravelDeadline = now + java.util.concurrent.TimeUnit.SECONDS.toNanos(seconds);
+			}
 			var journey = runtime.farmJourney;
 			if (journey != null && (!Objects.equals(journey.binding, binding) || intent != null && !journey.roots.equals(intent.roots()) || !journey.current(party.members(), _backend)
 				|| roster.values().stream().anyMatch(MemberSnapshot::dead)))
@@ -1717,7 +1723,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 			if (!steps.isEmpty()) { return List.copyOf(steps); }
 		}
-		return origin.distanceTo(destination) <= 12000 ? List.of(new FarmLeg(destination, null)) : List.of();
+		return origin.instanceId() == 0 || origin.distanceTo(destination) <= 12000 ? List.of(new FarmLeg(destination, null)) : List.of();
 	}
 
 	private static PhantomNavigationPoint point(MemberSnapshot actor)
