@@ -63,7 +63,11 @@ public class RequestPledgeSetAcademyMaster extends ClientPacket
 		{
 			return;
 		}
-		
+		clan.modifyPledgeMembers(player, ClanAccess.DISMISS_MENTEE, currentMember, targetMember, () -> updateMentoring(player, currentMember, targetMember));
+	}
+
+	private void updateMentoring(Player player, ClanMember currentMember, ClanMember targetMember)
+	{
 		ClanMember apprenticeMember;
 		ClanMember sponsorMember;
 		if (currentMember.getPledgeType() == Clan.SUBUNIT_ACADEMY)

@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.BiPredicate;
 
 import org.l2jmobius.commons.util.StringUtil;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
@@ -24,6 +25,10 @@ import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.AllianceIdentity;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.AllianceMembershipProof;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipEpoch;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipResult;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipSnapshot;
+import org.l2jmobius.gameserver.model.clan.ClanDepartureService;
+import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment;
 import org.l2jmobius.gameserver.model.clan.ClanInvitationService;
 import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.model.clan.ClanWarService.WarIdentity;
@@ -32,6 +37,7 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.ItemContainer;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.AllianceObservation;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.AllianceActor;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.AutonomousActor;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.Backend;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.ChatOutcome;
@@ -53,6 +59,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpPolicy;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialAffiliationContextPort;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel;
@@ -73,6 +80,7 @@ public final class L2jPhantomClanBackend implements Backend
 	private final PhantomSocialService _social;
 	private final PhantomPvpPolicy _pvpPolicy;
 	private final PhantomSocialAffiliationContextPort _affiliationContexts;
+	private final BiPredicate<Long, Player> _mandatoryPreparationPending;
 
 	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization)
 	{
@@ -86,6 +94,11 @@ public final class L2jPhantomClanBackend implements Backend
 
 	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomSocialService social, PhantomPvpPolicy pvpPolicy, PhantomSocialAffiliationContextPort affiliationContexts)
 	{
+		this(profiles, materialization, social, pvpPolicy, affiliationContexts, (profileId, player) -> true);
+	}
+
+	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomSocialService social, PhantomPvpPolicy pvpPolicy, PhantomSocialAffiliationContextPort affiliationContexts, BiPredicate<Long, Player> mandatoryPreparationPending)
+	{
 		_profiles = profiles;
 		_materialization = materialization;
 		_invitations = ClanInvitationService.getInstance();
@@ -95,6 +108,7 @@ public final class L2jPhantomClanBackend implements Backend
 		_social = social;
 		_pvpPolicy = pvpPolicy;
 		_affiliationContexts = Objects.requireNonNull(affiliationContexts);
+		_mandatoryPreparationPending = Objects.requireNonNull(mandatoryPreparationPending);
 	}
 
 	@Override
@@ -236,6 +250,33 @@ public final class L2jPhantomClanBackend implements Backend
 		if (region == null || player.isInCombat()) { return null; }
 		return region.getVisibleObjects().stream().filter(object -> object instanceof VillageMaster npc && npc.isSpawned() && !npc.isAlikeDead()
 			&& npc.canInteract(player) && GeoEngine.getInstance().canSeeTarget(player, npc)).map(VillageMaster.class::cast).findFirst().orElse(null);
+	}
+
+	@Override
+	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId)
+	{
+		try (var acquired = acquire(member))
+		{
+			if (acquired == null || !ordinaryPlayer(acquired.player()) || acquired.player().getClanId() != expectedClanId)
+			{
+				return ClanFoundingDevelopment.Outcome.NOT_READY;
+			}
+			final Player player = acquired.player();
+			return ClanFoundingDevelopment.payForFirstLevel(member.profileId(), player, availableClanMaster(player),
+				() -> PhantomNativeEquipmentPolicy.hasRequiredEquipment(player) || _mandatoryPreparationPending.test(member.profileId(), player));
+		}
+	}
+
+	@Override
+	public ClanDepartureService.Outcome leaveOrdinaryClan(MemberRef member, int expectedClanId, int expectedLeaderId)
+	{
+		try (var acquired = acquire(member))
+		{
+			if (acquired == null || !ordinaryPlayer(acquired.player())) { return ClanDepartureService.Outcome.STALE; }
+			final Player player = acquired.player();
+			final Clan clan = player.getClan();
+			return clan == null || clan.getId() != expectedClanId ? ClanDepartureService.Outcome.STALE : ClanDepartureService.leaveOrdinary(player, clan, expectedLeaderId);
+		}
 	}
 
 	@Override
@@ -473,6 +514,70 @@ public final class L2jPhantomClanBackend implements Backend
 			final AllianceIdentity identity = _alliances.currentIdentity(clan).orElse(null);
 			return identity == null ? Optional.empty() : Optional.of(new AllianceObservation(identity, clan.getAllyName(), clan.getId()));
 		}
+	}
+
+	@Override
+	public Optional<AllianceActor> allianceActor(MemberRef member)
+	{
+		try (var acquired = acquire(member))
+		{
+			if (acquired == null || !ordinaryPlayer(acquired.player())) { return Optional.empty(); }
+			final var lifetime = _materialization.find(member.profileId()).orElse(null);
+			if (lifetime == null || !lifetime.worldPresent() || !lifetime.actionAdmissionOpen()) { return Optional.empty(); }
+			final var observation = _alliances.observeMembership(acquired.player());
+			return observation.successful() ? Optional.of(new AllianceActor(member, lifetime.materializedAtNanos(), observation.snapshot())) : Optional.empty();
+		}
+	}
+
+	@Override
+	public MembershipResult durableAlliance(int clanId)
+	{
+		return _alliances.observeDurableMembership(clanId);
+	}
+
+	@Override
+	public boolean acknowledgeAlliance(MembershipSnapshot durable)
+	{
+		return _alliances.reconcileDurableMembership(durable).successful();
+	}
+
+	@Override
+	public ClanAllianceService.Result createAutonomousAlliance(AllianceActor actor, String name)
+	{
+		try (var acquired = acquire(actor.member()))
+		{
+			return acquired != null && sameAllianceLifetime(actor, acquired.player()) && availableClanMaster(acquired.player()) != null
+				? _alliances.create(acquired.player(), name, actor.membership().epoch()) : allianceIneligible(ClanAllianceService.Reason.ACTOR_NOT_FOUND);
+		}
+	}
+
+	@Override
+	public ClanAllianceService.Result joinAutonomousAlliance(AllianceActor source, AllianceActor target, AllianceIdentity identity)
+	{
+		try (var pair = acquirePair(source.member(), target.member()))
+		{
+			if (pair == null || !sameAllianceLifetime(source, pair.player(source.member())) || !sameAllianceLifetime(target, pair.player(target.member())))
+			{
+				return allianceIneligible(ClanAllianceService.Reason.TARGET_NOT_FOUND);
+			}
+			return _alliances.join(pair.player(source.member()), pair.player(target.member()), identity, source.membership().epoch(), target.membership().epoch());
+		}
+	}
+
+	@Override
+	public ClanAllianceService.Result leaveAutonomousAlliance(AllianceActor actor, AllianceIdentity identity)
+	{
+		try (var acquired = acquire(actor.member()))
+		{
+			return acquired != null && sameAllianceLifetime(actor, acquired.player()) ? _alliances.leave(acquired.player(), identity, actor.membership().epoch())
+				: allianceIneligible(ClanAllianceService.Reason.ACTOR_NOT_FOUND);
+		}
+	}
+
+	private boolean sameAllianceLifetime(AllianceActor actor, Player player)
+	{
+		return ordinaryPlayer(player) && _materialization.find(actor.member().profileId()).filter(lifetime -> lifetime.worldPresent() && lifetime.actionAdmissionOpen()
+			&& lifetime.characterObjectId() == player.getObjectId() && lifetime.materializedAtNanos() == actor.materializationEpoch()).isPresent();
 	}
 
 	@Override

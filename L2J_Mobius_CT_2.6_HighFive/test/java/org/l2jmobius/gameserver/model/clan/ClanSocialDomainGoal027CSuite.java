@@ -302,7 +302,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		PhantomAssertions.assertFalse(clanTable.contains("public void storeClanWars") || clanTable.contains("public void deleteClanWars"), "Unsafe ClanTable war writer bypass remains.");
 		PhantomAssertions.assertTrue(clanTable.contains("ClanWarService.getInstance().restoreWars") && clanTable.contains("removeAllForClan"), "ClanTable does not delegate restore/destruction war writes.");
 		PhantomAssertions.assertFalse(clan.contains("public void createAlly") || clan.contains("public void dissolveAlly") || clan.contains("public void changeAllyCrest"), "Legacy public alliance writer remains in Clan.");
-		PhantomAssertions.assertFalse(clan.substring(clan.indexOf("public void updateClanInDB"), clan.indexOf("public void store()" )).contains("ally_id=?"), "Generic Clan update can overwrite canonical alliance state.");
+		PhantomAssertions.assertFalse(clan.substring(clan.indexOf("public void updateClanInDB"), clan.indexOf("public boolean persistFounding()" )).contains("ally_id=?"), "Generic Clan update can overwrite canonical alliance state.");
 		PhantomAssertions.assertTrue(requestJoin.contains("ClanAllianceService.getInstance().checkInvite") && requestJoin.contains("AllianceIdentity"), "REAL invite adapter does not capture canonical alliance incarnation.");
 		PhantomAssertions.assertTrue(answerJoin.contains("ClanAllianceService.getInstance().join") && answerJoin.contains("getAllianceIdentity") && answerJoin.contains("getTargetEpoch") && requestJoin.contains("MembershipEpoch"), "REAL answer adapter does not delegate exact alliance/target epoch invitation identity.");
 		final String villageMaster = read(root, "java/org/l2jmobius/gameserver/model/actor/instance/VillageMaster.java");
@@ -687,7 +687,19 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 	static final class AllianceStateAccess implements ClanAllianceService.StateAccess
 	{
 		private final Map<Integer, ClanSnapshot> _clans = new HashMap<>();
+		private final Map<Integer, Integer> _leaders = new HashMap<>();
 		private boolean failNotifications;
+
+		void currentLeader(int clanId, int objectId)
+		{
+			_leaders.put(clanId, objectId);
+		}
+
+		@Override
+		public int currentLeaderId(int clanId)
+		{
+			return _leaders.getOrDefault(clanId, -1);
+		}
 
 		static AllianceStateAccess standard(int... clanIds)
 		{
@@ -874,6 +886,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 	static final class FakePersistence implements ClanSocialPersistence
 	{
 		private final Map<Integer, DurableAlliance> _alliances = new HashMap<>();
+		private final Map<Integer, Integer> _leaders = new HashMap<>();
 		private final Map<String, ClanSocialRepository.WarRow> _wars = new HashMap<>();
 		private long _nextAllianceGeneration = 1;
 		private long _nextWarId = 100;
@@ -885,6 +898,11 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		void addClan(int clanId)
 		{
 			_alliances.put(clanId, new DurableAlliance(clanId, 0, null, 0, 0, 0, 0, 0));
+		}
+
+		void currentLeader(int clanId, int objectId)
+		{
+			_leaders.put(clanId, objectId);
 		}
 
 		DurableAlliance alliance(int clanId)
@@ -925,6 +943,14 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 				.map(row -> new MembershipEpoch(row.clanId(), row.allianceId(), row.generation(), row.generationCounter()))
 				.toList();
 		}
+
+		@Override
+		public ClanAllianceService.DurableMembership loadClanMembership(int clanId) throws SQLException
+		{
+			if (failAllianceReads) { throw new SQLException("controlled clan membership read failure"); }
+			final DurableAlliance row = _alliances.get(clanId);
+			return row == null ? null : new ClanAllianceService.DurableMembership(new AllianceState(clanId, row.allianceId(), row.allianceName(), row.generation(), row.generationCounter(), row.crestId(), row.penaltyExpiry(), row.penaltyType()), _leaders.getOrDefault(clanId, 100 + clanId));
+		}
 		@Override
 		public long createAlliance(int leaderClanId, long expectedGeneration, long expectedGenerationCounter, String allianceName) throws SQLException, StaleStateException
 		{
@@ -941,7 +967,7 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 		}
 
 		@Override
-		public void joinAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, String allianceName, int allianceCrestId, long targetExpectedGeneration, long targetExpectedGenerationCounter) throws SQLException, StaleStateException
+		public boolean joinAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, String allianceName, int allianceCrestId, long targetExpectedGeneration, long targetExpectedGenerationCounter, int maxAllianceClans) throws SQLException, StaleStateException
 		{
 			failAlliance();
 			requireIdentity(requiredAlliance(leaderClanId), allianceId, generation);
@@ -950,7 +976,9 @@ public final class ClanSocialDomainGoal027CSuite implements PhantomTestSuite
 			{
 				throw new StaleStateException("join changed");
 			}
+			if (loadAllianceMembership(allianceId, generation).size() >= maxAllianceClans) { return false; }
 			_alliances.put(targetClanId, new DurableAlliance(targetClanId, allianceId, allianceName, generation, Math.addExact(target.generationCounter(), 1), allianceCrestId, 0, 0));
+			return true;
 		}
 
 		@Override

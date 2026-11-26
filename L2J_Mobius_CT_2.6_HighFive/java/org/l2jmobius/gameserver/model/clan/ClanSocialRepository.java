@@ -21,8 +21,9 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 interface ClanSocialPersistence
 {
 	List<ClanAllianceService.MembershipEpoch> loadAllianceMembership(int allianceId, long generation) throws SQLException;
+	ClanAllianceService.DurableMembership loadClanMembership(int clanId) throws SQLException;
 	long createAlliance(int leaderClanId, long expectedGeneration, long expectedGenerationCounter, String allianceName) throws SQLException, ClanSocialRepository.StaleStateException;
-	void joinAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, String allianceName, int allianceCrestId, long targetExpectedGeneration, long targetExpectedGenerationCounter) throws SQLException, ClanSocialRepository.StaleStateException;
+	boolean joinAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, String allianceName, int allianceCrestId, long targetExpectedGeneration, long targetExpectedGenerationCounter, int maxAllianceClans) throws SQLException, ClanSocialRepository.StaleStateException;
 	void leaveAlliance(int clanId, int allianceId, long generation, long expectedGenerationCounter, long penaltyExpiryTime, int penaltyType) throws SQLException, ClanSocialRepository.StaleStateException;
 	void expelAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, long leaderExpectedGenerationCounter, long targetExpectedGenerationCounter, long leaderPenaltyExpiryTime, long targetPenaltyExpiryTime, int targetPenaltyType) throws SQLException, ClanSocialRepository.StaleStateException;
 	void dissolveAlliance(int leaderClanId, int allianceId, long generation, Map<Integer, Long> memberGenerationCounters, long leaderPenaltyExpiryTime) throws SQLException, ClanSocialRepository.StaleStateException;
@@ -162,6 +163,51 @@ final class ClanSocialRepository implements ClanSocialPersistence
 		}
 	}
 
+	boolean leaveOrdinaryMember(ClanDepartureService.Change change) throws SQLException
+	{
+		try { return write(connection -> stageOrdinaryDeparture(connection, change)); }
+		catch (StaleStateException unexpected) { throw new SQLException(unexpected); }
+	}
+
+	ClanDepartureService.Readback ordinaryDepartureState(ClanDepartureService.Change change) throws SQLException
+	{
+		try { return write(connection -> readOrdinaryDeparture(connection, change)); }
+		catch (StaleStateException unexpected) { throw new SQLException(unexpected); }
+	}
+
+	static boolean stageOrdinaryDeparture(Connection connection, ClanDepartureService.Change change) throws SQLException
+	{
+		try (var clan = connection.prepareStatement("SELECT clan_id FROM clan_data WHERE clan_id=? AND leader_id=? AND leader_id<>? AND new_leader_id<>? AND clan_level BETWEEN 0 AND 4 AND COALESCE(ally_id,0)=0 AND COALESCE(hasCastle,0)=0 AND dissolving_expiry_time=0 FOR UPDATE"))
+		{
+			clan.setInt(1, change.clanId());
+			clan.setInt(2, change.leaderId());
+			clan.setInt(3, change.characterId());
+			clan.setInt(4, change.characterId());
+			try (var row = clan.executeQuery()) { if (!row.next()) { return false; } }
+		}
+		try (var member = connection.prepareStatement("UPDATE characters SET clanid=0, title='', clan_privs=0, power_grade=0, clan_join_expiry_time=? WHERE charId=? AND clanid=? AND clan_join_expiry_time=? AND subpledge=0 AND lvl_joined_academy=0 AND apprentice=0 AND sponsor=0 AND deletetime=0"))
+		{
+			member.setLong(1, change.expiryAfter());
+			member.setInt(2, change.characterId());
+			member.setInt(3, change.clanId());
+			member.setLong(4, change.expiryBefore());
+			return member.executeUpdate() == 1;
+		}
+	}
+
+	static ClanDepartureService.Readback readOrdinaryDeparture(Connection connection, ClanDepartureService.Change change) throws SQLException
+	{
+		// This cannot see the old row while a possibly committed departure still owns its row lock.
+		try (var member = connection.prepareStatement("SELECT clanid, clan_join_expiry_time, (title='' AND clan_privs=0 AND power_grade=0 AND subpledge=0 AND lvl_joined_academy=0 AND apprentice=0 AND sponsor=0) FROM characters WHERE charId=? FOR UPDATE"))
+		{
+			member.setInt(1, change.characterId());
+			try (var row = member.executeQuery())
+			{
+				return row.next() ? ClanDepartureService.observe(change, row.getInt(1), row.getLong(2), row.getBoolean(3)) : ClanDepartureService.Readback.CONFLICT;
+			}
+		}
+	}
+
 	@Override
 	public List<ClanAllianceService.MembershipEpoch> loadAllianceMembership(int allianceId, long generation) throws SQLException
 	{
@@ -181,6 +227,34 @@ final class ClanSocialRepository implements ClanSocialPersistence
 		}
 		return List.copyOf(members);
 	}
+
+	@Override
+	public ClanAllianceService.DurableMembership loadClanMembership(int clanId) throws SQLException
+	{
+		try
+		{
+			return write(connection ->
+			{
+				// Wait for a possibly in-flight native transaction on this single clan row.
+				try (PreparedStatement statement = connection.prepareStatement("SELECT clan_id,leader_id,ally_id,ally_name,ally_generation,ally_generation_counter,ally_crest_id,ally_penalty_expiry_time,ally_penalty_type FROM clan_data WHERE clan_id=? FOR UPDATE"))
+				{
+					statement.setInt(1, clanId);
+					try (ResultSet result = statement.executeQuery())
+					{
+						if (!result.next()) { return null; }
+						final AllianceRow row = allianceRow(result);
+						final var state = new ClanAllianceService.AllianceState(row.clanId(), row.allianceId(), row.allianceName(), row.generation(), row.generationCounter(), row.crestId(), result.getLong("ally_penalty_expiry_time"), result.getInt("ally_penalty_type"));
+						return new ClanAllianceService.DurableMembership(state, result.getInt("leader_id"));
+					}
+				}
+			});
+		}
+		catch (StaleStateException unexpected)
+		{
+			throw new SQLException(unexpected);
+		}
+	}
+
 	@Override
 	public long createAlliance(int leaderClanId, long expectedGeneration, long expectedGenerationCounter, String allianceName) throws SQLException, StaleStateException
 	{
@@ -192,8 +266,17 @@ final class ClanSocialRepository implements ClanSocialPersistence
 				throw new StaleStateException("Leader clan alliance state changed before create.");
 			}
 			final long nextGeneration = allocateAllianceIncarnation(connection);
+			// The existing incarnation allocator serializes durable creations, including a lost acknowledgement.
+			try (PreparedStatement statement = connection.prepareStatement("SELECT ally_name FROM clan_data WHERE ally_id=clan_id");
+				ResultSet named = statement.executeQuery())
+			{
+				while (named.next())
+				{
+					if (allianceName.equalsIgnoreCase(named.getString(1))) { throw new StaleStateException("Alliance name is already durably claimed."); }
+				}
+			}
 			final long nextEpoch = Math.addExact(expectedGenerationCounter, 1);
-			try (PreparedStatement statement = connection.prepareStatement("UPDATE clan_data SET ally_id=?, ally_name=?, ally_generation=?, ally_generation_counter=?, ally_penalty_expiry_time=0, ally_penalty_type=0 WHERE clan_id=? AND ally_id=0 AND ally_generation=? AND ally_generation_counter=?"))
+			try (PreparedStatement statement = connection.prepareStatement("UPDATE clan_data SET ally_id=?, ally_name=?, ally_generation=?, ally_generation_counter=?, ally_penalty_expiry_time=0, ally_penalty_type=0 WHERE clan_id=? AND (ally_id=0 OR ally_id IS NULL) AND ally_generation=? AND ally_generation_counter=?"))
 			{
 				statement.setInt(1, leaderClanId);
 				statement.setString(2, allianceName);
@@ -239,10 +322,10 @@ final class ClanSocialRepository implements ClanSocialPersistence
 	}
 
 	@Override
-	public void joinAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, String allianceName, int allianceCrestId, long targetExpectedGeneration, long targetExpectedGenerationCounter) throws SQLException, StaleStateException
+	public boolean joinAlliance(int leaderClanId, int targetClanId, int allianceId, long generation, String allianceName, int allianceCrestId, long targetExpectedGeneration, long targetExpectedGenerationCounter, int maxAllianceClans) throws SQLException, StaleStateException
 	{
 		final long nextTargetEpoch = Math.addExact(targetExpectedGenerationCounter, 1);
-		write(connection ->
+		return write(connection ->
 		{
 			final List<AllianceRow> rows = lockClanRows(connection, leaderClanId, targetClanId);
 			final AllianceRow leader = row(rows, leaderClanId);
@@ -252,7 +335,18 @@ final class ClanSocialRepository implements ClanSocialPersistence
 			{
 				throw new StaleStateException("Target clan alliance state changed before join.");
 			}
-			try (PreparedStatement statement = connection.prepareStatement("UPDATE clan_data SET ally_id=?, ally_name=?, ally_generation=?, ally_generation_counter=?, ally_crest_id=?, ally_penalty_expiry_time=0, ally_penalty_type=0 WHERE clan_id=? AND ally_id=0 AND ally_generation=? AND ally_generation_counter=?"))
+			// Joins share the leader row lock. Count persisted members even when a prior commit was not acknowledged.
+			try (PreparedStatement count = connection.prepareStatement("SELECT COUNT(*) FROM clan_data WHERE ally_id=? AND ally_generation=?"))
+			{
+				count.setInt(1, allianceId);
+				count.setLong(2, generation);
+				try (ResultSet members = count.executeQuery())
+				{
+					if (!members.next()) { throw new SQLException("Alliance member count is unavailable."); }
+					if (members.getLong(1) >= maxAllianceClans) { return false; }
+				}
+			}
+			try (PreparedStatement statement = connection.prepareStatement("UPDATE clan_data SET ally_id=?, ally_name=?, ally_generation=?, ally_generation_counter=?, ally_crest_id=?, ally_penalty_expiry_time=0, ally_penalty_type=0 WHERE clan_id=? AND (ally_id=0 OR ally_id IS NULL) AND ally_generation=? AND ally_generation_counter=?"))
 			{
 				statement.setInt(1, allianceId);
 				statement.setString(2, allianceName);
@@ -264,7 +358,7 @@ final class ClanSocialRepository implements ClanSocialPersistence
 				statement.setLong(8, targetExpectedGenerationCounter);
 				requireSingleRow(statement.executeUpdate(), "join alliance");
 			}
-			return null;
+			return true;
 		});
 	}
 

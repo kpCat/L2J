@@ -79,6 +79,8 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		registry.add("01-alliance-create-restart", this::allianceCreateRestart);
 		registry.add("02-bilateral-join-aba-real-safety", this::bilateralJoin);
 		registry.add("09-revoked-source-consent-cannot-join", this::revokedJoinConsent);
+		registry.add("10-autonomous-alliance-keeps-independent-consent-and-farm", this::autonomousAllianceLifecycle);
+		registry.add("11-autonomous-unknown-join-reconciles-without-replay", this::autonomousJoinRecovery);
 		registry.add("03-exact-leave-proof-dissolve", this::leaveAndDissolve);
 		registry.add("04-war-declare-restart-evidence", this::warDeclare);
 		registry.add("05-exact-stop-bilateral-peace-war-id", this::stopAndPeace);
@@ -152,6 +154,62 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 			PhantomAssertions.assertEquals(OperationStatus.WAITING, service.advance(2, 720, 0).status(), "Recipient used revoked or superseded source consent.");
 			PhantomAssertions.assertEquals(0, fixture.backend.joinCalls, "A revoked consent reached the native join writer.");
 		}
+	}
+
+	private void autonomousAllianceLifecycle(PhantomTestContext context)
+	{
+		final Fixture fixture = plainPair();
+		fixture.backend.hostilityScore = -100;
+		final var farm = goal(2, 730, "farm.ordinary", null, List.of(), null, 0);
+		fixture.goals.put(2, farm);
+		final var service = fixture.service();
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 8);
+		PhantomAssertions.assertEquals(1, fixture.backend.createAllianceCalls, "Ready leader did not create a canonical alliance.");
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 8);
+		PhantomAssertions.assertEquals(0, fixture.backend.joinCalls, "The offer decided for its recipient.");
+		service.advanceAutonomous(2, 202, () -> List.of(1L), 8);
+		PhantomAssertions.assertEquals(1, fixture.backend.joinCalls, "Independent recipient did not consume exact consent.");
+		PhantomAssertions.assertEquals(farm, fixture.goals.load(2).orElseThrow().goal(), "Alliance work replaced the farm root.");
+		fixture.now += 1_800_000;
+		fixture.backend.hostilityScore = 1_000;
+		fixture.backend.hostileEvidence = true;
+		service.advanceAutonomous(2, 202, () -> List.of(1L), 8);
+		PhantomAssertions.assertEquals(0, fixture.backend.leaveCalls, "A single adverse observation bypassed the cooldown.");
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(2, 202, () -> List.of(1L), 8);
+		PhantomAssertions.assertEquals(1, fixture.backend.leaveCalls, "Exact adverse relationship did not reach the stock leave writer.");
+		PhantomAssertions.assertEquals(null, fixture.backend.clans.get(22).alliance, "The alliance membership remained attached after lawful withdrawal.");
+	}
+
+	private void autonomousJoinRecovery(PhantomTestContext context)
+	{
+		final Fixture fixture = alliedLeaderAndTarget();
+		fixture.backend.hostilityScore = -100;
+		fixture.backend.loseAcceptedJoinAck = true;
+		final var first = fixture.service();
+		first.advanceAutonomous(1, 101, () -> List.of(2L), 8);
+		first.advanceAutonomous(2, 202, () -> List.of(1L), 8);
+		PhantomAssertions.assertEquals(DiplomacyPhase.PREPARED, fixture.persistence.load(2).orElseThrow().metadata().diplomacy().phase(), "Unknown join did not preserve prepared evidence.");
+		fixture.now += 1_800_000;
+		fixture.service().advanceAutonomous(2, 202, List::of, 8);
+		PhantomAssertions.assertEquals(DiplomacyPhase.COMPLETED, fixture.persistence.load(2).orElseThrow().metadata().diplomacy().phase(), "Durable epoch did not close accepted join.");
+		PhantomAssertions.assertEquals(1, fixture.backend.joinCalls, "Recovery submitted a second native join.");
+
+		final Fixture superseded = alliedLeaderAndTarget();
+		superseded.backend.hostilityScore = -100;
+		superseded.backend.loseAcceptedJoinAck = true;
+		final var pending = superseded.service();
+		pending.advanceAutonomous(1, 101, () -> List.of(2L), 8);
+		pending.advanceAutonomous(2, 202, () -> List.of(1L), 8);
+		superseded.goals.put(2, peerGoal(2, 740, PhantomClanService.WAR_DECLARE_GOAL, 11, 1, 0));
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, pending.advance(2, 740, 0).status(), "An explicit war attempted to replace the pending receipt.");
+		final var target = superseded.backend.currentMember(2).orElseThrow();
+		superseded.backend.leaveAlliance(target, superseded.backend.clans.get(22).alliance);
+		superseded.now += 1_800_000;
+		pending.advanceAutonomous(2, 202, List::of, 8);
+		PhantomAssertions.assertEquals(DiplomacyPhase.NONE, superseded.persistence.load(2).orElseThrow().metadata().diplomacy().phase(), "A later native epoch stranded an obsolete autonomous receipt.");
+		PhantomAssertions.assertEquals(1, superseded.backend.joinCalls, "Superseded recovery repeated the old join.");
 	}
 
 	private void leaveAndDissolve(PhantomTestContext context)
@@ -462,10 +520,11 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		private final FakeGoals goals = new FakeGoals();
 		private final FakePersistence persistence = new FakePersistence();
 		private final FakeBackend backend = new FakeBackend();
+		private long now = NOW;
 
 		private PhantomClanService service()
 		{
-			final PhantomClanService service = new PhantomClanService(goals, persistence, backend, () -> NOW);
+			final PhantomClanService service = new PhantomClanService(goals, persistence, backend, () -> now);
 			PhantomAssertions.assertTrue(service.start(), "CP2 clan service did not start.");
 			return service;
 		}
@@ -566,6 +625,7 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		private long lastStoppedWarId;
 		private long lastPeaceWarId;
 		private Runnable beforeDissolve;
+		private boolean loseAcceptedJoinAck;
 
 		private void addManagedClan(long profileId, int objectId, int clanId, String name)
 		{
@@ -690,6 +750,54 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		}
 
 		@Override
+		public boolean hasAutonomousInvitation(int objectId) { return false; }
+
+		@Override
+		public Optional<PhantomClanService.AllianceActor> allianceActor(MemberRef member)
+		{
+			final ClanData clan = clan(member);
+			return clan == null ? Optional.empty() : Optional.of(new PhantomClanService.AllianceActor(member, member.characterObjectId(), membership(clan)));
+		}
+
+		@Override
+		public ClanAllianceService.MembershipResult durableAlliance(int clanId)
+		{
+			final var clan = clans.get(clanId);
+			return new ClanAllianceService.MembershipResult(ClanAllianceService.Status.SUCCESS, ClanAllianceService.Reason.NONE, membership(clan));
+		}
+
+		@Override
+		public boolean acknowledgeAlliance(ClanAllianceService.MembershipSnapshot expected)
+		{
+			return expected.equals(membership(clans.get(expected.epoch().clanId())));
+		}
+
+		@Override
+		public ClanAllianceService.Result createAutonomousAlliance(PhantomClanService.AllianceActor actor, String name)
+		{
+			return createAlliance(actor.member(), name);
+		}
+
+		@Override
+		public ClanAllianceService.Result joinAutonomousAlliance(PhantomClanService.AllianceActor source, PhantomClanService.AllianceActor target, AllianceIdentity identity)
+		{
+			final var result = joinAlliance(source.member(), target.member(), identity, target.membership().epoch());
+			return loseAcceptedJoinAck && result.successful() ? allianceFailure(ClanAllianceService.Status.PERSISTENCE_FAILURE, ClanAllianceService.Reason.PERSISTENCE_ERROR, identity) : result;
+		}
+
+		@Override
+		public ClanAllianceService.Result leaveAutonomousAlliance(PhantomClanService.AllianceActor actor, AllianceIdentity identity)
+		{
+			return leaveAlliance(actor.member(), identity);
+		}
+
+		private static ClanAllianceService.MembershipSnapshot membership(ClanData clan)
+		{
+			final var identity = clan.alliance;
+			return new ClanAllianceService.MembershipSnapshot(new MembershipEpoch(clan.id, identity == null ? 0 : identity.leaderClanId(), identity == null ? 0 : identity.generation(), clan.membershipCounter), clan.allianceName, clan.leaderObjectId, clan.penaltyType, 0);
+		}
+
+		@Override
 		public ClanAllianceService.Result createAlliance(MemberRef actor, String allianceName)
 		{
 			createAllianceCalls++;
@@ -744,6 +852,7 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 			clan.alliance = null;
 			clan.allianceName = null;
 			clan.membershipCounter++;
+			clan.penaltyType = org.l2jmobius.gameserver.model.clan.Clan.PENALTY_TYPE_CLAN_LEAVED;
 			return new ClanAllianceService.Result(ClanAllianceService.Status.SUCCESS, ClanAllianceService.Reason.NONE, identity);
 		}
 
@@ -890,6 +999,7 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		private AllianceIdentity alliance;
 		private String allianceName;
 		private long membershipCounter;
+		private int penaltyType;
 
 		private ClanData(int id, String name, int leaderObjectId, boolean managed)
 		{

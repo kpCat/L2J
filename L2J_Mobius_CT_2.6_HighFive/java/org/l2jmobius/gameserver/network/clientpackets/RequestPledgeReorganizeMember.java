@@ -78,14 +78,15 @@ public class RequestPledgeReorganizeMember extends ClientPacket
 			return;
 		}
 		
-		final int oldPledgeType = member1.getPledgeType();
-		if (oldPledgeType == _newPledgeType)
+		clan.modifyPledgeMembers(player, ClanAccess.MODIFY_RANKS, member1, member2, () ->
 		{
-			return;
-		}
-		
-		member1.setPledgeType(_newPledgeType);
-		member2.setPledgeType(oldPledgeType);
-		clan.broadcastClanStatus();
+			final int oldPledgeType = member1.getPledgeType();
+			if (oldPledgeType != _newPledgeType && member1.getObjectId() != clan.getLeaderId() && member2.getObjectId() != clan.getLeaderId())
+			{
+				member1.setPledgeType(_newPledgeType);
+				member2.setPledgeType(oldPledgeType);
+				clan.broadcastClanStatus();
+			}
+		});
 	}
 }

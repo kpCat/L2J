@@ -801,7 +801,7 @@ public abstract class Inventory extends ItemContainer
 		
 		synchronized (item)
 		{
-			if (!_items.contains(item))
+			if (!_items.contains(item) || item.hasPendingAdenaDebit())
 			{
 				return null;
 			}
@@ -837,7 +837,7 @@ public abstract class Inventory extends ItemContainer
 		
 		synchronized (item)
 		{
-			if (!_items.contains(item))
+			if (!_items.contains(item) || item.hasPendingAdenaDebit())
 			{
 				return null;
 			}

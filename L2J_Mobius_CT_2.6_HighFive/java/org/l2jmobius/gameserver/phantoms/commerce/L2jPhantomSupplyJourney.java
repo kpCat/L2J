@@ -314,6 +314,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	public boolean needsRequiredPreparationOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root, true).filter(offer -> !offer.incomeFallback()).isPresent(); }
 	public Optional<PhantomGoal> automaticIntent(long profileId) { return Optional.ofNullable(cached(profileId).goal); }
 
+	/** Observe mandatory stock or accepted effects for an already admitted native payer. */
+	public boolean blocksDiscretionarySpending(long profileId, PhantomGoal root, Player player)
+	{
+		if (requiresSoloPreparation(root, cached(profileId).goal, _receipts.find(profileId).map(value -> value.receipt().state()).orElse(null))) { return true; }
+		return _state == State.RUNNING && _policy.enabled() && supplyNeed(player, true) != null;
+	}
+
 	public boolean expiredOrdinaryIntent(long profileId, long now)
 	{
 		return _store.intent(profileId).filter(row -> expiredOrdinaryIntent(row.goal(), now)).isPresent();

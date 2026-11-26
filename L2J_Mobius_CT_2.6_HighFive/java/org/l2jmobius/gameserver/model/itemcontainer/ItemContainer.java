@@ -341,7 +341,7 @@ public abstract class ItemContainer
 		synchronized (sourceitem)
 		{
 			// check if this item still present in this container
-			if (getItemByObjectId(objectId) != sourceitem)
+			if ((getItemByObjectId(objectId) != sourceitem) || sourceitem.hasPendingAdenaDebit())
 			{
 				return null;
 			}
@@ -427,6 +427,7 @@ public abstract class ItemContainer
 	{
 		synchronized (item)
 		{
+			if (item.hasPendingAdenaDebit()) { return null; }
 			// Adjust item quantity
 			if (item.getCount() > count)
 			{

@@ -82,7 +82,7 @@ public final class PhantomClassSkillLearningTransaction
 		{
 			synchronized (player)
 			{
-				if (player.isChangingClass()) { return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED); }
+				if (player.isChangingClass() || (player.getPendingClanDevelopment() != null)) { return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED); }
 				if (exactItem == null)
 				{
                     return executeObservedLocked(player, skill, trainer, previousSkillLevel, spCost, null, null);

@@ -97,6 +97,26 @@ public final class ClanAllianceService
 		}
 	}
 
+	/** One clan's native membership epoch, including a confirmed unaffiliated state. */
+	public record MembershipSnapshot(MembershipEpoch epoch, String allianceName, int leaderObjectId, int penaltyType, long penaltyUntil)
+	{
+		public MembershipSnapshot(MembershipEpoch epoch, String allianceName, int leaderObjectId)
+		{
+			this(epoch, allianceName, leaderObjectId, 0, 0);
+		}
+
+		public MembershipSnapshot
+		{
+			Objects.requireNonNull(epoch);
+			if (epoch.allianceId() == 0) { allianceName = null; }
+		}
+	}
+
+	public record MembershipResult(Status status, Reason reason, MembershipSnapshot snapshot)
+	{
+		public boolean successful() { return status == Status.SUCCESS; }
+	}
+
 	public record AllianceMembershipProof(AllianceIdentity identity, List<MembershipEpoch> memberEpochs)
 	{
 		public AllianceMembershipProof
@@ -178,9 +198,20 @@ public final class ClanAllianceService
 	{
 	}
 
+	record DurableMembership(AllianceState state, int leaderObjectId)
+	{
+		MembershipSnapshot snapshot()
+		{
+			return new MembershipSnapshot(new MembershipEpoch(state.clanId(), state.allianceId(), state.generation(), state.generationCounter()), state.allianceName(), leaderObjectId, state.penaltyType(), state.penaltyExpiryTime());
+		}
+	}
+
 	interface StateAccess
 	{
 		ClanSnapshot clan(int clanId);
+
+		// An unspecified value keeps historical DB-free Actor fixtures usable.
+		default int currentLeaderId(int clanId) { return -1; }
 
 		ClanSnapshot clanByName(String clanName);
 
@@ -234,6 +265,83 @@ public final class ClanAllianceService
 		return Optional.ofNullable(snapshot == null ? null : snapshot.identity());
 	}
 
+	public MembershipResult observeMembership(Player player)
+	{
+		final Actor actor = actor(player);
+		if (actor.objectId() <= 0) { return membershipIneligible(Reason.ACTOR_NOT_FOUND); }
+		return _fence.execute(new long[] { ClanSocialMutationFence.clanKey(actor.clanId()) }, () ->
+		{
+			if (_fence.isRetiring(actor.clanId())) { return membershipIneligible(Reason.CLAN_RETIRING); }
+			final ClanSnapshot clan = _state.clan(actor.clanId());
+			if (clan == null) { return membershipIneligible(Reason.CLAN_NOT_FOUND); }
+			if (!isCurrentLeader(actor)) { return membershipIneligible(Reason.NOT_CLAN_LEADER); }
+			try
+			{
+				return observed(new MembershipSnapshot(clan.membershipEpoch(), clan.allianceName(), actor.objectId(), clan.alliancePenaltyType(), clan.alliancePenaltyExpiryTime()));
+			}
+			catch (IllegalArgumentException inconsistent)
+			{
+				return membershipStale();
+			}
+		});
+	}
+
+	/** Durable readback is for accepted-effect recovery, not ordinary per-tick discovery. */
+	public MembershipResult observeDurableMembership(int clanId)
+	{
+		if (clanId <= 0) { return membershipIneligible(Reason.CLAN_NOT_FOUND); }
+		return _fence.execute(new long[] { ClanSocialMutationFence.clanKey(clanId) }, () ->
+		{
+			if (_fence.isRetiring(clanId)) { return membershipIneligible(Reason.CLAN_RETIRING); }
+			try
+			{
+				final DurableMembership stored = _persistence.loadClanMembership(clanId);
+				return stored == null ? membershipIneligible(Reason.CLAN_NOT_FOUND) : observed(stored.snapshot());
+			}
+			catch (SQLException | IllegalArgumentException unavailable)
+			{
+				return membershipPersistenceFailure();
+			}
+		});
+	}
+
+	/** Refresh the cache from exact committed membership, without submitting a native mutation. */
+	public MembershipResult reconcileDurableMembership(MembershipSnapshot expected)
+	{
+		if (expected == null) { return membershipStale(); }
+		final MembershipEpoch epoch = expected.epoch();
+		final int clanId = epoch.clanId();
+		final ClanSnapshot observed = _state.clan(clanId);
+		final int observedAllianceId = observed == null ? 0 : observed.allianceId();
+		return _fence.execute(new long[] { ClanSocialMutationFence.clanKey(clanId), ClanSocialMutationFence.clanKey(observedAllianceId), ClanSocialMutationFence.clanKey(epoch.allianceId()) }, () ->
+		{
+			if (_fence.isRetiring(clanId) || _fence.isRetiring(observedAllianceId) || _fence.isRetiring(epoch.allianceId())) { return membershipIneligible(Reason.CLAN_RETIRING); }
+			final ClanSnapshot live = _state.clan(clanId);
+			if (live == null) { return membershipIneligible(Reason.CLAN_NOT_FOUND); }
+			if ((live.allianceId() != observedAllianceId) || (live.allianceGenerationCounter() > epoch.counter()) || (epoch.counter() - live.allianceGenerationCounter() > 1)) { return membershipStale(); }
+			final int liveLeaderId = _state.currentLeaderId(clanId);
+			if ((liveLeaderId >= 0) && (liveLeaderId != expected.leaderObjectId())) { return membershipStale(); }
+			try
+			{
+				final DurableMembership stored = _persistence.loadClanMembership(clanId);
+				if (stored == null) { return membershipIneligible(Reason.CLAN_NOT_FOUND); }
+				final MembershipSnapshot exact = stored.snapshot();
+				if (!expected.equals(exact)) { return membershipStale(); }
+				final AllianceState current = new AllianceState(live.clanId(), live.allianceId(), live.allianceName(), live.allianceGeneration(), live.allianceGenerationCounter(), live.allianceCrestId(), live.alliancePenaltyExpiryTime(), live.alliancePenaltyType());
+				if (!current.equals(stored.state()))
+				{
+					_state.apply(stored.state());
+					notifySafely("alliance recovery broadcast", () -> _state.broadcastUserInfo(clanId));
+				}
+				return observed(exact);
+			}
+			catch (SQLException | IllegalArgumentException unavailable)
+			{
+				return membershipPersistenceFailure();
+			}
+		});
+	}
+
 	public ProofResult captureMembershipProof(AllianceIdentity expectedIdentity)
 	{
 		if (expectedIdentity == null)
@@ -282,7 +390,17 @@ public final class ClanAllianceService
 		return create(actor(player), allianceName);
 	}
 
+	public Result create(Player player, String allianceName, MembershipEpoch expectedOwnEpoch)
+	{
+		return expectedOwnEpoch == null ? stale() : create(actor(player), allianceName, expectedOwnEpoch);
+	}
+
 	Result create(Actor actor, String allianceName)
+	{
+		return create(actor, allianceName, null);
+	}
+
+	Result create(Actor actor, String allianceName, MembershipEpoch expectedOwnEpoch)
 	{
 		final String name = allianceName == null ? "" : allianceName;
 		final long[] keys =
@@ -290,10 +408,10 @@ public final class ClanAllianceService
 			ClanSocialMutationFence.clanKey(actor.clanId()),
 			ClanSocialMutationFence.allianceNameKey(name)
 		};
-		return _fence.execute(keys, () -> createLocked(actor, name));
+		return _fence.execute(keys, () -> createLocked(actor, name, expectedOwnEpoch));
 	}
 
-	private Result createLocked(Actor actor, String allianceName)
+	private Result createLocked(Actor actor, String allianceName, MembershipEpoch expectedOwnEpoch)
 	{
 		if (_fence.isRetiring(actor.clanId()))
 		{
@@ -308,10 +426,11 @@ public final class ClanAllianceService
 		{
 			return ineligible(Reason.CLAN_NOT_FOUND);
 		}
-		if (!actor.clanLeader())
+		if (!isCurrentLeader(actor))
 		{
 			return ineligible(Reason.NOT_CLAN_LEADER);
 		}
+		if ((expectedOwnEpoch != null) && !matchesEpoch(clan, expectedOwnEpoch)) { return stale(); }
 		if (clan.allianceId() != 0)
 		{
 			return ineligible(Reason.ALREADY_ALLIED);
@@ -379,7 +498,17 @@ public final class ClanAllianceService
 		return join(actor(inviter), actor(target), expectedIdentity, expectedTargetEpoch);
 	}
 
+	public Result join(Player inviter, Player target, AllianceIdentity expectedIdentity, MembershipEpoch expectedSourceEpoch, MembershipEpoch expectedTargetEpoch)
+	{
+		return expectedSourceEpoch == null ? stale() : join(actor(inviter), actor(target), expectedIdentity, expectedSourceEpoch, expectedTargetEpoch);
+	}
+
 	Result join(Actor inviter, Actor target, AllianceIdentity expectedIdentity, MembershipEpoch expectedTargetEpoch)
+	{
+		return join(inviter, target, expectedIdentity, null, expectedTargetEpoch);
+	}
+
+	Result join(Actor inviter, Actor target, AllianceIdentity expectedIdentity, MembershipEpoch expectedSourceEpoch, MembershipEpoch expectedTargetEpoch)
 	{
 		final long[] keys =
 		{
@@ -389,12 +518,12 @@ public final class ClanAllianceService
 		return _fence.execute(keys, () ->
 		{
 			final ClanSnapshot leader = _state.clan(inviter.clanId());
-			if ((leader == null) || !Objects.equals(leader.identity(), expectedIdentity))
+			if ((leader == null) || !Objects.equals(leader.identity(), expectedIdentity) || ((expectedSourceEpoch != null) && !matchesEpoch(leader, expectedSourceEpoch)))
 			{
 				return stale();
 			}
 			final ClanSnapshot targetClan = _state.clan(target.clanId());
-			if ((targetClan == null) || !Objects.equals(targetClan.membershipEpoch(), expectedTargetEpoch))
+			if ((targetClan == null) || !matchesEpoch(targetClan, expectedTargetEpoch))
 			{
 				return stale();
 			}
@@ -406,7 +535,10 @@ public final class ClanAllianceService
 			try
 			{
 				final long nextTargetEpoch = Math.addExact(expectedTargetEpoch.counter(), 1);
-				_persistence.joinAlliance(leader.clanId(), targetClan.clanId(), leader.allianceId(), leader.allianceGeneration(), leader.allianceName(), leader.allianceCrestId(), expectedTargetEpoch.generation(), expectedTargetEpoch.counter());
+				if (!_persistence.joinAlliance(leader.clanId(), targetClan.clanId(), leader.allianceId(), leader.allianceGeneration(), leader.allianceName(), leader.allianceCrestId(), expectedTargetEpoch.generation(), expectedTargetEpoch.counter(), _maxAllianceClans))
+				{
+					return ineligible(Reason.ALLIANCE_FULL);
+				}
 				_state.apply(new AllianceState(targetClan.clanId(), leader.allianceId(), leader.allianceName(), leader.allianceGeneration(), nextTargetEpoch, leader.allianceCrestId(), 0, 0));
 				notifySafely("alliance join broadcast", () -> _state.broadcastUserInfo(targetClan.clanId()));
 				return success(expectedIdentity);
@@ -432,7 +564,7 @@ public final class ClanAllianceService
 			return ineligible(Reason.ACTOR_NOT_FOUND);
 		}
 		final ClanSnapshot leader = _state.clan(inviter.clanId());
-		if ((leader == null) || (leader.allianceId() == 0) || !inviter.clanLeader() || (leader.clanId() != leader.allianceId()))
+		if ((leader == null) || (leader.allianceId() == 0) || !isCurrentLeader(inviter) || (leader.clanId() != leader.allianceId()))
 		{
 			return ineligible(Reason.NOT_ALLIANCE_LEADER);
 		}
@@ -462,7 +594,7 @@ public final class ClanAllianceService
 		{
 			return ineligible(Reason.TARGET_NOT_IN_CLAN);
 		}
-		if (!target.clanLeader())
+		if (!isCurrentLeader(target))
 		{
 			return ineligible(Reason.TARGET_NOT_LEADER);
 		}
@@ -500,7 +632,17 @@ public final class ClanAllianceService
 		return leave(actor(player), expectedIdentity);
 	}
 
+	public Result leave(Player player, AllianceIdentity expectedIdentity, MembershipEpoch expectedOwnEpoch)
+	{
+		return expectedOwnEpoch == null ? stale() : leave(actor(player), expectedIdentity, expectedOwnEpoch);
+	}
+
 	Result leave(Actor actor, AllianceIdentity expectedIdentity)
+	{
+		return leave(actor, expectedIdentity, null);
+	}
+
+	Result leave(Actor actor, AllianceIdentity expectedIdentity, MembershipEpoch expectedOwnEpoch)
 	{
 		final ClanSnapshot observed = _state.clan(actor.clanId());
 		final int observedLeader = observed == null ? 0 : observed.allianceId();
@@ -524,15 +666,16 @@ public final class ClanAllianceService
 			{
 				return ineligible(Reason.CLAN_NOT_FOUND);
 			}
-			if (!actor.clanLeader())
+			if (!isCurrentLeader(actor))
 			{
 				return ineligible(Reason.NOT_CLAN_LEADER);
 			}
+			if ((expectedOwnEpoch != null) && !matchesEpoch(clan, expectedOwnEpoch)) { return stale(); }
 			if (clan.allianceId() == 0)
 			{
 				return ineligible(Reason.NOT_ALLIED);
 			}
-			if (!Objects.equals(clan.identity(), expectedIdentity))
+			if ((clan.allianceId() != observedLeader) || !Objects.equals(clan.identity(), expectedIdentity))
 			{
 				return stale();
 			}
@@ -587,7 +730,7 @@ public final class ClanAllianceService
 			{
 				return ineligible(Reason.NOT_ALLIED);
 			}
-			if (!actor.clanLeader() || (leader.clanId() != leader.allianceId()))
+			if (!isCurrentLeader(actor) || (leader.clanId() != leader.allianceId()))
 			{
 				return ineligible(Reason.NOT_ALLIANCE_LEADER);
 			}
@@ -660,7 +803,7 @@ public final class ClanAllianceService
 		{
 			return ineligible(Reason.NOT_ALLIED);
 		}
-		if (!actor.clanLeader() || (leader.clanId() != leader.allianceId()))
+		if (!isCurrentLeader(actor) || (leader.clanId() != leader.allianceId()))
 		{
 			return ineligible(Reason.NOT_ALLIANCE_LEADER);
 		}
@@ -751,7 +894,7 @@ public final class ClanAllianceService
 		{
 			return ineligible(Reason.NOT_ALLIED);
 		}
-		if (!actor.clanLeader() || (leader.clanId() != leader.allianceId()))
+		if (!isCurrentLeader(actor) || (leader.clanId() != leader.allianceId()))
 		{
 			return ineligible(Reason.NOT_ALLIANCE_LEADER);
 		}
@@ -931,7 +1074,7 @@ public final class ClanAllianceService
 			return ineligible(Reason.CLAN_RETIRING);
 		}
 		final ClanSnapshot leader = _state.clan(actor.clanId());
-		if ((leader == null) || !actor.clanLeader() || (leader.clanId() != leader.allianceId()))
+		if ((leader == null) || !isCurrentLeader(actor) || (leader.clanId() != leader.allianceId()))
 		{
 			return ineligible(Reason.NOT_ALLIANCE_LEADER);
 		}
@@ -1069,6 +1212,18 @@ public final class ClanAllianceService
 		return player == null ? new Actor(0, 0, false, false) : new Actor(player.getObjectId(), player.getClanId(), player.isClanLeader(), player.isInsideZone(ZoneId.SIEGE));
 	}
 
+	private boolean isCurrentLeader(Actor actor)
+	{
+		final int currentLeaderId = _state.currentLeaderId(actor.clanId());
+		return currentLeaderId < 0 ? actor.clanLeader() : ((actor.objectId() > 0) && (currentLeaderId == actor.objectId()));
+	}
+
+	private static boolean matchesEpoch(ClanSnapshot clan, MembershipEpoch expected)
+	{
+		return (expected != null) && (clan.clanId() == expected.clanId()) && (clan.allianceId() == expected.allianceId())
+			&& (clan.allianceGeneration() == expected.generation()) && (clan.allianceGenerationCounter() == expected.counter());
+	}
+
 	private static List<ClanSnapshot> sorted(List<ClanSnapshot> clans)
 	{
 		return clans.stream().sorted(Comparator.comparingInt(ClanSnapshot::clanId)).toList();
@@ -1094,6 +1249,26 @@ public final class ClanAllianceService
 	private static ProofResult proofIneligible(Reason reason)
 	{
 		return new ProofResult(Status.INELIGIBLE, reason, null);
+	}
+
+	private static MembershipResult observed(MembershipSnapshot snapshot)
+	{
+		return new MembershipResult(Status.SUCCESS, Reason.NONE, snapshot);
+	}
+
+	private static MembershipResult membershipIneligible(Reason reason)
+	{
+		return new MembershipResult(Status.INELIGIBLE, reason, null);
+	}
+
+	private static MembershipResult membershipStale()
+	{
+		return new MembershipResult(Status.STALE, Reason.STALE_IDENTITY, null);
+	}
+
+	private static MembershipResult membershipPersistenceFailure()
+	{
+		return new MembershipResult(Status.PERSISTENCE_FAILURE, Reason.PERSISTENCE_ERROR, null);
 	}
 
 	private static ProofResult proofStale()
@@ -1147,6 +1322,13 @@ public final class ClanAllianceService
 		{
 			final Clan clan = table().getClan(clanId);
 			return clan == null ? null : snapshot(clan);
+		}
+
+		@Override
+		public int currentLeaderId(int clanId)
+		{
+			final Clan clan = table().getClan(clanId);
+			return clan == null ? 0 : clan.getLeaderId();
 		}
 
 		@Override

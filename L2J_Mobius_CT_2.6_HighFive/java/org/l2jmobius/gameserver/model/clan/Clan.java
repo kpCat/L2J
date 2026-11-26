@@ -120,14 +120,14 @@ public class Clan
 	
 	private String _name;
 	private int _clanId;
-	private ClanMember _leader;
+	private volatile ClanMember _leader;
 	private final Map<Integer, ClanMember> _members = new ConcurrentHashMap<>();
 	
 	private String _allyName;
 	private int _allyId = 0;
 	private long _allyGeneration;
 	private long _allyGenerationCounter;
-	private int _level;
+	private volatile int _level;
 	private int _castleId;
 	private int _fortId;
 	private int _hideoutId;
@@ -211,7 +211,8 @@ public class Clan
 	 */
 	public int getLeaderId()
 	{
-		return _leader != null ? _leader.getObjectId() : 0;
+		final ClanMember leader = _leader;
+		return leader != null ? leader.getObjectId() : 0;
 	}
 	
 	/**
@@ -225,13 +226,35 @@ public class Clan
 	/**
 	 * @param leader the leader to set.
 	 */
-	public void setLeader(ClanMember leader)
+	public synchronized void setLeader(ClanMember leader)
 	{
 		_leader = leader;
 		_members.put(leader.getObjectId(), leader);
 	}
 	
+	/** Reattachment can refresh a leader's member object while only the native transfer can change its identity. */
+	synchronized void refreshLeaderMember(ClanMember member)
+	{
+		if (getLeaderId() == member.getObjectId()) { setLeader(member); }
+	}
+
 	public void setNewLeader(ClanMember member)
+	{
+		if (member == null) { return; }
+		final ClanSocialMutationFence fence = ClanSocialMutationFence.getInstance();
+		fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			final ClanMember current = _members.get(member.getObjectId());
+			if (!fence.isRetiring(_clanId) && (current != null) && (_leader != null)
+				&& ClanDepartureService.settleMember(current) && _members.get(current.getObjectId()) == current)
+			{
+				setNewLeaderLocked(current);
+			}
+			return null;
+		});
+	}
+
+	private void setNewLeaderLocked(ClanMember member)
 	{
 		final Player newLeader = member.getPlayer();
 		final ClanMember exMember = _leader;
@@ -390,13 +413,19 @@ public class Clan
 	 */
 	public void updateClanMember(Player player)
 	{
-		final ClanMember member = new ClanMember(player.getClan(), player);
-		if (player.isClanLeader())
+		synchronized (this)
 		{
-			setLeader(member);
+			if (player.getClan() != this || !_members.containsKey(player.getObjectId())) { return; }
+			final ClanMember member = new ClanMember(this, player);
+			if (getLeaderId() == member.getObjectId())
+			{
+				setLeader(member);
+			}
+			else
+			{
+				addClanMember(member);
+			}
 		}
-		
-		addClanMember(member);
 	}
 	
 	/**
@@ -436,11 +465,111 @@ public class Clan
 
 	public void removeClanMember(int objectId, long clanJoinExpiryTime, DepartureKind departureKind, int initiatorObjectId)
 	{
-		final ClanMember exMember = _members.remove(objectId);
+		final var fence = ClanSocialMutationFence.getInstance();
+		fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			final ClanMember member = _members.get(objectId);
+			if (member != null && ClanDepartureService.settleMember(member))
+			{
+				removeClanMemberLocked(objectId, clanJoinExpiryTime, departureKind, initiatorObjectId);
+			}
+			return null;
+		});
+	}
+
+	/** Native voluntary withdrawal for the stock client. */
+	public void withdrawMember(Player player)
+	{
+		final var fence = ClanSocialMutationFence.getInstance();
+		fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			final int objectId = player.getObjectId();
+			final ClanMember member = _members.get(objectId);
+			if (player.getClan() == this && member != null && member.getPlayer() == player && !fence.isRetiring(_clanId)
+				&& objectId != getLeaderId() && !player.isInCombat() && ClanDepartureService.settleMember(member)
+				&& removeClanMemberLocked(objectId, ClanDepartureService.joinExpiry(System.currentTimeMillis(), PlayerConfig.ALT_CLAN_JOIN_DAYS), DepartureKind.VOLUNTARY, objectId))
+			{
+				ClanDepartureService.announceVoluntary(this, player);
+			}
+			return null;
+		});
+	}
+
+	/** Revalidate the stock dismissal and apply its clan penalty only for the winning removal. */
+	public boolean expelMember(Player actor, ClanMember expected)
+	{
+		final var fence = ClanSocialMutationFence.getInstance();
+		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			final ClanMember member = _members.get(expected.getObjectId());
+			if (actor.getClan() != this || !actor.hasAccess(ClanAccess.REMOVE_MEMBER) || actor.getObjectId() == expected.getObjectId() || fence.isRetiring(_clanId)
+				|| member != expected || member.getObjectId() == getLeaderId() || !ClanDepartureService.settleMember(member)
+				|| (member.isOnline() && member.getPlayer().isInCombat())) { return false; }
+			final long expiry = ClanDepartureService.joinExpiry(System.currentTimeMillis(), PlayerConfig.ALT_CLAN_JOIN_DAYS);
+			if (!removeClanMemberLocked(member.getObjectId(), expiry, DepartureKind.EXPELLED, actor.getObjectId())) { return false; }
+			setCharPenaltyExpiryTime(expiry);
+			updateClanInDB();
+			return true;
+		});
+	}
+
+	/** Resolve pending voluntary member departures before retirement starts removing dependent state. */
+	public boolean settleMemberDepartures()
+	{
+		return List.copyOf(_members.values()).stream().allMatch(ClanDepartureService::settleMember);
+	}
+
+	/** Keep stock pledge and mentoring changes ordered with departure of either member. */
+	public void modifyPledgeMembers(Player actor, ClanAccess access, ClanMember first, ClanMember second, Runnable operation)
+	{
+		final var fence = ClanSocialMutationFence.getInstance();
+		fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			if (actor.getClan() == this && actor.hasAccess(access) && !fence.isRetiring(_clanId)
+				&& ClanDepartureService.settleMember(first) && ClanDepartureService.settleMember(second)
+				&& _members.get(first.getObjectId()) == first && _members.get(second.getObjectId()) == second)
+			{
+				operation.run();
+			}
+			return null;
+		});
+	}
+
+	boolean finishOrdinaryDeparture(Player player, long clanJoinExpiryTime)
+	{
+		final ClanMember member;
+		synchronized (this)
+		{
+			member = _members.get(player.getObjectId());
+			if (member == null || member.getPlayer() != player || player.getClan() != this || getLeaderId() == player.getObjectId()) { return false; }
+			_members.remove(player.getObjectId());
+			player.setClan(null);
+			player.setClanJoinExpiryTime(clanJoinExpiryTime);
+		}
+		try
+		{
+			removeSkillEffects(player);
+			player.sendSkillList();
+			publishMemberRemoval(player);
+			notifyMemberRemoval(member, DepartureKind.VOLUNTARY, player.getObjectId());
+		}
+		catch (RuntimeException failure)
+		{
+			LOGGER.log(Level.WARNING, "Committed voluntary clan departure publication failed for " + player.getObjectId(), failure);
+		}
+		return true;
+	}
+
+	private boolean removeClanMemberLocked(int objectId, long clanJoinExpiryTime, DepartureKind departureKind, int initiatorObjectId)
+	{
+		final ClanMember exMember;
+		synchronized (this)
+		{
+			exMember = _members.remove(objectId);
+		}
 		if (exMember == null)
 		{
-			LOGGER.warning("Member Object ID: " + objectId + " not found in clan while trying to remove");
-			return;
+			return false;
 		}
 		
 		final int leadssubpledge = getLeaderSubPledge(objectId);
@@ -542,18 +671,26 @@ public class Clan
 				player.setClanJoinExpiryTime(clanJoinExpiryTime);
 			}
 			
-			player.setPledgeClass(ClanMember.calculatePledgeClass(player));
-			player.broadcastUserInfo();
-			
-			// disable clan tab
-			player.sendPacket(PledgeShowMemberListDeleteAll.STATIC_PACKET);
+			publishMemberRemoval(player);
 		}
 		else
 		{
 			removeMemberInDatabase(exMember.getObjectId(), clanJoinExpiryTime, getLeaderId() == objectId ? System.currentTimeMillis() + TimeUnit.DAYS.toMillis(PlayerConfig.ALT_CLAN_CREATE_DAYS) : 0);
 		}
 		
-		// Notify to scripts
+		notifyMemberRemoval(exMember, departureKind, initiatorObjectId);
+		return true;
+	}
+
+	private static void publishMemberRemoval(Player player)
+	{
+		player.setPledgeClass(ClanMember.calculatePledgeClass(player));
+		player.broadcastUserInfo();
+		player.sendPacket(PledgeShowMemberListDeleteAll.STATIC_PACKET);
+	}
+
+	private void notifyMemberRemoval(ClanMember exMember, DepartureKind departureKind, int initiatorObjectId)
+	{
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_LEFT))
 		{
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanLeft(exMember, this, departureKind, initiatorObjectId));
@@ -1006,6 +1143,15 @@ public class Clan
 	 * </ul>
 	 */
 	public void updateClanInDB()
+	{
+		ClanSocialMutationFence.getInstance().execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			updateClanInDBLocked();
+			return null;
+		});
+	}
+
+	private void updateClanInDBLocked()
 	{
 		try (Connection con = DatabaseFactory.getConnection();
 			PreparedStatement ps = con.prepareStatement("UPDATE clan_data SET leader_id=?,reputation_score=?,char_penalty_expiry_time=?,dissolving_expiry_time=?,new_leader_id=? WHERE clan_id=?"))
@@ -2356,9 +2502,33 @@ public class Clan
 		_dissolvingExpiryTime = time;
 	}
 	
+	private volatile boolean _firstLevelPaymentPending;
+
+	boolean firstLevelPaymentPending()
+	{
+		return _firstLevelPaymentPending;
+	}
+
+	void setFirstLevelPaymentPending(boolean pending)
+	{
+		_firstLevelPaymentPending = pending;
+	}
+
 	public boolean levelUpClan(Player player)
 	{
-		if (!player.isClanLeader())
+		final ClanSocialMutationFence fence = ClanSocialMutationFence.getInstance();
+		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			synchronized (player)
+			{
+				return !fence.isRetiring(_clanId) && !_firstLevelPaymentPending && player.getPendingClanDevelopment() == null && levelUpClanLocked(player);
+			}
+		});
+	}
+
+	private boolean levelUpClanLocked(Player player)
+	{
+		if ((player.getClan() != this) || !player.isClanLeader())
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return false;
@@ -2377,11 +2547,11 @@ public class Clan
 			case 0:
 			{
 				// Upgrade to 1
-				if ((player.getSp() >= 20000) && (player.getAdena() >= 650000) && player.reduceAdena(ItemProcessType.FEE, 650000, player.getTarget(), true))
+				if ((player.getSp() >= ClanFoundingDevelopment.SP_COST) && (player.getAdena() >= ClanFoundingDevelopment.ADENA_COST) && player.reduceAdena(ItemProcessType.FEE, ClanFoundingDevelopment.ADENA_COST, player.getTarget(), true))
 				{
-					player.setSp(player.getSp() - 20000);
+					player.setSp(player.getSp() - ClanFoundingDevelopment.SP_COST);
 					final SystemMessage sp = new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1);
-					sp.addInt(20000);
+					sp.addInt((int) ClanFoundingDevelopment.SP_COST);
 					player.sendPacket(sp);
 					increaseClanLevel = true;
 				}
@@ -2566,18 +2736,42 @@ public class Clan
 		player.sendPacket(su);
 		
 		player.sendItemList(false);
-		changeLevel(_level + 1);
+		changeLevelLocked(_level + 1);
+		notifyClanLevelUp(player);
+		return true;
+	}
+
+	void publishPaidFirstLevel(Player player)
+	{
+		if (_level == 0)
+		{
+			publishLevel(1);
+			notifyClanLevelUp(player);
+		}
+	}
 		
-		// Notify to scripts
+	private void notifyClanLevelUp(Player player)
+	{
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_LEVELUP))
 		{
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanLvlUp(player, this));
 		}
-		
-		return true;
 	}
 	
 	public void changeLevel(int level)
+	{
+		final ClanSocialMutationFence fence = ClanSocialMutationFence.getInstance();
+		fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			if (!fence.isRetiring(_clanId) && !_firstLevelPaymentPending)
+			{
+				changeLevelLocked(level);
+			}
+			return null;
+		});
+	}
+
+	private void changeLevelLocked(int level)
 	{
 		try (Connection con = DatabaseFactory.getConnection();
 			PreparedStatement ps = con.prepareStatement("UPDATE clan_data SET clan_level = ? WHERE clan_id = ?"))
@@ -2591,6 +2785,11 @@ public class Clan
 			LOGGER.log(Level.WARNING, "could not increase clan level:" + e.getMessage(), e);
 		}
 		
+		publishLevel(level);
+	}
+
+	private void publishLevel(int level)
+	{
 		setLevel(level);
 		setRank(ClanTable.getInstance().getClanRank(this));
 		
@@ -2777,13 +2976,26 @@ public class Clan
 		return list;
 	}
 	
-	public void setNewLeaderId(int objectId, boolean storeInDb)
+	public boolean setNewLeaderId(int objectId, boolean storeInDb)
 	{
-		_newLeaderId = objectId;
-		if (storeInDb)
+		if (!storeInDb)
 		{
-			updateClanInDB();
+			_newLeaderId = objectId;
+			return true;
 		}
+		final var fence = ClanSocialMutationFence.getInstance();
+		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			if (objectId != 0)
+			{
+				final ClanMember member = _members.get(objectId);
+				if (fence.isRetiring(_clanId) || _newLeaderId != 0 || member == null
+					|| !ClanDepartureService.settleMember(member) || _members.get(objectId) != member) { return false; }
+			}
+			_newLeaderId = objectId;
+			updateClanInDB();
+			return true;
+		});
 	}
 	
 	public int getNewLeaderId()

@@ -827,7 +827,13 @@ public final class PhantomSystem
 					return due.advancedIntervals() > 0 ? new PhantomBackgroundService.OperationResult(PhantomBackgroundService.OperationStatus.SUCCESS, due.reason(), 0, due.advancedIntervals() * 60_000L, false) : PhantomBackgroundService.OperationResult.idempotent(due.reason());
 				});
 				final PhantomPvpPolicy pvpPolicy = PhantomPvpPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/pvp/pvp-policy-v1.xml").toPath());
-				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), new L2jPhantomClanBackend(productionProfiles, _materializationService, _socialService, pvpPolicy, socialAffiliations), System::currentTimeMillis);
+				final var clanBackend = new L2jPhantomClanBackend(productionProfiles, _materializationService, _socialService, pvpPolicy, socialAffiliations, (profileId, player) ->
+				{
+					if (_supplyJourney == null || _learningJourney == null || _economyReservations == null || _economyReservations.findActive(profileId).isPresent()) { return true; }
+					final var root = productionGoals.load(profileId).map(stored -> stored.goal()).orElse(null);
+					return _supplyJourney.blocksDiscretionarySpending(profileId, root, player) || root != null && _learningJourney.ownsAutomaticIntent(profileId, root);
+				});
+				_clanService = new PhantomClanService(productionGoals, new PhantomClanStore(productionProfiles), clanBackend, System::currentTimeMillis);
 				if (!_clanService.start())
 				{
 					throw new IllegalStateException("Phantom clan organization service could not enter the running state.");

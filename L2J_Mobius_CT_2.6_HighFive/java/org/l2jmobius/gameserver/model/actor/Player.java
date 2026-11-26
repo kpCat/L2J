@@ -191,6 +191,8 @@ import org.l2jmobius.gameserver.model.actor.templates.PlayerTemplate;
 import org.l2jmobius.gameserver.model.actor.transform.AdditionalSkillHolder;
 import org.l2jmobius.gameserver.model.actor.transform.Transform;
 import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanDepartureService;
+import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment;
 import org.l2jmobius.gameserver.model.clan.ClanAccess;
 import org.l2jmobius.gameserver.model.clan.ClanMember;
 import org.l2jmobius.gameserver.model.clan.ClanPrivileges;
@@ -558,7 +560,7 @@ public class Player extends Playable
 	/** Resume only the attached receipt; this path never captures a fresh store. */
 	public boolean resumePendingOwnedStore(Object ownerKey, long goalId, long revision)
 	{
-		return PlayerNativeWork.pendingStoreCheckpoint(this, ownerKey, () -> resumePendingOwnedStoreQuiescent(ownerKey, goalId, revision));
+		return PlayerNativeWork.pendingStoreCheckpoint(this, ownerKey, () -> ClanDepartureService.settlePending(this) && resumePendingOwnedStoreQuiescent(ownerKey, goalId, revision));
 	}
 
 	private synchronized boolean resumePendingOwnedStoreQuiescent(Object ownerKey, long goalId, long revision)
@@ -566,7 +568,7 @@ public class Player extends Playable
 		final var boundary = _ownedStoreBoundary;
 		if ((boundary == null) || (boundary.ownerKey() != ownerKey)) { return false; }
 		if (!boundary.hasPending()) { return true; }
-		if (!clanCreationResolved()) { return false; }
+		if (!nativeClanWorkResolved()) { return false; }
 		final var snapshot = boundary.beforePendingStore(goalId, revision);
 		if (snapshot == null) { return !boundary.hasPending(); }
 		boolean completed = false;
@@ -837,6 +839,8 @@ public class Player extends Playable
 	/** The Clan object of the Player */
 	private Clan _clan;
 	private Clan _pendingClanCreation;
+	private ClanFoundingDevelopment.PendingPayment _pendingClanDevelopment;
+	private volatile ClanDepartureService.PendingDeparture _pendingClanDeparture;
 	
 	/** Apprentice and Sponsor IDs */
 	private int _apprentice = 0;
@@ -6841,6 +6845,26 @@ public class Player extends Playable
 		_pendingClanCreation = clan;
 	}
 
+	public synchronized ClanFoundingDevelopment.PendingPayment getPendingClanDevelopment()
+	{
+		return _pendingClanDevelopment;
+	}
+
+	public synchronized void setPendingClanDevelopment(ClanFoundingDevelopment.PendingPayment payment)
+	{
+		_pendingClanDevelopment = payment;
+	}
+
+	public ClanDepartureService.PendingDeparture getPendingClanDeparture()
+	{
+		return _pendingClanDeparture;
+	}
+
+	public synchronized void setPendingClanDeparture(ClanDepartureService.PendingDeparture departure)
+	{
+		_pendingClanDeparture = departure;
+	}
+
 	/**
 	 * @return True if the Player is the leader of its clan.
 	 */
@@ -8136,9 +8160,9 @@ public class Player extends Playable
 	public void store(boolean storeActiveEffects)
 	{
 		// Report a pre-write deferral after the native owner has reopened normal admission.
-		if (!PlayerNativeWork.checkpoint(this, () -> storeQuiescent(storeActiveEffects)))
+		if (!PlayerNativeWork.checkpoint(this, () -> ClanDepartureService.settlePending(this) && storeQuiescent(storeActiveEffects)))
 		{
-			throw new IllegalStateException("Native clan creation is unresolved for this character.");
+			throw new IllegalStateException("Native clan work is unresolved for this character.");
 		}
 	}
 
@@ -8192,7 +8216,7 @@ public class Player extends Playable
 
 	private synchronized boolean storeQuiescent(boolean storeActiveEffects)
 	{
-		if (!clanCreationResolved())
+		if (!nativeClanWorkResolved())
 		{
 			return false;
 		}
@@ -8216,9 +8240,10 @@ public class Player extends Playable
 	}
 
 	/** Both native STORE entry points hold this player's monitor before reading clan state. */
-	private boolean clanCreationResolved()
+	private boolean nativeClanWorkResolved()
 	{
-		return _pendingClanCreation == null || ClanTable.getInstance().settleClanCreation(this);
+		return _pendingClanDeparture == null && (_pendingClanCreation == null || ClanTable.getInstance().settleClanCreation(this))
+			&& (_pendingClanDevelopment == null || ClanFoundingDevelopment.settlePending(this));
 	}
 
 	private void storeNative(boolean storeActiveEffects, OwnedStoreSnapshot snapshot)

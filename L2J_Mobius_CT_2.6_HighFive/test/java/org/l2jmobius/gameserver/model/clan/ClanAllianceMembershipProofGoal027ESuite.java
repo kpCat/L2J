@@ -13,6 +13,7 @@ import org.l2jmobius.gameserver.model.clan.ClanAllianceService.Actor;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.AllianceIdentity;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.AllianceMembershipProof;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipEpoch;
+import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipSnapshot;
 import org.l2jmobius.gameserver.model.clan.ClanSocialDomainGoal027CSuite.AllianceStateAccess;
 import org.l2jmobius.gameserver.model.clan.ClanSocialDomainGoal027CSuite.FakePersistence;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
@@ -46,6 +47,68 @@ public final class ClanAllianceMembershipProofGoal027ESuite implements PhantomTe
 		registry.add("04-alliance-generation-replay-rejected", this::generationReplay);
 		registry.add("05-happy-persistence-and-retirement-outcomes", this::dissolveOutcomes);
 		registry.add("06-bounded-source-contract", this::sourceBoundedness);
+		registry.add("07-current-leader-and-own-epoch-are-required", this::currentLeaderAndOwnEpoch);
+		registry.add("08-durable-recovery-does-not-adopt-a-different-membership", this::exactDurableRecovery);
+		registry.add("09-durable-roster-prevents-overfill-after-lost-ack", this::durableCapacity);
+	}
+
+	private void currentLeaderAndOwnEpoch(PhantomTestContext context)
+	{
+		final Fixture fixture = fixture(2);
+		final var service = fixture.service();
+		final var state = fixture.state();
+		final MembershipEpoch source = state.clan(1).membershipEpoch();
+		final MembershipEpoch member = state.clan(2).membershipEpoch();
+		final MembershipEpoch detached = state.clan(3).membershipEpoch();
+		state.currentLeader(1, 201);
+		PhantomAssertions.assertEquals(ClanAllianceService.Reason.NOT_ALLIANCE_LEADER, service.checkInvite(fixture.leader(), actor(3)).reason(), "Captured source leadership survived a transfer.");
+		PhantomAssertions.assertEquals(ClanAllianceService.Reason.NOT_ALLIANCE_LEADER, service.join(fixture.leader(), actor(3), fixture.identity(), source, detached).reason(), "A former leader used an otherwise exact join offer.");
+		PhantomAssertions.assertEquals(0, state.clan(3).allianceId(), "Stale leader mutated target membership.");
+		state.currentLeader(1, fixture.leader().objectId());
+		state.currentLeader(2, 202);
+		PhantomAssertions.assertEquals(ClanAllianceService.Reason.NOT_CLAN_LEADER, service.leave(actor(2), fixture.identity(), member).reason(), "Former member-clan leader could still leave.");
+		state.currentLeader(2, actor(2).objectId());
+		PhantomAssertions.assertEquals(ClanAllianceService.Status.STALE, service.leave(actor(2), fixture.identity(), new MembershipEpoch(2, member.allianceId(), member.generation(), member.counter() - 1)).status(), "Same-incarnation stale leave bypassed member epoch.");
+		PhantomAssertions.assertEquals(ClanAllianceService.Status.STALE, service.create(actor(3), "Gamma", new MembershipEpoch(3, 0, 0, detached.counter() + 1)).status(), "Detached clan creation ignored its exact epoch.");
+		PhantomAssertions.assertTrue(service.create(actor(3), "Gamma", detached).successful(), "Exact detached epoch and current stock leader did not create.");
+	}
+
+	private void exactDurableRecovery(PhantomTestContext context) throws Exception
+	{
+		final Fixture fixture = fixture();
+		final var service = fixture.service();
+		final Actor target = actor(2);
+		final MembershipEpoch before = fixture.state().clan(2).membershipEpoch();
+		final var identity = fixture.identity();
+		PhantomAssertions.assertEquals(before, service.observeDurableMembership(2).snapshot().epoch(), "A detached durable epoch was lost.");
+		PhantomAssertions.assertEquals(ClanAllianceService.Reason.CLAN_NOT_FOUND, service.observeDurableMembership(99).reason(), "Missing clan was not typed absent.");
+		fixture.persistence().failAllianceReads = true;
+		PhantomAssertions.assertEquals(ClanAllianceService.Status.PERSISTENCE_FAILURE, service.observeDurableMembership(2).status(), "Unavailable durable observation was mistaken for absence.");
+		fixture.persistence().failAllianceReads = false;
+		PhantomAssertions.assertTrue(fixture.persistence().joinAlliance(1, 2, identity.leaderClanId(), identity.generation(), "Alpha", 0, before.generation(), before.counter(), 3), "Fixture durable join did not fill its slot.");
+		final MembershipEpoch expected = new MembershipEpoch(2, identity.leaderClanId(), identity.generation(), before.counter() + 1);
+		final MembershipSnapshot durable = service.observeDurableMembership(2).snapshot();
+		PhantomAssertions.assertEquals(ClanAllianceService.Status.STALE, service.reconcileDurableMembership(new MembershipSnapshot(expected, "Different", target.objectId())).status(), "Recovery adopted a differently named alliance.");
+		fixture.state().currentLeader(2, 202);
+		fixture.persistence().currentLeader(2, 202);
+		PhantomAssertions.assertEquals(ClanAllianceService.Status.STALE, service.reconcileDurableMembership(durable).status(), "Durable snapshot from before transfer could still repair membership.");
+		PhantomAssertions.assertEquals(before, fixture.state().clan(2).membershipEpoch(), "Failed recovery changed live state.");
+		PhantomAssertions.assertTrue(service.reconcileDurableMembership(service.observeDurableMembership(2).snapshot()).successful(), "Exact durable membership could not repair the cache after leader replacement.");
+		PhantomAssertions.assertEquals(expected, fixture.state().clan(2).membershipEpoch(), "Repair did not publish the exact durable epoch.");
+	}
+
+	private void durableCapacity(PhantomTestContext context) throws Exception
+	{
+		final Fixture fixture = fixture(2);
+		fixture.persistence().addClan(4);
+		fixture.state().putClan(4, "Fourth", 5, 0, null, 0, 0, 0, 0, 0, 0);
+		final MembershipEpoch before = fixture.state().clan(3).membershipEpoch();
+		final AllianceIdentity identity = fixture.identity();
+		PhantomAssertions.assertTrue(fixture.persistence().joinAlliance(1, 3, identity.leaderClanId(), identity.generation(), "Alpha", 0, before.generation(), before.counter(), 3), "Fixture did not commit the last durable slot.");
+		PhantomAssertions.assertEquals(before, fixture.state().clan(3).membershipEpoch(), "Fixture applied the lost acknowledgement to the cache.");
+		PhantomAssertions.assertTrue(fixture.service().checkInvite(fixture.leader(), actor(4)).successful(), "Stale cache must still show one free slot at offer time.");
+		PhantomAssertions.assertEquals(ClanAllianceService.Reason.ALLIANCE_FULL, join(fixture, 4).reason(), "A second target overfilled the durable alliance after an unknown acknowledgement.");
+		PhantomAssertions.assertEquals(0, fixture.persistence().loadClanMembership(4).snapshot().epoch().allianceId(), "Rejected join still attached the fourth clan.");
 	}
 
 	private void proofCapture(PhantomTestContext context)
@@ -151,6 +214,13 @@ public final class ClanAllianceMembershipProofGoal027ESuite implements PhantomTe
 		assertNoRegistryOrPhantomSource(proofPath, "Public proof path");
 		PhantomAssertions.assertTrue(proofPath.contains("_fence.execute") && proofPath.contains("_persistence.dissolveAlliance"), "Proof dissolve is not revalidated and mutated under the canonical fence.");
 		PhantomAssertions.assertTrue(repository.contains("requireAllianceMembers(lockAllianceRows(connection, allianceId), memberGenerationCounters, generation)"), "Proof dissolve does not reach the durable exact-set CAS.");
+		final int joinStart = repository.indexOf("public boolean joinAlliance(");
+		final int joinEnd = repository.indexOf("public void leaveAlliance(", joinStart);
+		final String joinPath = repository.substring(joinStart, joinEnd);
+		final int lock = joinPath.indexOf("lockClanRows(connection, leaderClanId, targetClanId)");
+		final int count = joinPath.indexOf("SELECT COUNT(*) FROM clan_data WHERE ally_id=? AND ally_generation=?");
+		final int update = joinPath.indexOf("UPDATE clan_data");
+		PhantomAssertions.assertTrue(lock >= 0 && lock < count && count < update, "Durable join must count the exact alliance incarnation after locking its leader row and before writing.");
 		PhantomAssertions.assertTrue(schema.contains("KEY `ally_id` (`ally_id`)"), "Fresh clan_data lacks the existing bounded lookup index.");
 		PhantomAssertions.assertTrue(service.contains("public record AllianceMembershipProof") && service.contains("public Result dissolveWithProof(Player player, AllianceMembershipProof proof)"), "Public transport-neutral proof API is missing.");
 	}

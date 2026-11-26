@@ -166,6 +166,7 @@ public class Item extends WorldObject
 	private boolean _existsInDb; // if a record exists in DB.
 	private boolean _storedInDb; // if DB data is up-to-date.
 	private volatile boolean _countTransactionUncertain;
+	private volatile long _pendingAdenaDebitBase = -1;
 	
 	private final ReentrantLock _dbLock = new ReentrantLock();
 	
@@ -484,12 +485,74 @@ public class Item extends WorldObject
 		T run(Connection connection) throws Exception;
 	}
 
+	@FunctionalInterface
+	public interface CountReadback<T>
+	{
+		/** A non-null result authorizes publication of the exact durable count. */
+		T verify(Connection connection, long durableCount) throws Exception;
+	}
+
+	/** Resolve this exact native currency write only after the caller's receipt and count agree. */
+	public synchronized <T> T reconcileCountTransaction(int ownerId, long before, long after, CountReadback<T> readback) throws Exception
+	{
+		_dbLock.lock();
+		try
+		{
+			if (_pendingAdenaDebitBase < 0 || _pendingAdenaDebitBase != after || _loc != ItemLocation.INVENTORY || _ownerId != ownerId) { return null; }
+			final long earned = _count - _pendingAdenaDebitBase;
+			final long durable;
+			final T verified;
+			try (Connection connection = DatabaseFactory.getConnection())
+			{
+				connection.setAutoCommit(false);
+				try (var query = connection.prepareStatement("SELECT owner_id,item_id,count,loc FROM items WHERE object_id=? FOR UPDATE"))
+				{
+					query.setInt(1, getObjectId());
+					try (var rows = query.executeQuery())
+					{
+						if (!rows.next() || rows.getInt(1) != _ownerId || rows.getInt(2) != _itemId || !"INVENTORY".equals(rows.getString(4))) { return null; }
+						durable = rows.getLong(3);
+					}
+				}
+				if (durable != before && durable != after) { return null; }
+				verified = readback.verify(connection, durable);
+				if (verified == null) { return null; }
+				connection.commit();
+			}
+			_count = durable + Math.min(earned, MAX_ADENA - durable);
+			_countTransactionUncertain = false;
+			_pendingAdenaDebitBase = -1;
+			_existsInDb = true;
+			_storedInDb = _count == durable;
+			setLastChange(MODIFIED);
+			return verified;
+		}
+		finally { _dbLock.unlock(); }
+	}
+
 	/**
 	 * Narrow native currency bridge: count and the caller's durable receipt commit together.
 	 * No native mutation is published before commit. An unknown commit blocks this instance
 	 * until native reload, which reads both the receipt and authoritative item row.
 	 */
 	public synchronized <T> T transactCount(long delta, CountTransaction<T> transaction) throws Exception
+	{
+		return transactCount(delta, transaction, false);
+	}
+
+	/** Hold this exact stack on an unconfirmed debit while native earnings can still accrue. */
+	public synchronized <T> T transactRecoverableAdenaDebit(long debit, CountTransaction<T> transaction) throws Exception
+	{
+		if (_itemId != ADENA_ID || debit <= 0) { throw new IllegalArgumentException("Owned Adena debit required."); }
+		return transactCount(-debit, transaction, true);
+	}
+
+	public boolean hasPendingAdenaDebit()
+	{
+		return _pendingAdenaDebitBase >= 0;
+	}
+
+	private <T> T transactCount(long delta, CountTransaction<T> transaction, boolean retainAdenaCredits) throws Exception
 	{
 		_dbLock.lock();
 		try
@@ -501,10 +564,10 @@ public class Item extends WorldObject
 			final long next = Math.addExact(_count, delta);
 			if (next < 0 || (_itemId == ADENA_ID && next > MAX_ADENA)) { throw new IllegalArgumentException("Currency count outside native limits."); }
 			updateDatabase(true);
+			boolean committing = false;
 			try (Connection connection = DatabaseFactory.getConnection())
 			{
 				connection.setAutoCommit(false);
-				boolean committing = false;
 				try
 				{
 					if (!_existsInDb && _count == 0)
@@ -539,6 +602,16 @@ public class Item extends WorldObject
 					try { connection.rollback(); } catch (Exception rollback) { failure.addSuppressed(rollback); }
 					throw failure;
 				}
+			}
+			catch (Exception failure)
+			{
+				if (committing && retainAdenaCredits)
+				{
+					_countTransactionUncertain = true;
+					_count = next;
+					_pendingAdenaDebitBase = next;
+				}
+				throw failure;
 			}
 		}
 		finally { _dbLock.unlock(); }
@@ -638,7 +711,12 @@ public class Item extends WorldObject
 
 			final long old = _count;
 			final long max = _itemId == ADENA_ID ? MAX_ADENA : Long.MAX_VALUE;
-			if ((count > 0) && (_count > (max - count)))
+			if (count > 0 && hasPendingAdenaDebit())
+			{
+				// This is a native increment on the lower possible balance. Hold the delta until readback.
+				_count += Math.min(count, max - _count);
+			}
+			else if ((count > 0) && (_count > (max - count)))
 			{
 				setCount(max);
 			}
