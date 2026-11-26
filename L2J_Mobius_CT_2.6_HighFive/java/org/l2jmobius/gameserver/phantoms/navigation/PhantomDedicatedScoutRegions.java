@@ -282,6 +282,13 @@ final class PhantomDedicatedScoutRegions
 		state.retryAfter = nowMillis + Math.min(MAX_BACKOFF, TimeUnit.SECONDS.toMillis(30) << (state.failures - 1));
 	}
 
+	static PhantomNavigationPoint seedAtHeight(int x, int y, int z)
+	{
+		// A loaded tile may project to an out-of-world seabed layer. The probe still
+		// consumes its budget and the allocator can try another tile in this pulse.
+		return z < World.WORLD_Z_MIN || z > World.WORLD_Z_MAX ? null : new PhantomNavigationPoint(x, y, z, 0);
+	}
+
 	synchronized boolean validateSeed(Assignment assignment)
 	{
 		if (!owns(assignment) || !currentGeneration()) { return false; }
@@ -480,7 +487,7 @@ final class PhantomDedicatedScoutRegions
 		@Override
 		public PhantomNavigationPoint project(int x, int y, int hintZ)
 		{
-			return _geo.hasGeo(x, y) ? new PhantomNavigationPoint(x, y, _geo.getHeight(x, y, hintZ), 0) : null;
+			return _geo.hasGeo(x, y) ? seedAtHeight(x, y, _geo.getHeight(x, y, hintZ)) : null;
 		}
 
 		@Override

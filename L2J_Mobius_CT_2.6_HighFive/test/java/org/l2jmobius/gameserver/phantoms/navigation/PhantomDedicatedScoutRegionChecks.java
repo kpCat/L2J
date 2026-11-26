@@ -27,6 +27,23 @@ public final class PhantomDedicatedScoutRegionChecks
 		leasesAndBackoff(root.resolve("leases"));
 		boundedProbeAndGeneration(root.resolve("budget"));
 		visitedWorkSurvivesSeedStarvation(root.resolve("fairness"));
+		outOfWorldLayerConsumesProbe(root.resolve("height"));
+	}
+
+	private static void outOfWorldLayerConsumesProbe(Path root) throws Exception
+	{
+		Files.createDirectory(root);
+		final var terrain = new Terrain();
+		terrain.firstProjectedHeight = World.WORLD_Z_MIN - 1;
+		try (var memory = PhantomRouteLearning.open(root, FINGERPRINT))
+		{
+			final var regions = PhantomDedicatedScoutRegions.open(memory, terrain);
+			regions.beginPulse();
+			final var assignment = regions.claim(1, System.currentTimeMillis());
+			check(assignment != null && assignment.tile().equals(SECOND) && regions.validateSeed(assignment),
+				"an out-of-world layer must leave a valid next tile available in the same pulse");
+			check(terrain.projects == 2 && regions.status().contains("NO_LAYER=1"), "invalid height must consume exactly one probe");
+		}
 	}
 
 	private static void visitedWorkSurvivesSeedStarvation(Path root) throws Exception
@@ -149,6 +166,7 @@ public final class PhantomDedicatedScoutRegionChecks
 		private final Set<Tile> tiles = Set.of(FIRST, SECOND);
 		private Tile safeTile;
 		private int projects;
+		private int firstProjectedHeight = -3200;
 		private long generation;
 		private boolean allLoaded;
 		private Rejection rejection;
@@ -159,7 +177,7 @@ public final class PhantomDedicatedScoutRegionChecks
 		{
 			projects++;
 			check(x >= World.WORLD_X_MIN && x < World.WORLD_X_MAX && y >= World.WORLD_Y_MIN && y < World.WORLD_Y_MAX, "seed is inside world bounds");
-			return new PhantomNavigationPoint(x, y, -3200, 0);
+			return PhantomDedicatedScoutRegions.seedAtHeight(x, y, projects == 1 ? firstProjectedHeight : -3200);
 		}
 		@Override public Rejection reject(PhantomNavigationPoint point)
 		{
