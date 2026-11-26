@@ -99,6 +99,13 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			registry.add("27-large-debt-and-5000-identity-queue-model", this::testColdQueueModel113);
 			return;
 		}
+		if (System.getProperty("phantom.m1.native.focus", "").equals("population018-admission"))
+		{
+			registry.add("018-unrelated-history-write-preserves-scheduling-snapshot", this::testIndependentHistoryWrite);
+			registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
+			registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
+			return;
+		}
 		if (System.getProperty("phantom.m1.native.focus", "").equals("stop075"))
 		{
 			registry.add("22-stop-settles-live-tail-before-downtime-once", this::testStopLiveTail075);
@@ -140,6 +147,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("17-restored-inventory-readiness-starts-bounded-target-creation", this::testRestoredInventoryReadinessStartsCreation);
 		registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
 		registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
+		registry.add("018-unrelated-history-write-preserves-scheduling-snapshot", this::testIndependentHistoryWrite);
 		registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
 		registry.add("21-native-context-before-new-history-claim", this::testNativeContextBeforeClaim061);
 		registry.add("22-stop-settles-live-tail-before-downtime-once", this::testStopLiveTail075);
@@ -935,6 +943,35 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		for (long id = 3; id <= liveCount; id++) { PhantomAssertions.assertEquals(fromMinute + 10, store.require(id).state().calendarCursorEpochMinute(), "Bounded stop batch omitted a live owner."); }
 		PhantomAssertions.assertEquals(0L, historical.advancedMinutes(), "Stop settled pending history by simulating work.");
 		context.record("goal075.stopPendingHistory", "bounded_batches+pending_and_orphan_claims_preserved+nonlive_untouched");
+	}
+
+	private void testIndependentHistoryWrite(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:00:00Z");
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(now);
+		final var populations = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var ready = populations.seedReady(1, 1);
+		final var behind = populations.seedReady(2, 1);
+		final var store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(minute(now), Pace.OUTLIER, 10_000, ready.state().scheduleTemplate()));
+		store.insert(2, stateAt(minute(now) - 600, Pace.OUTLIER, 10_000, behind.state().scheduleTemplate()));
+		final var service = service(store, new HistoricalMemoryPort(), new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> Optional.ofNullable(id == 1 ? ready : id == 2 ? behind : null), noEvents());
+		service.register(ready);
+		service.register(behind);
+		loadMetadata(service, 2);
+		service.onPopulationPulse();
+		final var snapshot = service.schedulingSnapshot(List.of(1L, 2L), now);
+		PhantomAssertions.assertTrue(snapshot.permitted(1L) && !snapshot.permitted(2L), "Fixture needs one current and one catching-up profile.");
+		final long version = store.require(2).rowVersion();
+		for (int pulse = 0; pulse < 16 && store.require(2).rowVersion() == version; pulse++) { service.onPopulationPulse(); }
+		PhantomAssertions.assertTrue(store.require(2).rowVersion() > version, "Independent history did not commit.");
+		PhantomAssertions.assertFalse(service.permitsScheduling(2), "Independent history unexpectedly caught up.");
+		PhantomAssertions.assertTrue(service.schedulingSnapshotCurrent(snapshot), "A write with unchanged scheduling facts invalidated all admissions.");
+		service.updateParticipation(1, false);
+		PhantomAssertions.assertFalse(service.schedulingSnapshotCurrent(snapshot), "A real permission loss reused the old scheduling snapshot.");
+		PhantomAssertions.assertFalse(service.permitsScheduling(1), "Paused participation still permits scheduling.");
 	}
 
 	private void testPeriodicMaterializedBoundary(PhantomTestContext context)

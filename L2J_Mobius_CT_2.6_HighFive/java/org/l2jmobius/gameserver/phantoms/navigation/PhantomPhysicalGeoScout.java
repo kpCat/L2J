@@ -267,6 +267,10 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 		final boolean shed = (count > target || _pauseNewWalks && count != 0) && now >= _nextShed;
 		final var victim = shed ? _scouts.values().stream().filter(scout -> !scout.releasing && scout != _admitting)
 			.max(java.util.Comparator.comparingInt(scout -> scout.slot)).orElse(null) : null;
+		final var rotation = open && ready && !_pauseNewWalks && rotationCapacityReady(count, target,
+			_admitting != null || _scouts.values().stream().anyMatch(scout -> scout.releasing))
+			? _scouts.values().stream().filter(scout -> scout.epoch != 0 && scout.leg == null && now - scout.assignmentStarted >= 8 * 60 * SECOND)
+				.min(java.util.Comparator.comparingLong(scout -> scout.assignmentStarted)).orElse(null) : null;
 		for (var scout : _scouts.values().stream().sorted(java.util.Comparator.comparingInt(candidate -> Math.floorMod(candidate.slot - _walkCursor, 32))).toList())
 		{
 			if (scout == _admitting) { continue; }
@@ -277,7 +281,7 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 					release(scout, memory, now, scout.releasing ? scout.releaseReason : _reason);
 					if (scout == victim) { _nextShed = now + 5 * SECOND; }
 				}
-				else if (scout.leg == null && now - scout.assignmentStarted >= 8 * 60 * SECOND)
+				else if (scout == rotation)
 				{
 					release(scout, memory, now, "REGION_ROTATION");
 				}
@@ -295,6 +299,11 @@ public final class PhantomPhysicalGeoScout implements PhantomSchedulerControlPor
 			regions.beginPulse();
 			startDedicatedAdmission(regions, now);
 		}
+	}
+
+	static boolean rotationCapacityReady(int count, int target, boolean admissionOrStoreInFlight)
+	{
+		return target > 0 && count == target && !admissionOrStoreInFlight;
 	}
 
 	private boolean dedicatedPressure()

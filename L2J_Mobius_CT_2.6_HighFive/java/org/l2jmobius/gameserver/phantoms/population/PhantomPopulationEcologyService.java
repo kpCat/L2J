@@ -534,7 +534,7 @@ public final class PhantomPopulationEcologyService
 				_entries.put(population.profile().profileId(), entry);
 				_unloadedEntries++;
 			}
-			publishLocked(entry, stored);
+			publishLocked(population.profile().profileId(), entry, stored);
 			if ((stored.state().replacesProfileId() > 0) && !_replacementQueue.isEmpty() && (_replacementQueue.peekFirst() == stored.state().replacesProfileId()))
 			{
 				_replacementQueue.removeFirst();
@@ -1069,7 +1069,7 @@ public final class PhantomPopulationEcologyService
 			// begin() can require a Player before claiming its next window. There is then no historical
 			// owner to hand off: NORMAL admission rechecks that no concurrent claim has appeared.
 			if (materializationDue && (!_batchAdmission || _admittedPreparation.contains(profileId)) && currentDemand && !entry._terminal && (_wakeFailure == null) && _populationPlanApplied && _inventoryReady && !_metadataDraining
-				&& (state != null) && (state.disposition() == Disposition.MANAGED) && unclaimedNativePrerequisite(entry))
+				&& (state != null) && (state.disposition() == Disposition.MANAGED) && unclaimedNativePrerequisite(entry, state))
 			{
 				entry._materializationDemand = true;
 				return new DueReconciliation(true, 0, "ecology.native_materialization_required");
@@ -1417,7 +1417,7 @@ public final class PhantomPopulationEcologyService
 			if (entry != null)
 			{
 				entry._archiveRequested = false;
-				publishLocked(entry, archived.ecology());
+				publishLocked(profileId, entry, archived.ecology());
 				_replacementQueue.addLast(profileId);
 				_persistenceWrites++;
 			}
@@ -1515,17 +1515,21 @@ public final class PhantomPopulationEcologyService
 
 	private boolean permitsSchedulingLocked(long profileId, Entry entry, long now)
 	{
-		return !_stopping && _populationPlanApplied && _inventoryReady && !_metadataDraining && entry._participating && (entry._stored != null) && (entry._stored.state().disposition() == Disposition.MANAGED)
-			&& entry._stored.state().initialCatchupComplete() && !entry._stored.state().requestPending()
-			&& ((entry._stored.state().calendarCursorEpochMinute() >= entry._requestedMinute && (_periodicDueMode || entry._stored.state().calendarCursorEpochMinute() >= now))
-				|| !entry._terminal && _wakeFailure == null && entry._materializationDemand && _admittedPreparation.contains(profileId) && unclaimedNativePrerequisite(entry));
+		return permitsSchedulingLocked(profileId, entry, entry._stored == null ? null : entry._stored.state(), now);
+	}
+
+	private boolean permitsSchedulingLocked(long profileId, Entry entry, PhantomPopulationEcologyState state, long now)
+	{
+		return !_stopping && _populationPlanApplied && _inventoryReady && !_metadataDraining && entry._participating && (state != null) && (state.disposition() == Disposition.MANAGED)
+			&& state.initialCatchupComplete() && !state.requestPending()
+			&& ((state.calendarCursorEpochMinute() >= entry._requestedMinute && (_periodicDueMode || state.calendarCursorEpochMinute() >= now))
+				|| !entry._terminal && _wakeFailure == null && entry._materializationDemand && _admittedPreparation.contains(profileId) && unclaimedNativePrerequisite(entry, state));
 	}
 	/** Native context is a bounded physical prerequisite, never completion of unelapsed historical time. */
-	private static boolean unclaimedNativePrerequisite(Entry entry)
+	private static boolean unclaimedNativePrerequisite(Entry entry, PhantomPopulationEcologyState state)
 	{
-		final var state = entry._stored == null ? null : entry._stored.state();
 		final var history = entry._historicalSnapshot == null ? null : entry._historicalSnapshot.state();
-		return state != null && state.initialCatchupComplete() && !state.requestPending()
+		return state.initialCatchupComplete() && !state.requestPending()
 			&& (history == null || history.status() == Status.COMPLETE && history.targetEpochMinute() <= state.calendarCursorEpochMinute())
 			&& PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure);
 	}
@@ -1623,15 +1627,23 @@ public final class PhantomPopulationEcologyService
 			final Entry entry = _entries.get(profileId);
 			if (entry != null)
 			{
-				publishLocked(entry, stored);
+				publishLocked(profileId, entry, stored);
 				refreshInventoryLocked();
 			}
 		}
 	}
 
-	private void publishLocked(Entry entry, StoredState stored)
+	private void publishLocked(long profileId, Entry entry, StoredState stored)
 	{
-		schedulingChangedLocked();
+		final var previous = entry._stored == null ? null : entry._stored.state();
+		final var next = stored.state();
+		final long now = Math.max(0, _clock.millis() / MINUTE_MILLIS);
+		if (previous == null || previous.disposition() != next.disposition()
+			|| permitsSchedulingLocked(profileId, entry, previous, now) != permitsSchedulingLocked(profileId, entry, next, now))
+		{
+			// Publish the fence before changing a fact sampled without this monitor.
+			schedulingChangedLocked();
+		}
 		if (entry._stored != null)
 		{
 			removeHistogramsLocked(entry._stored.state());

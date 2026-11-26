@@ -17,6 +17,12 @@ public final class PhantomDedicatedScoutChecks
 		{
 			throw new AssertionError("Dedicated 32-scout service must be open in daytime.");
 		}
+		if (PhantomPhysicalGeoScout.rotationCapacityReady(31, settings.count(), false)
+			|| PhantomPhysicalGeoScout.rotationCapacityReady(32, settings.count(), true)
+			|| !PhantomPhysicalGeoScout.rotationCapacityReady(32, settings.count(), false))
+		{
+			throw new AssertionError("Region rotation must wait for a full cohort with no admission or STORE in flight.");
+		}
 		ini.remove("PhysicalGeoScoutMode");
 		ini.remove("PhysicalGeoScoutSchedule");
 		try
