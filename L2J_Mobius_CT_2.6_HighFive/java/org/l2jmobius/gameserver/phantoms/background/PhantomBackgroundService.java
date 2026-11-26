@@ -555,7 +555,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		Objects.requireNonNull(catchup, "catchup");
 		Objects.requireNonNull(nextCatchup, "nextCatchup");
 		final PhantomBackgroundCatchupState expectedCatchup = catchup.state();
-		if ((expectedCatchup.status() != PhantomBackgroundCatchupState.Status.RUNNING) || !expectedCatchup.authorityHashes().equals(_authority.hashes()) || (nextCatchup.cursorEpochMinute() != Math.addExact(expectedCatchup.cursorEpochMinute(), 1)))
+		final long span = nextCatchup.cursorEpochMinute() - expectedCatchup.cursorEpochMinute();
+		if ((expectedCatchup.status() != PhantomBackgroundCatchupState.Status.RUNNING) || !expectedCatchup.authorityHashes().equals(_authority.hashes()) || span < 1
+			|| (span > 1 && (!PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal)
+				|| span > PhantomBackgroundGoalSpec.idleMinutesUntilRecheck(profileId, expectedCatchup.cursorEpochMinute()))))
 		{
 			return OperationResult.replan("catchup.state_or_hash_stale");
 		}
@@ -575,8 +578,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return retry("state.not_ready");
 			}
+			final boolean combined = span > 1;
+			if (combined && !PhantomBackgroundGoalSpec.canCombineIdle(profileId, state, goal)) { return retry("catchup.idle_range_state_changed"); }
 			final PhantomBackgroundGoalSpec spec = claim.spec();
-			final HistoricalIdentity historical = new HistoricalIdentity(expectedCatchup.requestId(), expectedCatchup.generation(), expectedCatchup.intervalOrdinal(), expectedCatchup.cursorEpochMinute(), nextCatchup.cursorEpochMinute(), expectedCatchup.planIdentity());
+			// Store the same last-minute receipt as sequential idle commits.
+			final HistoricalIdentity historical = new HistoricalIdentity(expectedCatchup.requestId(), expectedCatchup.generation(),
+				Math.addExact(expectedCatchup.intervalOrdinal(), span - 1), nextCatchup.cursorEpochMinute() - 1, nextCatchup.cursorEpochMinute(), expectedCatchup.planIdentity());
 			final PhantomBackgroundTransaction.CatchupMutation mutation = new PhantomBackgroundTransaction.CatchupMutation(expectedCatchup, catchup.rowVersion(), nextCatchup);
 			final OperationResult replay = reconcileHistoricalReplay(claim, goal, spec, historical, mutation);
 			if (replay != null)
@@ -694,7 +701,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationResult reconcileHistoricalReplay(OperationClaim claim, PhantomGoal goal, PhantomBackgroundGoalSpec spec, HistoricalIdentity historical, PhantomBackgroundTransaction.CatchupMutation catchup)
 	{
-		for (ActionKind actionKind : List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE, ActionKind.HISTORICAL_IDLE, ActionKind.HISTORICAL_OFFSCREEN_TRAVEL, ActionKind.HISTORICAL_OFFSCREEN_CANCEL))
+		final var actions = catchup.span() > 1 ? List.of(ActionKind.HISTORICAL_IDLE)
+			: List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE, ActionKind.HISTORICAL_IDLE,
+				ActionKind.HISTORICAL_OFFSCREEN_TRAVEL, ActionKind.HISTORICAL_OFFSCREEN_CANCEL);
+		for (ActionKind actionKind : actions)
 		{
 			for (String legId : actionKind == ActionKind.HISTORICAL_TRAVEL ? java.util.stream.Stream.concat(java.util.stream.Stream.of(""), _authority.travelLegIds().stream()).toList() : List.of(""))
 			{

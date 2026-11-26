@@ -1275,6 +1275,7 @@ public final class PhantomBackgroundTransaction
 				if (command.catchup() != null)
 				{
 					validateExpectedCatchupComponent(catchupComponent, command);
+					if (command.catchup().span() > 1) { requireNoPendingNativeIntent(connection, expected.identity().profileId()); }
 				}
 				if (command.acquisition() != null)
 				{
@@ -1658,9 +1659,28 @@ public final class PhantomBackgroundTransaction
 		{
 			throw new StateConflict(Status.CATCHUP_CONFLICT);
 		}
-		if (!Arrays.equals(_catchupCodec.encode(actual), _catchupCodec.encode(mutation.expectedState())) || !identity.requestId().equals(actual.requestId()) || (identity.catchupGeneration() != actual.generation()) || (identity.intervalOrdinal() != actual.intervalOrdinal()) || (identity.fromEpochMinute() != actual.cursorEpochMinute()) || (identity.nextEpochMinute() != mutation.nextState().cursorEpochMinute()) || !identity.planIdentity().equals(actual.planIdentity()))
+		if (!Arrays.equals(_catchupCodec.encode(actual), _catchupCodec.encode(mutation.expectedState())) || !identity.requestId().equals(actual.requestId())
+			|| (identity.catchupGeneration() != actual.generation()) || (identity.intervalOrdinal() != mutation.nextState().intervalOrdinal() - 1)
+			|| (identity.fromEpochMinute() != mutation.nextState().cursorEpochMinute() - 1)
+			|| (identity.nextEpochMinute() != mutation.nextState().cursorEpochMinute()) || !identity.planIdentity().equals(actual.planIdentity()))
 		{
 			throw new StateConflict(Status.CATCHUP_CONFLICT);
+		}
+	}
+
+	private void requireNoPendingNativeIntent(Connection connection, long profileId) throws SQLException
+	{
+		if (lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE) != null)
+		{
+			throw new StateConflict(Status.NATIVE_INTENT_PENDING);
+		}
+		for (String type : PhantomHistoricalBackgroundService.NATIVE_INTENT_TYPES)
+		{
+			final var row = lockComponent(connection, profileId, type);
+			if (row != null && PhantomHistoricalBackgroundService.nativeIntentPending(type, row.schemaVersion(), row.payload()))
+			{
+				throw new StateConflict(Status.NATIVE_INTENT_PENDING);
+			}
 		}
 	}
 
@@ -3082,6 +3102,7 @@ public final class PhantomBackgroundTransaction
 		COMMIT_OUTCOME_UNKNOWN,
 		POST_COMMIT_VERIFICATION_FAILED,
 		OWNED_STORE_CANONICAL_NEITHER,
+		NATIVE_INTENT_PENDING,
 		NATIVE_CONTEXT_REQUIRED,
 		OFFSCREEN_WAIT
 	}
@@ -3195,6 +3216,14 @@ public final class PhantomBackgroundTransaction
 			Objects.requireNonNull(clock, "clock");
 			itemDeltas = Map.copyOf(itemDeltas);
 			autoGetSkills = List.copyOf(autoGetSkills);
+			if (catchup != null && catchup.span() > 1
+				&& (operationKey.actionKind() != PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE || policy != null
+					|| !PhantomBackgroundGoalSpec.canCombineIdle(expectedState.identity().profileId(), expectedState, goal)
+					|| catchup.expectedState().goalId() != goal.goalId() || catchup.expectedState().goalRevision() != goal.revision()
+					|| catchup.span() > PhantomBackgroundGoalSpec.idleMinutesUntilRecheck(expectedState.identity().profileId(), catchup.expectedState().cursorEpochMinute())))
+			{
+				throw new IllegalArgumentException("Only canonical idle may combine historical minutes before the next recheck.");
+			}
 			if (operationKey.actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL
 				|| operationKey.actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL)
 			{
@@ -3233,11 +3262,17 @@ public final class PhantomBackgroundTransaction
 		{
 			Objects.requireNonNull(expectedState, "expectedState");
 			Objects.requireNonNull(nextState, "nextState");
-			if ((expectedRowVersion < 0) || (!nextState.owns(expectedState.requestId()) || (nextState.generation() != expectedState.generation())) || (nextState.cursorEpochMinute() != Math.addExact(expectedState.cursorEpochMinute(), 1)) || (nextState.intervalOrdinal() != Math.addExact(expectedState.intervalOrdinal(), 1)))
+			final long count = nextState.cursorEpochMinute() - expectedState.cursorEpochMinute();
+			if ((expectedRowVersion < 0) || (count < 1) || (count > PhantomHistoricalBackgroundService.MAXIMUM_INTERVALS_PER_CALL)
+				|| !nextState.owns(expectedState.requestId()) || nextState.generation() != expectedState.generation()
+				|| nextState.intervalOrdinal() != Math.addExact(expectedState.intervalOrdinal(), count)
+				|| (count > 1 && (expectedState.status() != PhantomBackgroundCatchupState.Status.RUNNING || !expectedState.advanceIdleTo(nextState.cursorEpochMinute()).equals(nextState))))
 			{
 				throw new IllegalArgumentException("Invalid historical Background catchup mutation.");
 			}
 		}
+
+		long span() { return nextState.cursorEpochMinute() - expectedState.cursorEpochMinute(); }
 	}
 	public record AcquisitionMutation(PhantomAcquisitionState expectedState, long expectedStateRowVersion, long expectedGoalRowVersion, ReceiptKind receiptKind, long logicalMinute, Map<Integer, Integer> eligibilitySkills, Map<String, String> expectedQuestRows)
 	{

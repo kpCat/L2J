@@ -151,8 +151,55 @@ public final class PhantomLivingWorld112Checks
 		if (args.length == 1 && args[0].equals("--paid-travel121")) { paidTravel121(); return; }
 		if (args.length == 1 && args[0].equals("--recovery121")) { recoveryAdmission121(); return; }
 		if (args.length == 1 && args[0].equals("--idle-handoff121")) { idleHandoff121(); return; }
+		if (args.length == 1 && args[0].equals("--idle-transaction018")) { idleTransaction018(); return; }
 		stableAndWake(); fences(); loadBound(5000, 121); loadBound(32, 1441);
 		System.out.println("TASK112_IDLE_PLANNING_PASS DB=0 ACTORS=0; transaction/native cursor persistence not simulated");
+	}
+
+	private static void idleTransaction018()
+	{
+		final var fixture = fixture();
+		final var canonical = state();
+		final var first = catchup(fixture, 1, 15);
+		final var last = first.advanceTo(2).advanceTo(3).advanceTo(4);
+		final var end = last.advanceTo(5);
+		final String hash = "a".repeat(64);
+		final var start = new PhantomBackgroundCatchupState(first.status(), hash, first.deterministicSeed(), first.fromEpochMinute(),
+			first.targetEpochMinute(), first.cursorEpochMinute(), first.planOrdinal(), first.intervalOrdinal(), first.generation(),
+			first.knowledgeGeneration(), first.topologyGeneration(), first.goalId(), first.goalRevision(), hash, first.modelVersion(), first.authorityHashes(), "");
+		final var equivalent = start.advanceTo(2).advanceTo(3).advanceTo(4).advanceTo(5);
+		final var mutation = new PhantomBackgroundTransaction.CatchupMutation(start, 9, equivalent);
+		final var identity = new PhantomBackgroundOperationKey.HistoricalIdentity(hash, start.generation(), last.intervalOrdinal(), last.cursorEpochMinute(), end.cursorEpochMinute(), hash);
+		final var key = new PhantomBackgroundOperationKey(5, 50, 55, 7, 0, 0, PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE,
+			0, canonical.position().committedAnchorId(), 1, canonical.hashes(), null, identity);
+		final var command = new PhantomBackgroundTransaction.Command(canonical, idle(), key, canonical.progress(), canonical.vitals(),
+			canonical.position(), canonical.clock(), Map.of(), canonical.autoGetSkills(), List.of(), null, mutation);
+		check(command.catchup().nextState().equals(equivalent) && equivalent.intervalOrdinal() == end.intervalOrdinal()
+			&& command.operationKey().digest().equals(key.digest()), "018_IDLE_RANGE_LOST_SEQUENTIAL_CURSOR_OR_FINAL_RECEIPT");
+		check(start.advanceIdleTo(5).equals(equivalent), "018_IDLE_RANGE_DID_NOT_KEEP_ORDINAL");
+		check(PhantomHistoricalBackgroundService.idleSpan(5, canonical, idle(), start, 16) == 4
+			&& PhantomHistoricalBackgroundService.idleSpan(5, canonical, idle(), start, 2) == 2
+			&& PhantomHistoricalBackgroundService.idleSpan(5, canonical, idle(), equivalent, 16) == 1
+			&& PhantomHistoricalBackgroundService.idleSpan(5, canonical, idle(), catchup(fixture, 6, 8), 16) == 2
+			&& PhantomHistoricalBackgroundService.idleSpan(5, canonical, idle(6), start, 16) == 1,
+			"018_IDLE_RANGE_RECHECK_OR_BUDGET_BYPASSED");
+		requireIdleRangeRejection(() -> new PhantomBackgroundTransaction.Command(canonical, idle(), key, canonical.progress(), canonical.vitals(),
+			canonical.position(), canonical.clock(), Map.of(57, 1L), canonical.autoGetSkills(), List.of(), null, mutation));
+		final var extended = new PhantomBackgroundTransaction.CatchupMutation(start, 9, start.advanceIdleTo(6));
+		requireIdleRangeRejection(() -> new PhantomBackgroundTransaction.Command(canonical, idle(), key, canonical.progress(), canonical.vitals(),
+			canonical.position(), canonical.clock(), Map.of(), canonical.autoGetSkills(), List.of(), null, extended));
+		final var farmKey = new PhantomBackgroundOperationKey(5, 50, 55, 7, 0, 0, PhantomBackgroundOperationKey.ActionKind.HISTORICAL_FARM,
+			20001, canonical.position().committedAnchorId(), 1, canonical.hashes(), null, identity);
+		requireIdleRangeRejection(() -> new PhantomBackgroundTransaction.Command(canonical, idle(), farmKey, canonical.progress(), canonical.vitals(),
+			canonical.position(), canonical.clock(), Map.of(), canonical.autoGetSkills(), List.of(), null, mutation));
+		System.out.println("TASK018_IDLE_TRANSACTION_RANGE_PASS exactOrdinal=true recheck=true budget=true effectsRejected=true DB0");
+	}
+
+	private static void requireIdleRangeRejection(Runnable command)
+	{
+		try { command.run(); }
+		catch (IllegalArgumentException expected) { return; }
+		throw new AssertionError("TASK112_018_UNSAFE_IDLE_RANGE_ADMITTED");
 	}
 	private static void paidTravel121()
 	{

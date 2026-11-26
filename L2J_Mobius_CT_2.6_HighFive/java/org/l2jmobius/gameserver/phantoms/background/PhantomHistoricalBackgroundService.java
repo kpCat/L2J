@@ -62,7 +62,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 {
 	public static final int MAXIMUM_INTERVALS_PER_CALL = 64;
 	public static final int MAXIMUM_SIMULATED_MINUTES_PER_CALL = 1440;
-	private static final int IDLE_RECHECK_MINUTES = 60;
+	static final List<String> NATIVE_INTENT_TYPES = List.of("supply.intent", "learning.intent", "career.intent");
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStateStore _goals;
 	private final PhantomBackgroundCatchupStore _store;
@@ -744,7 +744,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Unchanged child bytes are still an obligation, including compensation and paid return. */
 	public boolean nativeIntentPending(long profileId)
 	{
-		for (String type : List.of("supply.intent", "learning.intent", "career.intent"))
+		for (String type : NATIVE_INTENT_TYPES)
 		{
 			final var row = _profiles.findComponent(profileId, type);
 			if (row.isPresent() && nativeIntentPending(row.get())) { return true; }
@@ -753,11 +753,16 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 	public static boolean nativeIntentPending(PhantomProfileComponent row)
 	{
-		if (row.componentSchemaVersion() != 1 || !Set.of("supply.intent", "learning.intent", "career.intent").contains(row.componentType()))
+		return nativeIntentPending(row.componentType(), row.componentSchemaVersion(), row.payload());
+	}
+
+	static boolean nativeIntentPending(String type, int schema, byte[] payload)
+	{
+		if (schema != 1 || !NATIVE_INTENT_TYPES.contains(type))
 		{ throw new IllegalArgumentException("Unsupported native intent component."); }
-		final var child = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(row.payload());
+		final var child = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(payload);
 		return org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.continuing(child)
-			|| "supply.intent".equals(row.componentType()) && org.l2jmobius.gameserver.phantoms.commerce.PhantomOfflineSupply.returning(child);
+			|| "supply.intent".equals(type) && org.l2jmobius.gameserver.phantoms.commerce.PhantomOfflineSupply.returning(child);
 	}
 
 	/** Completed history retains its original authority; only the current Background must be fresh. */
@@ -938,10 +943,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			storedGoal = _goals.load(profileId).orElse(null);
 			final String remaining = recoveryPrerequisite(profileId, current, backgroundState, storedGoal);
 			if (!remaining.isEmpty()) { return Result.rejected(ResultStatusCode.RETRY, remaining, current); }
+			boolean soloReconsidered = false;
 			if (backgroundState.state() == PhantomBackgroundState.State.READY && !offscreenReplanned)
 			{
 				final PhantomGoal previousGoal = storedGoal.goal();
 				final var logical = logicalGroup(profileId, previousGoal);
+				soloReconsidered = logical == null;
 				final var replanned = logical == null ? reconsiderHistorical(_planner, profileId, backgroundState, previousGoal, current.state(), () -> _acceptedIntent.test(profileId, previousGoal))
 					: _acceptedIntent.test(profileId, previousGoal) ? PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey")
 					: previousGoal.validSources().contains(logical.objective()) && _planner.remainsSuitable(backgroundState, previousGoal)
@@ -975,13 +982,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					}
 				}
 			}
-			final PhantomBackgroundCatchupState next = current.state().advanceTo(Math.addExact(current.state().cursorEpochMinute(), 1));
+			final var cursor = current.state();
+			final int span = soloReconsidered ? idleSpan(profileId, backgroundState, storedGoal.goal(), cursor, limit - advanced) : 1;
+			final boolean combined = span > 1 && !_acceptedIntent.test(profileId, storedGoal.goal()) && !nativeIntentPending(profileId);
+			final PhantomBackgroundCatchupState next = combined ? cursor.advanceIdleTo(Math.addExact(cursor.cursorEpochMinute(), span))
+				: cursor.advanceTo(Math.addExact(cursor.cursorEpochMinute(), 1));
 			final var operation = _background.advanceHistorical(profileId, storedGoal.goal(), current, next);
 			final Snapshot observed = _store.load(profileId).orElse(current);
 			if ((observed.state().cursorEpochMinute() == next.cursorEpochMinute()) && observed.state().requestId().equals(current.state().requestId()))
 			{
 				current = observed;
-				advanced++;
+				advanced += Math.toIntExact(next.cursorEpochMinute() - cursor.cursorEpochMinute());
 				repairedInterval = false;
 				offscreenReplanned = false;
 				continue;
@@ -1368,7 +1379,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{ return PhantomHistoricalBackgroundPlanner.Result.blocked("catchup.replan.prerequisite_changed"); }
 		final boolean idle = PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal);
 		final boolean suitable = planner.remainsSuitable(state, goal);
-		final boolean due = idle && Math.floorMod(catchup.cursorEpochMinute(), IDLE_RECHECK_MINUTES) == Math.floorMod(profileId, IDLE_RECHECK_MINUTES);
+		final boolean due = idle && PhantomBackgroundGoalSpec.idleMinutesUntilRecheck(profileId, catchup.cursorEpochMinute()) == 0;
 		if (!suitable || due)
 		{
 			if (acceptedIntent.getAsBoolean()) { return PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey"); }
@@ -1385,6 +1396,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (replacement != null) { return replacement; }
 		}
 		return new PhantomHistoricalBackgroundPlanner.Result(goal, PhantomBackgroundGoalSpec.parseLifecycle(goal), catchup.planIdentity(), generation, List.of(), "planner.historical_hold");
+	}
+
+	static int idleSpan(long profileId, PhantomBackgroundState state, PhantomGoal goal, PhantomBackgroundCatchupState cursor, int remaining)
+	{
+		if (!PhantomBackgroundGoalSpec.canCombineIdle(profileId, state, goal)) { return 1; }
+		final int recheck = PhantomBackgroundGoalSpec.idleMinutesUntilRecheck(profileId, cursor.cursorEpochMinute());
+		return (int) Math.max(1, Math.min(Math.min(remaining, recheck), cursor.targetEpochMinute() - cursor.cursorEpochMinute()));
 	}
 
 	static ResultStatusCode historicalPlanningFailureStatus(String reason)

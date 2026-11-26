@@ -89,12 +89,23 @@ public record PhantomBackgroundCatchupState(Status status, String requestId, lon
 
 	public PhantomBackgroundCatchupState advanceTo(long nextCursorEpochMinute)
 	{
+		return advanceTo(nextCursorEpochMinute, 1);
+	}
+
+	PhantomBackgroundCatchupState advanceIdleTo(long nextCursorEpochMinute)
+	{
+		if (status != Status.RUNNING) { throw new IllegalStateException("Only running catch-up may advance an idle range."); }
+		return advanceTo(nextCursorEpochMinute, Math.subtractExact(nextCursorEpochMinute, cursorEpochMinute));
+	}
+
+	private PhantomBackgroundCatchupState advanceTo(long nextCursorEpochMinute, long intervals)
+	{
 		if ((nextCursorEpochMinute <= cursorEpochMinute) || (nextCursorEpochMinute > targetEpochMinute))
 		{
 			throw new IllegalArgumentException("Catch-up cursor must advance positively and remain bounded.");
 		}
 		final Status nextStatus = nextCursorEpochMinute == targetEpochMinute ? Status.COMPLETE : Status.RUNNING;
-		return new PhantomBackgroundCatchupState(nextStatus, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, nextCursorEpochMinute, planOrdinal, Math.addExact(intervalOrdinal, 1), generation, knowledgeGeneration, topologyGeneration, goalId, goalRevision, planIdentity, modelVersion, authorityHashes, "");
+		return new PhantomBackgroundCatchupState(nextStatus, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, nextCursorEpochMinute, planOrdinal, Math.addExact(intervalOrdinal, intervals), generation, knowledgeGeneration, topologyGeneration, goalId, goalRevision, planIdentity, modelVersion, authorityHashes, "");
 	}
 
 	public PhantomBackgroundCatchupState failed(String reason)

@@ -47,6 +47,19 @@ public record PhantomBackgroundGoalSpec(int npcId, String anchorId, int shotItem
 	public static final String SUMMON_RESOURCE_ITEM = "summon.resource_item_id";
 	public static final String SUMMON_RESOURCE_COUNT = "summon.resource.count";
 	private static final List<String> SUPPORTED_CONSTRAINTS = List.of(SHOT_ITEM, SHOT_COUNT, SUMMON_NPC, SUMMON_RESOURCE_ITEM, SUMMON_RESOURCE_COUNT);
+	private static final int IDLE_RECHECK_MINUTES = 60;
+
+	static int idleMinutesUntilRecheck(long profileId, long cursorEpochMinute)
+	{
+		return Math.floorMod(Math.floorMod(profileId, IDLE_RECHECK_MINUTES) - Math.floorMod(cursorEpochMinute, IDLE_RECHECK_MINUTES), IDLE_RECHECK_MINUTES);
+	}
+
+	static boolean canCombineIdle(long profileId, PhantomBackgroundState state, PhantomGoal goal)
+	{
+		return state.state() == PhantomBackgroundState.State.READY && state.clock().residualTravelMillis() == 0
+			&& !PhantomOffscreenOutdoorTravel.taggedReceipt(state) && canonicalHistoricalIdle(profileId, goal)
+			&& goal.selectedAnchor().key().equals(state.position().committedAnchorId());
+	}
 
 	/** Exact existing planner fallback; an arbitrary idle label is not ordinary farm intent. */
 	public static boolean canonicalHistoricalIdle(long profileId, PhantomGoal goal)
