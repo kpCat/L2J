@@ -106,6 +106,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
 			registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
 			registry.add("018-live-calendar-keeps-bounded-share-with-cold-history", this::testLiveCalendarUnderBacklog);
+			registry.add("018-ambient-preparation-finishes-nearby-history-without-starving-cold", this::testAmbientPreparationUnderBacklog);
 			return;
 		}
 		if (System.getProperty("phantom.m1.native.focus", "").equals("stop075"))
@@ -429,6 +430,42 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertEquals(Optional.empty(), history.status(liveId), "Live calendar manufactured a historical claim.");
 		PhantomAssertions.assertTrue(service.snapshot().maximumPulseProfiles() <= _ecology.limits().maximumProfilesPerPulse()
 			&& service.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Live calendar changed the batch budgets.");
+		service.beginStop();
+	}
+
+	private void testAmbientPreparationUnderBacklog(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-20T20:30:00Z");
+		final long target = minute(now);
+		final long warmId = 12;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(null);
+		final var history = new HistoricalMemoryPort();
+		for (long id = 1; id < warmId; id++) { seedColdRequest113(population, store, history, id, target - 23_000, target); }
+		final var warm = population.seedReady(warmId, 1);
+		store.insert(warmId, stateAt(target - 10, Pace.OUTLIER, 10_000, warm.state().scheduleTemplate()));
+		final var service = service(store, history, new AtomicBoolean(), new AtomicReference<>(""),
+			new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 10);
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> population.loadManagedAfter(id - 1, 1).stream().filter(actor -> actor.profile().profileId() == id).findFirst(), noEvents());
+		service.holdStartupPopulationPlan();
+		for (long id = 1; id <= warmId; id++) { service.register(population.loadManagedAfter(id - 1, 1).getFirst()); }
+		loadMetadata(service, Math.toIntExact(warmId));
+		service.startupPopulationPlanApplied();
+		final var ambient = new java.util.HashMap<Long, PhantomPopulationEcologyService.DemandFact>();
+		PhantomPopulationEcologyService.mergePreparationDemands(List.of(), ambient, List.of(1L), id -> true, 1);
+		final var local = new PhantomPopulationEcologyService.DemandFact(1, 1, false, 1, 1);
+		service.updateMaterializationDemand(PhantomPopulationEcologyService.mergePreparationDemands(List.of(local), ambient, List.of(warmId), id -> true, 2), 1);
+		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(1L, service.preparationSnapshot().focusId(), "Nearby demand ceded its focus to ambient catchup.");
+		PhantomAssertions.assertFalse(service.dueSnapshot(warmId).complete(), "Ambient catchup did not wait for nearby demand.");
+		service.updateMaterializationDemand(PhantomPopulationEcologyService.mergePreparationDemands(List.of(), ambient, List.of(1L, warmId), id -> true, 3), 1);
+		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(warmId, service.preparationSnapshot().focusId(), "Old ambient demand held focus while a warm identity could finish.");
+		PhantomAssertions.assertTrue(service.dueSnapshot(warmId).complete(), "Warm ambient demand did not finish its real history.");
+		PhantomAssertions.assertTrue(history.status(3).orElseThrow().state().cursorEpochMinute() > target - 23_000, "Warm preparation starved the ordinary history queue.");
+		PhantomAssertions.assertTrue(service.snapshot().maximumPulseProfiles() <= _ecology.limits().maximumProfilesPerPulse()
+			&& service.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Ambient preparation changed the batch budgets.");
 		service.beginStop();
 	}
 

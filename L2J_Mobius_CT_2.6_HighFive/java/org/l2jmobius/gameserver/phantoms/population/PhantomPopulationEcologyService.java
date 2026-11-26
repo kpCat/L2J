@@ -49,6 +49,7 @@ public final class PhantomPopulationEcologyService
 	private static final int MAXIMUM_CALENDAR_STEPS_PER_PROFILE = 4096;
 	private static final int OWNERSHIP_RECOVERY_TURN = -1;
 	private static final int PROFILES_WITH_LIVE_CALENDAR = 4;
+	private static final int PREPARATION_FOCUS_BATCHES = 8;
 	private final Object _monitor = new Object();
 	private final PhantomPopulationEcologyCatalog _catalog;
 	private final PhantomPopulationCatalog _populationCatalog;
@@ -259,7 +260,13 @@ public final class PhantomPopulationEcologyService
 		synchronized (_monitor) { _currentDemand = Objects.requireNonNull(currentDemand); _demandRevision = new Object(); }
 	}
 
-	public record DemandFact(long profileId, long positionRevision, boolean couldKnow, long distanceSquared, long firstDemandNanos) {}
+	public record DemandFact(long profileId, long positionRevision, boolean couldKnow, long distanceSquared, long firstDemandNanos, boolean ambient)
+	{
+		public DemandFact(long profileId, long positionRevision, boolean couldKnow, long distanceSquared, long firstDemandNanos)
+		{
+			this(profileId, positionRevision, couldKnow, distanceSquared, firstDemandNanos, false);
+		}
+	}
 	private static final Comparator<DemandFact> DEMAND_ORDER = Comparator.comparingInt((DemandFact fact) -> fact.couldKnow() ? 0 : 1).thenComparingLong(DemandFact::distanceSquared).thenComparingLong(DemandFact::firstDemandNanos).thenComparingLong(DemandFact::profileId);
 
 	/** Merge bounded discovery with still-current preparation, preserving age across discovery pages. */
@@ -283,7 +290,7 @@ public final class PhantomPopulationEcologyService
 				if (replace == null) { continue; }
 				retained.remove(replace.profileId());
 			}
-			retained.put(id, new DemandFact(id, 0, false, Long.MAX_VALUE, nowNanos));
+			retained.put(id, new DemandFact(id, 0, false, Long.MAX_VALUE, nowNanos, true));
 			selected.add(id);
 		}
 		final var merged = new java.util.LinkedHashMap<Long, DemandFact>();
@@ -331,7 +338,7 @@ public final class PhantomPopulationEcologyService
 				final Entry entry = _entries.get(fact.profileId());
 				if ((entry == null) || !entry._participating) { continue; }
 				final DemandFact old = previous.get(fact.profileId());
-				_demandFacts.put(fact.profileId(), old == null ? fact : new DemandFact(fact.profileId(), fact.positionRevision(), fact.couldKnow(), fact.distanceSquared(), old.firstDemandNanos()));
+				_demandFacts.put(fact.profileId(), old == null ? fact : new DemandFact(fact.profileId(), fact.positionRevision(), fact.couldKnow(), fact.distanceSquared(), old.firstDemandNanos(), fact.ambient()));
 				entry._liveOwner = live.contains(fact.profileId());
 				updateSchedulingDemandLocked(fact.profileId(), entry, true, Math.max(entry._requestedMinute, now), now);
 				if (entry._liveOwner) { queueLocked(fact.profileId()); }
@@ -380,17 +387,50 @@ public final class PhantomPopulationEcologyService
 			&& (progressClock() >= entry._nextRetryPulse || PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure)); }).sorted(DEMAND_ORDER).toList();
 	}
 
-	/** The existing focus cursor rotates over stable demand age after its bounded quantum. */
 	private long preferredPreparationFocusLocked(List<DemandFact> candidates)
 	{
 		if (candidates.isEmpty()) { return 0; }
+		// Direct locality and accepted native journeys keep their existing focus order.
+		if (candidates.stream().allMatch(DemandFact::ambient))
+		{
+			final long nearReady = preferredAmbientPreparationLocked(candidates);
+			if (nearReady > 0) { return nearReady; }
+		}
 		final DemandFact closest = candidates.getFirst();
 		final DemandFact current = candidates.stream().filter(fact -> fact.profileId() == _focusId && fact.couldKnow() == closest.couldKnow()).findFirst().orElse(null);
 		if (current == null) { return closest.profileId(); }
-		if (_focusBatches < 8) { return current.profileId(); }
+		if (_focusBatches < PREPARATION_FOCUS_BATCHES) { return current.profileId(); }
 		final Comparator<DemandFact> ageOrder = Comparator.comparingLong(DemandFact::firstDemandNanos).thenComparingLong(DemandFact::profileId);
 		final List<DemandFact> peers = candidates.stream().filter(fact -> fact.profileId() != current.profileId() && fact.couldKnow() == current.couldKnow()).sorted(ageOrder).toList();
 		return peers.stream().filter(fact -> ageOrder.compare(fact, current) > 0).findFirst().orElse(peers.isEmpty() ? current : peers.getFirst()).profileId();
+	}
+
+	/** Use the focused slice to close a current calendar gap. Cold history still has the ordinary FIFO slice. */
+	private long preferredAmbientPreparationLocked(List<DemandFact> candidates)
+	{
+		final long now = progressClock();
+		long nearest = 0;
+		long fewestMinutes = Long.MAX_VALUE;
+		for (DemandFact fact : candidates)
+		{
+			final Entry entry = _entries.get(fact.profileId());
+			if (entry._stored == null || now < entry._nextRetryPulse
+				|| PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure)) { continue; }
+			final var state = entry._stored.state();
+			final long remaining = entry._requestedMinute - state.calendarCursorEpochMinute();
+			if (!state.initialCatchupComplete() || remaining <= 0) { continue; }
+			if (fact.profileId() == _focusId)
+			{
+				if (_focusBatches < PREPARATION_FOCUS_BATCHES) { return _focusId; }
+				continue;
+			}
+			if (remaining < fewestMinutes)
+			{
+				fewestMinutes = remaining;
+				nearest = fact.profileId();
+			}
+		}
+		return nearest;
 	}
 
 	/** One service timer, sharing the population budget; the wake itself never performs I/O. */
