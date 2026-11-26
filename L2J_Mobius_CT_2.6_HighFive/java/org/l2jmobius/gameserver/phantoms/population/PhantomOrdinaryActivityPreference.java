@@ -21,6 +21,7 @@
 package org.l2jmobius.gameserver.phantoms.population;
 
 import java.util.function.LongFunction;
+import java.util.function.LongToIntFunction;
 
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Pace;
@@ -33,12 +34,19 @@ public final class PhantomOrdinaryActivityPreference
 	private final LongFunction<PhantomPopulationEcologyState> _find;
 	private final int _persistenceCode;
 	private final int _cautionCode;
+	private final LongToIntFunction _clanDevelopment;
 
 	public PhantomOrdinaryActivityPreference(LongFunction<PhantomPopulationEcologyState> find, PhantomSocialCatalog catalog)
+	{
+		this(find, catalog, id -> 0);
+	}
+
+	public PhantomOrdinaryActivityPreference(LongFunction<PhantomPopulationEcologyState> find, PhantomSocialCatalog catalog, LongToIntFunction clanDevelopment)
 	{
 		_find = find;
 		_persistenceCode = traitCode(catalog, "persistence");
 		_cautionCode = traitCode(catalog, "caution");
+		_clanDevelopment = clanDevelopment;
 	}
 
 	private static int traitCode(PhantomSocialCatalog catalog, String key)
@@ -48,7 +56,7 @@ public final class PhantomOrdinaryActivityPreference
 
 	public int farm(long profileId, boolean continuing)
 	{
-		return rank(profileId, true, continuing, false);
+		return rank(profileId, true, continuing, false) + Math.clamp(_clanDevelopment.applyAsInt(profileId), 0, 8);
 	}
 
 	public int preparation(long profileId, boolean playerTrade)

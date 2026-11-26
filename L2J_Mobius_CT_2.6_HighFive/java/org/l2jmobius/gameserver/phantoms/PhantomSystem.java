@@ -1002,7 +1002,7 @@ public final class PhantomSystem
 				final PhantomPartyDecision partyDecision = new PhantomPartyDecision(_partyCoordinator);
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				final var ordinaryPreference = new org.l2jmobius.gameserver.phantoms.population.PhantomOrdinaryActivityPreference(
-					id -> _populationEcology == null ? null : _populationEcology.find(id).orElse(null), socialCatalog);
+					id -> _populationEcology == null ? null : _populationEcology.find(id).orElse(null), socialCatalog, _clanService::developmentFarmPreference);
 				partyBackend.installFarmAccessPolicy(backgroundPlanner::permitsPartyFarmActor);
 				farmingDecision.registerCandidates(candidateRegistry);
 				acquisitionDecision.registerCandidates(candidateRegistry);
@@ -1285,6 +1285,17 @@ public final class PhantomSystem
 						if (execution == null) { return; }
 						try (var context = execution.enterScope())
 						{
+							if (item.effectiveState().requiresMaterialization() && autonomousClanOrdinary(item.profileId()))
+							{
+								final var actor = _materializationService.find(item.profileId()).orElse(null);
+								if (actor != null && actor.worldPresent() && actor.actionAdmissionOpen())
+								{
+									try (var clanScope = _executionAdmission.enterOwner(id -> _executionControl.permits(id) ? _executionControl.owner(id) : null))
+									{
+										_clanService.advanceAutonomous(item.profileId(), actor.characterObjectId(), () -> autonomousClanPeers(item.profileId()), ordinaryPreference.party(item.profileId()));
+									}
+								}
+							}
 							final var warm = (item.effectiveState() == PhantomActivityState.WARM) ? _materializationService.find(item.profileId()).orElse(null) : null;
 							if (requiresVisiblePreparation(item.effectiveState(), warm)
 								&& !_historicalBackgroundService.prepareVisibleDecision(item.profileId(), _decisionEngine)) { return; }
@@ -4140,6 +4151,24 @@ public final class PhantomSystem
 	private boolean physicalScoutReserved(long profileId)
 	{
 		return _physicalGeoScouts != null && _populationManager.scoutReservation(profileId) != 0;
+	}
+
+	private boolean autonomousClanOrdinary(long id)
+	{
+		return _populationEcology != null && testRosterAllows(id) && !physicalScoutReserved(id)
+			&& _populationManager.admissionProfile(id).filter(profile -> profile.calendarOnline()
+				&& profile.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).isPresent()
+			&& _populationEcology.find(id).filter(state -> state.disposition() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition.MANAGED).isPresent();
+	}
+
+	private java.util.List<Long> autonomousClanPeers(long profileId)
+	{
+		final var entries = _materializationService.list();
+		if (entries.isEmpty()) { return java.util.List.of(); }
+		final int start = Math.floorMod(profileId + System.currentTimeMillis() / 60_000, entries.size());
+		return java.util.stream.IntStream.range(0, Math.min(32, entries.size())).mapToObj(offset -> entries.get((start + offset) % entries.size()))
+			.filter(entry -> entry.profileId() != profileId && entry.worldPresent() && entry.actionAdmissionOpen())
+			.map(entry -> entry.profileId()).filter(this::autonomousClanOrdinary).filter(_executionControl::permits).limit(8).toList();
 	}
 
 	private int ordinaryOccupiedPhysicalSlots()

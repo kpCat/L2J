@@ -4,10 +4,12 @@
 package org.l2jmobius.gameserver.model.clan;
 
 import java.util.ArrayDeque;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.l2jmobius.gameserver.managers.CastleManager;
 import org.l2jmobius.gameserver.managers.FortManager;
@@ -73,7 +75,8 @@ public final class ClanInvitationService
 		STALE_INVITE,
 		EXPIRED,
 		REQUESTER_UNAVAILABLE,
-		REVALIDATION_FAILED
+		REVALIDATION_FAILED,
+		PERSISTENCE_FAILED
 	}
 
 	public enum CancelOutcome
@@ -122,7 +125,7 @@ public final class ClanInvitationService
 	private static final ClanInvitationService INSTANCE = new ClanInvitationService();
 	private final Object _stateLock = new Object();
 	private final Map<Integer, PendingInvitation> _pendingByRequester = new HashMap<>();
-	private final Map<Integer, PendingInvitation> _pendingByInvitee = new HashMap<>();
+	private final Map<Integer, PendingInvitation> _pendingByInvitee = new ConcurrentHashMap<>();
 	private final ArrayDeque<PendingInvitation> _pendingOrder = new ArrayDeque<>();
 	private long _nextSequence;
 
@@ -137,6 +140,22 @@ public final class ClanInvitationService
 
 	public InviteResult invite(Player requester, Player target, int pledgeType)
 	{
+		return invite(requester, target, pledgeType, 0);
+	}
+
+	/** Headless consent shares canonical pending identities without reserving the generic client request channel. */
+	public InviteResult inviteAutonomous(Player requester, Player target, int expectedClanId)
+	{
+		if ((expectedClanId <= 0) || (requester == null) || (target == null) || !requester.hasHeadlessOutboundSession() || !target.hasHeadlessOutboundSession())
+		{
+			return new InviteResult(InviteOutcome.TARGET_NOT_FOUND, null);
+		}
+		return invite(requester, target, 0, expectedClanId);
+	}
+
+	private InviteResult invite(Player requester, Player target, int pledgeType, int expectedClanId)
+	{
+		final boolean autonomous = expectedClanId > 0;
 		if ((requester == null) || (target == null))
 		{
 			if (requester != null)
@@ -156,16 +175,16 @@ public final class ClanInvitationService
 		{
 			expireOldest();
 			final Clan clan = requester.getClan();
-			if ((clan == null) || !clan.checkClanJoinCondition(requester, target, pledgeType))
+			if ((clan == null) || (autonomous && (clan.getId() != expectedClanId || !requester.isClanLeader())) || !clan.checkClanJoinCondition(requester, target, pledgeType))
 			{
 				return new InviteResult(InviteOutcome.JOIN_CONDITION_FAILED, null);
 			}
-			if (_pendingByRequester.containsKey(requester.getObjectId()) || requester.isProcessingRequest())
+			if (_pendingByRequester.containsKey(requester.getObjectId()) || (!autonomous && requester.isProcessingRequest()))
 			{
 				requester.sendPacket(SystemMessageId.WAITING_FOR_ANOTHER_REPLY);
 				return new InviteResult(InviteOutcome.REQUESTER_BUSY, null);
 			}
-			if (_pendingByInvitee.containsKey(target.getObjectId()) || target.isProcessingRequest())
+			if (_pendingByInvitee.containsKey(target.getObjectId()) || (!autonomous && target.isProcessingRequest()))
 			{
 				final SystemMessage message = new SystemMessage(SystemMessageId.C1_IS_ON_ANOTHER_TASK_PLEASE_TRY_AGAIN_LATER);
 				message.addString(target.getName());
@@ -178,15 +197,21 @@ public final class ClanInvitationService
 			}
 			final InvitationIdentity identity = new InvitationIdentity(++_nextSequence, requester.getObjectId(), target.getObjectId(), clan.getId(), pledgeType);
 			final long expiresAt = currentGameTick() + ((long) Player.REQUEST_TIMEOUT * GameTimeTaskManager.TICKS_PER_SECOND);
-			pending = new PendingInvitation(identity, requester, target, clan, clan.getName(), expiresAt);
+			pending = new PendingInvitation(identity, requester, target, clan, clan.getName(), expiresAt, autonomous);
 			_pendingByRequester.put(requester.getObjectId(), pending);
 			_pendingByInvitee.put(target.getObjectId(), pending);
 			_pendingOrder.addLast(pending);
-			requester.onTransactionRequest(target);
+			if (!autonomous)
+			{
+				requester.onTransactionRequest(target);
+			}
 		}
 
-		final String subPledgeName = pending._clan.getSubPledge(pledgeType) == null ? null : pending._clan.getSubPledge(pledgeType).getName();
-		target.sendPacket(new AskJoinPledge(requester.getObjectId(), subPledgeName, pledgeType, pending._clanName));
+		if (!autonomous)
+		{
+			final String subPledgeName = pending._clan.getSubPledge(pledgeType) == null ? null : pending._clan.getSubPledge(pledgeType).getName();
+			target.sendPacket(new AskJoinPledge(requester.getObjectId(), subPledgeName, pledgeType, pending._clanName));
+		}
 		return new InviteResult(InviteOutcome.DELIVERED, pending._identity);
 	}
 
@@ -198,14 +223,37 @@ public final class ClanInvitationService
 
 	public RespondResult respond(Player invitee, Response response, InvitationIdentity expectedIdentity)
 	{
+		return respond(invitee, null, response, expectedIdentity);
+	}
+
+	/** Caller retains the current native owners for both headless actors through the response. */
+	public RespondResult respondAutonomous(Player invitee, Player requester, Response response, InvitationIdentity expectedIdentity)
+	{
+		if (invitee == null || !invitee.hasHeadlessOutboundSession() || requester == null)
+		{
+			return new RespondResult(RespondOutcome.REQUESTER_UNAVAILABLE, expectedIdentity);
+		}
+		return respond(invitee, requester, response, expectedIdentity);
+	}
+
+	private RespondResult respond(Player invitee, Player requester, Response response, InvitationIdentity expectedIdentity)
+	{
+		if (expectedIdentity == null) { return respondLocked(invitee, requester, response, null); }
+		final var fence = ClanSocialMutationFence.getInstance();
+		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(expectedIdentity.clanId()) }, () -> respondLocked(invitee, requester, response, expectedIdentity));
+	}
+
+	private RespondResult respondLocked(Player invitee, Player requester, Response response, InvitationIdentity expectedIdentity)
+	{
 		Objects.requireNonNull(response);
 		if (invitee == null)
 		{
 			return new RespondResult(RespondOutcome.NO_PENDING_INVITE, expectedIdentity);
 		}
+		final PendingInvitation pending;
 		synchronized (_stateLock)
 		{
-			final PendingInvitation pending = _pendingByInvitee.get(invitee.getObjectId());
+			pending = _pendingByInvitee.get(invitee.getObjectId());
 			if (pending == null)
 			{
 				return new RespondResult(RespondOutcome.NO_PENDING_INVITE, expectedIdentity);
@@ -214,13 +262,18 @@ public final class ClanInvitationService
 			{
 				return new RespondResult(RespondOutcome.STALE_INVITE, expectedIdentity);
 			}
+			if ((requester != null && requester != pending._requester) || (pending._autonomous && requester == null && response == Response.ACCEPT))
+			{
+				return new RespondResult(RespondOutcome.REQUESTER_UNAVAILABLE, expectedIdentity);
+			}
 			removePending(pending);
 			if (expired(pending))
 			{
 				clearRequestRelation(pending);
 				return new RespondResult(RespondOutcome.EXPIRED, pending._identity);
 			}
-			if ((invitee.getActiveRequester() != pending._requester) || pending._requester.isRequestExpired())
+			if (pending._invitee != invitee || (pending._autonomous ? !pending._requester.isOnline() || !pending._requester.hasHeadlessOutboundSession() || !invitee.hasHeadlessOutboundSession() || !pending._requester.isClanLeader()
+				: invitee.getActiveRequester() != pending._requester || pending._requester.isRequestExpired()))
 			{
 				clearRequestRelation(pending);
 				return new RespondResult(RespondOutcome.REQUESTER_UNAVAILABLE, pending._identity);
@@ -231,15 +284,48 @@ public final class ClanInvitationService
 				clearRequestRelation(pending);
 				return new RespondResult(RespondOutcome.REFUSED, pending._identity);
 			}
-			if (pending._requester.isDedicatedGeoScout() || invitee.isDedicatedGeoScout() || (pending._requester.getClan() != pending._clan) || !pending._clan.checkClanJoinCondition(pending._requester, invitee, pending._identity.pledgeType()))
+			clearRequestRelation(pending);
+		}
+		// The per-clan native fence and the invitee's native STORE monitor cover the canonical write.
+		// No SQL or packet delivery on successful joins runs under the invitation index monitor.
+		synchronized (invitee)
+		{
+			if (ClanSocialMutationFence.getInstance().isRetiring(pending._identity.clanId()) || pending._requester.isDedicatedGeoScout() || invitee.isDedicatedGeoScout()
+				|| (pending._autonomous && !pending._requester.isClanLeader()) || (pending._requester.getClan() != pending._clan)
+				|| !pending._clan.checkClanJoinCondition(pending._requester, invitee, pending._identity.pledgeType()))
 			{
-				clearRequestRelation(pending);
 				return new RespondResult(RespondOutcome.REVALIDATION_FAILED, pending._identity);
 			}
+			if (requester != null && !persistAutonomousJoin(pending, invitee))
+			{
+				return new RespondResult(RespondOutcome.PERSISTENCE_FAILED, pending._identity);
+			}
 			completeJoin(pending, invitee);
-			clearRequestRelation(pending);
 			return new RespondResult(RespondOutcome.ACCEPTED, pending._identity);
 		}
+	}
+
+	private static boolean persistAutonomousJoin(PendingInvitation pending, Player player)
+	{
+		final int pledgeType = pending._identity.pledgeType();
+		final boolean academy = pledgeType == Clan.SUBUNIT_ACADEMY;
+		final int powerGrade = academy ? 9 : 5;
+		try
+		{
+			return ClanSocialRepository.getInstance().joinMember(pending._identity.clanId(), player.getObjectId(), pledgeType, powerGrade,
+				pending._clan.getRankPrivs(powerGrade).getMask(), academy ? player.getLevel() : 0);
+		}
+		catch (SQLException failure)
+		{
+			return false;
+		}
+	}
+
+	public boolean isAutonomous(InvitationIdentity identity)
+	{
+		if (identity == null) { return false; }
+		final var pending = _pendingByInvitee.get(identity.inviteeObjectId());
+		return pending != null && pending._autonomous && pending._identity.equals(identity);
 	}
 
 	public Optional<InvitationSnapshot> observe(Player invitee)
@@ -251,7 +337,7 @@ public final class ClanInvitationService
 		synchronized (_stateLock)
 		{
 			final PendingInvitation pending = _pendingByInvitee.get(invitee.getObjectId());
-			if (pending == null)
+			if (pending == null || pending._invitee != invitee)
 			{
 				return Optional.empty();
 			}
@@ -263,6 +349,12 @@ public final class ClanInvitationService
 			}
 			return Optional.of(pending.snapshot());
 		}
+	}
+
+	public boolean hasPending(int inviteeObjectId)
+	{
+		final var pending = _pendingByInvitee.get(inviteeObjectId);
+		return pending != null && !expired(pending);
 	}
 
 	public CancelResult cancel(InvitationIdentity expectedIdentity)
@@ -363,6 +455,10 @@ public final class ClanInvitationService
 
 	private static void clearRequestRelation(PendingInvitation pending)
 	{
+		if (pending._autonomous)
+		{
+			return;
+		}
 		if (pending._invitee.getActiveRequester() == pending._requester)
 		{
 			pending._invitee.setActiveRequester(null);
@@ -372,7 +468,7 @@ public final class ClanInvitationService
 
 	private static boolean expired(PendingInvitation pending)
 	{
-		return (currentGameTick() >= pending._expiresAtGameTick) || pending._requester.isRequestExpired();
+		return (currentGameTick() >= pending._expiresAtGameTick) || (!pending._autonomous && pending._requester.isRequestExpired());
 	}
 
 	private static long currentGameTick()
@@ -388,8 +484,9 @@ public final class ClanInvitationService
 		private final Clan _clan;
 		private final String _clanName;
 		private final long _expiresAtGameTick;
+		private final boolean _autonomous;
 
-		private PendingInvitation(InvitationIdentity identity, Player requester, Player invitee, Clan clan, String clanName, long expiresAtGameTick)
+		private PendingInvitation(InvitationIdentity identity, Player requester, Player invitee, Clan clan, String clanName, long expiresAtGameTick, boolean autonomous)
 		{
 			_identity = identity;
 			_requester = requester;
@@ -397,6 +494,7 @@ public final class ClanInvitationService
 			_clan = clan;
 			_clanName = clanName;
 			_expiresAtGameTick = expiresAtGameTick;
+			_autonomous = autonomous;
 		}
 
 		private InvitationSnapshot snapshot()

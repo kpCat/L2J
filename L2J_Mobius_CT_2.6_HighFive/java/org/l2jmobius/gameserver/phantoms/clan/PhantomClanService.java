@@ -12,7 +12,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.AllianceIdentity;
@@ -29,7 +33,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 
 /**
- * Bounded caller-driven owner for explicit Phantom clan goals. Canonical Clan,
+ * Bounded caller-driven owner for explicit and autonomous clan work. Canonical Clan,
  * Player, ClanTable, invitation and warehouse services retain game-state truth.
  */
 public final class PhantomClanService
@@ -55,6 +59,7 @@ public final class PhantomClanService
 	public static final int MAX_CHAT_TEXT = 105;
 	public static final int WAR_HOSTILITY_THRESHOLD = 600;
 	public static final int PEACE_HOSTILITY_THRESHOLD = 250;
+	private static final long AUTONOMOUS_ID_BASE = 1L << 60;
 
 	public enum State
 	{
@@ -349,6 +354,20 @@ public final class PhantomClanService
 
 		ClanInvitationService.CancelResult cancel(InvitationIdentity identity);
 
+		default boolean hasAutonomousInvitation(int objectId) { return true; }
+
+		default Optional<AutonomousActor> autonomousActor(long profileId)
+		{
+			return currentMember(profileId).map(member -> new AutonomousActor(member, observe(member).orElse(null), 0, true, 0, 0));
+		}
+
+		default boolean inviteAutonomous(MemberRef leader, MemberRef target, int expectedClanId) { return false; }
+
+		default ClanInvitationService.RespondResult respondAutonomous(MemberRef invitee, MemberRef requester, ClanInvitationService.Response response, InvitationIdentity identity)
+		{
+			return respond(invitee, response, identity);
+		}
+
 		RoleResult transferLeader(MemberRef requester, MemberRef newLeader, int expectedClanId);
 
 		ContributionObservation observeContribution(MemberRef member, int expectedClanId, int inventoryObjectId);
@@ -439,17 +458,41 @@ public final class PhantomClanService
 	{
 	}
 
+	public record AutonomousActor(MemberRef member, ClanSnapshot clan, int level, boolean canJoin, long adena, long sp)
+	{
+	}
+
+	private record DevelopmentPlan(int clanId, int level, long adena, long sp, long adenaDue, long spDue, long expires)
+	{
+		int farmPreference()
+		{
+			if (adenaDue == 0 && spDue == 0) { return 0; }
+			return adenaDue > 0 && spDue > 0 ? 8 : 4;
+		}
+	}
+
 	private final PhantomGoalStore _goals;
 	private final PersistencePort _persistence;
 	private final Backend _backend;
 	private final LongSupplier _clock;
-	private final Map<Long, Operation> _active = new HashMap<>();
+	private final Map<Long, Operation> _active = new ConcurrentHashMap<>();
+	private final Set<Long> _mutating = ConcurrentHashMap.newKeySet();
+	private final Object _autonomousMonitor = new Object();
+	private final LinkedHashMap<Long, Long> _discoveryDue = new LinkedHashMap<>();
+	private final LinkedHashMap<String, Long> _autonomousOutcomes = new LinkedHashMap<>();
+	private final LinkedHashMap<Long, DevelopmentPlan> _development = new LinkedHashMap<>();
+	private final AtomicLong _autonomousId = new AtomicLong();
+	private final boolean _autonomousEnabled = Boolean.parseBoolean(System.getProperty("phantoms.clan.autonomous", "true"));
+	private final long _discoveryMillis = TimeUnit.SECONDS.toMillis(Math.clamp(Long.getLong("phantoms.clan.discoverySeconds", 60), 30, 300));
+	private long _budgetSecond;
+	private int _budgetUsed;
+	private int _autonomousActions;
 	private final LinkedHashMap<OperationIdentity, AdvanceResult> _terminal = new LinkedHashMap<>();
 	private final LinkedHashMap<ChatIdentity, ChatResult> _chatReceipts = new LinkedHashMap<>();
 	private final LinkedHashMap<ConsentKey, JoinOffer> _joinOffers = new LinkedHashMap<>();
 	private final LinkedHashMap<ConsentKey, PeaceOffer> _peaceOffers = new LinkedHashMap<>();
 	private long _advanceSequence;
-	private State _state = State.NEW;
+	private volatile State _state = State.NEW;
 
 	public PhantomClanService(PhantomGoalStore goals, PersistencePort persistence, Backend backend, LongSupplier clock)
 	{
@@ -470,6 +513,13 @@ public final class PhantomClanService
 	}
 
 	public synchronized AdvanceResult advance(long profileId, long goalId, long goalRevision)
+	{
+		if (!_mutating.add(profileId)) { return result(OperationStatus.WAITING, "clan.operation.actor_busy", null); }
+		try { return advanceExplicit(profileId, goalId, goalRevision); }
+		finally { _mutating.remove(profileId); }
+	}
+
+	private AdvanceResult advanceExplicit(long profileId, long goalId, long goalRevision)
 	{
 		if (_state != State.RUNNING)
 		{
@@ -541,6 +591,157 @@ public final class PhantomClanService
 			case ALLIANCE_CHAT_GOAL -> advanceAllianceChat(operation);
 			default -> terminalize(operation, OperationStatus.FAILED, "clan.goal.unsupported", null);
 		};
+	}
+
+	/** One short turn for a materialized actor, under the caller's current execution grant. */
+	public void advanceAutonomous(long profileId, int objectId, Supplier<List<Long>> peers, int preference)
+	{
+		if (!_autonomousEnabled || _state != State.RUNNING || _active.containsKey(profileId)) { return; }
+		final long now = _clock.getAsLong();
+		final boolean invited = _backend.hasAutonomousInvitation(objectId);
+		synchronized (_autonomousMonitor)
+		{
+			if (_state != State.RUNNING || !invited && _discoveryDue.getOrDefault(profileId, 0L) > now) { return; }
+			if (now / 1000 != _budgetSecond) { _budgetSecond = now / 1000; _budgetUsed = 0; }
+			if (_budgetUsed >= (invited ? 4 : 3) || _autonomousActions + _active.size() >= MAX_ACTIVE_OPERATIONS || !_mutating.add(profileId)) { return; }
+			_budgetUsed++;
+			_autonomousActions++;
+			if (!invited)
+			{
+				_discoveryDue.remove(profileId);
+				_discoveryDue.put(profileId, now + _discoveryMillis + Math.floorMod(profileId, 31) * 1000);
+				while (_discoveryDue.size() > 512) { _discoveryDue.pollFirstEntry(); }
+			}
+		}
+		try
+		{
+			final var root = _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+			if (_active.containsKey(profileId)) { return; }
+			final var actor = _backend.autonomousActor(profileId).orElse(null);
+			if (actor == null || actor.member().characterObjectId() != objectId || _state != State.RUNNING) { return; }
+			final var prior = _persistence.load(profileId).map(StoredMetadata::metadata).orElse(null);
+			if (validCommon(profileId, root, now)) { return; }
+			if (prior != null && (prior.contributionState() == ContributionState.PREPARED || prior.diplomacy().phase() == DiplomacyPhase.PREPARED))
+			{
+				observeAutonomousOutcome("clan.autonomous.prepared_effect");
+				return;
+			}
+			if (invited && actor.clan() == null)
+			{
+				answerAutonomous(actor, preference, now);
+				return;
+			}
+			planAutonomous(actor, peers, now);
+		}
+		catch (RuntimeException failure)
+		{
+			observeAutonomousOutcome("clan.autonomous.error." + failure.getClass().getSimpleName());
+		}
+		finally
+		{
+			synchronized (_autonomousMonitor) { _autonomousActions--; _mutating.remove(profileId); }
+		}
+	}
+
+	private void answerAutonomous(AutonomousActor actor, int preference, long now)
+	{
+		final var invite = _backend.observeInvitation(actor.member()).orElse(null);
+		if (invite == null) { return; }
+		final var requester = _backend.resolve(new PhantomDomainRef("character.object", Integer.toString(invite.identity().requesterObjectId()))).orElse(null);
+		final var relation = requester == null ? null : _backend.relationship(actor.member().profileId(), requester, now / 60_000);
+		final boolean accepts = actor.canJoin() && requester != null && (relation == null || !relation.hostileForWar())
+			&& (preference >= 0 || relation != null && relation.affinityScore() > 0);
+		if (_state != State.RUNNING) { return; }
+		final var accepted = _backend.respondAutonomous(actor.member(), requester, accepts ? ClanInvitationService.Response.ACCEPT : ClanInvitationService.Response.REFUSE, invite.identity());
+		if (accepted.accepted())
+		{
+			final var joined = _backend.observe(actor.member()).orElse(null);
+			if (joined != null && joined.clanId() == invite.identity().clanId())
+			{
+				final var goal = autonomousGoal(actor, JOIN_GOAL, clanRef(joined.clanId()), List.of(), now);
+				reconcile(actor.member(), joined, goal);
+			}
+		}
+		observeAutonomousOutcome("clan.autonomous.invitation." + accepted.outcome().name().toLowerCase(java.util.Locale.ROOT));
+	}
+
+	private void planAutonomous(AutonomousActor actor, Supplier<List<Long>> peers, long now)
+	{
+		updateDevelopment(actor, now);
+		final var member = actor.member();
+		final var clan = actor.clan();
+		if (clan == null || clan.leaderObjectId() != member.characterObjectId() || clan.memberCount() >= clan.maxMembers()) { return; }
+		final var candidate = peers.get().stream().filter(id -> id != member.profileId() && !_active.containsKey(id)).limit(8)
+			.map(_backend::autonomousActor).flatMap(Optional::stream)
+			.filter(peer -> peer.clan() == null && peer.canJoin() && Math.abs(peer.level() - actor.level()) <= 15)
+			.filter(peer -> !_backend.relationship(member.profileId(), peer.member(), now / 60_000).hostileForWar())
+			.findFirst().orElse(null);
+		if (candidate == null || _state != State.RUNNING || !_mutating.add(candidate.member().profileId())) { return; }
+		try
+		{
+			if (_backend.inviteAutonomous(member, candidate.member(), clan.clanId()))
+			{
+				observeAutonomousOutcome("clan.autonomous.invitation.delivered");
+			}
+		}
+		finally { _mutating.remove(candidate.member().profileId()); }
+	}
+
+	private void updateDevelopment(AutonomousActor actor, long now)
+	{
+		final var clan = actor.clan();
+		final long id = actor.member().profileId();
+		synchronized (_autonomousMonitor)
+		{
+			if (clan == null || clan.leaderObjectId() != actor.member().characterObjectId() || clan.memberCount() < 2 || clan.level() > 1)
+			{
+				_development.remove(id);
+				return;
+			}
+			// Stock clan levels 1 and 2 require personal Adena and SP. Track only the real shortfall.
+			final long adenaCost = clan.level() == 0 ? 650_000 : 2_500_000;
+			final long spCost = clan.level() == 0 ? 20_000 : 100_000;
+			final var plan = new DevelopmentPlan(clan.clanId(), clan.level(), actor.adena(), actor.sp(), Math.max(0, adenaCost - actor.adena()), Math.max(0, spCost - actor.sp()), now + 2 * _discoveryMillis + 31_000);
+			final var old = _development.remove(id);
+			_development.put(id, plan);
+			while (_development.size() > MAX_ACTIVE_OPERATIONS) { _development.pollFirstEntry(); }
+			if (old != null && old.clanId() == plan.clanId() && old.level() == plan.level() && (plan.adena() > old.adena() || plan.sp() > old.sp()))
+			{
+				observeAutonomousOutcome(plan.farmPreference() == 0 ? "clan.autonomous.development.budget_ready" : "clan.autonomous.development.resources_observed");
+			}
+		}
+	}
+
+	public int developmentFarmPreference(long profileId)
+	{
+		if (_state != State.RUNNING) { return 0; }
+		synchronized (_autonomousMonitor)
+		{
+			final var plan = _development.get(profileId);
+			return plan != null && plan.expires() > _clock.getAsLong() ? plan.farmPreference() : 0;
+		}
+	}
+
+	private PhantomGoal autonomousGoal(AutonomousActor actor, String type, PhantomDomainRef target, List<PhantomDomainRef> sources, long now)
+	{
+		final long id = AUTONOMOUS_ID_BASE + _autonomousId.updateAndGet(last -> Math.max(last + 1, now));
+		return new PhantomGoal(id, type, PhantomGoalStatus.ACTIVE, profileRef(actor.member().profileId()), target, 1, 0, null, sources, null, "clan.organization", 0, 0, 0, now + TimeUnit.MINUTES.toMillis(3), Map.of(), "clan.autonomous", 0);
+	}
+
+	private static PhantomDomainRef profileRef(long id) { return new PhantomDomainRef("profile", Long.toString(id)); }
+	private static PhantomDomainRef clanRef(int id) { return new PhantomDomainRef("clan.id", Integer.toString(id)); }
+
+	private void observeAutonomousOutcome(String reason)
+	{
+		synchronized (_autonomousMonitor)
+		{
+			if (_autonomousOutcomes.size() < MAX_ACTIVE_OPERATIONS || _autonomousOutcomes.containsKey(reason)) { _autonomousOutcomes.merge(reason, 1L, Long::sum); }
+		}
+	}
+
+	public Map<String, Long> autonomousOutcomes()
+	{
+		synchronized (_autonomousMonitor) { return Map.copyOf(_autonomousOutcomes); }
 	}
 
 	public synchronized boolean cancel(long profileId, long goalId, long goalRevision, String reasonKey)
@@ -625,6 +826,7 @@ public final class PhantomClanService
 		{
 			return false;
 		}
+		synchronized (_autonomousMonitor) { if (_autonomousActions != 0) { return false; } }
 		_state = State.STOPPED;
 		return true;
 	}

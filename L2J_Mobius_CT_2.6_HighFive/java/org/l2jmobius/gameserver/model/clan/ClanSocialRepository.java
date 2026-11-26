@@ -79,6 +79,24 @@ final class ClanSocialRepository implements ClanSocialPersistence
 	{
 		return INSTANCE;
 	}
+
+	/** Commit only native clan membership. The actor continues to use its existing STORE owner. */
+	boolean joinMember(int clanId, int characterId, int pledgeType, int powerGrade, int privileges, int academyLevel) throws SQLException
+	{
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("UPDATE characters SET clanid=?, subpledge=?, power_grade=?, clan_privs=?, lvl_joined_academy=?, clan_join_expiry_time=0 WHERE charId=? AND clanid=0 AND clan_join_expiry_time<=?"))
+		{
+			statement.setInt(1, clanId);
+			statement.setInt(2, pledgeType);
+			statement.setInt(3, powerGrade);
+			statement.setInt(4, privileges);
+			statement.setInt(5, academyLevel);
+			statement.setInt(6, characterId);
+			statement.setLong(7, System.currentTimeMillis());
+			return statement.executeUpdate() == 1;
+		}
+	}
+
 	@Override
 	public List<ClanAllianceService.MembershipEpoch> loadAllianceMembership(int allianceId, long generation) throws SQLException
 	{

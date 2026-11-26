@@ -30,6 +30,7 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.ItemContainer;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.AllianceObservation;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.AutonomousActor;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.Backend;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.ChatOutcome;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.ChatResult;
@@ -183,14 +184,63 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public ClanInvitationService.InviteResult invite(MemberRef requester, MemberRef target)
 	{
-		try (AcquiredPlayer requesterPlayer = acquire(requester); AcquiredPlayer targetPlayer = acquire(target))
+		try (AcquiredPair pair = acquirePair(requester, target))
 		{
-			if ((requesterPlayer == null) || (targetPlayer == null))
+			if (pair == null)
 			{
 				return new ClanInvitationService.InviteResult(ClanInvitationService.InviteOutcome.TARGET_NOT_FOUND, null);
 			}
-			return _invitations.invite(requesterPlayer.player(), targetPlayer.player(), 0);
+			return _invitations.invite(pair.player(requester), pair.player(target), 0);
 		}
+	}
+
+	@Override
+	public boolean hasAutonomousInvitation(int objectId) { return _invitations.hasPending(objectId); }
+
+	@Override
+	public Optional<AutonomousActor> autonomousActor(long profileId)
+	{
+		try (var lease = _materialization.tryAcquireObservation(profileId).orElse(null))
+		{
+			if (lease == null) { return Optional.empty(); }
+			final Player player = lease.player();
+			if (!ordinaryPlayer(player)) { return Optional.empty(); }
+			final var clan = player.getClan();
+			if (clan != null && (ClanTable.getInstance().getClan(clan.getId()) != clan || clan.getClanMember(player.getObjectId()) == null)) { return Optional.empty(); }
+			final long now = System.currentTimeMillis();
+			return Optional.of(new AutonomousActor(MemberRef.phantom(profileId, player.getObjectId()), clan == null ? null : snapshot(clan, player.getObjectId()), player.getLevel(),
+				now >= player.getClanJoinExpiryTime(), player.getAdena(), player.getSp()));
+		}
+	}
+
+
+	@Override
+	public boolean inviteAutonomous(MemberRef leader, MemberRef target, int expectedClanId)
+	{
+		try (var pair = acquirePair(leader, target))
+		{
+			return pair != null && ordinaryPlayer(pair.player(leader)) && ordinaryPlayer(pair.player(target))
+				&& _invitations.inviteAutonomous(pair.player(leader), pair.player(target), expectedClanId).delivered();
+		}
+	}
+
+	@Override
+	public ClanInvitationService.RespondResult respondAutonomous(MemberRef invitee, MemberRef requester, ClanInvitationService.Response response, ClanInvitationService.InvitationIdentity identity)
+	{
+		try (var pair = acquirePair(invitee, requester))
+		{
+			if (pair == null || !ordinaryPlayer(pair.player(invitee)) || !pair.player(requester).isOnline())
+			{
+				return new ClanInvitationService.RespondResult(ClanInvitationService.RespondOutcome.REQUESTER_UNAVAILABLE, identity);
+			}
+			return _invitations.respondAutonomous(pair.player(invitee), pair.player(requester), response, identity);
+		}
+	}
+
+	private static boolean ordinaryPlayer(Player player)
+	{
+		return player.hasHeadlessOutboundSession() && player.isOnline() && !player.isDedicatedGeoScout() && !player.isAlikeDead()
+			&& player.getPrivateStoreType() == org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType.NONE;
 	}
 
 	@Override
@@ -205,6 +255,11 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public ClanInvitationService.RespondResult respond(MemberRef invitee, ClanInvitationService.Response response, ClanInvitationService.InvitationIdentity identity)
 	{
+		if (response == ClanInvitationService.Response.ACCEPT && _invitations.isAutonomous(identity))
+		{
+			final var requester = resolve(new PhantomDomainRef("character.object", Integer.toString(identity.requesterObjectId()))).orElse(null);
+			return respondAutonomous(invitee, requester, response, identity);
+		}
 		try (AcquiredPlayer acquired = acquire(invitee))
 		{
 			return acquired == null ? new ClanInvitationService.RespondResult(ClanInvitationService.RespondOutcome.NO_PENDING_INVITE, identity) : _invitations.respond(acquired.player(), response, identity);
@@ -495,11 +550,12 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public RelationshipEvidence relationship(long ownerProfileId, MemberRef subject, long nowEpochMinute)
 	{
-		if ((_social == null) || (_pvpPolicy == null) || (subject == null) || (subject.kind() != MemberKind.PHANTOM))
+		if ((_social == null) || (_pvpPolicy == null) || (subject == null))
 		{
 			return new RelationshipEvidence(false, 0, 0, List.of(), "");
 		}
-		final var result = _social.snapshot(ownerProfileId, SubjectRef.phantom(subject.profileId()), 8, nowEpochMinute);
+		final var relationSubject = subject.kind() == MemberKind.PHANTOM ? SubjectRef.phantom(subject.profileId()) : SubjectRef.character(subject.characterObjectId());
+		final var result = _social.snapshot(ownerProfileId, relationSubject, 8, nowEpochMinute);
 		if (!result.available())
 		{
 			return new RelationshipEvidence(false, 0, 0, List.of(), "");

@@ -95,7 +95,12 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 				registry.add("01-canonical-create-once-and-restart-reconcile", this::creationRestart);
 				registry.add("02-production-seams-have-no-shadow-sql", this::canonicalSourceGuard);
 			}
-			case RECRUITMENT -> registry.add("01-bilateral-later-phantom-accept-and-real-manual", this::recruitment);
+			case RECRUITMENT ->
+			{
+				registry.add("01-bilateral-later-phantom-accept-and-real-manual", this::recruitment);
+				registry.add("02-autonomous-invitation-preserves-current-root", this::autonomousInvitation);
+				registry.add("03-stop-does-not-wait-under-monitor-for-autonomous-observation", this::autonomousStop);
+			}
 			case ROLES -> registry.add("01-leadership-and-external-drift-replan", this::roles);
 			case TREASURY -> registry.add("01-prepared-completed-restart-no-dupe-and-withdraw-unsupported", this::treasury);
 			case CHAT_DECISION -> registry.add("01-clan-chat-receipt-decision-and-lifecycle", this::chatDecision);
@@ -121,6 +126,59 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	}
 
 	private static final String NATURAL_TEXT = "Собираемся у склада, через пять минут идём на рейд. Проверьте припасы и ждите приглашения!";
+
+	private void autonomousInvitation(PhantomTestContext context)
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(2, 200);
+		fixture.backend.addReal(100);
+		fixture.backend.putClan(100, 100);
+		final PhantomGoal farm = goalWithDeadline(2, 51, "farm.ordinary", null, null, List.of(), 1, 0, 3, NOW + 60000);
+		fixture.goals.put(2, farm);
+		final var invitation = fixture.backend.putInvitation(100, 200, 42, "CodexClan");
+		final var service = fixture.service();
+		service.advanceAutonomous(2, 200, List::of, 8);
+		PhantomAssertions.assertEquals(invitation, fixture.backend.lastResponseIdentity, "Autonomous consent must use the canonical invitation identity.");
+		PhantomAssertions.assertEquals(42, fixture.backend.clan(200).clanId(), "The ordinary actor did not join the canonical clan.");
+		PhantomAssertions.assertEquals(farm, fixture.goals.load(2).orElseThrow().goal(), "Social consent replaced the farm root.");
+		service.beginStop();
+		PhantomAssertions.assertTrue(service.finishStop(), "Completed consent prevented STOP.");
+	}
+
+	private void autonomousStop(PhantomTestContext context) throws Exception
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(2, 200);
+		fixture.backend.addReal(100);
+		fixture.backend.putClan(100, 100);
+		fixture.backend.putInvitation(100, 200, 42, "CodexClan");
+		final var entered = new java.util.concurrent.CountDownLatch(1);
+		final var release = new java.util.concurrent.CountDownLatch(1);
+		fixture.backend.beforeAutonomousObservation = () ->
+		{
+			entered.countDown();
+			try
+			{
+				if (!release.await(5, java.util.concurrent.TimeUnit.SECONDS)) { throw new AssertionError("Observation fixture timed out."); }
+			}
+			catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
+		};
+		final var service = fixture.service();
+		try (var workers = java.util.concurrent.Executors.newFixedThreadPool(2))
+		{
+			final var work = workers.submit(() -> service.advanceAutonomous(2, 200, List::of, 8));
+			try
+			{
+				PhantomAssertions.assertTrue(entered.await(2, java.util.concurrent.TimeUnit.SECONDS), "The autonomous turn did not reach native observation.");
+				workers.submit(service::beginStop).get(2, java.util.concurrent.TimeUnit.SECONDS);
+				PhantomAssertions.assertTrue(!service.finishStop(), "STOP reported completion while the autonomous turn was still admitted.");
+			}
+			finally { release.countDown(); }
+			work.get(2, java.util.concurrent.TimeUnit.SECONDS);
+		}
+		PhantomAssertions.assertEquals(0, fixture.backend.respondCalls, "An invitation was accepted after STOP closed admission.");
+		PhantomAssertions.assertTrue(service.finishStop(), "STOP did not release the autonomous claim.");
+	}
 	static final String LEGACY_CHAT_HEX = "504757310001000100000000000000460000000000000000010009636c616e2e6368617401000770726f66696c65000131010007636c616e2e69640002343200000000000000010000000000000000010015617373656d626c652d61742d77617265686f75736500000011636c616e2e6f7267616e697a6174696f6e02bc000000000000000000000000000000000000000000018a880100047465787400000000000000150009636c616e2e74657374";
 
 	private static PhantomGoal naturalGoal(String text)
@@ -664,6 +722,14 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private int transferCalls;
 		private int contributionCalls;
 		private int chatCalls;
+		private Runnable beforeAutonomousObservation;
+
+		@Override
+		public Optional<PhantomClanService.AutonomousActor> autonomousActor(long profileId)
+		{
+			if (beforeAutonomousObservation != null) { beforeAutonomousObservation.run(); }
+			return Backend.super.autonomousActor(profileId);
+		}
 
 		private void addPhantom(long profileId, int objectId)
 		{

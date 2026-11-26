@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.l2jmobius.gameserver.data.xml.ArmorSetData;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.conditions.Condition;
 import org.l2jmobius.gameserver.model.conditions.ConditionLogicAnd;
 import org.l2jmobius.gameserver.model.conditions.ConditionLogicOr;
@@ -35,6 +36,65 @@ public final class PhantomNativeEquipmentPolicy
 	{
 		final CrystalType target = level >= 84 ? CrystalType.S84 : level >= 80 ? CrystalType.S80 : level >= 76 ? CrystalType.S : level >= 61 ? CrystalType.A : level >= 52 ? CrystalType.B : level >= 40 ? CrystalType.C : level >= 20 ? CrystalType.D : CrystalType.NONE;
 		return CrystalType.values()[Math.max(0, Math.min(target.getLevel(), expertiseLevel))];
+	}
+
+	public enum Need
+	{
+		IMPROVEMENT,
+		REQUIRED,
+		CRITICAL;
+
+		private Need higher(Need other)
+		{
+			return compareTo(other) >= 0 ? this : other;
+		}
+	}
+
+	public record EquipmentNeeds(Need weapon, Need chest, Need legs)
+	{
+		public boolean required()
+		{
+			return weapon.higher(chest).higher(legs) != Need.IMPROVEMENT;
+		}
+
+		public Need addressedBy(ItemTemplate item)
+		{
+			if (item instanceof Weapon) { return weapon; }
+			return switch (item.getBodyPart())
+			{
+				case CHEST -> chest;
+				case LEGS -> legs;
+				case FULL_ARMOR -> chest.higher(legs);
+				default -> Need.IMPROVEMENT;
+			};
+		}
+	}
+
+	/** Separates material readiness from the optional pursuit of the next legal grade. */
+	public static Need slotNeed(Item equipped, CrystalType target, boolean usableWithoutItem)
+	{
+		if (equipped == null) { return usableWithoutItem ? Need.IMPROVEMENT : Need.CRITICAL; }
+		return !protectedEffects(equipped) && target.getLevel() - equipped.getTemplate().getCrystalType().getLevel() >= 2 ? Need.REQUIRED : Need.IMPROVEMENT;
+	}
+
+	public static EquipmentNeeds equipmentNeeds(Player player)
+	{
+		final var target = targetGrade(player.getLevel(), player.getExpertiseLevel());
+		final var weapon = player.getActiveWeaponItem();
+		final var equippedWeapon = weapon != null && weapon != player.getFistsWeaponItem()
+			&& weapon.getCrystalType().getLevel() <= player.getExpertiseLevel() && weapon.checkCondition(player, player, false) ? player.getActiveWeaponInstance() : null;
+		final boolean usableFists = player.getActiveWeaponInstance() == null && weapon != null && weapon == player.getFistsWeaponItem()
+			&& (!player.isMageClass() && target == CrystalType.NONE || player.getPlayerClass().equalsOrChildOf(PlayerClass.ORC_MONK));
+		final var inventory = player.getInventory();
+		final var chest = inventory.getPaperdollItem(Inventory.PAPERDOLL_CHEST);
+		final boolean fullArmor = chest != null && chest.getTemplate().getBodyPart() == BodyPart.FULL_ARMOR;
+		return new EquipmentNeeds(slotNeed(equippedWeapon, target, usableFists), slotNeed(chest, target, false),
+			fullArmor ? Need.IMPROVEMENT : slotNeed(inventory.getPaperdollItem(Inventory.PAPERDOLL_LEGS), target, false));
+	}
+
+	public static boolean hasRequiredEquipment(Player player)
+	{
+		return equipmentNeeds(player).required();
 	}
 
 	public static boolean hasGradeDebt(Player player)

@@ -22,6 +22,16 @@ public final class PhantomEquipment068PolicySuite implements PhantomTestSuite
 	@Override public String id() { return "equipment068-policy"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("017-key-slot-need-preserves-native-fallback-and-valuable-gear", context ->
+		{
+			final var ordinary = new Item(990090, gear(WeaponType.SWORD, CrystalType.NONE));
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.CRITICAL, PhantomNativeEquipmentPolicy.slotNeed(null, CrystalType.NONE, false), "Missing key equipment did not require recovery.");
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.IMPROVEMENT, PhantomNativeEquipmentPolicy.slotNeed(null, CrystalType.NONE, true), "Lawful unarmed fallback caused mandatory spending.");
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.IMPROVEMENT, PhantomNativeEquipmentPolicy.slotNeed(ordinary, CrystalType.D, false), "The first adjacent grade made usable gear mandatory.");
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.REQUIRED, PhantomNativeEquipmentPolicy.slotNeed(ordinary, CrystalType.C, false), "Material debt in a key slot stayed optional.");
+			ordinary.setEnchantLevel(12);
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.IMPROVEMENT, PhantomNativeEquipmentPolicy.slotNeed(ordinary, CrystalType.C, false), "Grade displaced protected native effects.");
+		});
 		registry.add("01-weapon-affinity-uses-native-mask-not-item-or-class-id", context ->
 		{
 			for (WeaponType preferred : List.of(WeaponType.BLUNT, WeaponType.BOW, WeaponType.DAGGER))

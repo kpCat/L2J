@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.item.type.EtcItemType;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
@@ -66,6 +67,9 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.EquipmentNeeds;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.Need;
 
 /** Ordinary Decision producer and bounded native NPC trip; payment stays in the existing Commerce owner. */
 public final class L2jPhantomSupplyJourney implements PhantomMaterializationLifecyclePort, org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort, org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand
@@ -306,7 +310,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			context -> new PhantomPlan(context.decisionSequence(), context.goal().goalId(), "candidate.autonomous.supplies", List.of(new PhantomPlanStep(0, ACTION, null, Map.of(), 60_000, 10, "supplies.native.advance")), 60_000, context.logicalNowNanos())));
 	}
 	public void registerHandlers(PhantomStepHandlerRegistry registry) { registry.register(ACTION, this::advance); }
-	public boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root, false).isPresent(); }
+	public boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root, false).filter(offer -> !offer.incomeFallback()).isPresent(); }
 	public boolean needsRequiredPreparationOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root, true).filter(offer -> !offer.incomeFallback()).isPresent(); }
 	public Optional<PhantomGoal> automaticIntent(long profileId) { return Optional.ofNullable(cached(profileId).goal); }
 
@@ -419,8 +423,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	private record SupplyProposal(PhantomGoal goal, boolean required)
 	{
-		private boolean incomeFallback() { return "income.farm".equals(goal.acquisitionMethod()); }
+		private boolean incomeFallback() { return isIncomeFallback(goal); }
 	}
+	private static boolean isIncomeFallback(PhantomGoal goal) { return "income.farm".equals(goal.acquisitionMethod()); }
 
 	private Optional<SupplyProposal> proposal(long profileId, PhantomGoal root, boolean requiredOnly)
 	{
@@ -449,7 +454,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (_learningOwns.test(profileId, root)) { return Optional.empty(); }
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
 			final boolean deferOptional = requiredOnly || _deferOptional.test(profileId, root);
-			final boolean missingWeapon = player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem();
+			final var equipmentNeeds = PhantomNativeEquipmentPolicy.equipmentNeeds(player);
+			final boolean missingWeapon = equipmentNeeds.weapon() == Need.CRITICAL;
 			final boolean urgentInventory = inventoryPressure(cached.maintenancePressure,
 				player.getInventory().getSize() * 100L / Math.max(1, player.getInventoryLimit()), player.getCurrentLoad() * 100L / Math.max(1, player.getMaxLoad()));
 			if (urgentInventory || missingWeapon)
@@ -457,24 +463,30 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				final var maintenance = maintenanceProposal(profileId, root, player, cached, now);
 				if (maintenance.isPresent()) { return maintenance.map(goal -> new SupplyProposal(goal, true)); }
 			}
-			if (missingWeapon) { return equipmentProposal(profileId, root, player, cached, now).map(goal -> new SupplyProposal(goal, true)); }
+			if (missingWeapon) { return equipmentProposal(profileId, root, player, cached, now, equipmentNeeds).map(goal -> new SupplyProposal(goal, true)); }
 			final var need = supplyNeed(player, deferOptional);
 			if (need != null && need.required())
 			{
 				final var stock = stockProposal(profileId, root, player, cached, now, need).orElse(null);
-				if (stock == null || "income.farm".equals(stock.acquisitionMethod()))
+				if (stock != null && !isIncomeFallback(stock)) { return Optional.of(new SupplyProposal(stock, true)); }
+				if (equipmentNeeds.required() || !deferOptional)
 				{
-					final var equipment = optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now))
-						.filter(goal -> !"income.farm".equals(goal.acquisitionMethod()));
-					if (equipment.isPresent()) { return equipment.map(goal -> new SupplyProposal(goal, false)); }
+					final var equipment = equipmentProposal(profileId, root, player, cached, now, equipmentNeeds)
+						.filter(goal -> stock == null || !isIncomeFallback(goal));
+					if (equipment.isPresent()) { return equipment.map(goal -> new SupplyProposal(goal, equipmentNeeds.required())); }
 				}
 				return Optional.ofNullable(stock).map(goal -> new SupplyProposal(goal, true));
+			}
+			if (equipmentNeeds.required())
+			{
+				final var equipment = equipmentProposal(profileId, root, player, cached, now, equipmentNeeds);
+				if (equipment.isPresent()) { return equipment.map(goal -> new SupplyProposal(goal, true)); }
 			}
 			final var optional = optionalPreparation(deferOptional, () -> maintenanceProposal(profileId, root, player, cached, now)
 				.or(() -> readySaProposal(profileId, root, player, cached, now))
 				.or(() -> need == null ? Optional.empty() : stockProposal(profileId, root, player, cached, now, need))
-				.or(() -> equipmentProposal(profileId, root, player, cached, now))
-				.filter(goal -> !"income.farm".equals(goal.acquisitionMethod())));
+				.or(() -> equipmentProposal(profileId, root, player, cached, now, equipmentNeeds))
+				.filter(goal -> !isIncomeFallback(goal)));
 			return optional.map(goal -> new SupplyProposal(goal, false));
 		}
 	}
@@ -534,7 +546,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		}
 		if (choices.isEmpty())
 		{
-			return need.required() ? shortageOffer(root, player, cached, new PhantomDomainRef("item", Integer.toString(items.getFirst().getId())), shortageReason(player, items), now) : Optional.empty();
+			if (!need.required()) { return Optional.empty(); }
+			cached.offer = shortageOffer(root, player, cached, new PhantomDomainRef("item", Integer.toString(items.getFirst().getId())), shortageReason(player, items), now).orElse(null);
+			return Optional.ofNullable(cached.offer);
 		}
 		final var first = choices.getFirst();
 		if (first.count > 600)
@@ -796,23 +810,39 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		return previous.rootRevision() == current.rootRevision() && previous.actorObjectId() == current.actorObjectId() && previous.classId() == current.classId() && previous.classIndex() == current.classIndex() && previous.weaponObjectId() == current.weaponObjectId() ? Optional.of(offer) : Optional.empty();
 	}
 
-	private Optional<PhantomGoal> equipmentProposal(long id, PhantomGoal root, Player player, Cached cached, long now)
+	private Optional<PhantomGoal> equipmentProposal(long id, PhantomGoal root, Player player, Cached cached, long now, EquipmentNeeds needs)
 	{
 		if (_progression == null) { return Optional.empty(); }
 		final boolean weaponProtected = _equipmentWeaponProtected.test(id, root);
-		final String facts = root.goalId() + ":" + root.revision() + ':' + player.getActiveClass() + ':' + player.getLevel() + ':' + player.getExpertiseLevel() + ':' + (player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId()) + ':' + player.getAdena() + ':' + player.getInventory().getSize() + ':' + weaponProtected;
+		final var inventory = player.getInventory();
+		final String facts = root.goalId() + ":" + root.revision() + ':' + player.getActiveClass() + ':' + player.getLevel() + ':' + player.getExpertiseLevel() + ':'
+			+ inventory.getPaperdollObjectId(Inventory.PAPERDOLL_RHAND) + ':' + inventory.getPaperdollObjectId(Inventory.PAPERDOLL_LHAND) + ':'
+			+ inventory.getPaperdollObjectId(Inventory.PAPERDOLL_CHEST) + ':' + inventory.getPaperdollObjectId(Inventory.PAPERDOLL_LEGS) + ':'
+			+ player.getAdena() + ':' + inventory.getSize() + ':' + weaponProtected + ':' + needs;
 		if (facts.equals(cached.equipmentFacts) && now < cached.nextEquipmentCheck) { return Optional.ofNullable(cached.equipmentOffer); }
 		cached.equipmentFacts = facts; cached.nextEquipmentCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()); cached.equipmentOffer = null;
-		final var owned = player.getInventory().getItems().stream().filter(item -> !item.isEquipped() && item.getOwnerId() == player.getObjectId()).filter(item -> !weaponProtected || !(item.getTemplate() instanceof org.l2jmobius.gameserver.model.item.Weapon))
-			.filter(item -> org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate())).sorted(Comparator.comparing(item -> item.getTemplate(), org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.preference(player))).toList();
+		final var targetGrade = PhantomNativeEquipmentPolicy.targetGrade(player.getLevel(), player.getExpertiseLevel());
+		final Predicate<ItemTemplate> relevant = item ->
+		{
+			if (weaponProtected && item instanceof org.l2jmobius.gameserver.model.item.Weapon) { return false; }
+			if (!needs.required()) { return true; }
+			final var priority = needs.addressedBy(item);
+			return priority == Need.CRITICAL || priority == Need.REQUIRED && item.getCrystalType().getLevel() >= targetGrade.getLevel() - 1;
+		};
+		final var preference = Comparator.comparing(needs::addressedBy, Comparator.reverseOrder()).thenComparing(PhantomNativeEquipmentPolicy.preference(player));
+		final var owned = inventory.getItems().stream().filter(item -> !item.isEquipped() && item.getOwnerId() == player.getObjectId())
+			.filter(item -> relevant.test(item.getTemplate()) && PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate()))
+			.sorted(Comparator.comparing(item -> item.getTemplate(), preference)).toList();
 		final var candidates = new ArrayList<ItemTemplate>();
 		owned.forEach(item -> { if (!candidates.contains(item.getTemplate())) { candidates.add(item.getTemplate()); } });
 		final var paid = new ArrayList<ItemTemplate>();
-		_equipment.stream().filter(item -> !weaponProtected || !(item instanceof org.l2jmobius.gameserver.model.item.Weapon)).filter(item -> org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(player, item))
+		_equipment.stream().filter(relevant).filter(item -> PhantomNativeEquipmentPolicy.upgrade(player, item))
 			.filter(item -> _commerce.catalog().findBuyOffers(item.getId(), 0, 256).values().stream().anyMatch(offer -> !offer.limitedStock() && offer.price() > 0 && offer.price() <= player.getAdena() - _policy.minimumAdenaReserve()))
 			.forEach(paid::add);
-		if (_offline != null) { _offline.equipmentOffers(player).stream().filter(item -> !weaponProtected || !(item instanceof org.l2jmobius.gameserver.model.item.Weapon)).forEach(paid::add); }
-		paid.stream().distinct().sorted(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.preference(player)).limit(64).forEach(item -> { if (!candidates.contains(item)) { candidates.add(item); } });
+		if (_offline != null) { _offline.equipmentOffers(player).stream().filter(relevant).forEach(paid::add); }
+		paid.stream().distinct().sorted(preference).limit(64).forEach(item -> { if (!candidates.contains(item)) { candidates.add(item); } });
+		// The sort is stable: a comparable owned recovery precedes any new purchase.
+		candidates.sort(Comparator.comparing(needs::addressedBy, Comparator.reverseOrder()));
 		for (var item : candidates)
 		{
 			final var ownedItem = owned.stream().filter(value -> value.getId() == item.getId()).findFirst().orElse(null);
@@ -863,7 +893,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			cached.equipmentOffer = offline != null ? offline : equipmentOffer(root, player, cached, gearChoices, ownedItem == null ? Map.of() : Map.of("equipment.owned", (long) ownedItem.getObjectId()), item.getId(), now);
 			return Optional.ofNullable(cached.equipmentOffer);
 		}
-		if (_upgrades != null)
+		if (_upgrades != null && !needs.required())
 		{
 			final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
 			if (receipt == null || receipt.state().terminal() && receipt.state() != PhantomCommerceReceipt.State.INCONSISTENT)
@@ -875,9 +905,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				if (cached.equipmentOffer != null) { return Optional.of(cached.equipmentOffer); }
 			}
 		}
-		if (org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.hasGradeDebt(player))
+		if (needs.required())
 		{
-			return shortageOffer(root, player, cached, new PhantomDomainRef("equipment.grade", org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.targetGrade(player.getLevel(), player.getExpertiseLevel()).name().toLowerCase(java.util.Locale.ROOT)), player.getAdena() <= _policy.minimumAdenaReserve() ? "supplies.gear.no_adena.income_farm" : "supplies.gear.unavailable_offer.income_farm", now);
+			final String reason = player.getAdena() <= _policy.minimumAdenaReserve() ? "supplies.gear.no_adena.income_farm" : "supplies.gear.unavailable_offer.income_farm";
+			cached.equipmentOffer = shortageOffer(root, player, cached, new PhantomDomainRef("equipment.grade", targetGrade.name().toLowerCase(java.util.Locale.ROOT)), reason, now).orElse(null);
+			return Optional.ofNullable(cached.equipmentOffer);
 		}
 		return Optional.empty();
 	}
@@ -929,8 +961,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
 		if (receipt != null && receipt.receipt().goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.receipt().goalRevision(), 1)); }
 		final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(player), 0);
-		cached.offer = new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), target, 1, 0, "income.farm", List.of(), root.selectedAnchor(), ACTION, 700, 0, 0, now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()), Map.of(), reason, revision, binding.encode());
-		return Optional.of(cached.offer);
+		return Optional.of(new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), target, 1, 0, "income.farm", List.of(), root.selectedAnchor(), ACTION, 700, 0, 0, now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()), Map.of(), reason, revision, binding.encode()));
 	}
 
 	private boolean weaponResources(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon)
