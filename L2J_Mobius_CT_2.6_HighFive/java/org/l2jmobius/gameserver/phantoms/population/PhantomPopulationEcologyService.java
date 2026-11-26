@@ -48,6 +48,7 @@ public final class PhantomPopulationEcologyService
 	private static final long MINUTE_MILLIS = 60_000L;
 	private static final int MAXIMUM_CALENDAR_STEPS_PER_PROFILE = 4096;
 	private static final int OWNERSHIP_RECOVERY_TURN = -1;
+	private static final int PROFILES_WITH_LIVE_CALENDAR = 4;
 	private final Object _monitor = new Object();
 	private final PhantomPopulationEcologyCatalog _catalog;
 	private final PhantomPopulationCatalog _populationCatalog;
@@ -86,6 +87,8 @@ public final class PhantomPopulationEcologyService
 	private final Map<Long, Entry> _entries = new LinkedHashMap<>();
 	private final ArrayDeque<Long> _due = new ArrayDeque<>();
 	private final Set<Long> _queued = new HashSet<>();
+	private final ArrayDeque<Long> _liveCalendarDue = new ArrayDeque<>();
+	private final Set<Long> _liveCalendarQueued = new HashSet<>();
 	private final ArrayDeque<Long> _nativeReleaseDue = new ArrayDeque<>();
 	private final Set<Long> _nativeReleaseQueued = new HashSet<>();
 	private final ArrayDeque<Long> _metadataDue = new ArrayDeque<>();
@@ -406,7 +409,7 @@ public final class PhantomPopulationEcologyService
 	{
 		if ((_wakeScheduler == null) || _stopping || (_wakeFailure != null) || (_cancelWake != null)) { return; }
 		final long now = _monotonicMillis.getAsLong();
-		final boolean runnable = !_due.isEmpty() || !_materializationDue.isEmpty() || !_nativeReleaseDue.isEmpty();
+		final boolean runnable = !_due.isEmpty() || !_materializationDue.isEmpty() || !_nativeReleaseDue.isEmpty() || !_liveCalendarDue.isEmpty();
 		if (!runnable && _delayed.isEmpty() && !_periodicDueMode) { return; }
 		final long upkeep = now + Math.max(1, MINUTE_MILLIS - Math.floorMod(_clock.millis(), MINUTE_MILLIS));
 		final long idleDue = _delayed.isEmpty() ? upkeep : Math.min(upkeep, _delayed.firstKey());
@@ -472,6 +475,7 @@ public final class PhantomPopulationEcologyService
 			entry._materializationDemand = false;
 			_demandFacts.remove(profileId); _admittedPreparation.remove(profileId);
 				_queued.remove(profileId); _due.remove(profileId);
+				removeLiveCalendarLocked(profileId);
 				_materializationQueued.remove(profileId); _materializationDue.remove(profileId);
 				_nativeReleaseQueued.remove(profileId); _nativeReleaseDue.remove(profileId);
 				_demandFacts.remove(profileId); _admittedPreparation.remove(profileId); removeDelayLocked(profileId);
@@ -581,7 +585,7 @@ public final class PhantomPopulationEcologyService
 				_workerGeneration++;
 				_lastFailure = "ecology.worker_dispatch_timeout";
 			}
-			if (_workerInFlight || (_due.isEmpty() && _materializationDue.isEmpty() && _nativeReleaseDue.isEmpty() && _metadataDue.isEmpty())) { requestWakeLocked(); return; }
+			if (_workerInFlight || (_due.isEmpty() && _materializationDue.isEmpty() && _nativeReleaseDue.isEmpty() && _liveCalendarDue.isEmpty() && _metadataDue.isEmpty())) { requestWakeLocked(); return; }
 			if ((_wakeScheduler != null) && (_monotonicMillis.getAsLong() < _nextBatchMillis)) { requestWakeLocked(); return; }
 			_workerInFlight = true;
 			_workerStarted = false;
@@ -719,17 +723,27 @@ public final class PhantomPopulationEcologyService
 		{
 			final long profileId;
 			final int slice;
+			final boolean liveCalendar;
 			synchronized (_monitor)
 			{
 				if (_stopping) { break; }
-				if (metadataBatch)
+				final long calendar = !metadataBatch && profiles.isEmpty() && (profileBudget >= PROFILES_WITH_LIVE_CALENDAR)
+					? pollClaimLocked(_liveCalendarDue, _liveCalendarQueued, profiles) : 0;
+				liveCalendar = calendar > 0;
+				if (liveCalendar)
+				{
+					profileId = calendar;
+					slice = 0;
+				}
+				else if (metadataBatch)
 				{
 					profileId = pollMetadataClaimLocked(profiles);
 					slice = 0;
 				}
-				else if (profiles.isEmpty() && (focus > 0))
+				else if ((focus > 0) && !profiles.contains(focus))
 				{
 					profileId = claimLocked(focus, profiles) ? focus : 0;
+					if (profileId == 0) { focus = 0; continue; }
 					slice = Math.min(intervalsRemaining, (_due.isEmpty() && _nativeReleaseDue.isEmpty()) ? intervalsRemaining : Math.max(1, _catalog.limits().maximumIntervalsPerPulse() - 4));
 				}
 				else
@@ -743,7 +757,7 @@ public final class PhantomPopulationEcologyService
 					final int ordinaryLimit = _nativeReleaseDue.isEmpty() ? 4 : Math.min(4, Math.max(1, intervalsRemaining - 1));
 					slice = ((focus > 0 || !_nativeReleaseDue.isEmpty()) && ordinary > 0) ? Math.min(ordinaryLimit, intervalsRemaining) : intervalsRemaining;
 				}
-				if (profileId == 0) { if (focus > 0 && profiles.isEmpty()) { focus = 0; continue; } break; }
+				if (profileId == 0) { break; }
 				profiles.add(profileId);
 				_activeProfile = profileId;
 			}
@@ -751,7 +765,10 @@ public final class PhantomPopulationEcologyService
 			{
 				if (!metadataBatch) { publishSchedulingPermissionEdge(profileId); }
 				if (!metadataBatch && (profileId == focus) && !_currentDemand.test(profileId)) { withdrawMaterializationDue(profileId); }
-				final int used = metadataBatch ? process(profileId, 0, false, true) : processRequested(profileId, slice);
+				// Calendar upkeep never spends a historical interval. The normal process still
+				// checks the durable claim and the current native owner before advancing time.
+				final int used = metadataBatch ? process(profileId, 0, false, true)
+					: liveCalendar ? Math.max(0, process(profileId, 0)) : processRequested(profileId, slice);
 				intervals += used;
 				intervalsRemaining -= used;
 				synchronized (_monitor)
@@ -903,7 +920,8 @@ public final class PhantomPopulationEcologyService
 		final Entry entry = _entries.get(profileId);
 		if ((entry == null) || entry._claimed || selected.contains(profileId) || !needsWorkLocked(entry)) { return false; }
 		if (progressClock() < entry._nextRetryPulse) { delayLocked(profileId, entry._nextRetryPulse); return false; }
-		_queued.remove(profileId); _due.remove(profileId);
+		if (_queued.remove(profileId)) { _due.remove(profileId); }
+		removeLiveCalendarLocked(profileId);
 		_metadataQueued.remove(profileId); _metadataDue.remove(profileId);
 		_materializationQueued.remove(profileId); _materializationDue.remove(profileId);
 		_nativeReleaseQueued.remove(profileId); _nativeReleaseDue.remove(profileId);
@@ -943,10 +961,16 @@ public final class PhantomPopulationEcologyService
 		if (due != null) { final Set<Long> ids = _delayed.get(due); if (ids != null) { ids.remove(profileId); if (ids.isEmpty()) { _delayed.remove(due); } } }
 	}
 
+	private void removeLiveCalendarLocked(long profileId)
+	{
+		if (_liveCalendarQueued.remove(profileId)) { _liveCalendarDue.remove(profileId); }
+	}
+
 	private void delayLocked(long profileId, long due)
 	{
 		removeDelayLocked(profileId); _delayedAt.put(profileId, due); _delayed.computeIfAbsent(due, _ -> new HashSet<>()).add(profileId);
 		_queued.remove(profileId); _due.remove(profileId); _materializationQueued.remove(profileId); _materializationDue.remove(profileId);
+		removeLiveCalendarLocked(profileId);
 		_nativeReleaseQueued.remove(profileId); _nativeReleaseDue.remove(profileId);
 		_metadataQueued.remove(profileId); _metadataDue.remove(profileId);
 		requestWakeLocked();
@@ -1754,6 +1778,7 @@ public final class PhantomPopulationEcologyService
 		_nativeReleaseQueued.remove(profileId); _nativeReleaseDue.remove(profileId);
 		_queued.remove(profileId);
 		_due.remove(profileId);
+		removeLiveCalendarLocked(profileId);
 		_metadataQueued.remove(profileId);
 		_metadataDue.remove(profileId);
 		_materializationQueued.remove(profileId);
@@ -1764,9 +1789,25 @@ public final class PhantomPopulationEcologyService
 	private void queueLocked(long profileId)
 	{
 		final Entry candidate = _entries.get(profileId);
-		if ((candidate == null) || !needsWorkLocked(candidate)) { if (candidate != null) { candidate._nativeReleasePending = false; } return; }
+		if ((candidate == null) || !needsWorkLocked(candidate))
+		{
+			removeLiveCalendarLocked(profileId);
+			if (candidate != null) { candidate._nativeReleasePending = false; }
+			return;
+		}
 		if (progressClock() < candidate._nextRetryPulse) { delayLocked(profileId, candidate._nextRetryPulse); return; }
 		if ((candidate._stored == null) && _metadataQueued.add(profileId)) { _metadataDue.addLast(profileId); }
+		// Reserve one profile alongside preparation, ordinary history and native release.
+		if (_batchAdmission && _periodicDueMode && !_startupHistoryOnly && candidate._liveOwner && (candidate._stored != null)
+			&& (_catalog.limits().maximumProfilesPerPulse() >= PROFILES_WITH_LIVE_CALENDAR))
+		{
+			if (_queued.remove(profileId)) { _due.remove(profileId); }
+			if (_materializationQueued.remove(profileId)) { _materializationDue.remove(profileId); }
+			if (_nativeReleaseQueued.remove(profileId)) { _nativeReleaseDue.remove(profileId); }
+			if (_liveCalendarQueued.add(profileId)) { candidate._enqueuedMillis = progressClock(); _liveCalendarDue.addLast(profileId); requestWakeLocked(); }
+			return;
+		}
+		removeLiveCalendarLocked(profileId);
 		// Finish the released owner request under the existing claims; each batch still serves ordinary work.
 		if (candidate._nativeReleasePending && !candidate._materializationDemand)
 		{
@@ -1968,7 +2009,7 @@ public final class PhantomPopulationEcologyService
 			final var historical = entry == null ? null : entry._historicalSnapshot;
 			final var state = historical == null ? null : historical.state();
 			final long now = progressClock();
-			return new ProgressSnapshot(_due.size(), _materializationDue.size() + _nativeReleaseDue.size(), _workerStarted ? "RUNNING" : _workerInFlight ? "DISPATCHED" : _cancelWake != null ? "WAKE_SCHEDULED" : _stopping ? "STOPPED" : _wakeFailure != null ? "BLOCKED" : "IDLE", _activeProfile, entry == null ? "unknown" : entry._stage, entry == null ? 0 : Math.max(0, now - entry._enqueuedMillis), entry == null ? 0 : Math.max(0, now - entry._lastProgressMillis), _nextWakeMillis, entry == null ? 0 : entry._nextRetryPulse, state == null ? "UNKNOWN" : state.status().name(), state == null ? "" : state.requestId(), state == null ? 0 : state.cursorEpochMinute(), state == null ? 0 : state.targetEpochMinute(), historical == null ? 0 : historical.rowVersion());
+			return new ProgressSnapshot(_due.size(), _materializationDue.size() + _nativeReleaseDue.size() + _liveCalendarDue.size(), _workerStarted ? "RUNNING" : _workerInFlight ? "DISPATCHED" : _cancelWake != null ? "WAKE_SCHEDULED" : _stopping ? "STOPPED" : _wakeFailure != null ? "BLOCKED" : "IDLE", _activeProfile, entry == null ? "unknown" : entry._stage, entry == null ? 0 : Math.max(0, now - entry._enqueuedMillis), entry == null ? 0 : Math.max(0, now - entry._lastProgressMillis), _nextWakeMillis, entry == null ? 0 : entry._nextRetryPulse, state == null ? "UNKNOWN" : state.status().name(), state == null ? "" : state.requestId(), state == null ? 0 : state.cursorEpochMinute(), state == null ? 0 : state.targetEpochMinute(), historical == null ? 0 : historical.rowVersion());
 		}
 	}
 

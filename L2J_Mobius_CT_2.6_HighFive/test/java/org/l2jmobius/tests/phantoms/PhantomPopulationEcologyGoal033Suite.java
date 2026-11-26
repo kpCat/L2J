@@ -105,6 +105,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			registry.add("018-preparation-demand-preserves-unchanged-scheduling-facts", this::testIndependentPreparationDemand);
 			registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
 			registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
+			registry.add("018-live-calendar-keeps-bounded-share-with-cold-history", this::testLiveCalendarUnderBacklog);
 			return;
 		}
 		if (System.getProperty("phantom.m1.native.focus", "").equals("stop075"))
@@ -397,6 +398,38 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 				&& ecology.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Release priority changed shared budgets.");
 		}
 		finally { ecology.beginStop(); stop(manager); }
+	}
+
+	private void testLiveCalendarUnderBacklog(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-20T20:30:00Z");
+		final long target = minute(now);
+		final long liveId = 49;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(null);
+		final var history = new HistoricalMemoryPort();
+		for (long id = 1; id < liveId; id++) { seedColdRequest113(population, store, history, id, target - 23_000, target); }
+		final var live = population.seedReady(liveId, 1);
+		store.insert(liveId, stateAt(target - 10, Pace.OUTLIER, 10_000, live.state().scheduleTemplate()));
+		final var service = new PhantomPopulationEcologyService(_ecology, _population, store, history, id -> id == liveId, id -> "",
+			new PhantomPopulationTestDoubles.MutableClock(now), ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> population.loadManagedAfter(id - 1, 1).stream().filter(actor -> actor.profile().profileId() == id).findFirst(), noEvents());
+		service.holdStartupPopulationPlan();
+		for (long id = 1; id <= liveId; id++) { service.register(population.loadManagedAfter(id - 1, 1).getFirst()); }
+		loadMetadata(service, Math.toIntExact(liveId));
+		service.startupPopulationPlanApplied();
+		service.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1),
+			new PhantomPopulationEcologyService.DemandFact(liveId, 1, true, 1, liveId)), 2);
+		final var pending = history.status(1).orElseThrow();
+		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(target, store.require(liveId).state().calendarCursorEpochMinute(), "Live calendar waited behind the cold backlog.");
+		PhantomAssertions.assertTrue(history.status(1).orElseThrow().state().cursorEpochMinute() > pending.state().cursorEpochMinute(), "Live calendar starved cold preparation.");
+		PhantomAssertions.assertTrue(history.status(2).orElseThrow().state().cursorEpochMinute() > target - 23_000, "Live calendar starved ordinary history.");
+		PhantomAssertions.assertEquals(Optional.empty(), history.status(liveId), "Live calendar manufactured a historical claim.");
+		PhantomAssertions.assertTrue(service.snapshot().maximumPulseProfiles() <= _ecology.limits().maximumProfilesPerPulse()
+			&& service.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Live calendar changed the batch budgets.");
+		service.beginStop();
 	}
 
 	private void testOrphanOwnership(PhantomTestContext context, int control)
