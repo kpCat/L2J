@@ -8,6 +8,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.gameserver.model.StatSet;
+import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.SkillOperateType;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.ScopedOffenseChoice;
@@ -46,6 +49,21 @@ public final class PhantomScopedOffense131Checks
 		System.out.println("TASK131_SCOPED_SOLO_WRITER_PASS fresh=1 stale=0 duplicate=0 deferred=0 crossThread=0");
 		testAllowedSkillsBeforeBound();
 		testArchiveCannotChangeStockSkill();
+		testNonCreatureAutoSkillTarget();
+	}
+
+	private static void testNonCreatureAutoSkillTarget()
+	{
+		final WorldObject target = new WorldObject(1)
+		{
+			@Override public boolean isAutoAttackable(Creature attacker) { return false; }
+			@Override public void sendInfo(Player player) { }
+		};
+		if (!AutoUseTaskManager.invalidAutoSkillTarget(null) || !AutoUseTaskManager.invalidAutoSkillTarget(target))
+		{
+			throw new AssertionError("An absent or non-creature target must take the same rejection branch as a dead target.");
+		}
+		System.out.println("AUTO_SKILL_TARGET_PASS absent=denied nonCreature=denied");
 	}
 
 	private static void testArchiveCannotChangeStockSkill()

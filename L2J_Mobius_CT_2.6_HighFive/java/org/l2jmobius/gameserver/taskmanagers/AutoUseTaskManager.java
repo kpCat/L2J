@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.handler.IItemHandler;
 import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Playable;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
@@ -80,6 +81,11 @@ public class AutoUseTaskManager
 	
 	protected AutoUseTaskManager()
 	{
+	}
+
+	static boolean invalidAutoSkillTarget(WorldObject target)
+	{
+		return !(target instanceof Creature creature) || creature.isDead();
 	}
 
 	static boolean submitScoped(ScopedOffenseChoice choice, BooleanSupplier current, Runnable nativeCast)
@@ -414,7 +420,7 @@ public class AutoUseTaskManager
 						}
 						
 						// Check negative effect skill target.
-						if ((target == null) || target.asCreature().isDead())
+						if (invalidAutoSkillTarget(target))
 						{
 							// Remove queued skill.
 							if (player.getQueuedSkill() != null)
