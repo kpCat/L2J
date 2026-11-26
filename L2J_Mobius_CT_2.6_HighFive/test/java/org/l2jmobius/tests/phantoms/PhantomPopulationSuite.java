@@ -210,6 +210,9 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 				registry.add("01-one-warm-handler-completes-four-durable-creation-stages", this::testOneWarmCreation);
 				registry.add("02-transient-cancellation-and-terminal-outcomes-stop-chaining", this::testCreationStops);
 				registry.add("03-hard-bound-and-no-progress-fail-closed", this::testCreationBound);
+				registry.add("04-linked-bootstrap-quarantine-allows-independent-birth", this::testLinkedBootstrapQuarantine);
+				registry.add("05-ambiguous-identity-and-shell-commit-block-new-births", this::testAmbiguousBirth);
+				registry.add("06-concurrent-refill-and-stop-share-one-shell-claim", this::testConcurrentRefill);
 			}
 			case CREATION ->
 			{
@@ -343,6 +346,92 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomPopulationState.State.READY, manager.find(1).orElseThrow().state().state(), "One WARM delivery did not reach READY.");
 		PhantomAssertions.assertEquals(4L, store.writes(), "Normal creation did not persist four durable stages.");
 		stopSynthetic(manager);
+	}
+
+	private void testLinkedBootstrapQuarantine(PhantomTestContext context)
+	{
+		final MemoryStore store = new MemoryStore(_catalog.hash());
+		store.seedReady(1, 1);
+		final var linked = store.reload(1);
+		final var quarantined = store.updateState(linked, linked.state().fail("ownership.bootstrap_cleanup_exhausted"));
+		final PhantomPopulationManager manager = syntheticManager(store, new Ownership(), 1, 0, 8);
+		manager.installRetirementProtection(_ -> { throw new AssertionError("Refill inspected retirement ownership."); });
+		PhantomAssertions.assertTrue(manager.start(), "Quarantine manager did not start.");
+		PhantomAssertions.assertTrue(!manager.snapshot().deficitBlocked(), "A linked bootstrap quarantine froze the allocator.");
+		PhantomAssertions.assertEquals(2, store.size(), "An independent shell did not fill the healthy target.");
+		for (int step = 0; step < 4; step++) { manager.advanceCreation(2); }
+		PhantomAssertions.assertEquals(PhantomPopulationState.State.READY, manager.find(2).orElseThrow().state().state(), "Independent creation did not reach READY.");
+		PhantomAssertions.assertEquals(quarantined, store.reload(1), "The linked quarantine was changed.");
+		PhantomAssertions.assertTrue(!manager.participates(1), "Quarantined identity regained participation.");
+		manager.reconcileTarget(1, 0);
+		PhantomAssertions.assertEquals(2, store.size(), "The quarantine caused repeated replacement.");
+		stopSynthetic(manager);
+	}
+
+	private void testAmbiguousBirth(PhantomTestContext context)
+	{
+		final MemoryStore conflicted = new MemoryStore(_catalog.hash());
+		conflicted.seed(1, PhantomPopulationState.State.SHELL, PhantomPopulationState.CreationStage.SHELL_DURABLE, 1);
+		final var shell = conflicted.reload(1);
+		conflicted.updateState(shell, shell.state().fail("character.identity_race"));
+		final var guarded = syntheticManager(conflicted, new Ownership(), 2, 0, 8);
+		PhantomAssertions.assertTrue(guarded.start(), "Ambiguity manager did not start.");
+		PhantomAssertions.assertTrue(guarded.snapshot().deficitBlocked(), "Unresolved identity collision did not protect provisioning.");
+		PhantomAssertions.assertEquals(1, conflicted.size(), "An identity collision allowed a new birth.");
+		stopSynthetic(guarded);
+
+		final MemoryStore uncertain = new MemoryStore(_catalog.hash());
+		uncertain.afterCreate(() -> { throw new IllegalStateException("Shell commit acknowledgement lost."); });
+		final var manager = syntheticManager(uncertain, new Ownership(), 0, 0, 8);
+		PhantomAssertions.assertTrue(manager.start(), "Commit ambiguity manager did not start.");
+		manager.reconcileTarget(2, 0);
+		manager.reconcileTarget(2, 0);
+		PhantomAssertions.assertTrue(manager.snapshot().deficitBlocked(), "Unknown commit did not fence new shell creation.");
+		PhantomAssertions.assertEquals(1, uncertain.size(), "Unknown commit was followed by another shell.");
+		stopSynthetic(manager);
+	}
+
+	private void testConcurrentRefill(PhantomTestContext context) throws Exception
+	{
+		final MemoryStore store = new MemoryStore(_catalog.hash());
+		final PhantomPopulationManager manager = syntheticManager(store, new Ownership(), 0, 0, 8);
+		PhantomAssertions.assertTrue(manager.start(), "Concurrent refill manager did not start.");
+		final CountDownLatch committed = new CountDownLatch(1);
+		final CountDownLatch release = new CountDownLatch(1);
+		store.afterCreate(() ->
+		{
+			committed.countDown();
+			try
+			{
+				if (!release.await(10, TimeUnit.SECONDS)) { throw new IllegalStateException("Shell claim was not released."); }
+			}
+			catch (InterruptedException e)
+			{
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("Shell claim was interrupted.", e);
+			}
+		});
+		final var worker = new Thread(() -> manager.reconcileTarget(1, 0), "population-shell-claim-test");
+		final var concurrent = new Thread(() -> manager.reconcileTarget(1, 0), "population-refill-test");
+		worker.start();
+		try
+		{
+			PhantomAssertions.assertTrue(committed.await(10, TimeUnit.SECONDS), "Refill did not reach the shell commit.");
+			concurrent.start();
+			concurrent.join(2_000);
+			PhantomAssertions.assertTrue(!concurrent.isAlive(), "Concurrent refill waited on or entered the claimed allocator.");
+			manager.beginStop();
+			PhantomAssertions.assertTrue(!manager.finishStop(), "STOP finished while the shell claim was held.");
+		}
+		finally
+		{
+			release.countDown();
+			worker.join(10_000);
+			concurrent.join(10_000);
+		}
+		PhantomAssertions.assertEquals(1, store.size(), "Concurrent refill duplicated the shell.");
+		PhantomAssertions.assertTrue(manager.finishStop(), "STOP did not finish after the shell claim was released.");
+		PhantomAssertions.assertEquals(0, manager.snapshot().managed(), "A shell was published after STOP began.");
 	}
 
 	private void testCreationStops(PhantomTestContext context)

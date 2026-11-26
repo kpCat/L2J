@@ -110,11 +110,29 @@ public final class PhantomMaterializationService
 	private final int _physicalCeiling;
 	private volatile java.util.function.LongPredicate _softCleanupAdmission = _ -> true;
 	private volatile PopulationAdmission _populationAdmission;
+	private volatile int _dedicatedReservation;
 	private volatile java.util.function.BiConsumer<MaterializationSnapshot, String> _beforeDematerialize = (_, _) -> { };
 
 	public void installDematerializationTrace(java.util.function.BiConsumer<MaterializationSnapshot, String> trace)
 	{ _beforeDematerialize = Objects.requireNonNull(trace); }
 	public void installPopulationAdmission(PopulationAdmission admission) { _populationAdmission = Objects.requireNonNull(admission); }
+
+	/** Reserve the configured continuous scout slots before scheduler admissions open. */
+	public void installDedicatedReservation(int requested, int ordinaryTarget)
+	{
+		if ((requested <= 0) || (ordinaryTarget < 0) || (ordinaryTarget > _maximumMaterialized))
+		{
+			throw new IllegalArgumentException("Invalid dedicated reservation.");
+		}
+		synchronized (_stateMonitor)
+		{
+			if (!_activeByProfile.isEmpty() || _dedicatedReservation != 0)
+			{
+				throw new IllegalStateException("Dedicated reservation must precede materialization.");
+			}
+			_dedicatedReservation = Math.min(requested, Math.max(0, _maximumMaterialized - ordinaryTarget));
+		}
+	}
 
 	@FunctionalInterface
 	public interface PopulationAdmission
@@ -446,6 +464,13 @@ public final class PhantomMaterializationService
 				_activeByProfile.remove(profileId, entry);
 				return rejectMaterialization(ResultStatus.CHARACTER_ALREADY_ACTIVE);
 			}
+		if (dedicated == null && _dedicatedReservation > 0
+			&& occupiedPhysicalSlots() - occupiedDedicatedSlots() >= _physicalCeiling - _dedicatedReservation)
+		{
+			_activeByCharacter.remove(characterObjectId, entry);
+			_activeByProfile.remove(profileId, entry);
+			return rejectMaterialization(ResultStatus.CAPACITY_REACHED);
+		}
 			if (!_permits.tryAcquire())
 			{
 				if (dedicated == null && occupiedDedicatedSlots() > 0) { _ordinaryCapacityPressureUntil = System.nanoTime() + TimeUnit.SECONDS.toNanos(15); }
@@ -1209,7 +1234,9 @@ public final class PhantomMaterializationService
 
 	public int dedicatedCapacity(int ordinaryTarget)
 	{
-		return Math.max(0, _maximumMaterialized - Math.max(ordinaryTarget, occupiedPhysicalSlots() - occupiedDedicatedSlots()));
+		final int ordinaryOccupied = occupiedPhysicalSlots() - occupiedDedicatedSlots();
+		final int reserved = Math.min(_dedicatedReservation, Math.max(0, _physicalCeiling - ordinaryOccupied));
+		return Math.max(reserved, _maximumMaterialized - Math.max(ordinaryTarget, ordinaryOccupied));
 	}
 
 	public boolean ordinaryCapacityPressure()

@@ -470,7 +470,16 @@ public final class PhantomPopulationEcologyService
 
 	/** The executing claim retains ownership until its finally; saved pending is pausable. */
 	public void holdStartupPopulationPlan() { synchronized (_monitor) { schedulingChangedLocked(); _populationPlanApplied = false; } }
-	public void startupPopulationPlanApplied() { synchronized (_monitor) { schedulingChangedLocked(); _populationPlanApplied = true; requestWakeLocked(); } }
+	public void startupPopulationPlanApplied()
+	{
+		synchronized (_monitor)
+		{
+			if (_populationPlanApplied) { return; }
+			schedulingChangedLocked();
+			_populationPlanApplied = true;
+			requestWakeLocked();
+		}
+	}
 	public void holdStartupHistory()
 	{
 		synchronized (_monitor) { _startupHistoryOnly = true; }
@@ -520,6 +529,8 @@ public final class PhantomPopulationEcologyService
 			if (entry == null)
 			{
 				entry = new Entry();
+				entry._participating = population.state().state() == PhantomPopulationState.State.READY;
+				if (!entry._participating) { _pausedEntries++; }
 				_entries.put(population.profile().profileId(), entry);
 				_unloadedEntries++;
 			}

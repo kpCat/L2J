@@ -67,7 +67,8 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 {
 	// This is a World census budget, independent of the size of one Party/CommandChannel.
-	private static final int MAX_RESTART_ABSENCE_PLAYERS = 256;
+	// Include the 200 offline shops and up to 160 managed actors in the same bounded proof.
+	private static final int MAX_RESTART_ABSENCE_PLAYERS = 512;
 	private java.util.function.BiFunction<Long, Integer, List<Long>> _scheduledFarmDiscovery;
 	private java.util.function.LongPredicate _farmAdmission = _ -> false;
 	private long _scheduledFarmCursor;
@@ -182,7 +183,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		for (Player player : world.getPlayers())
 		{
 			if (++examined > MAX_RESTART_ABSENCE_PLAYERS) { return false; }
-			if (player.getActiveRequester() != null && player.getActiveRequester().getObjectId() == objectId) { return false; }
+			final var requester = player.getActiveRequester();
+			if (requester != null && requester.getObjectId() == objectId) { return false; }
 			final Party party = player.getParty();
 			if (party == null) { continue; }
 			if (party.getMembers().stream().anyMatch(member -> member.getObjectId() == objectId)) { return false; }

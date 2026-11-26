@@ -1235,10 +1235,18 @@ public final class PhantomSystem
 					controlPorts.add(executionControl(_autonomousMarketProducer, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo));
 				}
 				if (_offlineMerchantService != null) { controlPorts.add(executionControl(_offlineMerchantService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)); }
-				_physicalGeoScouts = _navigationService.installPhysicalScout(policy -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout(
-					policy, _scheduler, _materializationService, _executionAdmission, _navigationService, _populationManager,
-					id -> physicalScoutEligible(id, productionGoals, true), id -> physicalScoutEligible(id, productionGoals, false),
-					this::physicalScoutSpareSlots, periodicEcology, this::physicalTarget));
+				_physicalGeoScouts = _navigationService.installPhysicalScout(policy ->
+				{
+					if (policy.mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout.Mode.DEDICATED
+						&& policy.schedule() == org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout.Schedule.ALWAYS)
+					{
+						_materializationService.installDedicatedReservation(policy.count(), physicalTarget());
+					}
+					return new org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout(
+						policy, _scheduler, _materializationService, _executionAdmission, _navigationService, _populationManager,
+						id -> physicalScoutEligible(id, productionGoals, true), id -> physicalScoutEligible(id, productionGoals, false),
+						this::physicalScoutSpareSlots, periodicEcology, this::physicalTarget);
+				});
 				if (_physicalGeoScouts != null)
 				{
 					if (!_physicalGeoScouts.dedicated())
@@ -1281,7 +1289,8 @@ public final class PhantomSystem
 				}
 				productionWorkSink.install(item ->
 				{
-					if (!testRosterAllows(item.profileId()) || physicalScoutReserved(item.profileId())) { return; }
+					if (!testRosterAllows(item.profileId()) || physicalScoutReserved(item.profileId())
+						|| _populationManager.find(item.profileId()).filter(entry -> entry.state().state() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.INCONSISTENT).isPresent()) { return; }
 					_executionControl.watch(item.profileId());
 					// Party-to-Solo execution transfer does not mean the former native member was stored.
 					if (awaitingLogicalPartyStore(item.profileId())) { return; }
