@@ -1708,7 +1708,12 @@ public final class PhantomSystem
 					final var background = _backgroundService.materializationQuiescence();
 					if (!background.ready()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "background:" + background); }
 				}
-				pendingStop(StopPhase.DRAIN_PLAYERS, "materialization");
+				if (dedicatedScoutDrain)
+				{
+					// Accepted effects have drained. The remaining native owners STORE serially.
+					_stopProgress = new StopProgress(StopPhase.DRAIN_PLAYERS, StopOutcome.PENDING, "materialization", System.nanoTime() + 90_000_000_000L);
+				}
+				else { pendingStop(StopPhase.DRAIN_PLAYERS, "materialization"); }
 			}
 			if (_stopProgress.phase() == StopPhase.DRAIN_PLAYERS)
 			{

@@ -1,6 +1,9 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.gameserver.phantoms.background;
 
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
+
 /** DB-free contract for re-attesting a canonical level change, never granting policy permission. */
 public final class PhantomLivingWorld114Checks
 {
@@ -17,6 +20,8 @@ public final class PhantomLivingWorld114Checks
 	}
 	public static void main(String[] args)
 	{
+		lateStopReceipt018();
+		if ((args.length == 1) && args[0].equals("--late-stop-receipt018")) { return; }
 		ordinaryGoalReconciliation();
 		if ((args.length == 1) && args[0].equals("--ordinary-goal129")) { return; }
 		final var ordinary = policy(0);
@@ -105,6 +110,23 @@ public final class PhantomLivingWorld114Checks
 		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 9, false, false).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT, "Older lifetime bypassed recovery ownership");
 		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 11, true, false).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT && PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 11, false, true).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT, "Pending STORE or baseline escaped recovery ownership");
 		System.out.println("PASS only a superseded same-identity non-STORE worker retires as REPLAN; no new-lifetime action, receipt or failure-latch clearing");
+	}
+
+	private static void lateStopReceipt018()
+	{
+		final var owner = new PhantomDomainRef("execution.solo", "1");
+		final var expected = new PhantomExecutionAdmission.Stamp(1, 3, owner, 7, PhantomExecutionAdmission.Purpose.NORMAL, 0);
+		final var foreign = new PhantomExecutionAdmission.Stamp(1, 3, owner, 8, PhantomExecutionAdmission.Purpose.NORMAL, 0);
+		final var receipt = new PhantomBackgroundService.NativeTownReturn(10, 20, expected, 31);
+		check(PhantomBackgroundService.releasedLateTownStore(receipt, true, 10, 20, expected, 30), "Released owner with canonical late STORE still blocked STOP");
+		check(!PhantomBackgroundService.releasedLateTownStore(receipt, false, 10, 20, expected, 30), "Still-owned STORE bypassed STOP");
+		check(!PhantomBackgroundService.releasedLateTownStore(receipt, true, 11, 20, expected, 30)
+			&& !PhantomBackgroundService.releasedLateTownStore(receipt, true, 10, 21, expected, 30)
+			&& !PhantomBackgroundService.releasedLateTownStore(receipt, true, 10, 20, foreign, 30), "A different object, epoch or execution stamp bypassed STOP");
+		final var pending = new PhantomBackgroundService.NativeTownReturn(10, 20, expected, 0);
+		check(!PhantomBackgroundService.releasedLateTownStore(pending, true, 10, 20, expected, 30)
+			&& !PhantomBackgroundService.releasedLateTownStore(null, true, 10, 20, expected, 30), "An unconfirmed STORE bypassed STOP");
+		System.out.println("PASS STOP accounts for a completed late STORE only when the original owner, lifetime and execution agree");
 	}
 
 	private static void ordinaryGoalReconciliation()

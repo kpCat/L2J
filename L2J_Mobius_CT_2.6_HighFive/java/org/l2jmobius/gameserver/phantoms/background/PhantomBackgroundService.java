@@ -174,7 +174,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 	private final ConcurrentHashMap<Long, Boolean> _cleanupStores = new ConcurrentHashMap<>();
-	private record NativeTownReturn(int objectId, long epoch, PhantomExecutionAdmission.Stamp execution, long storedAt)
+	record NativeTownReturn(int objectId, long epoch, PhantomExecutionAdmission.Stamp execution, long storedAt)
 	{
 		boolean matches(int expectedObject, long expectedEpoch) { return objectId == expectedObject && epoch == expectedEpoch; }
 	}
@@ -2069,13 +2069,24 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		final var result = control.result;
 		if (result == null || result.status() != OperationStatus.INCONSISTENT || !control.acceptedTownReturn || control.baselinePending) { return; }
-		if (!result.reason().equals("recovery.accepted_store_deadline") && !result.reason().startsWith("recovery.control_deadline:")) { return; }
+		if (!recoveryStoreDeadline(result)) { return; }
 		// A known-success STORE may be followed by delayed release of the same native owner.
 		// Expiry never turns missing, late or foreign evidence into a verified STORE.
 		if (storedTownReturn(_nativeTownReturns.get(control.profileId), entry, control.objectId, control.epoch, control.deadline))
 		{
 			control.result = OperationResult.success("death.recovered_at_town");
 		}
+	}
+
+	private static boolean recoveryStoreDeadline(OperationResult result)
+	{
+		return result.reason().equals("recovery.accepted_store_deadline") || result.reason().startsWith("recovery.control_deadline:");
+	}
+
+	static boolean releasedLateTownStore(NativeTownReturn receipt, boolean ownerReleased, int objectId, long epoch, PhantomExecutionAdmission.Stamp execution, long deadline)
+	{
+		return ownerReleased && objectId > 0 && epoch > 0 && execution != null && deadline > 0 && receipt != null
+			&& receipt.matches(objectId, epoch) && execution.equals(receipt.execution()) && receipt.storedAt() >= deadline;
 	}
 
 	public String firstRecoveryFailure()
@@ -2090,8 +2101,15 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				continue;
 			}
 			if (result.successful() || (result.status() != OperationStatus.INCONSISTENT && !control.acceptedPollExpired)) { continue; }
-			reconcileStoreDeadline(control, materialization == null ? null : materialization.find(control.profileId).orElse(null));
-			if (!control.result.successful())
+			final var entry = materialization == null ? null : materialization.find(control.profileId).orElse(null);
+			reconcileStoreDeadline(control, entry);
+			// STOP may account for an accepted STORE proven after the gameplay deadline.
+			// Keep the original result and reject pending, foreign or still-owned effects.
+			final boolean settledForStop = _state == ServiceState.STOPPING && materialization != null && control.finished.get()
+				&& result.status() == OperationStatus.INCONSISTENT && control.acceptedTownReturn && control.storeRequested
+				&& !control.baselinePending && recoveryStoreDeadline(result)
+				&& releasedLateTownStore(_nativeTownReturns.get(control.profileId), entry == null, control.objectId, control.epoch, control.execution, control.deadline);
+			if (!control.result.successful() && !settledForStop)
 			{
 				return "profile=" + control.profileId + ":object=" + control.objectId + ":epoch=" + control.epoch + ":" + result;
 			}
