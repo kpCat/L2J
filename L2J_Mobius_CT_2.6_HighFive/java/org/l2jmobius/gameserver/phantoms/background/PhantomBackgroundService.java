@@ -190,6 +190,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final boolean acceptedTownReturn;
 		final AtomicBoolean queued = new AtomicBoolean(), finished = new AtomicBoolean();
 		volatile OperationResult result;
+		volatile boolean acceptedPollExpired;
 		int objectId; long epoch; boolean storeRequested, restoreExisting, resumedFromResurrection, baselinePending;
 		PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff;
 		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry, long acceptedDeadline, PhantomExecutionAdmission.Stamp execution, boolean acceptedTownReturn)
@@ -1900,6 +1901,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					if (control.objectId != expectedObject || control.epoch != expectedEpoch || !control.goal.equals(goal)) { return retry("recovery.accepted_control_conflict"); }
 					if (control.result.status() == OperationStatus.INCONSISTENT) { return control.result; }
+					if (control.acceptedPollExpired && !control.result.successful()) { return OperationResult.inconsistent("recovery.accepted_control_unverified:" + control.result.reason()); }
 					_recoveryControls.remove(profileId, control);
 					if (control.result.successful()) { consumeNativeTownReturn(profileId, expectedObject, expectedEpoch); }
 					if (control.result.status() != OperationStatus.REPLAN) { return control.result; }
@@ -1932,6 +1934,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		final long ownDeadline = now + 10_000_000_000L;
 		return acceptedDeadline == 0 ? ownDeadline : Math.min(ownDeadline, acceptedDeadline);
+	}
+
+	/** Keep an expired observer on its accepted control until that control proves STORE. */
+	synchronized boolean retainExpiredAcceptedPoll(long profileId, PhantomGoal goal, int objectId, long epoch, long deadline)
+	{
+		final var control = _recoveryControls.get(profileId);
+		if (control == null || !control.acceptedTownReturn || control.objectId != objectId || control.epoch != epoch
+			|| !control.goal.equals(goal) || control.deadline != deadline || System.nanoTime() < deadline)
+		{
+			return false;
+		}
+		control.acceptedPollExpired = true;
+		return true;
 	}
 
 	private void queueRecovery(RecoveryControl control)
@@ -2059,9 +2074,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		for (var control : _recoveryControls.values())
 		{
 			final var result = control.result;
-			if (result == null || result.status() != OperationStatus.INCONSISTENT) { continue; }
+			if (result == null)
+			{
+				if (control.acceptedPollExpired) { return "profile=" + control.profileId + ":object=" + control.objectId + ":epoch=" + control.epoch + ":recovery.control_pending"; }
+				continue;
+			}
+			if (result.successful() || (result.status() != OperationStatus.INCONSISTENT && !control.acceptedPollExpired)) { continue; }
 			reconcileStoreDeadline(control, materialization == null ? null : materialization.find(control.profileId).orElse(null));
-			if (control.result.status() == OperationStatus.INCONSISTENT)
+			if (!control.result.successful())
 			{
 				return "profile=" + control.profileId + ":object=" + control.objectId + ":epoch=" + control.epoch + ":" + result;
 			}

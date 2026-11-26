@@ -280,8 +280,11 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			}
 			else
 			{
-				// Background owns INCONSISTENT controls and reconciles their exact STORE evidence.
-				if (result == null || result.status() != PhantomBackgroundService.OperationStatus.INCONSISTENT)
+				final boolean acceptedPollRetained = result != null && result.status() == PhantomBackgroundService.OperationStatus.RETRY
+					&& "recovery.control_pending".equals(result.reason()) && death.nativeRecovery().get()
+					&& _background.retainExpiredAcceptedPoll(profileId, goal, death.characterObjectId(), epoch, death.deadline().get());
+				// Background owns these controls and reconciles their exact STORE evidence.
+				if (!acceptedPollRetained && (result == null || result.status() != PhantomBackgroundService.OperationStatus.INCONSISTENT))
 				{
 					_firstFailure.compareAndSet("", "death.control_terminal:profile=" + profileId + ":object=" + death.characterObjectId() + ":epoch=" + epoch
 						+ ":" + result + ":nativeReturned=" + death.nativeRecovery().get() + ":deadlineExpired=" + (System.nanoTime() >= death.deadline().get()) + goalCheck);

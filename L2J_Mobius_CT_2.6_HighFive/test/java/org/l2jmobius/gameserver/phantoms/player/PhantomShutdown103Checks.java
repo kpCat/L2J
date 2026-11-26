@@ -8,11 +8,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
@@ -21,7 +24,9 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetition
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 
@@ -40,6 +45,7 @@ public final class PhantomShutdown103Checks
 		{
 			if (args.length == 1 && args[0].equals("--stop121")) { recoveryFailureDrainsOtherActors(false); return; }
 			if (args.length == 1 && args[0].equals("--stop012")) { recoveryFailureDrainsOtherActors(true); return; }
+			if (args.length == 1 && args[0].equals("--expired-accepted-poll018")) { expiredAcceptedPolls(); return; }
 			if (args.length == 1 && args[0].equals("--materialization-retry012")) { materializationDeadlineCanRecover(false); return; }
 			if (args.length == 1 && args[0].equals("--materialization-service-retry012")) { materializationDeadlineCanRecover(true); return; }
 			queuedCallback(executor);
@@ -183,11 +189,11 @@ public final class PhantomShutdown103Checks
 
 	private record Fixture(PhantomMaterializationService service, List<PhantomMaterializedPlayer> actors, CountDownLatch firstMaterialization) { }
 
-	@SuppressWarnings("unchecked")
-	private static void recoveryFailureDrainsOtherActors(boolean backgroundIncident) throws Exception
+	private record RecoveryFixture(PhantomBackgroundService background, PhantomGoalStateStore goals) { }
+
+	private static RecoveryFixture recoveryFixture(Fixture fixture) throws Exception
 	{
 		if (DatabaseFactory.isInitialized() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121 requires DB-free isolated runtime"); }
-		final var fixture = fixture();
 		final var constructor = PhantomProfileRepository.class.getDeclaredConstructor(); constructor.setAccessible(true);
 		final var repository = constructor.newInstance();
 		final var goals = new PhantomGoalStateStore(repository);
@@ -199,6 +205,16 @@ public final class PhantomShutdown103Checks
 		final var authority = (PhantomBackgroundAuthority) java.lang.reflect.Proxy.newProxyInstance(PhantomBackgroundAuthority.class.getClassLoader(), new Class<?>[] { PhantomBackgroundAuthority.class }, (_, method, arguments) -> { throw new AssertionError("STOP121 unexpected authority: " + method.getName()); });
 		final var signals = (PhantomRelevanceSignalPort) java.lang.reflect.Proxy.newProxyInstance(PhantomRelevanceSignalPort.class.getClassLoader(), new Class<?>[] { PhantomRelevanceSignalPort.class }, (_, method, arguments) -> { throw new AssertionError("STOP121 unexpected signal: " + method.getName()); });
 		final var background = new PhantomBackgroundService(repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transactions, authority, new PhantomBackgroundCompetitionRegistry(), signals, fixture::service);
+		return new RecoveryFixture(background, goals);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void recoveryFailureDrainsOtherActors(boolean backgroundIncident) throws Exception
+	{
+		final var fixture = fixture();
+		final var recovery = recoveryFixture(fixture);
+		final var background = recovery.background();
+		final var goals = recovery.goals();
 		final var death = new PhantomOrdinaryDeathRecovery(fixture.service(), goals, background);
 		final var failure = (AtomicReference<String>) field(PhantomOrdinaryDeathRecovery.class, "_firstFailure").get(death);
 		final var accepted = (AtomicInteger) field(PhantomOrdinaryDeathRecovery.class, "_acceptedReconciliations").get(death);
@@ -249,6 +265,82 @@ public final class PhantomShutdown103Checks
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
 			while (fixture.service().requestShutdown(deadline).state() == PhantomMaterializationService.ServiceState.STOPPING && System.nanoTime() < deadline) { Thread.sleep(1); }
 			if (DatabaseFactory.isInitialized() || !fixture.service().snapshot().materializations().isEmpty()) { throw new AssertionError("STOP121_FIXTURE_CLEANUP_FAILED"); }
+		}
+	}
+
+	private static void expiredAcceptedPolls() throws Exception
+	{
+		final var success = PhantomBackgroundService.OperationResult.success("death.recovered_at_town");
+		expiredAcceptedPoll(7, success);
+		expiredAcceptedPoll(8, success);
+		expiredAcceptedPoll(7, PhantomBackgroundService.OperationResult.replan("recovery.control_goal_changed"));
+		System.out.println("STOP018_EXPIRED_ACCEPTED_POLL_PASS exactSuccess=true foreignBlocked=true unverifiedBlocked=true DB0 World0");
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void expiredAcceptedPoll(long controlEpoch, PhantomBackgroundService.OperationResult completion) throws Exception
+	{
+		final long profileId = 29L;
+		final int objectId = 268486148;
+		final long expectedEpoch = 7L;
+		final var fixture = fixture();
+		final var recovery = recoveryFixture(fixture);
+		final var background = recovery.background();
+		final var death = new PhantomOrdinaryDeathRecovery(fixture.service(), recovery.goals(), background);
+		final var goal = new PhantomGoal(29, "recovery.ordinary", PhantomGoalStatus.ACTIVE, null, null, 0, 0, null, List.of(), null, "recovery.test", 1, 0, 0, 0, Map.of(), "test.accepted_poll", 1);
+		final long deadline = System.nanoTime() - 1;
+		final var controlType = Class.forName(PhantomBackgroundService.class.getName() + "$RecoveryControl");
+		final var controlConstructor = controlType.getDeclaredConstructors()[0];
+		controlConstructor.setAccessible(true);
+		final Object control = controlConstructor.newInstance(profileId, goal, null, null, null, deadline, null, true);
+		field(controlType, "objectId").setInt(control, objectId);
+		field(controlType, "epoch").setLong(control, controlEpoch);
+		field(controlType, "storeRequested").setBoolean(control, true);
+		((Map<Long, Object>) field(PhantomBackgroundService.class, "_recoveryControls").get(background)).put(profileId, control);
+		final var operations = (AtomicInteger) field(PhantomBackgroundService.class, "_currentOperations").get(background);
+		operations.set(1);
+		final var owner = (PlayerNativeWork.Owner) java.lang.reflect.Proxy.newProxyInstance(PlayerNativeWork.Owner.class.getClassLoader(), new Class<?>[] { PlayerNativeWork.Owner.class },
+			(_, method, _) -> switch (method.getName())
+			{
+				case "epoch" -> expectedEpoch;
+				case "nativeObservationHealthy" -> false;
+				default -> throw new AssertionError("Unexpected fixture native call: " + method.getName());
+			});
+		final var observationType = Class.forName(PhantomOrdinaryDeathRecovery.class.getName() + "$NativeDeath");
+		final var observationConstructor = observationType.getDeclaredConstructors()[0];
+		observationConstructor.setAccessible(true);
+		final Object observation = observationConstructor.newInstance(null, owner, null);
+		final var deathType = Class.forName(PhantomOrdinaryDeathRecovery.class.getName() + "$Death");
+		final var deathConstructor = deathType.getDeclaredConstructors()[0];
+		deathConstructor.setAccessible(true);
+		final Object pending = deathConstructor.newInstance(objectId, deadline, new AtomicBoolean(true), new AtomicBoolean(true), observation,
+			new AtomicLong(deadline), new AtomicReference<>(goal), new AtomicReference<>("death.returned"));
+		((Map<Long, Object>) field(PhantomOrdinaryDeathRecovery.class, "_deaths").get(death)).put(profileId, pending);
+		((AtomicInteger) field(PhantomOrdinaryDeathRecovery.class, "_acceptedReconciliations").get(death)).set(1);
+		final var reconcile = PhantomOrdinaryDeathRecovery.class.getDeclaredMethod("reconcile", long.class, deathType);
+		reconcile.setAccessible(true);
+		reconcile.invoke(death, profileId, pending);
+		final String pendingFailure = background.firstRecoveryFailure();
+		final var finish = PhantomBackgroundService.class.getDeclaredMethod("finishRecovery", controlType, PhantomBackgroundService.OperationResult.class);
+		finish.setAccessible(true);
+		finish.invoke(background, control, completion);
+		if (controlEpoch != expectedEpoch)
+		{
+			if (death.snapshot().firstFailure().isEmpty()) { throw new AssertionError("018 foreign successful control released the ordinary STOP guard"); }
+		}
+		else
+		{
+			if (!death.snapshot().firstFailure().isEmpty()) { throw new AssertionError("018 exact accepted pending poll remained sticky: " + death.snapshot().firstFailure()); }
+			if (pendingFailure.isEmpty() || operations.get() != 0 || !death.drained()) { throw new AssertionError("018 accepted control was not retained through completion"); }
+			if (completion.successful() != background.firstRecoveryFailure().isEmpty()) { throw new AssertionError("018 accepted control settled without exact successful completion"); }
+			if (!completion.successful())
+			{
+				final var repeated = background.recoverAcceptedForStop(profileId, goal, objectId, expectedEpoch, deadline);
+				if (repeated.status() != PhantomBackgroundService.OperationStatus.INCONSISTENT || background.firstRecoveryFailure().isEmpty())
+				{
+					throw new AssertionError("018 repeated request discarded the unverified accepted control");
+				}
+			}
 		}
 	}
 
