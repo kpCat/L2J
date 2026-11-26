@@ -2,7 +2,7 @@
 
 26 ноября 2026, Europe/Chisinau.
 
-**ПОСТАВЛЕНО / LIVE_PARTIAL.** Bartz r09 содержит исправление AutoUse и обработку подтверждённого recovery после истечения ожидания. r06 завершил штатный STOP после адресной проверки квитанции. Повторные нативные циклы фарма у трёх ordinary подтверждены на r06. Цели 5000 READY и 128 активных ordinary остаются открытыми.
+**ПОСТАВЛЕНО / LIVE_PARTIAL.** Bartz работает на r11. Исторические idle-минуты идут быстрее при той же защите принятых эффектов. Штатный STOP r09 и раздельная SQL-проверка подтверждены. Живые повторные циклы фарма наблюдались на r06, r09 и r11. Цели 5000 READY и 128 активных ordinary остаются открытыми.
 
 ## Исходный Bartz
 
@@ -252,3 +252,42 @@ Scouts World берётся из census, а движение и отрезки �
 - Mojibake-маркеры в изменённых файлах проверены отдельно по 18 путям.
 - Escaped Cyrillic проверен отдельным поиском по 18 путям.
 - Из собственного scratch `D:\Temp\Codex\PhantomWorld\PHANTOM-LIVING-POPULATION-RECOVERY-018\r09` удалены 10 253 файла, 180 778 474 байта. Из `r10` удалены два файла, 2 967 630 байт. Местоположение, маркер, reparse points, отсутствие процессов и writers проверены. Два диагностических JAR, 5329 и 4333 байта, удалены из rollback-каталога после выхода GS 7632. r09 JAR/BUILD_INFO сохранены отдельно, всего 12 692 240 байт. Блокеров cleanup нет.
+
+## Подготовка исторических окон r11
+
+- Начальные local и origin HEAD совпали с `7d2410f85a08453fbc242db245be9ab69e0baced`. Baseline сохранился в ancestry, будущий Java scope был чист. В 22:14:18–19 на r09 было 2159 READY, 30 ordinary с открытым action admission, 32 scouts и 62 занятых слота. Из 30 native ordinary 23 держали курсор в пределах минуты, а у 638 других профилей с завершённым initial catch-up курсоры отставали более чем на 15 минут.
+- По штатным кодекам `background.catchup` и `background.state` у profiles 11, 27 и 31 подтверждены неизменные RUNNING курсоры, старая версия знаний, прежняя identity, READY lineage и завершившиеся отказом supply intents. Profile 7 отдельно остаётся `background.state=INCONSISTENT`. В 75-секундной JFR текущего GS новых `AdmissionRejectedException` не было. Сохранённое `materialize_catchup_fenced` само по себе не раскрывает причину конкретного материалационного отказа.
+- В 22:19 на SQL33331 среди offscreen RUNNING claims было 1470 `idle.background.history` и 182 `farm.background`. У 1143 RUNNING claims был тег версии знаний наблюдаемых текущих native actors. Среди других, уже завершивших initial catch-up, только 52 отставали на 60 минут или меньше, у 462 отставание было 61–180 минут. Узким местом оставалось выполнение historical intervals, а физические слоты были доступны.
+- Для canonical idle с точной целью и якорем r11 объединяет соседние минуты в действующей транзакции. Границы задают бюджет вызова, конец исходного окна и ближайшая штатная минута перепланирования. Итоговые cursor, interval ordinal и digest последней минуты совпадают с последовательной обработкой. Транзакция повторно проверяет locked catch-up, owner/goal, отсутствие pending native intent и STORE. Обычный farm, мёртвые актёры, виртуальный долг маршрута и принятые эффекты остаются на действующих путях. Схема и формат квитанций прежние.
+- `PhantomLivingWorld112Checks --idle-transaction018` дал RED на r09 с `Invalid historical Background catchup mutation`, exit 1. На r11 он прошёл вместе с обычным runner и режимами `--paid-travel121`, `--recovery121`, `--idle-handoff121`. `PhantomShutdown103Checks --expired-accepted-poll018` на упакованном r11 прошёл. JDK 25 / Ant `jar compile-tests` exit 0, owner rules 38/38.
+- Существенный риск записи курсора проверен отдельно, в собственном SQL TEST на 127.0.0.1:33349 с datadir внутри r11. `PhantomHistoricalColdResume011Test seed-idle018 / resume-idle018` на упакованном JAR подтвердил шесть обработанных минут одной записью, отказ при активном supply intent или чужой lease и точный идемпотентный replay. EXP, SP, позиция и инвентарь в fixture сохранились. Первое выполнение остановилось до JDBC из-за формата тестового INI, тот же datadir переиспользован после исправления. В fixture был отдельный XML warning для необязательного `DynamicExpRates.xml`. Кодеки r09 затем прочитали COMPLETE, cursor 1008, ordinal 8 и прежнюю canonical identity. Весь TEST завершён штатным `mariadb-admin shutdown`, GS и LS для TEST не запускались.
+- В последнем полном срезе r09 перед сменой JAR, 22:31:26–30, было 2205 READY, 47 ordinary и 30 scouts при ротации. В 38 из 47 native строк курсор был в пределах минуты, у 640 других завершивших initial catch-up задержка всё ещё превышала 15 минут. Ordinary 14, object 268485730, epoch 333114424553700, показал девять damage, пять kills и совпавшие kill/reward/settlement для `268483766/0/2`, четыре farm cycles, +2253 EXP и +100 SP. Scouts достигли 3853 завершённых отрезков и 3339 новых подтверждений, наблюдались три штатных pressure samples.
+- В 22:33:55 начался штатный STOP GS 11956, `RequestShutdown` exit 0. Старый GS вышел. Зафиксировано `33331 / online=2: 0 / background.owned-store: 0 / связанных ordinary: 2234`. Перед STOP людей онлайн не было. Отдельных восстановительных вмешательств для r09 не потребовалось.
+- Production commit `b720f114d5bf4190a451858bc7873717504d9d6b`, r11 GameServer SHA-256 `A5CFBE2F7F6C1CD0FAB9206D9D3129B5FD451EC9ACB84F5E6359D2C63978B0A6`, BUILD_INFO SHA-256 `518A8825FA73D07ECBDEEA0AE64AB0A7AEB8A848CFE469C92D608113C3CCB270`. Пара r11 сохранена в `D:\Backups\PhantomWorld\PHANTOM-LIVING-POPULATION-RECOVERY-018\r11\candidate`. Для точного rollback используется существующая проверенная пара r09 по пути `r09\candidate` этого же корня. Хеши и порядок восстановления в `r11\ROLLBACK_SHA256.json` и `r11\RESTORE.txt`.
+- `START.cmd` exit 0, r11 GS 25256 стартовал в 22:34:45 и зарегистрировался как Bartz в 22:35:41. Оба окна Mobius видимы в Windows session 1. GS7777, прежний LS 20168 на 2106/9014 и прежний SQL 28664 на 33331 подтверждены. Max heap 12 288 MiB. Хеши обоих JAR, BUILD_INFO, `game/java.cfg` и двух Phantom INI проверены.
+
+В 22:36:52–54 r11 показывал 2224 READY, 29 ordinary с action admission и 32 scouts, 25 из них двигались. Из 28 `online=2` в чуть более раннем SQL срезе 24 были в пределах минуты. У других с завершённым initial catch-up 18 курсоров отставали на 2–15 минут против двух в последнем срезе r09. Ordinary 14 в новом epoch 333681000046500 получил пять damage, три kill/reward/settlement за +1332 EXP и +60 SP. Последняя совпавшая цель `268483767/0/1`, завершены два farm cycles и наблюдалась стадия REGEN.
+
+| Время | READY | Ordinary World / action | Scouts World / moving | Native в пределах минуты |
+|---|---:|---:|---:|---:|
+| 22:36:52–54 | 2224 | 29 / 29 | 32 / 25 | 24 / 28 |
+| 22:38:34–37 | 2231 | 33 / 33 | 31 / 28 | 28 / 33 |
+| 22:40:14–15 | 2238 | 36 / 36 | 32 / 27 | 30 / 36 |
+| 22:41:48–49 | 2243 | 37 / 37 | 30 / 21 | 33 / 37 |
+
+В том же epoch ordinary 14 к 22:38:37 продолжил фарм. Семь native damage, четыре совпавших kill/reward/settlement, три полных farm cycles, +1755 EXP и +80 SP. Последняя цель `268483766/0/2` совпала во всех трёх квитанциях, переполнения не было.
+
+У 36 профилей из SQL-выборки 640 idle roots совпал request ID, а приращение курсора совпало с приращением interval ordinal и превысило изменение rowVersion. Вместе эти 36 профилей обработали 144 исторические минуты за 72 обновления claim. Для profile 182 курсор продвинулся `29920711 → 29920715` при двух обновлениях. Это подтверждает объединение минут в живом r11. Рост World census приходится измерять отдельно.
+
+При повторном чтении той же выборки условие выполнялось у 153 профилей. У них накопилось 534 минуты за 307 обновлений. Это сравнение точных request ID и версий, а не оценка пропускной способности всего сервера.
+
+В срезе 22:41:49 SQL33331 подтвердил те же 1745 исходных ordinary, 522 новых связанных, два shell и байтовый SHA-256 прежних 24 INCONSISTENT. Между 22:36:53 и 22:41:49 прибавилось 19 READY, около 3,9 в минуту. В исходной когорте сохранено +6699 EXP и +333 SP за тот же интервал. У новых уровень достиг 4. Эти агрегаты включают offscreen. Одновременное присутствие пока составляет 37 ordinary при cap 160 и 30–32 scouts по срезам, с действующей защитой `GAMEPLAY_LOAD_HIGH`. Из оставшихся 2230 профилей ecology initial catch-up закончен у 655, у 638 из них задержка больше 15 минут. P1 и P2 остаются открытыми.
+
+В конце окна heap used 4276 MiB при max 12 288 MiB. В журнале r11 по состоянию на этот срез нет совпадений по AutoUse NPE, `STOP_BLOCKED` или `COMMIT_OUTCOME_UNKNOWN`. За первые семь минут работы scouts завершили 845 нативных отрезков и сохранили 682 новых подтверждения маршрутов.
+
+## Scope и уборка r11
+
+- В incremental scope пять production Java-файлов, два существующих focused test-файла и этот отчёт. Cumulative scope 018 от baseline составляет 24 пути. Команды `git symbolic-ref --short HEAD`, `git rev-parse HEAD`, `git merge-base --is-ancestor <baseline> HEAD`, `git --no-optional-locks status --short -- <точные пути>`, `git archive --format=tar --output=<scratch> <base> -- <tracked paths>` и адресные `git diff` применены в пределах текущей задачи. Проверка `git -c core.whitespace=cr-at-eol diff [--cached] --check -- <scope>`. Запись `git add -- <пути>`, `git commit --only -m <сообщение> -- <пути>` и обычный `git push origin HEAD:refs/heads/feature/phantom-world`. Свежий remote сверяется через `git ls-remote --exit-code origin refs/heads/feature/phantom-world`.
+- Mojibake-маркеры в изменённых файлах проверены отдельным поиском по 24 путям.
+- Escaped Cyrillic проверен отдельным поиском по 24 путям.
+- Из `D:\Temp\Codex\PhantomWorld\PHANTOM-LIVING-POPULATION-RECOVERY-018\r11` удалены 10 619 файлов, 341 947 915 байт. Включены TEST datadir, завершённая JFR, shadow и результаты промежуточных проверок. Путь, marker, отсутствие reparse points, процессы, writers и освобождённый порт 33349 проверены. Сохранены проверенный r11 JAR/BUILD_INFO, 12 695 219 байт, и адресный манифест отката. MAIN3308 и 019 остались за пределами задачи.
