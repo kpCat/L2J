@@ -1867,6 +1867,15 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		synchronized (_monitor) { return _readyIds.tailSet(Math.max(0, after), false).stream().limit(Math.max(0, Math.min(16, limit))).toList(); }
 	}
 
+	/** Bounded current quota for renewing the existing ambient scheduler signals. */
+	public List<Long> admittedActiveProfileIds()
+	{
+		synchronized (_monitor)
+		{
+			return _lifecycle == LifecycleState.RUNNING && ecologyCurrent(_admissionEcology) ? _admittedIds.stream().sorted().toList() : List.of();
+		}
+	}
+
 	public PhantomPresenceRegistry presence()
 	{
 		return _presence;

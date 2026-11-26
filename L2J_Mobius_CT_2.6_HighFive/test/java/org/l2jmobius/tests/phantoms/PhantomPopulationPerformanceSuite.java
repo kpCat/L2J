@@ -56,6 +56,11 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("population018-ambient"))
+		{
+			registerCoordinationAdmission(registry);
+			return;
+		}
 		registry.add("01-one-hundred-thousand-real-manager-pulses-with-zero-db-writes", this::testControlPulses);
 		registry.add("02-ten-thousand-ready-dirty-admission-and-daily-rotation", this::testEvaluationAndAdmission);
 		registry.add("03-one-hundred-thousand-entry-memory-and-worker-contract", this::testScaleAndNoWorkerOwnership);
@@ -104,6 +109,11 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomSystem.executionGroupBinding(group, 2, idle.withStatus(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.FAILED)), "A terminal intent inherited Group execution.");
 			PhantomAssertions.assertFalse(PhantomSystem.executionGroupBinding(group, 3, idle), "A foreign member inherited the group's execution reservation.");
 		});
+		registerCoordinationAdmission(registry);
+	}
+
+	private static void registerCoordinationAdmission(PhantomTestRegistry registry)
+	{
 		registry.add("12-five-thousand-admission-ambient-target-and-offline-census", context ->
 		{
 			final long started = System.nanoTime(); final var catalog = PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"),ZoneOffset.UTC);
@@ -119,9 +129,11 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 			try
 			{
 				drain(manager,512); final var admitted=new java.util.HashSet<Long>(); final var slots=new java.util.HashSet<Integer>();
-				for(long id=1;id<=5000;id++)
+				for (long id : manager.admittedActiveProfileIds())
 				{
-					final var fact=manager.admissionProfile(id).orElseThrow(); if(!fact.admitted()){continue;} admitted.add(id);
+					final var fact = manager.admissionProfile(id).orElseThrow();
+					PhantomAssertions.assertTrue(fact.admitted(), "Ambient renewal enumerated a profile without current admission.");
+					admitted.add(id);
 					final var demand=org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(id,slots.size(),128,false,1000);
 					PhantomAssertions.assertTrue(demand!=null && demand.ordinaryAdmission(fact.calendarOnline(),fact.admitted(),1000),"Admitted profile could not contribute to the physical target without a human.");
 					final var signal = demand.ambientSignal(fact.calendarOnline(), fact.admitted(), id, 1000);
@@ -132,6 +144,7 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 					slots.add(Math.toIntExact(100000+id)); // The existing physical-admission boundary is modeled; no native Player is created.
 				}
 				PhantomAssertions.assertEquals(128,slots.size(),"Ambient demand remained a ceiling rather than filling the admitted synthetic target.");
+				PhantomAssertions.assertTrue(admitted.stream().anyMatch(id -> id > 160), "Ambient renewal must reach admitted profiles beyond one signal lifetime of discovery.");
 				PhantomAssertions.assertEquals(null,org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(5001,slots.size(),128,false,1000),"Ambient target exceeded its physical quota.");
 				final var merchants=java.util.stream.IntStream.rangeClosed(1,250).map(id->200000+id).boxed().collect(java.util.stream.Collectors.toSet());
 				final var humans=new java.util.HashSet<>(Set.of(300001,200001)); final var world=new java.util.HashSet<>(slots); world.addAll(merchants); world.addAll(humans); world.add(400001); merchants.add(slots.iterator().next());
@@ -141,6 +154,7 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 				clock.set(Instant.parse("2026-07-28T20:00:00Z"));manager.onPulse();drain(manager,512);final var rotated=new java.util.HashSet<Long>();
 				for(long id=1;id<=5000;id++){if(manager.admissionProfile(id).orElseThrow().admitted()){rotated.add(id);}}
 				PhantomAssertions.assertTrue(rotated.size()==128 && !rotated.equals(admitted),"Daily rotation lost quota or permanently monopolized the initial slice.");
+				PhantomAssertions.assertEquals(rotated, Set.copyOf(manager.admittedActiveProfileIds()), "Ambient renewal retained the previous day's assignments.");
 				PhantomAssertions.assertEquals(0L,store.writes(),"Synthetic schedule/density checks wrote profile persistence.");
 				context.record("task130.admission5000With250OfflineMillis",(System.nanoTime()-started)/1_000_000);context.record("task130.syntheticManaged",128);context.record("task130.syntheticOffline",250);
 			}

@@ -4224,6 +4224,11 @@ public final class PhantomSystem
 
 	private org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand currentPhysicalDemand(long profileId)
 	{
+		return currentPhysicalDemand(profileId, this::ordinaryOccupiedPhysicalSlots);
+	}
+
+	private org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand currentPhysicalDemand(long profileId, java.util.function.IntSupplier occupiedSlots)
+	{
 		if (_populationManager == null || _materializationService == null) { return null; }
 		final var admission = _populationManager.admissionProfile(profileId).orElse(null);
 		if (admission == null || !admission.calendarOnline()
@@ -4249,18 +4254,16 @@ public final class PhantomSystem
 		// Ambient preparation competes for the ordinary ACTIVE target. Other calendar states
 		// can still use their explicit human, accepted journey or historical context demand.
 		if (admission.desiredState() != PhantomActivityState.ACTIVE) { return null; }
-		final int occupied = ordinaryOccupiedPhysicalSlots(), target = physicalTarget();
+		final int occupied = occupiedSlots.getAsInt(), target = physicalTarget();
 		return org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(profileId,occupied,target,
 			occupied >= target && _materializationService.find(profileId).map(entry -> entry.worldPresent()).orElse(false),now);
 	}
 
-	/** The calendar stays Background. A bounded ambient page requests ACTIVE through the ordinary reconcile gate. */
+	/** Discovery wakes execution recovery, while the current quota renews its native demand. */
 	private void publishAmbientTargets(List<Long> page)
 	{
 		final int target = physicalTarget();
-		if (target == 0 || page.isEmpty()) { return; }
-		int remaining = target - ordinaryOccupiedPhysicalSlots();
-		final long sequence = ++_ambientSignalSequence;
+		if (target == 0) { return; }
 		for (long id : page)
 		{
 			if (!testRosterAllows(id) || physicalScoutReserved(id)) { continue; }
@@ -4269,10 +4272,19 @@ public final class PhantomSystem
 			// Ecology-fenced profiles can be SLEEPING in the scheduler. Let their owner reconcile
 			// accepted work before requiring a work tick or granting physical admission.
 			_executionControl.watch(id);
-			if (!admission.admitted()) { continue; }
+		}
+		final int occupied = ordinaryOccupiedPhysicalSlots();
+		final java.util.function.IntSupplier pulseOccupancy = () -> occupied;
+		int remaining = target - occupied;
+		final long sequence = ++_ambientSignalSequence;
+		for (long id : _populationManager.admittedActiveProfileIds())
+		{
+			if (!testRosterAllows(id) || physicalScoutReserved(id)) { continue; }
+			final var admission = _populationManager.admissionProfile(id).orElse(null);
+			if (admission == null || !admission.calendarOnline() || !admission.admitted()) { continue; }
 			final var lifetime = _materializationService.find(id).orElse(null);
 			if (lifetime == null ? remaining <= 0 : !lifetime.worldPresent() || !lifetime.actionAdmissionOpen()) { continue; }
-			final var demand = currentPhysicalDemand(id);
+			final var demand = currentPhysicalDemand(id, pulseOccupancy);
 			final var signal = demand == null ? null : demand.ambientSignal(admission.calendarOnline(), admission.admitted(), sequence, System.currentTimeMillis());
 			if (signal != null)
 			{
