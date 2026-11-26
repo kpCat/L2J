@@ -2,7 +2,7 @@
 
 26 ноября 2026, Europe/Chisinau.
 
-**CODE_READY / DEPLOYED / LIVE_PARTIAL.** Bartz продолжает пополнение ordinary. На r03 живой census подтвердил 32 dedicated scouts в нескольких срезах. Цели 5000 READY и 128 ordinary с открытым допуском к действиям остаются открытыми.
+**CODE_READY / DEPLOYED / LIVE_PARTIAL.** Bartz продолжает пополнение ordinary. На r05 живой census подтвердил более 30 ordinary с открытым допуском к действиям и неоднократно 32 dedicated scouts. Цели 5000 READY и 128 ordinary остаются открытыми.
 
 ## Исходный Bartz
 
@@ -115,3 +115,61 @@ Scouts World берётся из census, а движение и отрезки �
 - Escaped Cyrillic проверен отдельным поиском по всем 12 изменённым путям. Совпадений нет.
 - Scratch `D:\Temp\Codex\PhantomWorld\PHANTOM-LIVING-POPULATION-RECOVERY-018\r02` удалён после завершения build, старого GS и обеих JFR-записей. Проверены маркер, канонический путь, reparse points, процессы и эксклюзивное открытие файлов. Удалено 10 299 файлов, 186 697 015 байт. Остаток r01 объёмом 9020 байт также удалён. Собственных scratch-файлов, JFR и TEST процессов 018 после уборки нет.
 - На точках отката r01–r03 сохранено по четыре файла. Суммарный объём 38 068 277 байт. SHA-256 трёх пар JAR/BUILD_INFO повторно сверены. Возврат к r02 использует SHA-256 `FB2DD7F26B861BC85D3D64F987E1E9C48C21A8693F28F4C6F2950AB969689A86` и `82B3735ECB5F9427B50148059864A42B9C079A6DE3CBD36AE4185EDE3E82B98F` из r03. В Bartz и на диске сохраняются результаты native STORE и learned. Тестовый SQL не запускался. MAIN3308 и 019 за пределами этой поставки.
+
+## Продолжение r04
+
+- Свежие локальный и удалённый HEAD перед работой совпали с `0466464eef23bb620bf28f9d38db460b1e0ee366`. Baseline остался предком, исходные файлы чисты в проверенном scope. У профилей 11, 27 и 31 на r03 изменились row versions исторического claim. К 20:56:44 их readiness показывал `ecology.commit_pending`. На том же срезе было 1957 READY, 17 ordinary World с допуском, 32 scouts, 30 движущихся scouts и 2367 новых подтверждений. В SQL по исходным 1745 ID initial catch-up закончен у 651, курсоры двух актуальны до минуты, трёх в пределах одной минуты, 83 в пределах 15 минут, 1346 отстают минимум на час.
+- Тот же r03 срез подтвердил нативную награду у пятого ordinary с начала 018. Профиль 107, object 268498681, epoch 326549008245500, цель `268478068/0/1` совпала для kill, reward и settlement, +87 EXP/+10 SP. У ранее зафиксированного 132 появился `cycle=1` в прежнем epoch. Наблюдение сделано без команды игрового действия.
+- В `PhantomPopulationEcologyService` потеря и выдача подготовки и новый requested minute меняют общую ревизию только при реальной смене scheduling permission. Ревизия публикуется до этой смены под прежним монитором. Локальный readiness deadline, восемь мест preparation, durable cursor, accepted effects и STORE проверяются прежними механизмами. Неэффективная подготовка профиля с большим отставанием больше не обнуляет снимок соседа.
+- Новый focused test в `PhantomPopulationEcologyGoal033Suite` на r03 дал 3/4, exit 1, с точной ошибкой «Preparation of a fenced profile invalidated current ordinary admission». С r04 тест дал 4/4, отдельно `continuity113` 5/5 и `stop075` 3/3, все exit 0. JDK25/Ant `jar compile-tests` и owner profile 38/38 прошли в компактном shadow. Production commit `ae88c13cfacff6090b0d39b86dad9494a89906fe`, GameServer SHA-256 `70FEB9E78AAE60F9787E92FB6C209918C4CE39CD0C5B1BADD4F038B8F38AFDF9`, BUILD_INFO `CADA17C850BBF7E6F0D54E9ECFC9F53B057E6D9459085CC5F7A267DC416F41F3`.
+- Перед заменой GS 12112 штатно завершил работу. SQL33331 подтвердил 0 `online=2`, 0 `background.owned-store` и 1986 связанных ordinary. Изменены только `dist/libs/GameServer.jar` и `dist/BUILD_INFO.json`. `START.cmd` и JDBC preflight завершились exit 0. GS 6680 запущен в 20:58:41. Сохранены Mobius GS/LS, LS PID 20168 и SQL Bartz PID 28664. Проверенная пара r03 сохранена в `D:\Backups\PhantomWorld\PHANTOM-LIVING-POPULATION-RECOVERY-018\r04`.
+
+| Время | READY | Eligible / admitted | Ordinary World / action admission | Scouts World / moving |
+|---|---:|---:|---:|---:|
+| 21:00:38–39 | 1977 | 32 / 32 | 5 / 5 | 32 / 29 |
+| 21:01:11 | — | 1 / 1 | 8 / 8 | 32 / 27 |
+| 21:04:22–23 | 1992 | 2 / 2 | 13 / 13 | 32 / 26 |
+| 21:06:12–15 | 2002 | 0 / 0 | 13 / 13 | 32 / 25 |
+
+- В первом срезе после старта осталось 24 прежних INCONSISTENT с тем же SHA-256 и 0 `background.owned-store`. У исходной когорты было 1 705 300 EXP и 129 885 SP. Игроков людей не наблюдалось, 200 лавок учитывались отдельно. Во втором срезе актуален до минуты один исходный календарный курсор, в пределах минуты 35. Короткий стартовый всплеск eligible не закрывает P2.
+- С 21:00:39 до 21:06:12 прибавилось 25 READY. В 21:04:20 у 655 исходных профилей закончен initial catch-up, у двух курсор на текущей минуте. Прирост EXP/SP исходной когорты в окне r04 составил 3930/370. Scouts завершили 864 нативных отрезка и записали 705 новых подтверждений. Старый карантин не изменился, `background.owned-store` в заключительном срезе равнялся 0.
+- Отдельный обнаруженный предел относится к восстановлению физических слотов уже допущенных ordinary. `publishAmbientTargets` получает по 16 READY раз в секунду, а `PhantomPhysicalDemand.ambientTarget` выпускает ACTIVE на 10 секунд. При 2000 профилей полная ротация занимает не менее 125 секунд. `population.schedule` отправляет BACKGROUND для допущенного ACTIVE, поэтому сама календарная публикация не продляет ambient ACTIVE. Этот разрыв нужно проверять отдельно от реального отставания historical cursor.
+
+## Продолжение r05
+
+- `PhantomPopulationManager.admittedActiveProfileIds` выдаёт текущую bounded квоту из прежнего планирования. После STOP или при устаревшем ecology snapshot список пуст. `PhantomSystem.publishAmbientTargets` возобновляет сигналы по этой квоте на каждой прежней секунде. Страница из 16 READY продолжает отдельно открывать recovery владельца. Физический admission повторно проверяет текущий календарь, ecology, Party, фактический World и права owner. Срок сигнала 10 секунд, пределы 128/160/32, heap и поведение STORE сохранены.
+- Синтетическая проверка существующего 5000-профильного fixture использовала тот же источник ID, что живой publisher. Negative control отбирал допущенных из прежней страницы 16 READY. Получилось 0 из ожидаемых 128, exit 1. Итоговый `population018-ambient` дал 1/1, включая смену календарного дня и исключение offline shops из capacity. `population018-admission` 4/4, `population-throughput` 6/6 и `PhantomOrdinaryFarmAdmissionChecks` прошли DB-free. JDK25/Ant `jar compile-tests` exit 0 в повторно использованном r04 shadow.
+- Production commit `42ba79dede598163dee8bc81eab5c3438975f308`. SHA-256 новой пары GameServer/BUILD_INFO `93BDBC5F70D13490E7973A207F33BDEE9FCC81CBFFADE7483A73930F2DD23F86` и `08C5F4B6EF6D0848B89089B217F5C2884524A566A7A09EF87B0FB116F065EEA2`. Адресный откат r05 к r04 лежит в `D:\Backups\PhantomWorld\PHANTOM-LIVING-POPULATION-RECOVERY-018\r05`.
+- GS 6680 завершил штатный STOP, request exit 0. SQL readback на 33331 дал 0 `online=2`, 0 `background.owned-store` и 2029 связанных ordinary. JDBC preflight и `START.cmd` exit 0. GS 18676 запущен в 21:07:38, владелец и слушатель 7777 подтверждены. LS 20168 сохранил 2106 и 9014, MariaDB PID 28664 держит 127.0.0.1:33331. Оба окна Mobius видимы. SHA-256 LoginServer, `game/java.cfg`, `PhantomPlayers.ini` и `PhantomGeoTrainer.ini` совпали с r03. На r05 JVM подтверждает 12 288 MiB max heap, 5022 MiB used в срезе 21:10:44.
+
+| Время | READY | Eligible / admitted | Ordinary World / action admission | Scouts World / moving | Отрезки scouts / подтверждения |
+|---|---:|---:|---:|---:|---:|
+| 21:10:04–05 | 2005 | 14 / 14 | 8 / 8 | 19 / 11 | 15 / 0 |
+| 21:11:10 | — | 0 / 0 | 31 / 31 | 32 / 26 | 154 / 37 |
+| 21:11:53 | — | 2 / 2 | 33 / 33 | 32 / 25 | 254 / 37 |
+| 21:13:26–29 | 2020 | 1 / 1 | 34 / 34 | 31 / 24 | 472 / 286 |
+| 21:15:10 | — | 1 / 1 | 34 / 34 | 32 / 29 | 682 / 532 |
+| 21:16:56 | 2035 | 4 / 4 | 42 / 42 | 32 / 24 | 948 / 798 |
+| 21:18:10 | — | 1 / 1 | 44 / 44 | 31 / 22 | 1125 / 798 |
+| 21:20:26 | 2051 | 2 / 2 | 45 / 45 | 31 / 23 | 1434 / 1278 |
+
+В r05 уже в течение второй сопоставимой минуты 31 ordinary открыли native action admission, больше любого среза r04. Это полезный результат изменения способа выдачи сигналов. Окна разных запусков имеют разные календарные границы и состояния history.
+
+В 21:11:53 у ACTIVE профилей 11 и 27 наблюдался `ecology.preparation_capacity`, у BACKGROUND профиля 31 — `catchup.recovery.materialize_catchup_fenced`. У 7 сохранялся `catchup.renewal.background_state_invalid`. Так как физическая occupancy составляла 65 при cap 160, доступ к preparation и восстановление исторического окна остаются наблюдаемыми границами до расходования физических слотов.
+
+В 21:13:47 SQL read-only показал ещё один конкретный предел. Из 34 ordinary в `online=2` у всех завершён initial catch-up, но только один курсор в пределах текущей минуты, 31 отстаёт на 2–15 минут, два — более чем на 15 минут. В runtime live calendar upkeep попадает в общий `_due` вместе с более дорогой исторической работой. Сохранённый хвост отстаёт даже после приёма реального актёра. Из остальных 2012 сохранённых ecology profiles initial catch-up завершён у 626, курсор в пределах минуты у одного. Обе выборки помогают планировать адресную проверку обслуживания native-хвоста без пропуска durable интервалов.
+
+В повторном срезе 21:16:57 из 42 `online=2` у восьми курсор в пределах минуты, у 31 отставание 2–15 минут, у троих более 15 минут. Один краткий `jcmd Thread.print` зафиксировал worker в `drainBatch → processRequested → advanceRequest → PhantomHistoricalBackgroundService.advance → acquisitionSnapshot`. У ordinary 15 и 114 зафиксировано движение в своих r05 epoch. Доказательства повторных native-наград этой итерации остаются ограничены короткой выборкой, ранее подтверждённые receipts не заменяются SQL-агрегатами.
+
+За 10 минут 21 секунду r05 прибавилось 46 READY, примерно 4,4 в минуту. При сохранении измеренного темпа остаток 2949 занял бы около 11 часов. В 21:20:26 в SQL оставались два новых shell, 24 старых INCONSISTENT с прежним SHA-256, 0 retired и 0 `background.owned-store`. У исходных 1745 профилей суммарно прибавилось 7284 EXP и 300 SP за это окно, максимум уровня 13, четыре профиля уровня 10+, 489 записей с нулевым HP. У 330 новых связанных ordinary сохранено 11 967 EXP и 1290 SP, максимум уровня 3. SQL включает offscreen-результаты.
+
+В финальном World census 45 ordinary с открытым допуском к действию, 31 scout при ротации, 200 лавок и 0 людей. Scout status подтвердил 79 materializations, 1434 нативных отрезка и 1278 новых подтверждений, checkpoint сохранён. После ранней фазы старта scouts наблюдались в диапазоне 31–32. Профили 11/27 сохраняли `catchup.recovery.materialize_catchup_fenced`, при 1025 календарных ACTIVE планирование показывало 2 eligible. В исходной когорте initial catch-up закончен у 666, один сохранённый курсор в пределах минуты, 55 — в пределах 15 минут. Для P2 остаются открыты историческая подготовка новых кандидатов и своевременное обслуживание календаря уже принятых ordinary. P1/P2/P3 полностью не закрыты.
+
+## Scope, публикация и уборка r04–r05
+
+- Текущий push включает три production Java-файла (`PhantomPopulationEcologyService.java`, `PhantomPopulationManager.java`, `PhantomSystem.java`), два существующих тестовых файла (`PhantomPopulationEcologyGoal033Suite.java`, `PhantomPopulationPerformanceSuite.java`) и этот отчёт. Совокупный scope от `18cc0d1` составляет 13 путей. Дополнительный путь нужен для проверки короткого ambient сигнала на 5000 identities в имеющемся runner. Остальной локальный WIP и learned продолжают жить в рабочем checkout.
+- Использованы `git symbolic-ref --short HEAD`, `git rev-parse HEAD`, `git merge-base --is-ancestor <baseline> HEAD`, `git --no-optional-locks status --short -- <точные пути>`, `git ls-tree [-r] --name-only HEAD -- <точные входы>`, `git archive --format=tar --output=<scratch file> 0466464eef23bb620bf28f9d38db460b1e0ee366 -- <точные входы>`, `git diff --stat -- <пути>`, `git diff --name-only <baseline> HEAD` и `git -c core.whitespace=cr-at-eol diff [--cached] --check -- <точные пути>`. Запись ограничена `git add -- <пути>`, `git commit --only -m <сообщение> -- <пути>` и `git push origin HEAD:refs/heads/feature/phantom-world`. URL origin сверен с `git remote get-url [--push] origin`, ветка до и после push проверяется через `git ls-remote --exit-code origin refs/heads/feature/phantom-world`.
+- Mojibake-маркеры проверены отдельным поиском по 13 путям. Совпадений нет.
+- Escaped Cyrillic проверен отдельным поиском по 13 путям. Совпадений нет.
+- Собственный scratch `D:\Temp\Codex\PhantomWorld\PHANTOM-LIVING-POPULATION-RECOVERY-018\r04` переиспользован для r05. Удалены 10 217 файлов, 179 448 773 байта. Маркер, канонический путь, отсутствие reparse points, процессы и эксклюзивное открытие файлов проверены. Временные сборки и TEST процессы 018 отсутствуют.
+- Пять точек отката r01–r05 содержат по четыре файла, всего 63 449 846 байт. SHA-256 каждой пары JAR/BUILD_INFO сверены. Bartz33331 остаётся рабочим. MAIN3308, protected releases и 019 остались за пределами действий.
