@@ -94,6 +94,8 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 			{
 				registry.add("01-canonical-create-once-and-restart-reconcile", this::creationRestart);
 				registry.add("02-production-seams-have-no-shadow-sql", this::canonicalSourceGuard);
+				registry.add("03-ordinary-founder-uses-native-eligibility-and-survives-restart", this::autonomousFounder);
+				registry.add("04-unconfirmed-create-remains-reconcilable", this::pendingFounderReconciles);
 			}
 			case RECRUITMENT ->
 			{
@@ -126,6 +128,28 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	}
 
 	private static final String NATURAL_TEXT = "Собираемся у склада, через пять минут идём на рейд. Проверьте припасы и ждите приглашения!";
+
+	private void autonomousFounder(PhantomTestContext context)
+	{
+		final var fixture = new Fixture();
+		fixture.backend.addPhantom(57, 1278);
+		fixture.backend.addPhantom(91, 2357);
+		fixture.backend.founderLevels.put(57L, 9);
+		fixture.backend.founderLevels.put(91L, 11);
+		fixture.backend.atClanMaster.add(57L);
+		final var farm = goalWithDeadline(57, 451, "farm.ordinary", null, null, List.of(), 1, 0, 3, NOW + 60000);
+		fixture.goals.put(57, farm);
+		fixture.service().advanceAutonomous(57, 1278, () -> List.of(91L), 8);
+		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "A level-nine ordinary reached the native creation writer.");
+		fixture.backend.founderLevels.put(57L, 10);
+		fixture.service().advanceAutonomous(57, 1278, () -> List.of(91L), 8);
+		final var clan = fixture.backend.observe(MemberRef.phantom(57, 1278)).orElseThrow();
+		PhantomAssertions.assertEquals(1278, clan.leaderObjectId(), "Creation did not attach the native leader.");
+		PhantomAssertions.assertTrue(clan.clanName().matches("[A-Za-z0-9]{2,16}"), "Founder selected an invalid native name.");
+		fixture.service().advanceAutonomous(57, 1278, List::of, 8);
+		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "Restart repeated existing canonical creation.");
+		PhantomAssertions.assertEquals(farm, fixture.goals.load(57).orElseThrow().goal(), "Founding replaced the ongoing farm root.");
+	}
 
 	private void autonomousInvitation(PhantomTestContext context)
 	{
@@ -264,6 +288,19 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(OperationStatus.COMPLETE, restarted.advance(1, 10, 0).status(), "Restart did not complete from canonical membership.");
 		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "Restart attempted a second clan creation.");
 		PhantomAssertions.assertEquals(42, fixture.persistence.load(1).orElseThrow().metadata().canonicalClanId(), "Profile metadata lost canonical evidence.");
+	}
+
+	private void pendingFounderReconciles(PhantomTestContext context)
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(1, 100);
+		fixture.backend.founderWriteUnconfirmed = true;
+		fixture.goals.put(1, goal(1, 10, PhantomClanService.BUILD_GOAL, new PhantomDomainRef("clan.name", "CodexClan"), null, List.of(), 1, 0, 0));
+		final var service = fixture.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, service.advance(1, 10, 0).status(), "Unconfirmed write became terminal failure.");
+		fixture.backend.putClan(100, 100);
+		PhantomAssertions.assertEquals(OperationStatus.COMPLETE, service.advance(1, 10, 0).status(), "Confirmed native membership could not reconcile.");
+		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "Reconciliation issued a second create.");
 	}
 
 	private void canonicalSourceGuard(PhantomTestContext context) throws Exception
@@ -723,13 +760,22 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private int contributionCalls;
 		private int chatCalls;
 		private Runnable beforeAutonomousObservation;
+		private boolean founderWriteUnconfirmed;
+		private final Map<Long, Integer> founderLevels = new HashMap<>();
+		private final java.util.Set<Long> atClanMaster = new java.util.HashSet<>();
+
+		@Override
+		public boolean hasAutonomousInvitation(int objectId) { return invitations.containsKey(objectId); }
 
 		@Override
 		public Optional<PhantomClanService.AutonomousActor> autonomousActor(long profileId)
 		{
 			if (beforeAutonomousObservation != null) { beforeAutonomousObservation.run(); }
-			return Backend.super.autonomousActor(profileId);
+			return currentMember(profileId).map(member -> new PhantomClanService.AutonomousActor(member, observe(member).orElse(null), founderLevels.getOrDefault(profileId, 0), true, atClanMaster.contains(profileId), 0, 0));
 		}
+
+		@Override
+		public CreationResult createAutonomous(MemberRef actor, String name) { return create(actor, name); }
 
 		private void addPhantom(long profileId, int objectId)
 		{
@@ -812,11 +858,13 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		public CreationResult create(MemberRef actor, String clanName)
 		{
 			createCalls++;
+			if (founderWriteUnconfirmed) { return new CreationResult(CreationOutcome.PERSISTENCE_PENDING, null); }
 			if (clans.containsKey(actor.characterObjectId()))
 			{
 				return new CreationResult(CreationOutcome.ALREADY_SATISFIED, clans.get(actor.characterObjectId()));
 			}
-			putClan(actor.characterObjectId(), actor.characterObjectId());
+			final var created = snapshot(actor.characterObjectId(), actor.characterObjectId());
+			clans.put(actor.characterObjectId(), new ClanSnapshot(created.clanId(), clanName, created.leaderObjectId(), created.level(), created.memberCount(), created.maxMembers(), created.allianceId(), created.reputation(), created.evidenceHash()));
 			return new CreationResult(CreationOutcome.CREATED, clans.get(actor.characterObjectId()));
 		}
 

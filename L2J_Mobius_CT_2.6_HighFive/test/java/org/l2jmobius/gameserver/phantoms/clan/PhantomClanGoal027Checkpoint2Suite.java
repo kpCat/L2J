@@ -78,6 +78,7 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 	{
 		registry.add("01-alliance-create-restart", this::allianceCreateRestart);
 		registry.add("02-bilateral-join-aba-real-safety", this::bilateralJoin);
+		registry.add("09-revoked-source-consent-cannot-join", this::revokedJoinConsent);
 		registry.add("03-exact-leave-proof-dissolve", this::leaveAndDissolve);
 		registry.add("04-war-declare-restart-evidence", this::warDeclare);
 		registry.add("05-exact-stop-bilateral-peace-war-id", this::stopAndPeace);
@@ -129,6 +130,28 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		real.goals.put(1, goal(1, 112, PhantomClanService.ALLIANCE_JOIN_GOAL, ref("clan.id", "33"), List.of(ref("character.object", "303")), null, 0));
 		PhantomAssertions.assertEquals(OperationStatus.UNSUPPORTED, real.service().advance(1, 112, 0).status(), "REAL-only target entered autonomous consent.");
 		PhantomAssertions.assertEquals(0, real.backend.checkJoinCalls, "REAL-only target reached native join check.");
+	}
+
+	private void revokedJoinConsent(PhantomTestContext context)
+	{
+		for (boolean replaceSource : List.of(false, true))
+		{
+			final Fixture fixture = alliedLeaderAndTarget();
+			fixture.goals.put(1, peerGoal(1, 710, PhantomClanService.ALLIANCE_JOIN_GOAL, 22, 2, 0));
+			fixture.goals.put(2, peerGoal(2, 720, PhantomClanService.ALLIANCE_JOIN_GOAL, 11, 1, 0));
+			final var service = fixture.service();
+			PhantomAssertions.assertEquals(OperationStatus.WAITING, service.advance(1, 710, 0).status(), "Source did not publish initial consent.");
+			if (replaceSource)
+			{
+				fixture.goals.put(1, peerGoal(1, 710, PhantomClanService.ALLIANCE_JOIN_GOAL, 22, 2, 1));
+			}
+			else
+			{
+				PhantomAssertions.assertTrue(service.cancel(1, 710, 0, "clan.test.cancelled"), "Source cancellation did not take effect.");
+			}
+			PhantomAssertions.assertEquals(OperationStatus.WAITING, service.advance(2, 720, 0).status(), "Recipient used revoked or superseded source consent.");
+			PhantomAssertions.assertEquals(0, fixture.backend.joinCalls, "A revoked consent reached the native join writer.");
+		}
 	}
 
 	private void leaveAndDissolve(PhantomTestContext context)

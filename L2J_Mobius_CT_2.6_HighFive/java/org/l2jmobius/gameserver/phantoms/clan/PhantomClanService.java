@@ -60,6 +60,7 @@ public final class PhantomClanService
 	public static final int WAR_HOSTILITY_THRESHOLD = 600;
 	public static final int PEACE_HOSTILITY_THRESHOLD = 250;
 	private static final long AUTONOMOUS_ID_BASE = 1L << 60;
+	private static final List<String> FOUNDER_NAMES = List.of("Rowan", "Ember", "Cedar", "Flint", "Willow", "Dawn", "Ash", "Raven");
 
 	public enum State
 	{
@@ -105,6 +106,7 @@ public final class PhantomClanService
 		CREATE_COOLDOWN,
 		INVALID_NAME,
 		NAME_TAKEN,
+		PERSISTENCE_PENDING,
 		STALE,
 		FAILED
 	}
@@ -358,8 +360,10 @@ public final class PhantomClanService
 
 		default Optional<AutonomousActor> autonomousActor(long profileId)
 		{
-			return currentMember(profileId).map(member -> new AutonomousActor(member, observe(member).orElse(null), 0, true, 0, 0));
+			return currentMember(profileId).map(member -> new AutonomousActor(member, observe(member).orElse(null), 0, true, false, 0, 0));
 		}
+
+		default CreationResult createAutonomous(MemberRef actor, String name) { return new CreationResult(CreationOutcome.STALE, null); }
 
 		default boolean inviteAutonomous(MemberRef leader, MemberRef target, int expectedClanId) { return false; }
 
@@ -458,7 +462,7 @@ public final class PhantomClanService
 	{
 	}
 
-	public record AutonomousActor(MemberRef member, ClanSnapshot clan, int level, boolean canJoin, long adena, long sp)
+	public record AutonomousActor(MemberRef member, ClanSnapshot clan, int level, boolean canJoin, boolean canFound, long adena, long sp)
 	{
 	}
 
@@ -631,7 +635,7 @@ public final class PhantomClanService
 				answerAutonomous(actor, preference, now);
 				return;
 			}
-			planAutonomous(actor, peers, now);
+			planAutonomous(actor, peers, preference, prior, now);
 		}
 		catch (RuntimeException failure)
 		{
@@ -665,18 +669,37 @@ public final class PhantomClanService
 		observeAutonomousOutcome("clan.autonomous.invitation." + accepted.outcome().name().toLowerCase(java.util.Locale.ROOT));
 	}
 
-	private void planAutonomous(AutonomousActor actor, Supplier<List<Long>> peers, long now)
+	private void planAutonomous(AutonomousActor actor, Supplier<List<Long>> peers, int preference, OrganizationMetadata prior, long now)
 	{
 		updateDevelopment(actor, now);
 		final var member = actor.member();
 		final var clan = actor.clan();
-		if (clan == null || clan.leaderObjectId() != member.characterObjectId() || clan.memberCount() >= clan.maxMembers()) { return; }
+		if (clan == null)
+		{
+			if (!actor.canFound() || actor.level() < 10 || preference < 4) { return; }
+		}
+		else
+		{
+			if (clan.leaderObjectId() != member.characterObjectId()) { return; }
+			if (prior == null)
+			{
+				final var goal = autonomousGoal(actor, BUILD_GOAL, clanRef(clan.clanId()), List.of(), now);
+				reconcile(member, clan, goal);
+			}
+			if (clan.memberCount() >= clan.maxMembers()) { return; }
+		}
 		final var candidate = peers.get().stream().filter(id -> id != member.profileId() && !_active.containsKey(id)).limit(8)
 			.map(_backend::autonomousActor).flatMap(Optional::stream)
 			.filter(peer -> peer.clan() == null && peer.canJoin() && Math.abs(peer.level() - actor.level()) <= 15)
 			.filter(peer -> !_backend.relationship(member.profileId(), peer.member(), now / 60_000).hostileForWar())
 			.findFirst().orElse(null);
-		if (candidate == null || _state != State.RUNNING || !_mutating.add(candidate.member().profileId())) { return; }
+		if (candidate == null || _state != State.RUNNING) { return; }
+		if (clan == null)
+		{
+			foundAutonomously(actor, now);
+			return;
+		}
+		if (!_mutating.add(candidate.member().profileId())) { return; }
 		try
 		{
 			if (_backend.inviteAutonomous(member, candidate.member(), clan.clanId()))
@@ -685,6 +708,26 @@ public final class PhantomClanService
 			}
 		}
 		finally { _mutating.remove(candidate.member().profileId()); }
+	}
+
+	private void foundAutonomously(AutonomousActor actor, long now)
+	{
+		final var member = actor.member();
+		for (int alternate = 0; alternate < 3 && _state == State.RUNNING; alternate++)
+		{
+			final String prefix = FOUNDER_NAMES.get(Math.floorMod(member.characterObjectId() + alternate, FOUNDER_NAMES.size()));
+			final String name = prefix + Integer.toUnsignedString(member.characterObjectId(), 36);
+			final var created = _backend.createAutonomous(member, name);
+			if (created.outcome() == CreationOutcome.NAME_TAKEN) { continue; }
+			final var clan = created.clan();
+			if ((created.outcome() == CreationOutcome.CREATED || created.outcome() == CreationOutcome.ALREADY_SATISFIED) && clan != null && clan.leaderObjectId() == member.characterObjectId() && clan.clanName().equalsIgnoreCase(name))
+			{
+				final var goal = autonomousGoal(actor, BUILD_GOAL, clanRef(clan.clanId()), List.of(), now);
+				reconcile(member, clan, goal);
+			}
+			observeAutonomousOutcome("clan.autonomous.found." + created.outcome().name().toLowerCase(java.util.Locale.ROOT));
+			return;
+		}
 	}
 
 	private void updateDevelopment(AutonomousActor actor, long now)
@@ -852,6 +895,10 @@ public final class PhantomClanService
 		if (clan == null)
 		{
 			final CreationResult created = _backend.create(actor, goal.target().key());
+			if (created.outcome() == CreationOutcome.PERSISTENCE_PENDING)
+			{
+				return result(OperationStatus.WAITING, "clan.build.persistence_pending", null);
+			}
 			if ((created.outcome() != CreationOutcome.CREATED) && (created.outcome() != CreationOutcome.ALREADY_SATISFIED))
 			{
 				return terminalize(operation, OperationStatus.FAILED, "clan.build." + created.outcome().name().toLowerCase(), null);
@@ -1106,14 +1153,21 @@ public final class PhantomClanService
 			{
 				return result(OperationStatus.WAITING, "clan.alliance.join.waiting_exact_offer", null);
 			}
+			if (!currentSourceConsent(offer))
+			{
+				_joinOffers.remove(key, offer);
+				return result(OperationStatus.WAITING, "clan.alliance.join.source_consent_revoked", null);
+			}
 			if (inverseSuppressed(prior, DiplomacyAction.ALLIANCE_JOIN, peerClan.clanId()))
 			{
 				return result(OperationStatus.WAITING, "clan.diplomacy.hysteresis", null);
 			}
+			// The current source revision and this exact offer are consumed before PREPARED.
+			// A later change of intent cannot revoke an already accepted write.
+			_joinOffers.remove(key, offer);
 			final DiplomacyState prepared = diplomacy(goal, DiplomacyAction.ALLIANCE_JOIN, DiplomacyPhase.PREPARED, peerClan.clanId(), offer.identity(), offer.targetEpoch().counter(), 0, prior, sha256("alliance.join|" + offer.sourceGoal() + "|" + goal.goalId() + "|" + goal.revision() + "|" + offer.identity() + "|" + offer.targetEpoch()));
 			persistDiplomacy(actor.profileId(), metadata, prepared, goal.validSources());
 			final ClanAllianceService.Result joined = _backend.joinAlliance(peer, actor, offer.identity(), offer.targetEpoch());
-			_joinOffers.remove(key, offer);
 			if (!joined.successful())
 			{
 				return nativeAllianceFailure(operation, "clan.alliance.join.accept", joined);
@@ -1129,6 +1183,17 @@ public final class PhantomClanService
 		}
 		return terminalize(operation, OperationStatus.STALE, "clan.alliance.join.alliance_mismatch", null);
 	}
+
+	private boolean currentSourceConsent(JoinOffer offer)
+	{
+		final var source = offer.sourceGoal();
+		final var active = _active.get(source.profileId());
+		if (active == null || !active._identity.equals(source)) { return false; }
+		final var current = _goals.load(source.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		return validCommon(source.profileId(), current, _clock.getAsLong()) && ALLIANCE_JOIN_GOAL.equals(current.goalType())
+			&& current.goalId() == source.goalId() && current.revision() == source.goalRevision();
+	}
+
 	private AdvanceResult advanceAllianceLeave(Operation operation)
 	{
 		final PhantomGoal goal = operation._goal;
@@ -1944,6 +2009,10 @@ public final class PhantomClanService
 	private AdvanceResult terminalize(Operation operation, OperationStatus status, String reasonKey, Receipt receipt)
 	{
 		final AdvanceResult terminal = result(status, reasonKey, receipt);
+		if (ALLIANCE_JOIN_GOAL.equals(operation._goal.goalType()))
+		{
+			_joinOffers.values().removeIf(offer -> offer.sourceGoal().equals(operation._identity));
+		}
 		_active.remove(operation._identity.profileId(), operation);
 		putBounded(_terminal, operation._identity, terminal);
 		return terminal;

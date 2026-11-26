@@ -90,7 +90,6 @@ public class Clan
 	private static final Logger LOGGER = Logger.getLogger(Clan.class.getName());
 	
 	// SQL queries
-	private static final String INSERT_CLAN_DATA = "INSERT INTO clan_data (clan_id,clan_name,clan_level,hasCastle,blood_alliance_count,blood_oath_count,ally_id,ally_name,ally_generation,ally_generation_counter,leader_id,crest_id,crest_large_id,ally_crest_id,new_leader_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	private static final String SELECT_CLAN_DATA = "SELECT * FROM clan_data where clan_id=?";
 	
 	// Ally Penalty Types
@@ -1040,32 +1039,29 @@ public class Clan
 	 * <li>Alliance crest Id</li>
 	 * </ul>
 	 */
-	public void store()
+	public boolean persistFounding() throws SQLException
 	{
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement(INSERT_CLAN_DATA))
+		try
 		{
-			ps.setInt(1, _clanId);
-			ps.setString(2, _name);
-			ps.setInt(3, _level);
-			ps.setInt(4, _castleId);
-			ps.setInt(5, _bloodAllianceCount);
-			ps.setInt(6, _bloodOathCount);
-			ps.setInt(7, _allyId);
-			ps.setString(8, _allyName);
-			ps.setLong(9, _allyGeneration);
-			ps.setLong(10, _allyGenerationCounter);
-			ps.setInt(11, getLeaderId());
-			ps.setInt(12, _crestId);
-			ps.setInt(13, _crestLargeId);
-			ps.setInt(14, _allyCrestId);
-			ps.setInt(15, _newLeaderId);
-			ps.execute();
+			ClanSocialRepository.getInstance().createFoundedClan(_clanId, _name, getLeaderId(), System.currentTimeMillis());
+			return true;
 		}
-		catch (Exception e)
+		catch (ClanSocialRepository.StaleStateException stale)
 		{
-			LOGGER.log(Level.SEVERE, "Error saving new clan: " + e.getMessage(), e);
+			return false;
 		}
+	}
+
+	public enum FoundingState
+	{
+		ABSENT,
+		COMMITTED,
+		CONFLICT
+	}
+
+	public FoundingState observeFounding() throws SQLException
+	{
+		return ClanSocialRepository.getInstance().foundingState(_clanId, _name, getLeaderId());
 	}
 	
 	/**

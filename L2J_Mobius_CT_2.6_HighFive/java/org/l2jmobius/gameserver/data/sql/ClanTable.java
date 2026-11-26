@@ -23,6 +23,7 @@ package org.l2jmobius.gameserver.data.sql;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -172,6 +173,31 @@ public class ClanTable
 		{
 			return null;
 		}
+		if (clanName == null || !StringUtil.isAlphaNumeric(clanName) || clanName.length() < 2)
+		{
+			player.sendPacket(SystemMessageId.CLAN_NAME_IS_INVALID);
+			return null;
+		}
+		if (clanName.length() > 16)
+		{
+			player.sendPacket(SystemMessageId.CLAN_NAME_S_LENGTH_IS_INCORRECT);
+			return null;
+		}
+		return ClanSocialMutationFence.getInstance().withNewClanName(clanName, () ->
+		{
+			synchronized (player)
+			{
+				return createClanLocked(player, clanName);
+			}
+		});
+	}
+
+	private Clan createClanLocked(Player player, String clanName)
+	{
+		if (!settleClanCreation(player))
+		{
+			return null;
+		}
 		
 		if (10 > player.getLevel())
 		{
@@ -191,18 +217,6 @@ public class ClanTable
 			return null;
 		}
 		
-		if (!StringUtil.isAlphaNumeric(clanName) || (2 > clanName.length()))
-		{
-			player.sendPacket(SystemMessageId.CLAN_NAME_IS_INVALID);
-			return null;
-		}
-		
-		if (16 < clanName.length())
-		{
-			player.sendPacket(SystemMessageId.CLAN_NAME_S_LENGTH_IS_INCORRECT);
-			return null;
-		}
-		
 		if (null != getClanByName(clanName))
 		{
 			// clan name is already taken
@@ -216,7 +230,62 @@ public class ClanTable
 		final ClanMember leader = new ClanMember(clan, player);
 		clan.setLeader(leader);
 		leader.setPlayer(player);
-		clan.store();
+		if (!ClanSocialMutationFence.getInstance().claimFounderName(clanName, clan.getId()))
+		{
+			IdManager.getInstance().releaseId(clan.getId());
+			return null;
+		}
+		player.setPendingClanCreation(clan);
+		try
+		{
+			if (!clan.persistFounding())
+			{
+				discardClanCreation(player, clan);
+				return null;
+			}
+			publishClanCreation(player, clan);
+			return clan;
+		}
+		catch (SQLException failure)
+		{
+			LOGGER.log(Level.WARNING, "Native clan creation needs confirmation for character " + player.getObjectId(), failure);
+			return settleClanCreation(player) && player.getClan() == clan ? clan : null;
+		}
+	}
+
+	/** Resolve a lost commit acknowledgement before STORE can overwrite native membership. */
+	public boolean settleClanCreation(Player player)
+	{
+		synchronized (player)
+		{
+			final Clan pending = player.getPendingClanCreation();
+			if (pending == null) { return true; }
+			final Clan.FoundingState evidence;
+			try { evidence = pending.observeFounding(); }
+			catch (SQLException unavailable) { return false; }
+			if (evidence == Clan.FoundingState.COMMITTED)
+			{
+				publishClanCreation(player, pending);
+				return true;
+			}
+			if (evidence == Clan.FoundingState.ABSENT)
+			{
+				discardClanCreation(player, pending);
+				return true;
+			}
+			return false;
+		}
+	}
+
+	private static void discardClanCreation(Player player, Clan clan)
+	{
+		player.setPendingClanCreation(null);
+		ClanSocialMutationFence.getInstance().releaseFounderName(clan.getName(), clan.getId());
+		IdManager.getInstance().releaseId(clan.getId());
+	}
+
+	private void publishClanCreation(Player player, Clan clan)
+	{
 		player.setClan(clan);
 		player.setPledgeClass(ClanMember.calculatePledgeClass(player));
 		
@@ -225,6 +294,8 @@ public class ClanTable
 		player.setClanPrivileges(privileges);
 		
 		_clans.put(clan.getId(), clan);
+		player.setPendingClanCreation(null);
+		ClanSocialMutationFence.getInstance().releaseFounderName(clan.getName(), clan.getId());
 		
 		// should be update packet only
 		player.sendPacket(new PledgeShowInfoUpdate(clan));
@@ -239,7 +310,6 @@ public class ClanTable
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanCreate(player, clan));
 		}
 		
-		return clan;
 	}
 	
 	public synchronized void destroyClan(int clanId)

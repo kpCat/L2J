@@ -11,10 +11,12 @@ import java.util.Set;
 
 import org.l2jmobius.commons.util.StringUtil;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.handler.ChatHandler;
 import org.l2jmobius.gameserver.handler.IChatHandler;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.VillageMaster;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchHandle;
 import org.l2jmobius.gameserver.model.clan.Clan;
@@ -151,6 +153,7 @@ public final class L2jPhantomClanBackend implements Backend
 				return new CreationResult(CreationOutcome.STALE, null);
 			}
 			final Player player = acquired.player();
+			if (!ClanTable.getInstance().settleClanCreation(player)) { return new CreationResult(CreationOutcome.PERSISTENCE_PENDING, null); }
 			if (player.getClan() != null)
 			{
 				final ClanSnapshot current = snapshot(player.getClan(), player.getObjectId());
@@ -173,6 +176,7 @@ public final class L2jPhantomClanBackend implements Backend
 				return new CreationResult(CreationOutcome.NAME_TAKEN, null);
 			}
 			final Clan created = ClanTable.getInstance().createClan(player, clanName);
+			if (created == null && player.getPendingClanCreation() != null) { return new CreationResult(CreationOutcome.PERSISTENCE_PENDING, null); }
 			if ((created == null) || (player.getClan() != created) || (ClanTable.getInstance().getClan(created.getId()) != created))
 			{
 				return new CreationResult(CreationOutcome.FAILED, null);
@@ -198,6 +202,43 @@ public final class L2jPhantomClanBackend implements Backend
 	public boolean hasAutonomousInvitation(int objectId) { return _invitations.hasPending(objectId); }
 
 	@Override
+	public CreationResult createAutonomous(MemberRef actor, String name)
+	{
+		try (var acquired = acquire(actor))
+		{
+			if (acquired == null || actor.kind() != MemberKind.PHANTOM) { return new CreationResult(CreationOutcome.STALE, null); }
+			final var player = acquired.player();
+			if (name == null || name.length() < 2 || name.length() > 16 || !StringUtil.isAlphaNumeric(name)) { return new CreationResult(CreationOutcome.INVALID_NAME, null); }
+			if (!ordinaryPlayer(player) || player.getClanId() != 0 || _invitations.hasPending(player.getObjectId())) { return new CreationResult(CreationOutcome.STALE, null); }
+			if (!ClanTable.getInstance().settleClanCreation(player)) { return new CreationResult(CreationOutcome.PERSISTENCE_PENDING, null); }
+			if (player.getClanId() != 0)
+			{
+				final var clan = player.getClan();
+				return clan != null && clan.getLeaderId() == player.getObjectId() && clan.getName().equalsIgnoreCase(name)
+					? new CreationResult(CreationOutcome.ALREADY_SATISFIED, snapshot(clan, player.getObjectId())) : new CreationResult(CreationOutcome.ALREADY_IN_CLAN, null);
+			}
+			if (player.getLevel() < 10) { return new CreationResult(CreationOutcome.LEVEL_TOO_LOW, null); }
+			if (System.currentTimeMillis() < player.getClanCreateExpiryTime()) { return new CreationResult(CreationOutcome.CREATE_COOLDOWN, null); }
+			if (ClanTable.getInstance().getClanByName(name) != null) { return new CreationResult(CreationOutcome.NAME_TAKEN, null); }
+			final var master = availableClanMaster(player);
+			if (master == null) { return new CreationResult(CreationOutcome.STALE, null); }
+			master.onBypassFeedback(player, "create_clan " + name);
+			final var created = player.getClan();
+			if (created == null && player.getPendingClanCreation() != null) { return new CreationResult(CreationOutcome.PERSISTENCE_PENDING, null); }
+			return created != null && created.getLeaderId() == player.getObjectId() && created.getName().equalsIgnoreCase(name) && ClanTable.getInstance().getClan(created.getId()) == created
+				? new CreationResult(CreationOutcome.CREATED, snapshot(created, player.getObjectId())) : new CreationResult(CreationOutcome.FAILED, null);
+		}
+	}
+
+	private static VillageMaster availableClanMaster(Player player)
+	{
+		final var region = player.getWorldRegion();
+		if (region == null || player.isInCombat()) { return null; }
+		return region.getVisibleObjects().stream().filter(object -> object instanceof VillageMaster npc && npc.isSpawned() && !npc.isAlikeDead()
+			&& npc.canInteract(player) && GeoEngine.getInstance().canSeeTarget(player, npc)).map(VillageMaster.class::cast).findFirst().orElse(null);
+	}
+
+	@Override
 	public Optional<AutonomousActor> autonomousActor(long profileId)
 	{
 		try (var lease = _materialization.tryAcquireObservation(profileId).orElse(null))
@@ -209,7 +250,8 @@ public final class L2jPhantomClanBackend implements Backend
 			if (clan != null && (ClanTable.getInstance().getClan(clan.getId()) != clan || clan.getClanMember(player.getObjectId()) == null)) { return Optional.empty(); }
 			final long now = System.currentTimeMillis();
 			return Optional.of(new AutonomousActor(MemberRef.phantom(profileId, player.getObjectId()), clan == null ? null : snapshot(clan, player.getObjectId()), player.getLevel(),
-				now >= player.getClanJoinExpiryTime(), player.getAdena(), player.getSp()));
+				now >= player.getClanJoinExpiryTime(), clan == null && player.getLevel() >= 10 && now >= player.getClanCreateExpiryTime() && availableClanMaster(player) != null,
+				player.getAdena(), player.getSp()));
 		}
 	}
 

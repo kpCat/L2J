@@ -290,6 +290,10 @@ public final class ClanInvitationService
 		// No SQL or packet delivery on successful joins runs under the invitation index monitor.
 		synchronized (invitee)
 		{
+			if (invitee.getPendingClanCreation() != null)
+			{
+				return new RespondResult(RespondOutcome.PERSISTENCE_FAILED, pending._identity);
+			}
 			if (ClanSocialMutationFence.getInstance().isRetiring(pending._identity.clanId()) || pending._requester.isDedicatedGeoScout() || invitee.isDedicatedGeoScout()
 				|| (pending._autonomous && !pending._requester.isClanLeader()) || (pending._requester.getClan() != pending._clan)
 				|| !pending._clan.checkClanJoinCondition(pending._requester, invitee, pending._identity.pledgeType()))

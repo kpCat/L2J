@@ -80,11 +80,76 @@ final class ClanSocialRepository implements ClanSocialPersistence
 		return INSTANCE;
 	}
 
+	/** The stock clan row and the founder's membership have one durable commit point. */
+	void createFoundedClan(int clanId, String name, int founderId, long now) throws SQLException, StaleStateException
+	{
+		write(connection ->
+		{
+			try (PreparedStatement member = connection.prepareStatement("UPDATE characters SET clanid=?, clan_privs=? WHERE charId=? AND (clanid=0 OR clanid IS NULL) AND clan_create_expiry_time<=?"))
+			{
+				member.setInt(1, clanId);
+				member.setInt(2, ClanPrivileges.getCompleteMask());
+				member.setInt(3, founderId);
+				member.setLong(4, now);
+				requireSingleRow(member.executeUpdate(), "Clan founder membership");
+			}
+			try (PreparedStatement named = connection.prepareStatement("SELECT clan_name FROM clan_data"))
+			{
+				try (ResultSet rows = named.executeQuery())
+				{
+					while (rows.next())
+					{
+						if (name.equalsIgnoreCase(rows.getString(1))) { throw new StaleStateException("Clan name is already durably claimed."); }
+					}
+				}
+			}
+			try (PreparedStatement clan = connection.prepareStatement("INSERT INTO clan_data (clan_id,clan_name,clan_level,hasCastle,ally_id,leader_id,crest_id,crest_large_id,ally_crest_id) VALUES (?,?,0,0,0,?,0,0,0)"))
+			{
+				clan.setInt(1, clanId);
+				clan.setString(2, name);
+				clan.setInt(3, founderId);
+				requireSingleRow(clan.executeUpdate(), "Clan creation");
+			}
+			return null;
+		});
+	}
+
+	Clan.FoundingState foundingState(int clanId, String name, int founderId) throws SQLException
+	{
+		try
+		{
+			return write(connection ->
+			{
+				// A locking read waits for any still-running founder transaction on this character row.
+				try (PreparedStatement evidence = connection.prepareStatement("SELECT c.clanid, d.clan_id, d.leader_id, d.clan_name FROM characters c LEFT JOIN clan_data d ON d.clan_id=? WHERE c.charId=? FOR UPDATE"))
+				{
+					evidence.setInt(1, clanId);
+					evidence.setInt(2, founderId);
+					try (ResultSet rows = evidence.executeQuery())
+					{
+						if (!rows.next()) { return Clan.FoundingState.CONFLICT; }
+						final int memberClanId = rows.getInt(1);
+						final int storedClanId = rows.getInt(2);
+						if (memberClanId == clanId && storedClanId == clanId && rows.getInt(3) == founderId && name.equals(rows.getString(4)))
+						{
+							return Clan.FoundingState.COMMITTED;
+						}
+						return memberClanId == 0 && storedClanId == 0 ? Clan.FoundingState.ABSENT : Clan.FoundingState.CONFLICT;
+					}
+				}
+			});
+		}
+		catch (StaleStateException unexpected)
+		{
+			throw new SQLException(unexpected);
+		}
+	}
+
 	/** Commit only native clan membership. The actor continues to use its existing STORE owner. */
 	boolean joinMember(int clanId, int characterId, int pledgeType, int powerGrade, int privileges, int academyLevel) throws SQLException
 	{
 		try (Connection connection = DatabaseFactory.getConnection();
-			PreparedStatement statement = connection.prepareStatement("UPDATE characters SET clanid=?, subpledge=?, power_grade=?, clan_privs=?, lvl_joined_academy=?, clan_join_expiry_time=0 WHERE charId=? AND clanid=0 AND clan_join_expiry_time<=?"))
+			PreparedStatement statement = connection.prepareStatement("UPDATE characters SET clanid=?, subpledge=?, power_grade=?, clan_privs=?, lvl_joined_academy=?, clan_join_expiry_time=0 WHERE charId=? AND (clanid=0 OR clanid IS NULL) AND clan_join_expiry_time<=?"))
 		{
 			statement.setInt(1, clanId);
 			statement.setInt(2, pledgeType);

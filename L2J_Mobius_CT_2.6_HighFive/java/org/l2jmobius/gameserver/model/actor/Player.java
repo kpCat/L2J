@@ -566,6 +566,7 @@ public class Player extends Playable
 		final var boundary = _ownedStoreBoundary;
 		if ((boundary == null) || (boundary.ownerKey() != ownerKey)) { return false; }
 		if (!boundary.hasPending()) { return true; }
+		if (!clanCreationResolved()) { return false; }
 		final var snapshot = boundary.beforePendingStore(goalId, revision);
 		if (snapshot == null) { return !boundary.hasPending(); }
 		boolean completed = false;
@@ -835,6 +836,7 @@ public class Player extends Playable
 	
 	/** The Clan object of the Player */
 	private Clan _clan;
+	private Clan _pendingClanCreation;
 	
 	/** Apprentice and Sponsor IDs */
 	private int _apprentice = 0;
@@ -6828,6 +6830,17 @@ public class Player extends Playable
 		return _clan;
 	}
 	
+	/** Native founder recovery is read and replaced under this character's STORE monitor. */
+	public synchronized Clan getPendingClanCreation()
+	{
+		return _pendingClanCreation;
+	}
+
+	public synchronized void setPendingClanCreation(Clan clan)
+	{
+		_pendingClanCreation = clan;
+	}
+
 	/**
 	 * @return True if the Player is the leader of its clan.
 	 */
@@ -8122,7 +8135,11 @@ public class Player extends Playable
 	 */
 	public void store(boolean storeActiveEffects)
 	{
-		PlayerNativeWork.checkpoint(this, () -> { storeQuiescent(storeActiveEffects); return null; });
+		// Report a pre-write deferral after the native owner has reopened normal admission.
+		if (!PlayerNativeWork.checkpoint(this, () -> storeQuiescent(storeActiveEffects)))
+		{
+			throw new IllegalStateException("Native clan creation is unresolved for this character.");
+		}
 	}
 
 	private void publishNativeStatus()
@@ -8173,10 +8190,14 @@ public class Player extends Playable
 		}
 	}
 
-	private synchronized void storeQuiescent(boolean storeActiveEffects)
+	private synchronized boolean storeQuiescent(boolean storeActiveEffects)
 	{
+		if (!clanCreationResolved())
+		{
+			return false;
+		}
 		final OwnedStoreBoundary boundary = _ownedStoreBoundary;
-		if (boundary == null) { storeNative(storeActiveEffects, null); return; }
+		if (boundary == null) { storeNative(storeActiveEffects, null); return true; }
 		final OwnedStoreSnapshot snapshot = boundary.beforeStore();
 		boolean completed = false;
 		Throwable primary = null;
@@ -8191,6 +8212,13 @@ public class Player extends Playable
 				if (primary != secondary) { primary.addSuppressed(secondary); }
 			}
 		}
+		return true;
+	}
+
+	/** Both native STORE entry points hold this player's monitor before reading clan state. */
+	private boolean clanCreationResolved()
+	{
+		return _pendingClanCreation == null || ClanTable.getInstance().settleClanCreation(this);
 	}
 
 	private void storeNative(boolean storeActiveEffects, OwnedStoreSnapshot snapshot)

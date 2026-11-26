@@ -19,6 +19,7 @@ public final class ClanSocialMutationFence
 	private static final ClanSocialMutationFence INSTANCE = new ClanSocialMutationFence(LOCK_COUNT);
 	private final ReentrantLock[] _locks;
 	private final Map<Integer, Retirement> _retirements = new ConcurrentHashMap<>();
+	private final Map<String, Integer> _unresolvedFounderNames = new ConcurrentHashMap<>();
 
 	public static final class Retirement
 	{
@@ -102,6 +103,30 @@ public final class ClanSocialMutationFence
 	static long allianceNameKey(String allianceName)
 	{
 		return (((long) allianceName.toLowerCase(Locale.ROOT).hashCode()) << 1) | 1L;
+	}
+
+	/** Serialize stock and autonomous creation attempts for the same case-insensitive name. */
+	public <T> T withNewClanName(String clanName, Supplier<T> operation)
+	{
+		return execute(new long[] { (((long) founderNameKey(clanName).hashCode()) << 1) | 1L }, operation);
+	}
+
+	public boolean claimFounderName(String clanName, int clanId)
+	{
+		return _unresolvedFounderNames.putIfAbsent(founderNameKey(clanName), clanId) == null;
+	}
+
+	public void releaseFounderName(String clanName, int clanId)
+	{
+		_unresolvedFounderNames.remove(founderNameKey(clanName), clanId);
+	}
+
+	private static String founderNameKey(String clanName)
+	{
+		// Match String.equalsIgnoreCase, including dotted I and other Unicode case folds.
+		final var key = new StringBuilder("clan:");
+		clanName.codePoints().map(code -> Character.toLowerCase(Character.toUpperCase(code))).forEach(key::appendCodePoint);
+		return key.toString();
 	}
 	<T> T execute(long[] resourceKeys, Supplier<T> operation)
 	{
