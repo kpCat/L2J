@@ -1097,7 +1097,7 @@ public final class PhantomSystem
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine, id ->
 				{
-					_executionControl.watch(id);
+					_executionControl.watchBootstrap(id);
 					return _executionControl.owner(id) != null;
 				});
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_executionControl,

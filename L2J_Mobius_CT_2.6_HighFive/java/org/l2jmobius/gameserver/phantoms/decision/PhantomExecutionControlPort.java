@@ -110,13 +110,27 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 	}
 	public void watch(long id)
 	{
+		watch(id, false);
+	}
+
+	/** An unseen bootstrap joins the existing bounded urgent page once, without resetting retry backoff. */
+	public void watchBootstrap(long id)
+	{
+		watch(id, true);
+	}
+
+	private void watch(long id, boolean bootstrap)
+	{
 		if (id <= 0) { throw new IllegalArgumentException("Execution profile must be positive."); }
 		synchronized (_profiles)
 		{
 			if (!_profiles.containsKey(id))
 			{
 				if (_profiles.size() >= _limit) { throw new IllegalStateException("Execution control profile cache is full."); }
-				_profiles.put(id, new Slot());
+				final var slot = new Slot();
+				slot.urgent = bootstrap;
+				_profiles.put(id, slot);
+				if (bootstrap && _queued.add(id)) { _urgent.add(id); }
 			}
 		}
 	}

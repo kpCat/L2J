@@ -102,6 +102,16 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("bootstrap018"))
+		{
+			registry.add("018-bootstrap-warm-admission-keeps-fifo-service", _ -> testBootstrapPriority018());
+			registry.add("02-signal-validation-source-sequence-and-coalescing", _ -> testSignals());
+			registry.add("03-queue-backpressure-leaves-signal-unchanged", _ -> testBackpressureAtomicity());
+			registry.add("09-fair-cohort-and-once-per-pulse", _ -> testFairness());
+			registry.add("17-stopping-quiesces-boundary-and-work", _ -> testStoppingQuiescence());
+			registry.add("20-manual-scheduler-drives-one-decision-slice", _ -> testDecisionSinkIntegration());
+			return;
+		}
 		registry.add("075-accepted-store-recovery-reuses-bounded-admission", this::testStoreRecovery075);
 		if (System.getProperty("phantom.m1.native.focus", "").equals("recovery075")) { return; }
 		if (_localPriorityOnly)
@@ -111,6 +121,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			return;
 		}
 		registry.add("01-start-zero-and-registration-bounds", _ -> testRegistration());
+		registry.add("018-bootstrap-warm-admission-keeps-fifo-service", _ -> testBootstrapPriority018());
 		registry.add("130-startup-recovery-fences-both-ordinary-and-local-dispatch", _ -> testStartupRecovery130());
 		registry.add("02-signal-validation-source-sequence-and-coalescing", _ -> testSignals());
 		registry.add("03-queue-backpressure-leaves-signal-unchanged", _ -> testBackpressureAtomicity());
@@ -1371,6 +1382,29 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		stop(scheduler);
 		engine.beginStop();
 		PhantomAssertions.assertTrue(engine.finishStop(), "Decision integration engine did not stop.");
+	}
+
+	private void testBootstrapPriority018()
+	{
+		final Fixture fixture = fixture(4, 2);
+		final var scheduler = fixture.scheduler();
+		try
+		{
+			for (int id = 1; id <= 4; id++) { scheduler.register(id); }
+			final var bootstrap = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager.BOOTSTRAP_SIGNAL_SOURCE;
+			scheduler.submitSignal(1, signal("ordinary", 1, PhantomActivityState.WARM, 100));
+			scheduler.submitSignal(2, signal("ordinary", 1, PhantomActivityState.WARM, 100));
+			scheduler.submitSignal(3, signal(bootstrap, 1, PhantomActivityState.WARM, 100));
+			scheduler.submitSignal(4, signal(bootstrap, 1, PhantomActivityState.WARM, 100));
+			scheduler.pulse();
+			PhantomAssertions.assertEquals(List.of(3L, 1L), fixture.work().stream().map(PhantomActivityWorkItem::profileId).toList(),
+				"An accepted bootstrap should get the first slice while the earlier ordinary retains FIFO service.");
+			scheduler.pulse();
+			PhantomAssertions.assertEquals(List.of(3L, 1L, 4L, 2L), fixture.work().stream().map(PhantomActivityWorkItem::profileId).toList(),
+				"Bootstrap order or the existing ordinary FIFO changed across pulses.");
+			PhantomAssertions.assertEquals(0, fixture.port().materializeCalls, "Bootstrap WARM took a World permit.");
+		}
+		finally { stop(scheduler); }
 	}
 
 	private static Fixture fixture(int maximumProfiles, int profilesPerPulse)

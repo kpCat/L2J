@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,6 +51,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
 
 /**
  * Single shared, bounded activity scheduler. Slots contain no Player, task,
@@ -57,6 +59,8 @@ import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorde
  */
 public final class PhantomScheduler
 {
+	private static final int BOOTSTRAP_PRIORITY_LIMIT = 4;
+
 	public enum SchedulerState
 	{
 		NEW,
@@ -157,6 +161,7 @@ public final class PhantomScheduler
 	private final PhantomDiagnosticTrace _trace;
 	private final ConcurrentHashMap<Long, Slot> _slots = new ConcurrentHashMap<>();
 	private final ArrayBlockingQueue<Long> _readyQueue;
+	private final LinkedHashSet<Long> _bootstrapReady = new LinkedHashSet<>();
 	private final TreeSet<DueEntry> _dueEntries = new TreeSet<>();
 	private SchedulerState _state = SchedulerState.NEW;
 	private ScheduledFuture<?> _pulseFuture;
@@ -412,6 +417,11 @@ public final class PhantomScheduler
 			}
 			slot._generation++;
 			slot._lastResult = PhantomActivityResultCategory.SIGNAL_ACCEPTED;
+			if (signal.requiredState() == PhantomActivityState.WARM && PhantomPopulationManager.BOOTSTRAP_SIGNAL_SOURCE.equals(signal.sourceKey())
+				&& _bootstrapReady.size() < BOOTSTRAP_PRIORITY_LIMIT)
+			{
+				_bootstrapReady.add(profileId);
+			}
 			if (signal.requiredState().requiresMaterialization() && signal.requiredState().isHigherDetailThan(slot._effectiveState) && (slot._transitionStatus == PhantomActivityTransitionStatus.DEFERRED))
 			{
 				slot._retryDueNanos = 0;
@@ -598,6 +608,7 @@ public final class PhantomScheduler
 				return false;
 			}
 			_readyQueue.clear();
+			_bootstrapReady.clear();
 			_dueEntries.clear();
 			for (Slot slot : _slots.values())
 			{
@@ -826,7 +837,7 @@ public final class PhantomScheduler
 					{
 						break;
 					}
-					slot = pollReadySlotLocked(processedProfiles);
+					slot = pollReadySlotLocked(processedProfiles, logicalNow);
 					if (slot == null)
 					{
 						break;
@@ -872,8 +883,24 @@ public final class PhantomScheduler
 		}
 	}
 
-	private Slot pollReadySlotLocked(Set<Long> processedProfiles)
+	private Slot pollReadySlotLocked(Set<Long> processedProfiles, long now)
 	{
+		// Only the first slice may service a live bootstrap hint. It uses the normal ready slot and work path.
+		if (processedProfiles.isEmpty() && !_bootstrapReady.isEmpty())
+		{
+			final long id = _bootstrapReady.removeFirst();
+			final Slot slot = _slots.get(id);
+			if (slot != null && slot._enqueued && !slot._processing && !slot._localProcessing && !slot._unregisterRequested)
+			{
+				final SourceEntry source = slot._sources.get(PhantomPopulationManager.BOOTSTRAP_SIGNAL_SOURCE);
+				if (source != null && source._signal != null && source._expiresAtNanos > now
+					&& source._signal.requiredState() == PhantomActivityState.WARM && _readyQueue.remove(id))
+				{
+					slot._enqueued = false;
+					return slot;
+				}
+			}
+		}
 		int rotations = _readyQueue.size();
 		while (rotations-- > 0)
 		{
@@ -1518,6 +1545,7 @@ public final class PhantomScheduler
 		{
 			return;
 		}
+		_bootstrapReady.remove(slot._profileId);
 		removeDueLocked(slot);
 		if (slot._enqueued)
 		{
