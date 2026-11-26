@@ -102,6 +102,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		if (System.getProperty("phantom.m1.native.focus", "").equals("population018-admission"))
 		{
 			registry.add("018-unrelated-history-write-preserves-scheduling-snapshot", this::testIndependentHistoryWrite);
+			registry.add("018-preparation-demand-preserves-unchanged-scheduling-facts", this::testIndependentPreparationDemand);
 			registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
 			registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
 			return;
@@ -972,6 +973,38 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		service.updateParticipation(1, false);
 		PhantomAssertions.assertFalse(service.schedulingSnapshotCurrent(snapshot), "A real permission loss reused the old scheduling snapshot.");
 		PhantomAssertions.assertFalse(service.permitsScheduling(1), "Paused participation still permits scheduling.");
+	}
+
+	private void testIndependentPreparationDemand(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:00:00Z");
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(now);
+		final var populations = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var ready = populations.seedReady(1, 1);
+		final var behind = populations.seedReady(2, 1);
+		final var store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(minute(now), Pace.OUTLIER, 10_000, ready.state().scheduleTemplate()));
+		store.insert(2, stateAt(minute(now) - 600, Pace.OUTLIER, 10_000, behind.state().scheduleTemplate()));
+		final var service = service(store, new HistoricalMemoryPort(), new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> Optional.ofNullable(id == 1 ? ready : id == 2 ? behind : null), noEvents());
+		service.register(ready);
+		service.register(behind);
+		loadMetadata(service, 2);
+		service.onPopulationPulse();
+		final var profiles = List.of(1L, 2L);
+		final var snapshot = service.schedulingSnapshot(profiles, now);
+		PhantomAssertions.assertTrue(snapshot.permitted(1) && !snapshot.permitted(2), "Fixture needs one current and one catching-up profile.");
+		final var demand = new PhantomPopulationEcologyService.DemandFact(2, 1, false, Long.MAX_VALUE, 1);
+		service.updateMaterializationDemand(List.of(demand), 1);
+		PhantomAssertions.assertEquals(1, service.preparationSnapshot().admittedPreparationCount(), "The catching-up profile must hold a preparation lease.");
+		PhantomAssertions.assertEquals(snapshot.facts(), service.schedulingSnapshot(profiles, now).facts(), "Preparation unexpectedly changed scheduling permission.");
+		PhantomAssertions.assertTrue(service.schedulingSnapshotCurrent(snapshot), "Preparation of a fenced profile invalidated current ordinary admission.");
+		service.updateMaterializationDemand(List.of(), 1);
+		PhantomAssertions.assertTrue(service.schedulingSnapshotCurrent(snapshot), "Withdrawal of ineffective preparation invalidated current ordinary admission.");
+		clock.set(now.plusSeconds(60));
+		service.requestBackgroundReadiness(1);
+		PhantomAssertions.assertFalse(service.schedulingSnapshotCurrent(snapshot), "The new deadline left an outdated current admission in force.");
 	}
 
 	private void testPeriodicMaterializedBoundary(PhantomTestContext context)

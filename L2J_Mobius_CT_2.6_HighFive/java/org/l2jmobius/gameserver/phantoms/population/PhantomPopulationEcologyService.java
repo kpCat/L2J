@@ -322,6 +322,7 @@ public final class PhantomPopulationEcologyService
 			_preparationSlots = Math.max(0, Math.min(8, availablePreparationSlots));
 			final Map<Long, DemandFact> previous = new HashMap<>(_demandFacts);
 			_demandFacts.clear();
+			final long now = Math.max(0, _clock.millis() / MINUTE_MILLIS);
 			for (DemandFact fact : facts)
 			{
 				final Entry entry = _entries.get(fact.profileId());
@@ -329,33 +330,44 @@ public final class PhantomPopulationEcologyService
 				final DemandFact old = previous.get(fact.profileId());
 				_demandFacts.put(fact.profileId(), old == null ? fact : new DemandFact(fact.profileId(), fact.positionRevision(), fact.couldKnow(), fact.distanceSquared(), old.firstDemandNanos()));
 				entry._liveOwner = live.contains(fact.profileId());
-				if (!entry._materializationDemand) { schedulingChangedLocked(); entry._materializationDemand = true; }
-				final long requested = Math.max(entry._requestedMinute, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
-				if (requested != entry._requestedMinute) { schedulingChangedLocked(); entry._readinessRevision++; entry._requestedMinute = requested; }
+				updateSchedulingDemandLocked(fact.profileId(), entry, true, Math.max(entry._requestedMinute, now), now);
 				if (entry._liveOwner) { queueLocked(fact.profileId()); }
 			}
-			for (long id : previous.keySet()) { if (!_demandFacts.containsKey(id)) { final Entry entry = _entries.get(id); if (entry != null && entry._materializationDemand) { schedulingChangedLocked(); entry._materializationDemand = false; } } }
+			for (long id : previous.keySet())
+			{
+				final Entry entry = _entries.get(id);
+				if (entry != null && !_demandFacts.containsKey(id)) { updateSchedulingDemandLocked(id, entry, false, entry._requestedMinute, now); }
+			}
 			rebuildAdmissionLocked();
 		}
 	}
 
 	private void rebuildAdmissionLocked()
 	{
-		final var previous = Set.copyOf(_admittedPreparation);
-		_admittedPreparation.clear();
+		final Set<Long> next = new HashSet<>();
 		final List<DemandFact> candidates = preparationCandidatesLocked();
 		if ((_preparationSlots > 0) && !candidates.isEmpty())
 		{
 			final long focus = preferredPreparationFocusLocked(candidates);
-			_admittedPreparation.add(focus);
-			candidates.stream().filter(fact -> fact.profileId() != focus).limit(_preparationSlots - 1L).forEach(fact -> _admittedPreparation.add(fact.profileId()));
+			next.add(focus);
+			candidates.stream().filter(fact -> fact.profileId() != focus).limit(_preparationSlots - 1L).forEach(fact -> next.add(fact.profileId()));
+		}
+		if (!_admittedPreparation.equals(next))
+		{
+			final long now = Math.max(0, _clock.millis() / MINUTE_MILLIS);
+			if (_admittedPreparation.stream().anyMatch(id -> !next.contains(id) && preparationChangesSchedulingLocked(id, now))
+				|| next.stream().anyMatch(id -> !_admittedPreparation.contains(id) && preparationChangesSchedulingLocked(id, now)))
+			{
+				schedulingChangedLocked();
+			}
+			_admittedPreparation.clear();
+			_admittedPreparation.addAll(next);
 		}
 		for (long id : List.copyOf(_materializationQueued))
 		{
 			if (!_admittedPreparation.contains(id)) { _materializationQueued.remove(id); _materializationDue.remove(id); queueLocked(id); }
 		}
 		for (long id : _admittedPreparation) { queueMaterializationLocked(id, false); }
-		if (!previous.equals(_admittedPreparation)) { schedulingChangedLocked(); }
 	}
 
 	private List<DemandFact> preparationCandidatesLocked()
@@ -949,7 +961,10 @@ public final class PhantomPopulationEcologyService
 			for (var pair : _entries.entrySet())
 			{
 				final Entry entry = pair.getValue();
-				if (!_startupHistoryOnly && entry._participating && _periodicDueMode) { if (now > entry._requestedMinute) { schedulingChangedLocked(); entry._requestedMinute = now; entry._readinessRevision++; } }
+				if (!_startupHistoryOnly && entry._participating && _periodicDueMode && now > entry._requestedMinute)
+				{
+					updateSchedulingDemandLocked(pair.getKey(), entry, entry._materializationDemand, now, now);
+				}
 				// Batch demand refresh observes the actual owner and preserves its later release edge.
 				if (!_batchAdmission && entry._participating && (entry._stored != null)) { entry._liveOwner = false; }
 				queueLocked(pair.getKey());
@@ -1005,7 +1020,7 @@ public final class PhantomPopulationEcologyService
 			final Entry entry = _entries.get(profileId);
 			if (entry != null)
 			{
-				if (entry._materializationDemand) { schedulingChangedLocked(); entry._materializationDemand = false; }
+				updateSchedulingDemandLocked(profileId, entry, false, entry._requestedMinute, Math.max(0, _clock.millis() / MINUTE_MILLIS));
 				_materializationQueued.remove(profileId);
 				_materializationDue.remove(profileId);
 				queueLocked(profileId);
@@ -1050,7 +1065,7 @@ public final class PhantomPopulationEcologyService
 			{
 				_periodicOverdueCalls++;
 			}
-			if (targetMinute > entry._requestedMinute) { schedulingChangedLocked(); entry._requestedMinute = targetMinute; entry._readinessRevision++; }
+			if (targetMinute > entry._requestedMinute) { updateSchedulingDemandLocked(profileId, entry, entry._materializationDemand, targetMinute, sampledMinute); }
 			demand = _currentDemand;
 			revision = _schedulingRevision;
 			demandRevision = _demandRevision;
@@ -1071,7 +1086,7 @@ public final class PhantomPopulationEcologyService
 			if (materializationDue && (!_batchAdmission || _admittedPreparation.contains(profileId)) && currentDemand && !entry._terminal && (_wakeFailure == null) && _populationPlanApplied && _inventoryReady && !_metadataDraining
 				&& (state != null) && (state.disposition() == Disposition.MANAGED) && unclaimedNativePrerequisite(entry, state))
 			{
-				entry._materializationDemand = true;
+				updateSchedulingDemandLocked(profileId, entry, true, entry._requestedMinute, sampledMinute);
 				return new DueReconciliation(true, 0, "ecology.native_materialization_required");
 			}
 			// Foreground supplies the missing native context; the pending history remains fenced.
@@ -1080,14 +1095,14 @@ public final class PhantomPopulationEcologyService
 				&& historical.requestId().equals(state.currentRequestId()) && (historical.fromEpochMinute() == state.calendarCursorEpochMinute()) && (historical.targetEpochMinute() == state.currentWindowTargetEpochMinute())
 				&& (historical.status() != Status.COMPLETE) && PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure))
 			{
-				entry._materializationDemand = true;
+				updateSchedulingDemandLocked(profileId, entry, true, entry._requestedMinute, sampledMinute);
 				return new DueReconciliation(true, 0, "ecology.native_materialization_required", org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest.nativeContextHandoff(historical.requestId()));
 			}
 			final DueSnapshot snapshot = dueSnapshotLocked(profileId, entry);
 			if (!snapshot.complete() && !entry._terminal)
 			{
 				_periodicBlockedCalls++;
-				entry._materializationDemand |= materializationDue;
+				if (materializationDue) { updateSchedulingDemandLocked(profileId, entry, true, entry._requestedMinute, sampledMinute); }
 				if (entry._materializationDemand) { queueMaterializationLocked(profileId, false); }
 				else { queueLocked(profileId); }
 			}
@@ -1520,10 +1535,36 @@ public final class PhantomPopulationEcologyService
 
 	private boolean permitsSchedulingLocked(long profileId, Entry entry, PhantomPopulationEcologyState state, long now)
 	{
+		return permitsSchedulingLocked(entry, state, now, entry._requestedMinute, entry._materializationDemand && _admittedPreparation.contains(profileId));
+	}
+
+	private boolean permitsSchedulingLocked(Entry entry, PhantomPopulationEcologyState state, long now, long requestedMinute, boolean nativePreparation)
+	{
 		return !_stopping && _populationPlanApplied && _inventoryReady && !_metadataDraining && entry._participating && (state != null) && (state.disposition() == Disposition.MANAGED)
 			&& state.initialCatchupComplete() && !state.requestPending()
-			&& ((state.calendarCursorEpochMinute() >= entry._requestedMinute && (_periodicDueMode || state.calendarCursorEpochMinute() >= now))
-				|| !entry._terminal && _wakeFailure == null && entry._materializationDemand && _admittedPreparation.contains(profileId) && unclaimedNativePrerequisite(entry, state));
+			&& ((state.calendarCursorEpochMinute() >= requestedMinute && (_periodicDueMode || state.calendarCursorEpochMinute() >= now))
+				|| !entry._terminal && _wakeFailure == null && nativePreparation && unclaimedNativePrerequisite(entry, state));
+	}
+
+	private void updateSchedulingDemandLocked(long profileId, Entry entry, boolean materializationDemand, long requestedMinute, long now)
+	{
+		if (entry._materializationDemand == materializationDemand && entry._requestedMinute == requestedMinute) { return; }
+		final var state = entry._stored == null ? null : entry._stored.state();
+		if (permitsSchedulingLocked(profileId, entry, state, now) != permitsSchedulingLocked(entry, state, now, requestedMinute, materializationDemand && _admittedPreparation.contains(profileId)))
+		{
+			schedulingChangedLocked();
+		}
+		if (entry._requestedMinute != requestedMinute) { entry._readinessRevision++; }
+		entry._requestedMinute = requestedMinute;
+		entry._materializationDemand = materializationDemand;
+	}
+
+	private boolean preparationChangesSchedulingLocked(long profileId, long now)
+	{
+		final Entry entry = _entries.get(profileId);
+		if (entry == null || !entry._materializationDemand || entry._stored == null) { return false; }
+		final var state = entry._stored.state();
+		return permitsSchedulingLocked(entry, state, now, entry._requestedMinute, false) != permitsSchedulingLocked(entry, state, now, entry._requestedMinute, true);
 	}
 	/** Native context is a bounded physical prerequisite, never completion of unelapsed historical time. */
 	private static boolean unclaimedNativePrerequisite(Entry entry, PhantomPopulationEcologyState state)
