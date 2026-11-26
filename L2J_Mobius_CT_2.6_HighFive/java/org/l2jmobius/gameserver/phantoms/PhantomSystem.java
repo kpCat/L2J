@@ -1003,6 +1003,7 @@ public final class PhantomSystem
 				final PhantomCandidateRegistry candidateRegistry = new PhantomCandidateRegistry();
 				final var ordinaryPreference = new org.l2jmobius.gameserver.phantoms.population.PhantomOrdinaryActivityPreference(
 					id -> _populationEcology == null ? null : _populationEcology.find(id).orElse(null), socialCatalog);
+				partyBackend.installFarmAccessPolicy(backgroundPlanner::permitsPartyFarmActor);
 				farmingDecision.registerCandidates(candidateRegistry);
 				acquisitionDecision.registerCandidates(candidateRegistry);
 				economyDecision.registerCandidates(candidateRegistry);
@@ -1120,6 +1121,15 @@ public final class PhantomSystem
 								return nativePartyDestination(root.selectedAnchor());
 							}
 							@Override
+							public boolean requiresArrivalBeforeFormation(PhantomDomainRef source)
+							{ return backgroundPlanner.conditionalPartySource(source); }
+							@Override
+							public boolean retainsArrivalAccess(MemberRef actor, PhantomDomainRef source)
+							{
+								final var player = World.getInstance().getPlayer(actor.characterObjectId());
+								return player != null && backgroundPlanner.permitsPartyFarmActor(source, player);
+							}
+							@Override
 							public java.util.Optional<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> nativePartyDestination(PhantomDomainRef anchor)
 							{
 								return anchor == null ? java.util.Optional.empty() : farmRouteAnchor.apply(anchor.key());
@@ -1201,7 +1211,7 @@ public final class PhantomSystem
 								: _populationManager.admissionProfile(id).filter(fact -> fact.calendarOnline() && fact.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).isPresent()
 									&& "none".equals(presence.busyReason(id));
 						};
-						final var candidate = _historicalBackgroundService.previewLogicalRendezvous(id, _decisionEngine, eligible, guards);
+						final var candidate = _historicalBackgroundService.previewLogicalRendezvous(id, _decisionEngine, eligible, guards, ordinaryPreference.party(id));
 						if (candidate != null) { candidates.add(candidate); }
 					}
 					return new PhantomAutonomousFarmParty.LogicalPage(candidates, page.isEmpty() ? 0 : page.getLast().profile().profileId());

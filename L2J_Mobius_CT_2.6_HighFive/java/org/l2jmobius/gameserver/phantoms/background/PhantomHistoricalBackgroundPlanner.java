@@ -68,12 +68,14 @@ public final class PhantomHistoricalBackgroundPlanner
 	private static final int MAXIMUM_OFFSCREEN_NATIVE_PROOFS = 256;
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
+	private final PhantomSsqFarmAccess _ssq;
 	private final PhantomBackgroundAuthority _authority;
 
 	public PhantomHistoricalBackgroundPlanner(PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomBackgroundAuthority authority)
 	{
 		_knowledge = Objects.requireNonNull(knowledge, "knowledge");
 		_topology = Objects.requireNonNull(topology, "topology");
+		_ssq = new PhantomSsqFarmAccess(_topology);
 		_authority = Objects.requireNonNull(authority, "authority");
 	}
 
@@ -251,6 +253,77 @@ public final class PhantomHistoricalBackgroundPlanner
 				&& availability.computeIfAbsent(candidate.anchor().id(), _ -> availableAnchor.test(candidate.anchor())), new java.util.HashMap<>(), null,
 			PhantomNavigationPolicy.productionDefaults().maximumRouteDistance());
 	}
+
+	boolean conditionalFarm(PhantomGoal goal)
+	{
+		return goal.selectedAnchor() != null && _topology.findAnchor(goal.selectedAnchor().key()).filter(PhantomSsqFarmAccess::closedAnchor).isPresent();
+	}
+
+	public boolean conditionalPartySource(PhantomDomainRef source)
+	{
+		return _ssq.sites().containsKey(rendezvousSource(source).anchorId());
+	}
+
+	boolean remainsConditionalSuitable(PhantomBackgroundState state, PhantomGoal goal)
+	{
+		final var spec = PhantomBackgroundGoalSpec.parse(goal);
+		final var site = _ssq.sites().get(spec.anchorId());
+		return site != null && state.hashes().equals(_authority.hashes())
+			&& partyTarget(state.progress().level(), spec, site.farm()) != null
+			&& _authority.viableTarget(PlanningCombat.from(state), spec.npcId());
+	}
+
+	Result replanVisibleSsq(long id, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
+		PhantomTopologyPoint live, Set<String> excluded, java.util.function.Predicate<PhantomGoal> admitted)
+	{
+		for (var source : conditionalSources(state, live))
+		{
+			if (excluded.contains(source.key())) { continue; }
+			final var spec = rendezvousSource(source);
+			if (!_authority.viableTarget(PlanningCombat.from(state), spec.npcId())) { continue; }
+			final var result = rendezvousTravelProposal(id, state, previous, seed, ordinal, live, source, spec, spec.anchorId(), List.of());
+			if (admitted.test(result.goal())) { return result; }
+		}
+		return Result.blocked("planner.ssq.no_admitted_source");
+	}
+
+	private List<PhantomDomainRef> conditionalSources(PhantomBackgroundState state, PhantomTopologyPoint live)
+	{
+		return _ssq.sites().values().stream().sorted(Comparator.comparingDouble((PhantomSsqFarmAccess.Site site) -> site.farm().point().distance3D(live))
+			.thenComparing(site -> site.farm().id()))
+			.filter(site -> conditionalRouteCost(state, live, site) != null)
+			.flatMap(site -> _knowledge.snapshot().npcsByTopologyNode().getOrDefault(site.farm().nodeId(), List.of()).stream()
+				.map(npc -> new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, npc.npcId() + "@" + site.farm().id()))
+				.filter(source -> partyTarget(state.progress().level(), rendezvousSource(source), site.farm()) != null))
+			.distinct().limit(16).toList();
+	}
+
+	private RouteCost conditionalRouteCost(PhantomBackgroundState state, PhantomTopologyPoint live, PhantomSsqFarmAccess.Site site)
+	{
+		if (live.instanceId() != 0) { return null; }
+		final int objectId = state.identity().characterObjectId();
+		final var player = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(objectId);
+		if (!site.permits(player, objectId)) { return null; }
+		final var origin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(live.x(), live.y(), live.z(), live.instanceId());
+		if (player != null && player.isIn7sDungeon())
+		{
+			final var interior = _ssq.inside(origin);
+			return interior != null && interior.entryNpcId() == site.entryNpcId()
+				? new RouteCost((long) Math.ceil(live.distance3D(site.farm().point())), 0, 0, 0) : null;
+		}
+		// A stored underground anchor still needs a fresh native lifetime before planning ingress.
+		if (player == null && _ssq.sites().containsKey(state.position().committedAnchorId())) { return null; }
+		final var gate = _ssq.entryFrom(site, origin);
+		if (gate == null) { return null; }
+		final long walking = (long) Math.ceil(origin.distanceTo(gate.approach()) + site.landing().point().distance3D(site.farm().point()));
+		return new RouteCost(walking, 0, 1, 0);
+	}
+
+	private static PhantomTopologyPoint position(PhantomBackgroundState state)
+	{
+		final var position = state.position();
+		return new PhantomTopologyPoint(position.x(), position.y(), position.z(), position.instanceId());
+	}
 	/** Select only the agreed farm source through the existing bounded target/route planner. */
 	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomTopologyPoint live, PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted)
@@ -326,6 +399,13 @@ public final class PhantomHistoricalBackgroundPlanner
 	{
 		final var spec = rendezvousSource(source); final var destination = _topology.findAnchor(spec.anchorId()).orElse(null);
 		if (destination == null || destination.role() != PhantomTopologyAnchorRole.FARMING || destination.point().instanceId() != live.instanceId()) { return Result.blocked("planner.rendezvous.ingress_unknown"); }
+		if (PhantomSsqFarmAccess.closedAnchor(destination))
+		{
+			final var conditional = _ssq.sites().get(destination.id());
+			return conditional != null && partyTarget(state.progress().level(), spec, destination) != null && conditionalRouteCost(state, live, conditional) != null
+				? rendezvousTravelProposal(profileId, state, previous, seed, ordinal, live, source, spec, destination.id(), List.of())
+				: Result.blocked("planner.ssq.access_unavailable");
+		}
 		final var ingress = rendezvousIngress(state, destination, live, excludedSteps, anchor -> _authority.nativeIngressPositionKnown(anchor, state.position().heading()));
 		if (ingress == null) { return Result.blocked("planner.rendezvous.ingress_unknown"); }
 		if (partyTarget(state.progress().level(), spec, destination) == null) { return Result.blocked("planner.rendezvous.target_unavailable"); }
@@ -436,6 +516,11 @@ public final class PhantomHistoricalBackgroundPlanner
 		final var origin = new PhantomTopologyPoint(position.x(), position.y(), position.z(), position.instanceId());
 		final var band = PhantomPartyFarmEligibility.forMember(state.progress().level());
 		final var nearby = new java.util.LinkedHashSet<PhantomDomainRef>();
+		for (var source : conditionalSources(state, origin))
+		{
+			if (!excludedTargets.contains(source.key()) && admitted.test(source)) { nearby.add(source); }
+			if (nearby.size() >= 4) { break; }
+		}
 		final int localDistance = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance();
 		for (var anchor : _topology.nearestAnchors(origin, PhantomTopologyAnchorRole.FARMING, 16, localDistance))
 		{
@@ -476,6 +561,8 @@ public final class PhantomHistoricalBackgroundPlanner
 	{
 		final var spec = rendezvousSource(source);
 		if (partyTarget(state.progress().level(), spec, _topology.findAnchor(spec.anchorId()).orElse(null)) == null) { return Optional.empty(); }
+		final var conditional = _ssq.sites().get(spec.anchorId());
+		if (conditional != null) { return Optional.ofNullable(conditionalRouteCost(state, position(state), conditional)); }
 		final var itinerary = rendezvousItinerary(state, source, Set.of(), adena);
 		if (!itinerary.available()) { return Optional.empty(); }
 		final var origin = state.position();
@@ -526,6 +613,18 @@ public final class PhantomHistoricalBackgroundPlanner
 			&& anchor.point().distance3D(point) <= org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE
 			&& _knowledge.snapshot().spawnAreasByNpc().getOrDefault(npcId, List.of()).stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && anchor.nodeId().equals(area.topologyNodeId()));
 	}
+
+	public boolean permitsPartyFarmActor(PhantomDomainRef source, org.l2jmobius.gameserver.model.actor.Player player)
+	{
+		final var spec = rendezvousSource(source);
+		final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
+		if (anchor == null) { return false; }
+		if (!PhantomSsqFarmAccess.closedAnchor(anchor)) { return true; }
+		final var site = _ssq.sites().get(anchor.id());
+		if (site == null || !player.isIn7sDungeon() || !site.permits(player, player.getObjectId())) { return false; }
+		final var interior = _ssq.inside(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player));
+		return interior != null && interior.entryNpcId() == site.entryNpcId();
+	}
 	/** Explicit concrete encounter witness; never contributes to global partySourceAvailable/rendezvous planning. */
 	public boolean localEncounterTarget(PhantomDomainRef source,
 		org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact fact,
@@ -564,6 +663,13 @@ public final class PhantomHistoricalBackgroundPlanner
 		final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
 		if (state == null || anchor == null || anchor.role() != PhantomTopologyAnchorRole.FARMING) { return new RendezvousItinerary(RendezvousRoute.UNKNOWN, "", List.of()); }
 		if (anchor.point().instanceId() != 0 || state.position().instanceId() != 0) { return new RendezvousItinerary(RendezvousRoute.DEFINITIVELY_UNREACHABLE, "", List.of()); }
+		if (PhantomSsqFarmAccess.closedAnchor(anchor))
+		{
+			final var conditional = _ssq.sites().get(anchor.id());
+			return conditional == null || conditionalRouteCost(state, position(state), conditional) == null
+				? new RendezvousItinerary(RendezvousRoute.TEMPORARILY_BLOCKED, "", List.of())
+				: new RendezvousItinerary(RendezvousRoute.REACHABLE_VIA_INGRESS, anchor.id(), List.of());
+		}
 		final var travel = _authority.travelQuery(_topology);
 		final String departure = state.position().committedAnchorId();
 		final var position = state.position();
@@ -998,6 +1104,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return null;
 		}
+		if (PhantomSsqFarmAccess.closedAnchor(anchor)) { return null; }
 		final PhantomNormalGatekeeperTravel travel = _authority.travelQuery(_topology);
 		final List<PhantomNormalGatekeeperTravel.Step> route = travel.route(currentAnchorId, anchorId).orElse(null);
 		if (route == null && allowOffscreen)
@@ -1036,7 +1143,7 @@ public final class PhantomHistoricalBackgroundPlanner
 				if ((area.instanceId() != live.instanceId()) || (area.totalConfiguredAmount() <= 0) || (area.topologyNodeId() == null)) { continue; }
 				for (var anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
 				{
-					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (visibleFarmDistance(anchor, live, recoveryWalkDistance) <= maximumSquared)
+					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && !PhantomSsqFarmAccess.closedAnchor(anchor) && (visibleFarmDistance(anchor, live, recoveryWalkDistance) <= maximumSquared)
 						&& ((anchor.npcId() == null) || (anchor.npcId() == target.npc().npcId())))
 					{
 						final var candidate = new Candidate(target, anchor, List.of(), 0, 0);

@@ -53,12 +53,20 @@ public final class PhantomLogicalPartyCoordinator
 		}
 	}
 	private record FormationSource(PhantomDomainRef source, List<PhantomLogicalParty.Member> roster, List<Integer> levels, RouteCost cost) { }
+	private record ReachablePeer(Candidate candidate, RouteCost cost) { }
 
 	public record Candidate(PhantomLogicalParty.Member member, int level, List<PhantomDomainRef> sources,
 		java.util.function.Predicate<PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
 		java.util.function.Function<java.util.function.Predicate<PhantomDomainRef>, List<PhantomDomainRef>> sourcesMatching,
-		java.util.function.Supplier<List<PhantomProfileComponent>> commitGuards, java.util.function.Function<PhantomDomainRef, Optional<RouteCost>> routeCost)
+		java.util.function.Supplier<List<PhantomProfileComponent>> commitGuards, java.util.function.Function<PhantomDomainRef, Optional<RouteCost>> routeCost,
+		int preference)
 	{
+		public Candidate(PhantomLogicalParty.Member member, int level, List<PhantomDomainRef> sources,
+			java.util.function.Predicate<PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
+			java.util.function.Function<java.util.function.Predicate<PhantomDomainRef>, List<PhantomDomainRef>> sourcesMatching,
+			java.util.function.Supplier<List<PhantomProfileComponent>> commitGuards, java.util.function.Function<PhantomDomainRef, Optional<RouteCost>> routeCost)
+		{ this(member, level, sources, reachable, current, durableCurrent, sourcesMatching, commitGuards, routeCost, 0); }
+
 		public Candidate(PhantomLogicalParty.Member member, int level, List<PhantomDomainRef> sources,
 			java.util.function.Predicate<PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
 			java.util.function.Function<java.util.function.Predicate<PhantomDomainRef>, List<PhantomDomainRef>> sourcesMatching,
@@ -164,7 +172,9 @@ public final class PhantomLogicalPartyCoordinator
 			if (!leader.current().getAsBoolean() || leader.member().role().equals("pending.native_role")) { continue; }
 			final var peers = candidates.stream().filter(peer -> peer.member().profileId() != leader.member().profileId()
 				&& !peer.member().role().equals("pending.native_role") && Math.abs(peer.level() - leader.level()) <= 8
-				&& peer.current().getAsBoolean() && seeking.test(peer.member().profileId(), peer.level())).sorted(java.util.Comparator.comparingLong(peer -> peer.member().profileId())).toList();
+				&& peer.current().getAsBoolean() && seeking.test(peer.member().profileId(), peer.level()))
+				.sorted(Comparator.comparing((Candidate peer) -> peer.member().role().equals(leader.member().role()))
+					.thenComparing(Comparator.comparingInt(Candidate::preference).reversed()).thenComparingLong(peer -> peer.member().profileId())).toList();
 			if (peers.isEmpty()) { continue; }
 			hasPeers = true;
 			final var sources = leader.sourcesMatching().apply(source -> peers.stream().anyMatch(peer -> peer.reachable().test(source)));
@@ -227,16 +237,30 @@ public final class PhantomLogicalPartyCoordinator
 			if (cost == null) { continue; }
 			final var roster = new ArrayList<PhantomLogicalParty.Member>(); roster.add(leader.member());
 			final var levels = new ArrayList<Integer>(); levels.add(leader.level());
-			// Eligibility and full route admission precede the final roster cap.
+			final var options = new ArrayList<ReachablePeer>();
 			for (var peer : peers)
 			{
-				final var proposed = new ArrayList<>(levels); proposed.add(peer.level());
+				peer.routeCost().apply(source).ifPresent(peerCost -> options.add(new ReachablePeer(peer, peerCost)));
+				if (options.size() == 16) { break; }
+			}
+			final var roles = new java.util.HashSet<String>();
+			roles.add(leader.member().role());
+			while (roster.size() < 9 && !options.isEmpty())
+			{
+				final var chosen = options.stream().min(Comparator.comparing((ReachablePeer peer) -> peer.cost().requiresExtendedTravel())
+					.thenComparing(peer -> roles.contains(peer.candidate().member().role())).thenComparing(ReachablePeer::cost, RouteCost.ORDER)
+					.thenComparing(Comparator.comparingInt((ReachablePeer peer) -> peer.candidate().preference()).reversed())
+					.thenComparingInt(peer -> Math.abs(peer.candidate().level() - leader.level()))
+					.thenComparingLong(peer -> peer.candidate().member().profileId())).orElseThrow();
+				options.remove(chosen);
+				final var peer = chosen.candidate();
+				final var proposed = new ArrayList<>(levels);
+				proposed.add(peer.level());
 				if (PhantomPartyFarmEligibility.forRoster(proposed).isEmpty()) { continue; }
-				final var peerCost = peer.routeCost().apply(source).orElse(null);
-				if (peerCost == null) { continue; }
-				cost = cost.include(peerCost);
-				roster.add(peer.member()); levels.add(peer.level());
-				if (roster.size() == 9) { break; }
+				cost = cost.include(chosen.cost());
+				roles.add(peer.member().role());
+				roster.add(peer.member());
+				levels.add(peer.level());
 			}
 			if (roster.size() >= 2) { ranked.add(new FormationSource(source, roster, levels, cost)); }
 		}

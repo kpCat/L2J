@@ -1745,7 +1745,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	/** Durable social discovery reads bounded background/profile facts and requires no World Player or native lease. */
 	public org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate previewLogicalRendezvous(long id,
-		PhantomDecisionEngine decision, java.util.function.BooleanSupplier eligible, List<PhantomProfileComponent> populationGuards)
+		PhantomDecisionEngine decision, java.util.function.BooleanSupplier eligible, List<PhantomProfileComponent> populationGuards, int preference)
 	{
 		if (_foregroundDecisionsRevoked || !eligible.getAsBoolean()) { return null; }
 		final var stored = _goals.load(id).orElse(null); final var state = _background.acquisitionSnapshot(id).orElse(null); final var history = _store.load(id).orElse(null);
@@ -1770,7 +1770,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				&& role.equals(potentialPartyRole(id, state)) && adena.equals(partyTravelAdena(id, state)) && logicalOwnershipClear(id),
 			admitted -> _planner.rendezvousSourcesForRole(id, state, root, Set.of(), Set.of(), role, admitted, travelFunds),
 			() -> logicalFormationGuards(id, stored, state, history, populationGuards),
-			source -> _planner.partyRouteCost(state, source, travelFunds));
+			source -> _planner.partyRouteCost(state, source, travelFunds), preference);
 	}
 
 	private boolean logicalOwnershipClear(long id)
@@ -2100,7 +2100,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				final boolean local = _planner.isVisibleLocal(stored.goal(), live);
 				// A lawful assigned farm may differ from the last committed departure anchor.
 				// Keep that goal for the existing native travel owner; never claim arrival here.
-				if (local ? _planner.remainsVisibleSuitable(projected, stored.goal(), live)
+				final boolean conditional = _planner.conditionalFarm(stored.goal());
+				if (conditional ? _visibleTravel != null && _planner.remainsConditionalSuitable(projected, stored.goal())
+					&& _visibleTravel.permitsPlannedFarmTravel(stored.goal(), live, player)
+					: local ? _planner.remainsVisibleSuitable(projected, stored.goal(), live)
 					: (_visibleTravel != null) && _planner.remainsSuitable(projected, stored.goal())
 						&& _visibleTravel.permitsPlannedFarmTravel(stored.goal(), live, player)) { prepared = true; return true; }
 			}
@@ -2129,7 +2132,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (routeRecovery && !historicalIdle) { excluded.add(targetKey(stored.goal())); }
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
 			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate ->
-				_planner.isVisibleLocal(candidate, live)
+				(!_planner.conditionalFarm(candidate) && _planner.isVisibleLocal(candidate, live))
 					|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player));
 			final boolean travelOnly = rendezvousTravelPreparation(profileId, stored.goal(), sharedFarmSource != null);
 			Map<Integer, List<PhantomTopologyPoint>> selectableTargets = null;
@@ -2155,6 +2158,22 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					: _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, selectableTargets))
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
+			if (!spatialRecovery && sharedFarmSource == null && _visibleTravel != null
+				&& (!replacement.ready() || !_planner.isVisibleLocal(replacement.goal(), live)))
+			{
+				final var exit = _visibleTravel.ssqExitOrigin(player);
+				if (exit != null && !replacement.ready())
+				{
+					replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(),
+						nextOrdinal, exit, excluded, exclusions.steps(), permitsTravel);
+				}
+				else if (exit == null)
+				{
+					final var conditional = _planner.replanVisibleSsq(profileId, projected, stored.goal(), catchup.state().deterministicSeed(),
+						nextOrdinal, live, excluded, permitsTravel);
+					if (conditional.ready()) { replacement = conditional; }
+				}
+			}
 			if (!replacement.ready() && sharedFarmSource == null && _visibleTravel != null
 				&& (returned || needsRecoveryApproach(spatialRecovery, exactRouteRecovery, historicalIdle, catchup.state().status())))
 			{

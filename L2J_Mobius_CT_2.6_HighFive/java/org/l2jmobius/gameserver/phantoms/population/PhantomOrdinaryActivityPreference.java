@@ -56,6 +56,28 @@ public final class PhantomOrdinaryActivityPreference
 		return rank(profileId, false, false, playerTrade);
 	}
 
+	/** A soft roster preference after lawful admission. */
+	public int party(long profileId)
+	{
+		final var profile = _find.apply(profileId);
+		if (profile == null || profile.disposition() != Disposition.MANAGED) { return 0; }
+		final int personality = switch (profile.personality())
+		{
+			case SOCIAL -> 8;
+			case COMPETITIVE -> 4;
+			case CAUTIOUS -> -4;
+			default -> 0;
+		};
+		final int pace = switch (profile.pace())
+		{
+			case CASUAL -> -2;
+			case REGULAR -> 0;
+			case FAST, OUTLIER -> 2;
+		};
+		return personality + pace + (profile.initialSocialTraits().getOrDefault(_persistenceCode, 0)
+			- profile.initialSocialTraits().getOrDefault(_cautionCode, 0)) / 2500;
+	}
+
 	private int rank(long profileId, boolean farm, boolean continuing, boolean playerTrade)
 	{
 		final var profile = _find.apply(profileId);

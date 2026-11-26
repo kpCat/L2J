@@ -498,6 +498,10 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		}
 		final PhantomGameKnowledgeSnapshot knowledge = _knowledge.get().snapshot();
 		final PhantomTopologyAnchor anchor = _topology.get().findAnchor(goal.anchorId()).orElseThrow(() -> new FarmInputRejected(FarmInputFailure.POSITION_STALE, "farm.anchor_absent"));
+		if (PhantomSsqFarmAccess.closedAnchor(anchor))
+		{
+			throw new FarmInputRejected(FarmInputFailure.POSITION_STALE, "farm.ssq_requires_native");
+		}
 		if ((anchor.point().instanceId() != 0) || !anchor.id().equals(state.position().committedAnchorId()) || !atCanonicalAnchor(state.position(), anchor))
 		{
 			throw new FarmInputRejected(FarmInputFailure.POSITION_STALE, "farm.position_not_canonical");
@@ -699,7 +703,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
     @Override public boolean canFarmAt(Position position, PhantomBackgroundGoalSpec goal)
     {
         final var anchor = _topology.get().findAnchor(goal.anchorId()).orElse(null);
-        return anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && atCanonicalAnchor(position, anchor);
+        return anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && !PhantomSsqFarmAccess.closedAnchor(anchor) && atCanonicalAnchor(position, anchor);
     }
 
     @Override
@@ -1626,7 +1630,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final var anchor = topology.findAnchor(captured.position().committedAnchorId()).orElseThrow(() -> new IllegalArgumentException("Native context anchor is absent."));
 		final var vitality = nativeContext(player);
         final boolean ordinaryContext = persistenceContextAllowed(false, player.isInCombat(), player.getKarma());
-        final boolean farmPosition = livePositionAllowed(topology, player, anchor);
+        final boolean farmPosition = !PhantomSsqFarmAccess.closedAnchor(anchor) && livePositionAllowed(topology, player, anchor);
         return new PhantomNativeContext.Capture(vitality.vitalityPoints(), farmPosition ? vitality.eligibility()
             : PhantomNativeContext.Eligibility.POSITION_REQUIRES_NATIVE,
             vitality.policy().withPosition(ordinaryContext && farmPosition, ordinaryContext && captured.position().instanceId() == 0));

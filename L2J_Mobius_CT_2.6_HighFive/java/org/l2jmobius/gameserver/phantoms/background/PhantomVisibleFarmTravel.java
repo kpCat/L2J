@@ -82,6 +82,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private final java.util.concurrent.atomic.AtomicLong _signalSequence = new java.util.concurrent.atomic.AtomicLong();
 	private volatile java.util.function.LongFunction<java.util.Set<String>> _routeExclusions = _ -> java.util.Set.of();
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _groupTravelSafety = (_, _) -> false;
+	private final PhantomSsqFarmAccess _ssq;
 
 	/** Restrictive geometry only; the current Journey still owns its root, epoch and finite budget. */
 	public void bindGroupTravelSafety(java.util.function.BiPredicate<Long, PhantomGoal> assembly)
@@ -98,6 +99,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		final var anchor = _travel.topology().findAnchor(PhantomBackgroundGoalSpec.parse(goal).anchorId()).orElse(null);
 		if (anchor == null || anchor.point().instanceId() != live.instanceId()) { return false; }
+		if (PhantomSsqFarmAccess.closedAnchor(anchor) && !permitsConditionalFarm(player, anchor.id())) { return false; }
 		if (Math.hypot((long) live.x()-anchor.point().x(),(long) live.y()-anchor.point().y()) <= _navigation.policy().maximumLocalStraightDistance()) { return true; }
 		if (player == null || !PhantomNativeTravelActions.ordinary(player)) { return false; }
 		final var lifetime = _materialization.findByCharacterObjectId(player.getObjectId()).orElse(null);
@@ -115,6 +117,27 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		// A topology itinerary admits work, never movement or arrival. Each segment still
 		// needs the existing physical planner, actual native action and owned checkpoint.
 		return proposedStep(player, state.position().committedAnchorId(), anchor.id(), true) != null;
+	}
+
+	PhantomTopologyPoint ssqExitOrigin(Player player)
+	{
+		if (!player.isIn7sDungeon()) { return null; }
+		final var site = _ssq.inside(PhantomNativeTravelActions.point(player));
+		final var exit = site == null ? null : _ssq.gate(site, false);
+		if (exit == null) { return null; }
+		final var point = exit.landing();
+		return new PhantomTopologyPoint(point.x(), point.y(), point.z(), point.instanceId());
+	}
+
+	boolean permitsConditionalFarm(Player player, String destination)
+	{
+		final var site = _ssq.sites().get(destination);
+		if (site == null) { return _travel.topology().findAnchor(destination).filter(PhantomSsqFarmAccess::closedAnchor).isEmpty(); }
+		if (player == null || !site.permits(player, player.getObjectId())) { return false; }
+		final var point = PhantomNativeTravelActions.point(player);
+		final var inside = player.isIn7sDungeon() ? _ssq.inside(point) : null;
+		if (inside != null) { return inside.entryNpcId() == site.entryNpcId(); }
+		return !player.isIn7sDungeon() && _ssq.entryFrom(site, point) != null;
 	}
 
 	/** Read-only admission before the history owner's atomic predecessor-to-replacement CAS. */
@@ -661,6 +684,16 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private PhantomNormalGatekeeperTravel.Step proposedStep(Player player, String committedAnchorId, String destination, boolean recoverOffAnchor)
 	{
+		final var access = _ssq;
+		final var site = access.sites().get(destination);
+		final var point = PhantomNativeTravelActions.point(player);
+		final var interior = player.isIn7sDungeon() ? access.inside(point) : null;
+		if (!permitsConditionalFarm(player, destination)) { return null; }
+		if ((site != null && !player.isIn7sDungeon()) || (site == null && interior != null))
+		{
+			return new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND,
+				"native.ssq." + destination, committedAnchorId, destination, 0, null);
+		}
 		final var departure = departure(player, committedAnchorId);
 		final var live = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 		final var local = localFarmApproach(_travel.topology().findAnchor(destination).orElse(null),
@@ -808,6 +841,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		_background = Objects.requireNonNull(background);
 		_travel = Objects.requireNonNull(travel);
 		_navigation = Objects.requireNonNull(navigation);
+		_ssq = new PhantomSsqFarmAccess(_travel.topology());
 		_farmSearches = new PhantomFarmRouteBackoff(navigation.policy().maximumTrackedProfiles(), this::provenSearchTraversals, PhantomVisibleFarmTravel::sameSearchSurface);
 		_permitsOrdinary = Objects.requireNonNull(permitsOrdinary);
 		_signals = Objects.requireNonNull(signals);
@@ -1055,6 +1089,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return false;
 			}
 			final var targetAnchor = _travel.topology().findAnchor(spec.anchorId()).orElse(null);
+			final var ssqTarget = _ssq.sites().get(spec.anchorId());
+			final boolean routeRequired = ssqTarget != null && !player.isIn7sDungeon()
+				|| ssqTarget == null && player.isIn7sDungeon() && _ssq.inside(PhantomNativeTravelActions.point(player)) != null;
 			final var existingAttempt = _attempts.get(profileId);
 			final boolean sameAnchor = state.position().committedAnchorId().equals(spec.anchorId());
 			Journey journey = _journeys.get(profileId);
@@ -1065,8 +1102,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			if (yieldDryWalkForCombat(profileId, goal, player, epoch)) { return false; }
 			if (journey != null) { publishNativeArrival(profileId, journey, player); }
+			if (targetAnchor != null && PhantomSsqFarmAccess.closedAnchor(targetAnchor) && !permitsConditionalFarm(player, spec.anchorId()))
+			{
+				final var denied = attempt(profileId, goal, player, epoch);
+				if (denied != null && !denied.terminal) { fail(profileId, denied, "", "travel.ssq_access_unavailable", Disposition.ROUTE_UNUSABLE); }
+				return false;
+			}
 			// A stand-point receipt forbids that route, not a fresh independently proven native target.
-			if (!idle && sameAnchor && (targetAnchor != null) && hasLocalOpportunity(profileId, player, targetAnchor, spec.npcId()))
+			if (!routeRequired && !idle && sameAnchor && (targetAnchor != null) && hasLocalOpportunity(profileId, player, targetAnchor, spec.npcId()))
 			{
 				if (journey != null) { remove(profileId, journey); }
 				return true;
@@ -1079,14 +1122,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			// Same-anchor local execution can discover a lawful target before its exact action position is ready.
 			// Travel releases only its own route; the Session controller then owns any approach.
-			if (!idle && sameAnchor && targetAnchor != null && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor)
+			if (!routeRequired && !idle && sameAnchor && targetAnchor != null && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor)
 				&& isUsableLocalFarmPosition(player, targetAnchor)
 				&& _engagementPlanner.inspect(player, spec.npcId(), java.util.Set.of(), _ -> 0).kind() != PhantomEngagementPlanner.Kind.UNAVAILABLE)
 			{
 				if (journey != null) { remove(profileId, journey); }
 				return true;
 			}
-			if ((journey == null || (journey.dryRecovery == null && !journey.ordinaryWalkEpisodes())) && (targetAnchor != null) && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor) && isUsableLocalFarmPosition(player, targetAnchor))
+			if (!routeRequired && (journey == null || (journey.dryRecovery == null && !journey.ordinaryWalkEpisodes())) && (targetAnchor != null) && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor) && isUsableLocalFarmPosition(player, targetAnchor))
 			{
 				if ((journey == null) && sameAnchor) { return true; }
 				if (!idle && walkCombatActive(player)) { return false; }
@@ -1126,6 +1169,17 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 					return false;
 				}
 				journey = new Journey(goal, player, epoch, step, attempt);
+				if (step.id().startsWith("native.ssq."))
+				{
+					final boolean entering = ssqTarget != null;
+					final var site = entering ? ssqTarget : _ssq.inside(PhantomNativeTravelActions.point(player));
+					journey.ssqGate = site == null ? null : _ssq.gate(site, entering);
+					if (journey.ssqGate == null)
+					{
+						fail(profileId, attempt, step.id(), "travel.ssq_gate_unavailable", Disposition.ROUTE_UNUSABLE);
+						return false;
+					}
+				}
 				synchronized (_attempts)
 				{
 					if ((_attempts.get(profileId) != attempt) || attempt.terminal || (_journeys.putIfAbsent(profileId, journey) != null)) { return false; }
@@ -1143,6 +1197,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			if (attempt.transientExhausted) { return false; }
 			if (_clock.getAsLong() < attempt.retryAtNanos) { return false; }
+			if (journey.ssqGate != null)
+			{
+				advanceSsq(profileId, player, journey, action.executionStamp());
+				return false;
+			}
 			final var arrival = _travel.topology().findAnchor(journey.step.toAnchorId()).orElseThrow();
 			final var canonical = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(arrival, player.getHeading()).orElse(null);
 			if (canonical == null)
@@ -1185,6 +1244,39 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 	}
 
+	private void advanceSsq(long profileId, Player player, Journey journey, Stamp stamp)
+	{
+		final var gate = journey.ssqGate;
+		journey.arrivalPoint = gate.approach();
+		if (walkCombatActive(player)) { return; }
+		if (!gate.interactable(player) && !executePlan(profileId, player, journey, stamp)) { return; }
+		if (!currentJourney(profileId, journey)) { return; }
+		stopOwnedMove(journey, player);
+		if (player.isMoving() || player.isSitting()) { return; }
+		if (!gate.execute(player))
+		{
+			fail(profileId, journey, "travel.ssq_native_refused", Disposition.ROUTE_UNUSABLE);
+			return;
+		}
+		observeTransport(profileId, journey);
+		clearRoute(profileId, journey);
+		if (gate.entering())
+		{
+			// This is an intermediate native landing; the farm anchor still has to be reached.
+			closeRoutePhase(profileId, journey);
+			_pendingStores.put(profileId, new PendingStore(player, journey.epoch, journey.goal, gate.site().landing().id(), journey));
+			return;
+		}
+		journey.ssqGate = null;
+		journey.arrivalPoint = null;
+		journey.plan = null;
+		journey.stageIndex = 0;
+		journey.exploring = false;
+		journey.attempt.phaseSince = _clock.getAsLong();
+		journey.reason = "travel.ssq_native_arrived";
+		hold(profileId);
+	}
+
 	/** Read-only fresh action proof; a failed stand-point receipt remains in its existing history. */
 	public boolean hasFreshLocalAction(long profileId, PhantomGoal goal, long epoch)
 	{
@@ -1215,6 +1307,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private boolean hasLocalOpportunity(long profileId, Player player, PhantomTopologyAnchor anchor, int npcId)
 	{
 		if ((anchor.role() != PhantomTopologyAnchorRole.FARMING) || !L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, anchor)) { return false; }
+		if (PhantomSsqFarmAccess.closedAnchor(anchor) && (!player.isIn7sDungeon() || !permitsConditionalFarm(player, anchor.id()))) { return false; }
 		final var geo = GeoEngine.getInstance();
 		if (!geo.hasGeo(player.getX(), player.getY()) || player.isInsideZone(ZoneId.WATER)
 			|| (ZoneManager.getInstance().getZone(player.getX(), player.getY(), player.getZ(), WaterZone.class) != null)) { return false; }
@@ -1567,7 +1660,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		final long remaining = Math.max(0, (_navigation.policy().maximumAttemptDurationNanos() - (now - journey.attempt.phaseSince)) / 1_000_000);
 		final var actual = PhantomNativeTravelActions.snapshot(player, _travel.legs(), remaining, journey.attempt.blockedEdges);
-		final var options = journey.nativeIdleWalk
+		final boolean walkOnly = journey.nativeIdleWalk || player.isIn7sDungeon() && _ssq.inside(request.origin()) != null;
+		final var options = walkOnly
 			? new PhantomTravelStrategy.Options(List.of(), actual.speed(), actual.adena(), 0, actual.classIndex(), actual.level(), actual.epochMinute(),
 				false, actual.returnUnavailableReason(), null, 0, remaining, actual.blockedEdges()) : actual;
 		return request.origin().instanceId() == 0 && PhantomNativeTravelActions.ordinary(player)
@@ -2887,6 +2981,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private int returnWaypoints;
 		private double returnDistance;
 		private PhantomTravelStrategy.Candidate plan;
+		private PhantomSsqFarmAccess.Gate ssqGate;
 		private int stageIndex;
 		private PhantomNativeTravelActions.ReturnOperation returnOperation;
 		private boolean phaseClosed;

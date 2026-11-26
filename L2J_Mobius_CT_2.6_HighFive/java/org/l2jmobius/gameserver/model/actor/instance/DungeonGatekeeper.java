@@ -47,6 +47,46 @@ public class DungeonGatekeeper extends Npc
 		super(template);
 		setInstanceType(InstanceType.DungeonGatekeeper);
 	}
+
+	/** Read-only admission shared by the stock bypass and conditional travel planning. */
+	public static boolean mayEnter(Player player, int objectId, boolean necropolis)
+	{
+		return entryDenial(player, objectId, necropolis) == null;
+	}
+
+	static boolean entryAllowed(boolean open, boolean validation, boolean winnerDecided, boolean registered, boolean winningSeal)
+	{
+		return open || (validation && winnerDecided ? winningSeal : registered);
+	}
+
+	private static EntryDenial entryDenial(Player player, int objectId, boolean necropolis)
+	{
+		final boolean open = necropolis ? FeatureConfig.ALT_SEVENSIGNS_OPEN_NECROPOLIS : FeatureConfig.ALT_SEVENSIGNS_OPEN_CATACUMBS;
+		if (open)
+		{
+			return null;
+		}
+		final var signs = SevenSigns.getInstance();
+		final var qol = PersonalCharacterQoLService.getInstance();
+		final int cabal = signs.getPlayerCabal(objectId);
+		final boolean validation = signs.isSealValidationPeriod();
+		final int winner = signs.getCabalHighestScore();
+		final boolean decided = winner == SevenSigns.CABAL_DAWN || winner == SevenSigns.CABAL_DUSK;
+		final int seal = signs.getSealOwner(necropolis ? SevenSigns.SEAL_AVARICE : SevenSigns.SEAL_GNOSIS);
+		final boolean registered = player == null ? cabal != SevenSigns.CABAL_NULL : qol.isSevenSignsRegistered(player, cabal);
+		final boolean winningSeal = decided && (player == null ? seal == winner && cabal == winner : qol.isSevenSignsWinningSealEligible(player, cabal, winner, seal));
+		if (entryAllowed(false, validation, decided, registered, winningSeal))
+		{
+			return null;
+		}
+		if (validation && decided)
+		{
+			return winner == SevenSigns.CABAL_DAWN ? EntryDenial.DAWN : EntryDenial.DUSK;
+		}
+		return EntryDenial.REGISTRATION;
+	}
+
+	private enum EntryDenial { DAWN, DUSK, REGISTRATION }
 	
 	@Override
 	public void onBypassFeedback(Player player, String command)
@@ -55,101 +95,16 @@ public class DungeonGatekeeper extends Npc
 		
 		final StringTokenizer st = new StringTokenizer(command, " ");
 		final String actualCommand = st.nextToken(); // Get actual command
-		String filename = SevenSigns.SEVEN_SIGNS_HTML_PATH;
-		final int sealAvariceOwner = SevenSigns.getInstance().getSealOwner(SevenSigns.SEAL_AVARICE);
-		final int sealGnosisOwner = SevenSigns.getInstance().getSealOwner(SevenSigns.SEAL_GNOSIS);
-		final int playerCabal = SevenSigns.getInstance().getPlayerCabal(player.getObjectId());
-		final boolean isSealValidationPeriod = SevenSigns.getInstance().isSealValidationPeriod();
-		final int compWinner = SevenSigns.getInstance().getCabalHighestScore();
-		final PersonalCharacterQoLService personalQoL = PersonalCharacterQoLService.getInstance();
-		if (actualCommand.startsWith("necro"))
+		if (actualCommand.startsWith("necro") || actualCommand.startsWith("cata"))
 		{
-			boolean canPort = true;
-			if (!FeatureConfig.ALT_SEVENSIGNS_OPEN_NECROPOLIS)
+			final boolean necropolis = actualCommand.startsWith("necro");
+			final var denial = entryDenial(player, player.getObjectId(), necropolis);
+			if (denial != null)
 			{
-				if (isSealValidationPeriod)
-				{
-					if ((compWinner == SevenSigns.CABAL_DAWN) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealAvariceOwner))
-					{
-						player.sendPacket(SystemMessageId.ONLY_A_LORD_OF_DAWN_MAY_USE_THIS);
-						canPort = false;
-					}
-					else if ((compWinner == SevenSigns.CABAL_DUSK) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealAvariceOwner))
-					{
-						player.sendPacket(SystemMessageId.ONLY_A_REVOLUTIONARY_OF_DUSK_MAY_USE_THIS);
-						canPort = false;
-					}
-					else if ((compWinner == SevenSigns.CABAL_NULL) && personalQoL.isSevenSignsRegistered(player, playerCabal))
-					{
-						canPort = true;
-					}
-					else if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
-					{
-						canPort = false;
-					}
-				}
-				else
-				{
-					if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
-					{
-						canPort = false;
-					}
-				}
-			}
-			
-			if (!canPort)
-			{
+				if (denial == EntryDenial.DAWN) { player.sendPacket(SystemMessageId.ONLY_A_LORD_OF_DAWN_MAY_USE_THIS); }
+				if (denial == EntryDenial.DUSK) { player.sendPacket(SystemMessageId.ONLY_A_REVOLUTIONARY_OF_DUSK_MAY_USE_THIS); }
 				final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-				filename += "necro_no.htm";
-				html.setFile(player, filename);
-				player.sendPacket(html);
-			}
-			else
-			{
-				doTeleport(player, Integer.parseInt(st.nextToken()));
-				player.setIn7sDungeon(true);
-			}
-		}
-		else if (actualCommand.startsWith("cata"))
-		{
-			boolean canPort = true;
-			if (!FeatureConfig.ALT_SEVENSIGNS_OPEN_CATACUMBS)
-			{
-				if (isSealValidationPeriod)
-				{
-					if ((compWinner == SevenSigns.CABAL_DAWN) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealGnosisOwner))
-					{
-						player.sendPacket(SystemMessageId.ONLY_A_LORD_OF_DAWN_MAY_USE_THIS);
-						canPort = false;
-					}
-					else if ((compWinner == SevenSigns.CABAL_DUSK) && !personalQoL.isSevenSignsWinningSealEligible(player, playerCabal, compWinner, sealGnosisOwner))
-					{
-						player.sendPacket(SystemMessageId.ONLY_A_REVOLUTIONARY_OF_DUSK_MAY_USE_THIS);
-						canPort = false;
-					}
-					else if ((compWinner == SevenSigns.CABAL_NULL) && personalQoL.isSevenSignsRegistered(player, playerCabal))
-					{
-						canPort = true;
-					}
-					else if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
-					{
-						canPort = false;
-					}
-				}
-				else
-				{
-					if (!personalQoL.isSevenSignsRegistered(player, playerCabal))
-					{
-						canPort = false;
-					}
-				}
-			}
-			
-			if (!canPort)
-			{
-				final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-				filename += "cata_no.htm";
-				html.setFile(player, filename);
+				html.setFile(player, SevenSigns.SEVEN_SIGNS_HTML_PATH + (necropolis ? "necro_no.htm" : "cata_no.htm"));
 				player.sendPacket(html);
 			}
 			else

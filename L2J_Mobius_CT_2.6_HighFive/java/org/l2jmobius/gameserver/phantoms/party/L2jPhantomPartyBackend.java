@@ -87,11 +87,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	private final PartyInvitationService _invitations;
 	private final CommandChannelInvitationService _commandChannels;
 	private java.util.function.BiPredicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef, Creature> _farmSourcePolicy = (_, _) -> false;
+	private java.util.function.BiPredicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef, Player> _farmAccessPolicy = (_, _) -> true;
 	private final java.util.concurrent.ConcurrentMap<Long, String> _farmWaitReasons = new java.util.concurrent.ConcurrentHashMap<>();
 	private static final boolean TASK130_EVIDENCE = System.getProperty("phantom.task130.runtime") != null;
 	private static final java.util.concurrent.atomic.AtomicInteger TASK130_SAMPLES = new java.util.concurrent.atomic.AtomicInteger();
 	public void installFarmSourcePolicy(java.util.function.BiPredicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef, Creature> policy)
 	{ _farmSourcePolicy = java.util.Objects.requireNonNull(policy); }
+
+	public void installFarmAccessPolicy(java.util.function.BiPredicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef, Player> policy)
+	{ _farmAccessPolicy = java.util.Objects.requireNonNull(policy); }
 	@Override public String autonomousFarmWaitReason(MemberRef leader) { return _farmWaitReasons.getOrDefault(leader.profileId(), "WAIT_GROUP_TARGET"); }
 	private boolean farmWait(PartySnapshot party, String reason)
 	{
@@ -596,6 +600,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				final Player player = acquired.player();
 				if (!farmAvailable(player) || player.getParty() == null || player.getParty().getLeader().getObjectId() != party.leader().characterObjectId())
 				{ farmWait(party, "WAIT_NATIVE_OWNER"); return OptionalInt.empty(); }
+				if (!_farmAccessPolicy.test(source, player)) { farmWait(party, "WAIT_GROUP_SOURCE"); return OptionalInt.empty(); }
 				actors.add(player); members.add(snapshot(member, player));
 			}
 			final Player leader = actors.stream().filter(player -> player.getObjectId() == party.leader().characterObjectId()).findFirst().orElseThrow();
@@ -1045,6 +1050,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				final var acquired = observeActor(member); if (acquired == null) { return farmWait(party, "WAIT_NATIVE_OWNER"); }
 				leases.add(acquired); final var player = acquired.player();
 				if (!farmAvailable(player) || player.getParty() == null || player.getParty().getLeader().getObjectId() != party.leader().characterObjectId() || player.getInstanceId() != target.getInstanceId()) { return farmWait(party, "WAIT_NATIVE_OWNER"); }
+				if (!_farmAccessPolicy.test(source, player)) { return farmWait(party, "WAIT_GROUP_SOURCE"); }
 				actors.add(player); members.add(snapshot(member, player));
 			}
 			final var band = PhantomPartyFarmEligibility.forRoster(actors.stream().map(Player::getLevel).toList()).orElse(null);
