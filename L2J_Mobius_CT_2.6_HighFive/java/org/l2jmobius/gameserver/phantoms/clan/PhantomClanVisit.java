@@ -56,6 +56,8 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 	private static final String CANDIDATE = "candidate.clan.visit";
 	private static final String ACTION = "clan.visit.advance";
 	private static final int MAXIMUM_ROUTE_CHOICES = 3;
+	private static final long MAXIMUM_VISIT_MILLIS = 420_000;
+	private static final long ROUTE_MARGIN_MILLIS = 30_000;
 	private final PhantomClanService _clans;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomNavigationService _navigation;
@@ -122,7 +124,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		final var visit = _visits.get(id);
 		if (visit == null || !visit.request.root().equals(root)) { return null; }
 		if (visit.done && visit.accepted) { return visit; }
-		if (_stopping || visit.done || System.currentTimeMillis() >= visit.request.deadline() || !_allowed.test(id)) { return null; }
+		if (_stopping || visit.done || System.currentTimeMillis() >= visit.deadline() || !_allowed.test(id)) { return null; }
 		if (visit.accepted) { return visit; }
 		if (_exclusiveOwner.test(id, root)) { return null; }
 		try (var lease = _materialization.tryAcquireObservation(id).orElse(null))
@@ -149,6 +151,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 			if (visit.done) { return finish(id, visit, "clan.visit.released"); }
 			if (context.cancellationToken().isCancelled() || context.cancellationToken().yieldRequested() || eligible(id, context.goal()) != visit || !_current.test(id, context.goal()))
 			{ return finish(id, visit, "clan.visit.owner_changed"); }
+			if (!_clans.mayContinueVisit(visit.request)) { return finish(id, visit, "clan.visit.mandatory_preparation"); }
 			if (visit.yieldUntil == 0)
 			{
 				final long interval = visit.request.deadline() - visit.request.offeredAt();
@@ -184,6 +187,8 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 					visit.origin = PhantomNativeTravelActions.point(player);
 					visit.choices = routeChoices(player, visit.origin);
 					if (visit.choices.isEmpty()) { return finish(id, visit, "clan.visit.master_unavailable"); }
+					visit.acceptedAt = System.currentTimeMillis();
+					visit.acceptedDeadline = visit.acceptedAt + MAXIMUM_VISIT_MILLIS;
 					visit.accepted = true;
 				}
 				master = visit.master == null ? visit.choices.stream().filter(value -> currentMaster(value) && L2jPhantomClanBackend.canVisit(player, value)).findFirst().orElse(null)
@@ -197,7 +202,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 				if (player.isMoving()) { releaseWalk(visit); return retry("clan.visit.arrival_settling"); }
 			}
 			if (!live(id, visit, context)) { return finish(id, visit, "clan.visit.owner_changed"); }
-			final var result = _clans.completeAutonomousVisit(visit.request, master.getObjectId(), () -> live(id, visit, context));
+			final var result = _clans.completeAutonomousVisit(visit.request, master.getObjectId(), visit.deadline(), () -> live(id, visit, context));
 			return result == PhantomClanService.VisitOutcome.BUSY ? retry("clan.visit.writer_busy")
 				: finish(id, visit, result == PhantomClanService.VisitOutcome.HANDLED ? "clan.visit.arrival_handled" : "clan.visit.no_longer_eligible");
 		}
@@ -208,13 +213,15 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 	{
 		return player.getObjectId() == visit.request.member().characterObjectId() && !player.isAlikeDead() && player.getParty() == null && player.getInstanceId() == 0
 			&& !player.isInsideZone(ZoneId.WATER) && !player.isInStoreMode() && !player.isTransformed() && !player.isMounted()
-			&& (visit.request.purpose() == PhantomClanService.VisitPurpose.FOUND ? player.getClanId() == 0 : player.getClanId() == visit.request.clanId());
+			&& (visit.request.purpose() == PhantomClanService.VisitPurpose.FOUND ? player.getClanId() == 0 : player.getClanId() == visit.request.clanId())
+			&& (visit.request.purpose() != PhantomClanService.VisitPurpose.DEVELOP
+				|| player.getClan() != null && player.getClan().getLeaderId() == player.getObjectId() && player.getClan().getLevel() == visit.request.currentLevel());
 	}
 
 	private boolean live(long id, Visit visit, PhantomStepContext context)
 	{
 		return !_stopping && !visit.done && _allowed.test(id) && _current.test(id, visit.request.root())
-			&& !context.cancellationToken().isCancelled() && !context.cancellationToken().yieldRequested() && System.currentTimeMillis() < visit.request.deadline();
+			&& !context.cancellationToken().isCancelled() && !context.cancellationToken().yieldRequested() && System.currentTimeMillis() < visit.deadline();
 	}
 
 	private List<VillageMaster> routeChoices(Player player, PhantomNavigationPoint origin)
@@ -257,13 +264,16 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		{
 			if (visit.best == null) { return finish(id, visit, "clan.visit.route_unavailable"); }
 			visit.plan = visit.best;
+			final long routeMillis = Math.min(MAXIMUM_VISIT_MILLIS, visit.plan.millis());
+			visit.acceptedDeadline = Math.min(visit.acceptedAt + MAXIMUM_VISIT_MILLIS,
+				System.currentTimeMillis() + ROUTE_MARGIN_MILLIS + 2 * routeMillis);
 			return retry("clan.visit.route_proven");
 		}
 		final var target = visit.choices.get(visit.choice);
 		if (visit.navigationId == 0)
 		{
 			if (!currentMaster(target)) { visit.choice++; return retry("clan.visit.master_changed"); }
-			final var options = PhantomNativeTravelActions.snapshot(player, _gatekeepers.legs(), Math.max(0, visit.request.deadline() - System.currentTimeMillis()));
+			final var options = PhantomNativeTravelActions.snapshot(player, _gatekeepers.legs(), Math.max(0, visit.deadline() - System.currentTimeMillis()));
 			final var free = new PhantomTravelStrategy.Options(options.legs().stream()
 				.filter(leg -> PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, options.classIndex(), options.level()) == 0).toList(), options.speed(), 0, 0,
 				options.classIndex(), options.level(), options.epochMinute(), options.gatekeeperAllowed(), "clan.visit.walk_or_gatekeeper",
@@ -384,7 +394,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		final long now = System.currentTimeMillis();
 		_visits.forEach((id, visit) ->
 		{
-			if (_stopping || visit.done || now >= visit.request.deadline() || !_allowed.test(id) || !_current.test(id, visit.request.root()))
+			if (_stopping || visit.done || now >= visit.deadline() || !_allowed.test(id) || !_current.test(id, visit.request.root()))
 			{ cancel(id, "clan.visit.expired_or_replaced"); }
 		});
 	}
@@ -421,6 +431,8 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		private final AtomicBoolean busy = new AtomicBoolean();
 		private volatile boolean accepted;
 		private volatile boolean done;
+		private long acceptedAt;
+		private volatile long acceptedDeadline;
 		private long yieldUntil;
 		private Player player;
 		private org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Owner owner;
@@ -436,5 +448,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		private PhantomNativeTravelActions.OwnedWalk walk;
 
 		private Visit(VisitRequest request) { this.request = request; }
+
+		private long deadline() { return accepted ? acceptedDeadline : request.deadline(); }
 	}
 }

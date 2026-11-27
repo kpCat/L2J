@@ -300,6 +300,12 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int masterObjectId)
 	{
+		return developAutonomous(member, expectedClanId, 0, masterObjectId);
+	}
+
+	@Override
+	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int expectedLevel, int masterObjectId)
+	{
 		try (var acquired = acquire(member))
 		{
 			if (acquired == null || !ordinaryPlayer(acquired.player()) || acquired.player().getClanId() != expectedClanId)
@@ -307,7 +313,7 @@ public final class L2jPhantomClanBackend implements Backend
 				return ClanFoundingDevelopment.Outcome.NOT_READY;
 			}
 			final Player player = acquired.player();
-			return ClanFoundingDevelopment.payForFirstLevel(member.profileId(), player, availableClanMaster(player, masterObjectId),
+			return ClanFoundingDevelopment.payForLevel(member.profileId(), player, availableClanMaster(player, masterObjectId), expectedLevel,
 				() -> mandatoryPreparationPending(member, player));
 		}
 	}
@@ -335,9 +341,11 @@ public final class L2jPhantomClanBackend implements Backend
 			final var clan = player.getClan();
 			if (clan != null && (ClanTable.getInstance().getClan(clan.getId()) != clan || clan.getClanMember(player.getObjectId()) == null)) { return Optional.empty(); }
 			final long now = System.currentTimeMillis();
+			final var requirement = clan != null && clan.getLeaderId() == player.getObjectId() ? Clan.levelRequirement(clan.getLevel()) : null;
+			final var feeItem = requirement != null && requirement.itemId() > 0 ? player.getInventory().getItemByItemId(requirement.itemId()) : null;
 			return Optional.of(new AutonomousActor(MemberRef.phantom(profileId, player.getObjectId()), clan == null ? null : snapshot(clan, player.getObjectId()), player.getLevel(),
 				now >= player.getClanJoinExpiryTime(), clan == null && player.getLevel() >= 10 && now >= player.getClanCreateExpiryTime(),
-				player.getAdena(), player.getSp()));
+				player.getAdena(), player.getSp(), feeItem == null ? 0 : feeItem.getCount(), requirement != null && requirement.territory() && clan.ownsTerritory()));
 		}
 	}
 

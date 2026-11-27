@@ -245,7 +245,7 @@ public class Clan
 		fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
 		{
 			final ClanMember current = _members.get(member.getObjectId());
-			if (!fence.isRetiring(_clanId) && (current != null) && (_leader != null)
+			if (!fence.isRetiring(_clanId) && !firstLevelPaymentPending() && (current != null) && (_leader != null)
 				&& ClanDepartureService.settleMember(current) && _members.get(current.getObjectId()) == current)
 			{
 				setNewLeaderLocked(current);
@@ -2504,7 +2504,7 @@ public class Clan
 	
 	private volatile boolean _firstLevelPaymentPending;
 
-	boolean firstLevelPaymentPending()
+	public boolean firstLevelPaymentPending()
 	{
 		return _firstLevelPaymentPending;
 	}
@@ -2526,6 +2526,41 @@ public class Clan
 		});
 	}
 
+	public record LevelRequirement(int currentLevel, long adena, long sp, int itemId, long itemCount, int reputation, int members, boolean territory)
+	{
+		public int nextLevel() { return currentLevel + 1; }
+	}
+
+	/** The stock fee and eligibility rules shared by the village master and clan planning. */
+	public static LevelRequirement levelRequirement(int currentLevel)
+	{
+		return switch (currentLevel)
+		{
+			case 0 -> new LevelRequirement(0, ClanFoundingDevelopment.ADENA_COST, ClanFoundingDevelopment.SP_COST, 0, 0, 0, 0, false);
+			case 1 -> new LevelRequirement(1, 2_500_000, 100_000, 0, 0, 0, 0, false);
+			case 2 -> new LevelRequirement(2, 0, 350_000, 1419, 1, 0, 0, false);
+			case 3 -> new LevelRequirement(3, 0, 1_000_000, 3874, 1, 0, 0, false);
+			case 4 -> new LevelRequirement(4, 0, 2_500_000, 3870, 1, 0, 0, false);
+			case 5 -> new LevelRequirement(5, 0, 0, 0, 0, FeatureConfig.CLAN_LEVEL_6_COST, FeatureConfig.CLAN_LEVEL_6_REQUIREMENT, false);
+			case 6 -> new LevelRequirement(6, 0, 0, 0, 0, FeatureConfig.CLAN_LEVEL_7_COST, FeatureConfig.CLAN_LEVEL_7_REQUIREMENT, false);
+			case 7 -> new LevelRequirement(7, 0, 0, 0, 0, FeatureConfig.CLAN_LEVEL_8_COST, FeatureConfig.CLAN_LEVEL_8_REQUIREMENT, false);
+			case 8 -> new LevelRequirement(8, 0, 0, 9910, 150, FeatureConfig.CLAN_LEVEL_9_COST, FeatureConfig.CLAN_LEVEL_9_REQUIREMENT, false);
+			case 9 -> new LevelRequirement(9, 0, 0, 9911, 5, FeatureConfig.CLAN_LEVEL_10_COST, FeatureConfig.CLAN_LEVEL_10_REQUIREMENT, false);
+			case 10 -> new LevelRequirement(10, 0, 0, 0, 0, FeatureConfig.CLAN_LEVEL_11_COST, FeatureConfig.CLAN_LEVEL_11_REQUIREMENT, true);
+			default -> null;
+		};
+	}
+
+	public boolean ownsTerritory()
+	{
+		for (Territory territory : TerritoryWarManager.getInstance().getAllTerritories())
+		{
+			final Clan owner = territory.getOwnerClan();
+			if (owner != null && owner.getId() == getId()) { return true; }
+		}
+		return false;
+	}
+
 	private boolean levelUpClanLocked(Player player)
 	{
 		if ((player.getClan() != this) || !player.isClanLeader())
@@ -2540,196 +2575,38 @@ public class Clan
 			return false;
 		}
 		
-		boolean increaseClanLevel = false;
-		
-		switch (_level)
-		{
-			case 0:
-			{
-				// Upgrade to 1
-				if ((player.getSp() >= ClanFoundingDevelopment.SP_COST) && (player.getAdena() >= ClanFoundingDevelopment.ADENA_COST) && player.reduceAdena(ItemProcessType.FEE, ClanFoundingDevelopment.ADENA_COST, player.getTarget(), true))
-				{
-					player.setSp(player.getSp() - ClanFoundingDevelopment.SP_COST);
-					final SystemMessage sp = new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1);
-					sp.addInt((int) ClanFoundingDevelopment.SP_COST);
-					player.sendPacket(sp);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 1:
-			{
-				// Upgrade to 2
-				if ((player.getSp() >= 100000) && (player.getAdena() >= 2500000) && player.reduceAdena(ItemProcessType.FEE, 2500000, player.getTarget(), true))
-				{
-					player.setSp(player.getSp() - 100000);
-					final SystemMessage sp = new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1);
-					sp.addInt(100000);
-					player.sendPacket(sp);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 2:
-			{
-				// Upgrade to 3
-				if ((player.getSp() >= 350000) && (player.getInventory().getItemByItemId(1419) != null) && player.destroyItemByItemId(ItemProcessType.FEE, 1419, 1, player.getTarget(), false))
-				{
-					player.setSp(player.getSp() - 350000);
-					final SystemMessage sp = new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1);
-					sp.addInt(350000);
-					player.sendPacket(sp);
-					final SystemMessage sm = new SystemMessage(SystemMessageId.S1_HAS_DISAPPEARED);
-					sm.addItemName(1419);
-					player.sendPacket(sm);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 3:
-			{
-				// Upgrade to 4 (itemId 3874 = Alliance Manifesto)
-				if ((player.getSp() >= 1000000) && (player.getInventory().getItemByItemId(3874) != null) && player.destroyItemByItemId(ItemProcessType.FEE, 3874, 1, player.getTarget(), false))
-				{
-					player.setSp(player.getSp() - 1000000);
-					final SystemMessage sp = new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1);
-					sp.addInt(1000000);
-					player.sendPacket(sp);
-					final SystemMessage sm = new SystemMessage(SystemMessageId.S1_HAS_DISAPPEARED);
-					sm.addItemName(3874);
-					player.sendPacket(sm);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 4:
-			{
-				// Upgrade to 5 (itemId 3870 = Seal of Aspiration)
-				if ((player.getSp() >= 2500000) && (player.getInventory().getItemByItemId(3870) != null) && player.destroyItemByItemId(ItemProcessType.FEE, 3870, 1, player.getTarget(), false))
-				{
-					player.setSp(player.getSp() - 2500000);
-					final SystemMessage sp = new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1);
-					sp.addInt(2500000);
-					player.sendPacket(sp);
-					final SystemMessage sm = new SystemMessage(SystemMessageId.S1_HAS_DISAPPEARED);
-					sm.addItemName(3870);
-					player.sendPacket(sm);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 5:
-			{
-				// Upgrade to 6
-				if ((_reputationScore >= FeatureConfig.CLAN_LEVEL_6_COST) && (_members.size() >= FeatureConfig.CLAN_LEVEL_6_REQUIREMENT))
-				{
-					setReputationScore(_reputationScore - FeatureConfig.CLAN_LEVEL_6_COST);
-					final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-					cr.addInt(FeatureConfig.CLAN_LEVEL_6_COST);
-					player.sendPacket(cr);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 6:
-			{
-				// Upgrade to 7
-				if ((_reputationScore >= FeatureConfig.CLAN_LEVEL_7_COST) && (_members.size() >= FeatureConfig.CLAN_LEVEL_7_REQUIREMENT))
-				{
-					setReputationScore(_reputationScore - FeatureConfig.CLAN_LEVEL_7_COST);
-					final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-					cr.addInt(FeatureConfig.CLAN_LEVEL_7_COST);
-					player.sendPacket(cr);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 7:
-			{
-				// Upgrade to 8
-				if ((_reputationScore >= FeatureConfig.CLAN_LEVEL_8_COST) && (_members.size() >= FeatureConfig.CLAN_LEVEL_8_REQUIREMENT))
-				{
-					setReputationScore(_reputationScore - FeatureConfig.CLAN_LEVEL_8_COST);
-					final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-					cr.addInt(FeatureConfig.CLAN_LEVEL_8_COST);
-					player.sendPacket(cr);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 8:
-			{
-				// Upgrade to 9 (itemId 9910 = Blood Oath)
-				if ((_reputationScore >= FeatureConfig.CLAN_LEVEL_9_COST) && (player.getInventory().getItemByItemId(9910) != null) && (_members.size() >= FeatureConfig.CLAN_LEVEL_9_REQUIREMENT) && player.destroyItemByItemId(ItemProcessType.FEE, 9910, 150, player.getTarget(), false))
-				{
-					setReputationScore(_reputationScore - FeatureConfig.CLAN_LEVEL_9_COST);
-					final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-					cr.addInt(FeatureConfig.CLAN_LEVEL_9_COST);
-					player.sendPacket(cr);
-					final SystemMessage sm = new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED);
-					sm.addItemName(9910);
-					sm.addLong(150);
-					player.sendPacket(sm);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			case 9:
-			{
-				// Upgrade to 10
-				if ((_reputationScore >= FeatureConfig.CLAN_LEVEL_10_COST) && (player.getInventory().getItemByItemId(9911) != null) && (_members.size() >= FeatureConfig.CLAN_LEVEL_10_REQUIREMENT))
-				{
-					// itemId 9911 == Blood Alliance
-					if (player.destroyItemByItemId(ItemProcessType.FEE, 9911, 5, player.getTarget(), false))
-					{
-						setReputationScore(_reputationScore - FeatureConfig.CLAN_LEVEL_10_COST);
-						final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-						cr.addInt(FeatureConfig.CLAN_LEVEL_10_COST);
-						player.sendPacket(cr);
-						final SystemMessage sm = new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED);
-						sm.addItemName(9911);
-						sm.addLong(5);
-						player.sendPacket(sm);
-						increaseClanLevel = true;
-					}
-				}
-				break;
-			}
-			case 10:
-			{
-				// Upgrade to 11
-				boolean hasTerritory = false;
-				for (Territory terr : TerritoryWarManager.getInstance().getAllTerritories())
-				{
-					if (terr.getOwnerClan().getId() == getId())
-					{
-						hasTerritory = true;
-						break;
-					}
-				}
-				
-				if (hasTerritory && (_reputationScore >= FeatureConfig.CLAN_LEVEL_11_COST) && (_members.size() >= FeatureConfig.CLAN_LEVEL_11_REQUIREMENT))
-				{
-					setReputationScore(_reputationScore - FeatureConfig.CLAN_LEVEL_11_COST);
-					final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-					cr.addInt(FeatureConfig.CLAN_LEVEL_11_COST);
-					player.sendPacket(cr);
-					increaseClanLevel = true;
-				}
-				break;
-			}
-			default:
-			{
-				return false;
-			}
-		}
-		
-		if (!increaseClanLevel)
+		final LevelRequirement requirement = levelRequirement(_level);
+		if (requirement == null) { return false; }
+		if ((requirement.territory() && !ownsTerritory()) || getMembersCount() < requirement.members()
+			|| (_level >= 5 && _reputationScore < requirement.reputation())
+			|| (requirement.sp() > 0 && player.getSp() < requirement.sp())
+			|| (requirement.adena() > 0 && (player.getAdena() < requirement.adena()
+				|| !player.reduceAdena(ItemProcessType.FEE, requirement.adena(), player.getTarget(), true)))
+			|| (requirement.itemId() > 0 && (player.getInventory().getItemByItemId(requirement.itemId()) == null
+				|| !player.destroyItemByItemId(ItemProcessType.FEE, requirement.itemId(), requirement.itemCount(), player.getTarget(), false))))
 		{
 			player.sendPacket(SystemMessageId.THE_CONDITIONS_NECESSARY_TO_INCREASE_THE_CLAN_S_LEVEL_HAVE_NOT_BEEN_MET);
 			return false;
 		}
-		
+
+		if (requirement.sp() > 0)
+		{
+			player.setSp(player.getSp() - requirement.sp());
+			player.sendPacket(new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1).addInt((int) requirement.sp()));
+		}
+		if (_level >= 5)
+		{
+			setReputationScore(_reputationScore - requirement.reputation());
+			player.sendPacket(new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE).addInt(requirement.reputation()));
+		}
+		if (requirement.itemId() > 0)
+		{
+			final boolean reputationTier = _level >= 8;
+			final SystemMessage message = new SystemMessage(reputationTier ? SystemMessageId.S2_S1_HAS_DISAPPEARED : SystemMessageId.S1_HAS_DISAPPEARED);
+			message.addItemName(requirement.itemId());
+			if (reputationTier) { message.addLong(requirement.itemCount()); }
+			player.sendPacket(message);
+		}
 		// the player should know that he has less sp now :p
 		final StatusUpdate su = new StatusUpdate(player);
 		su.addAttribute(StatusUpdate.SP, (int) player.getSp());
@@ -2741,11 +2618,11 @@ public class Clan
 		return true;
 	}
 
-	void publishPaidFirstLevel(Player player)
+	void publishPaidLevel(Player player, LevelRequirement requirement)
 	{
-		if (_level == 0)
+		if (_level == requirement.currentLevel())
 		{
-			publishLevel(1);
+			publishLevel(requirement.nextLevel());
 			notifyClanLevelUp(player);
 		}
 	}

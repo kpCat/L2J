@@ -163,8 +163,10 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		final var fixture = new Fixture();
 		fixture.backend.addPhantom(57, 1278);
 		fixture.backend.addPhantom(91, 2357);
+		fixture.backend.addPhantom(92, 2358);
 		fixture.backend.founderLevels.put(57L, 10);
 		fixture.backend.founderLevels.put(91L, 11);
+		fixture.backend.founderLevels.put(92L, 11);
 		fixture.backend.canPlanAway = true;
 		final var farm = goalWithDeadline(57, 451, "farm.background", null, null, List.of(), 1, 0, 3, NOW + 60000);
 		final var nextFarm = goalWithDeadline(57, 451, "farm.background", null, null, List.of(), 1, 0, 4, NOW + 60000);
@@ -172,7 +174,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		final var service = fixture.service();
 		final var visit = new java.util.concurrent.atomic.AtomicReference<PhantomClanService.VisitRequest>();
 		service.bindAutonomousVisits(value -> visit.set(value));
-		service.advanceAutonomous(57, 1278, () -> List.of(91L), 8);
+		service.advanceAutonomous(57, 1278, () -> List.of(91L, 92L), 8);
 		final var proposed = java.util.Objects.requireNonNull(visit.get(), "Eligible founder away from the master had no visit.");
 		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "Discovery attempted a native creation.");
 		service.completeAutonomousVisit(proposed, 30346);
@@ -182,9 +184,10 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		service.completeAutonomousVisit(proposed, 30346);
 		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "A stale root executed a native mutation.");
 		fixture.goals.put(57, farm);
+		fixture.backend.founderLevels.put(91L, 9);
 		service.completeAutonomousVisit(proposed, 30346);
 		service.completeAutonomousVisit(proposed, 30346);
-		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "Arrival must produce exactly one native write.");
+		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "An eligible alternate should permit exactly one native founding on arrival.");
 		PhantomAssertions.assertEquals(farm, fixture.goals.load(57).orElseThrow().goal(), "Clan visit replaced the farm root.");
 	}
 

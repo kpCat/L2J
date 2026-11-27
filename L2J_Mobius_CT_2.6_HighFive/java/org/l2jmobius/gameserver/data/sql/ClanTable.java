@@ -330,9 +330,9 @@ public class ClanTable
 		boolean retirementCompleted = false;
 		try
 		{
-			if (!clan.settleMemberDepartures())
+			if (clan.firstLevelPaymentPending() || !clan.settleMemberDepartures())
 			{
-				LOGGER.warning("Clan destruction deferred while member departure is unresolved for clan " + clanId + ".");
+				LOGGER.warning("Clan destruction deferred while development or member departure is unresolved for clan " + clanId + ".");
 				return;
 			}
 			final ClanAllianceService.Result allianceRemoval = ClanAllianceService.getInstance().removeAllForClan(retirement);
