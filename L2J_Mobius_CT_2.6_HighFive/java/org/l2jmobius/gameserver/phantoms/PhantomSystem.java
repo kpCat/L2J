@@ -857,9 +857,10 @@ public final class PhantomSystem
 				_learningJourney.enableAutonomous(productionProfiles, yieldFarm, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
 				_learningJourney.useCraftRecipeRewards(org.l2jmobius.gameserver.phantoms.progression.PhantomOrdinaryCraftRecipes.load(new File(ServerConfig.DATAPACK_ROOT, org.l2jmobius.gameserver.phantoms.progression.PhantomOrdinaryCraftRecipes.FILE).toPath(), productionProfiles, _materializationService, marketPricingAuthority()));
 				_learningJourney.useRelevanceSignals(new PhantomSchedulerRelevanceSignalPort(_scheduler));
+				final var autonomousSupplyPolicy = PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath());
 				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), yieldFarm,
 					(id, root) -> _learningJourney.ownsAutomaticIntent(id, root) || _clanVisit != null && _clanVisit.blocksNewMovement(id),
-					PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
+					autonomousSupplyPolicy);
 				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService, this::marketPricingAuthority, () -> _offlineMerchantService == null ? java.util.List.of() : _offlineMerchantService.buyOwners());
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
@@ -910,6 +911,9 @@ public final class PhantomSystem
 						|| _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(id, root),
 					_historicalBackgroundService::canStartNativeJourney);
 				_clanService.bindAutonomousVisits(_clanVisit::offer);
+				clanBackend.bindDevelopmentPurchaseReserve((id, player) ->
+					soloExecution(id) && autonomousClanOrdinary(id) && !_partyCoordinator.blocksBackground(id) && !_phantomStoreService.blocksDecision(id)
+						&& !_clanVisit.blocksNewMovement(id) && !pvpHoldsOrdinaryFarm(id) ? autonomousSupplyPolicy.minimumAdenaReserve() : -1);
 				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_clanVisit,
 					org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney,
 						org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService))));

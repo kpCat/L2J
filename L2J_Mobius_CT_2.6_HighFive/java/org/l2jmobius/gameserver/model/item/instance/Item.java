@@ -550,14 +550,14 @@ public class Item extends WorldObject
 	 */
 	public synchronized <T> T transactCount(long delta, CountTransaction<T> transaction) throws Exception
 	{
-		return transactCount(delta, transaction, false, 0, 0);
+		return transactCount(delta, transaction, false, 0, 0, null);
 	}
 
 	/** Hold this exact stack on an unconfirmed debit while native earnings can still accrue. */
 	public synchronized <T> T transactRecoverableAdenaDebit(long debit, CountTransaction<T> transaction) throws Exception
 	{
 		if (_itemId != ADENA_ID || debit <= 0) { throw new IllegalArgumentException("Owned Adena debit required."); }
-		return transactCount(-debit, transaction, true, 0, 0);
+		return transactCount(-debit, transaction, true, 0, 0, null);
 	}
 
 	public boolean hasPendingAdenaDebit()
@@ -571,7 +571,18 @@ public class Item extends WorldObject
 		{
 			throw new IllegalArgumentException("An exact owned inventory stack is required.");
 		}
-		return transactCount(-debit, transaction, true, ownerId, expectedCount);
+		return transactCount(-debit, transaction, true, ownerId, expectedCount, null);
+	}
+
+	/** Require the durable currency preimage without flushing a dirty native stack before the receipt transaction. */
+	public synchronized <T> T transactExactRecoverableAdenaDebit(int ownerId, long expectedCount, long debit,
+		CountTransaction<Void> lockAuthority, CountTransaction<T> transaction) throws Exception
+	{
+		if (_itemId != ADENA_ID || ownerId <= 0 || debit <= 0 || expectedCount <= debit)
+		{
+			throw new IllegalArgumentException("An exact owned Adena debit with remaining currency is required.");
+		}
+		return transactCount(-debit, transaction, true, ownerId, expectedCount, java.util.Objects.requireNonNull(lockAuthority));
 	}
 
 	public boolean blocksInventoryDebit()
@@ -597,7 +608,7 @@ public class Item extends WorldObject
 		finally { _dbLock.unlock(); }
 	}
 
-	private <T> T transactCount(long delta, CountTransaction<T> transaction, boolean recoverableDebit, int expectedOwner, long expectedCount) throws Exception
+	private <T> T transactCount(long delta, CountTransaction<T> transaction, boolean recoverableDebit, int expectedOwner, long expectedCount, CountTransaction<Void> lockAuthority) throws Exception
 	{
 		_dbLock.lock();
 		try
@@ -611,7 +622,8 @@ public class Item extends WorldObject
 				throw new IllegalStateException("Native inventory debit preimage changed.");
 			}
 			final boolean itemDebit = recoverableDebit && _itemId != ADENA_ID;
-			if (itemDebit && (_itemTemplate.isEquipable() || _wear || _augmentation != null || _elementals != null
+			final boolean exactStack = itemDebit || lockAuthority != null;
+			if (exactStack && (_itemTemplate.isEquipable() || _wear || _augmentation != null || _elementals != null
 				|| _type1 != 0 || _type2 != 0 || _enchantLevel != 0 || _mana > 0 || _time > 0))
 			{
 				throw new IllegalStateException("Native item debit requires a plain stack.");
@@ -621,7 +633,7 @@ public class Item extends WorldObject
 			if (next < 0 || (_itemId == ADENA_ID && next > MAX_ADENA)) { throw new IllegalArgumentException("Currency count outside native limits."); }
 			// A stock save may have left this stack dirty. An item fee must observe its durable
 			// preimage before writing anything. A later native inventory save can make it eligible.
-			if (!itemDebit) { updateDatabase(true); }
+			if (!exactStack) { updateDatabase(true); }
 			boolean committing = false;
 			final T result;
 			try (Connection connection = DatabaseFactory.getConnection())
@@ -629,12 +641,13 @@ public class Item extends WorldObject
 				connection.setAutoCommit(false);
 				try
 				{
+					if (lockAuthority != null) { lockAuthority.run(connection); }
 					if (!_existsInDb && _count == 0)
 					{
 						try (var insert = connection.prepareStatement("INSERT INTO items(owner_id,object_id,item_id,count,loc,loc_data,enchant_level,mana_left,time) VALUES(?,?,?,0,'INVENTORY',0,0,?,?)"))
 						{ insert.setInt(1, _ownerId); insert.setInt(2, getObjectId()); insert.setInt(3, _itemId); insert.setInt(4, _mana); insert.setLong(5, _time); insert.executeUpdate(); }
 					}
-					final String columns = itemDebit ? "owner_id,item_id,count,loc,loc_data,enchant_level,custom_type1,custom_type2,mana_left,time" : "owner_id,item_id,count,loc";
+					final String columns = exactStack ? "owner_id,item_id,count,loc,loc_data,enchant_level,custom_type1,custom_type2,mana_left,time" : "owner_id,item_id,count,loc";
 					try (var query = connection.prepareStatement("SELECT " + columns + " FROM items WHERE object_id=? FOR UPDATE"))
 					{
 						query.setInt(1, getObjectId());
@@ -642,12 +655,12 @@ public class Item extends WorldObject
 						{
 							if (!rows.next() || rows.getInt(1) != _ownerId || rows.getInt(2) != _itemId || rows.getLong(3) != _count || !"INVENTORY".equals(rows.getString(4)))
 							{ throw new IllegalStateException("Native currency preimage differs."); }
-							if (itemDebit && (rows.getInt(5) != _locData || rows.getInt(6) != _enchantLevel || rows.getInt(7) != _type1
+							if (exactStack && (rows.getInt(5) != _locData || rows.getInt(6) != _enchantLevel || rows.getInt(7) != _type1
 								|| rows.getInt(8) != _type2 || rows.getInt(9) != _mana || rows.getLong(10) != _time))
 							{ throw new IllegalStateException("Native fee stack attributes differ."); }
 						}
 					}
-					if (itemDebit) { requirePlainStackRows(connection); }
+					if (exactStack) { requirePlainStackRows(connection); }
 					if (removesStack)
 					{
 						try (var delete = connection.prepareStatement("DELETE FROM items WHERE object_id=?"))
@@ -2126,22 +2139,9 @@ public class Item extends WorldObject
 			return;
 		}
 		
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement("INSERT INTO items (owner_id,item_id,count,loc,loc_data,enchant_level,object_id,custom_type1,custom_type2,mana_left,time) VALUES (?,?,?,?,?,?,?,?,?,?,?)"))
+		try (Connection con = DatabaseFactory.getConnection())
 		{
-			ps.setInt(1, _ownerId);
-			ps.setInt(2, _itemId);
-			ps.setLong(3, _count);
-			ps.setString(4, _loc.name());
-			ps.setInt(5, _locData);
-			ps.setInt(6, _enchantLevel);
-			ps.setInt(7, getObjectId());
-			ps.setInt(8, _type1);
-			ps.setInt(9, _type2);
-			ps.setInt(10, _mana);
-			ps.setLong(11, _time);
-			
-			ps.executeUpdate();
+			insertRow(con);
 			_existsInDb = true;
 			_storedInDb = true;
 			
@@ -2159,6 +2159,45 @@ public class Item extends WorldObject
 		{
 			LOGGER.log(Level.SEVERE, "Could not insert item " + this + " into DB: Reason: " + e.getMessage(), e);
 		}
+	}
+
+	private void insertRow(Connection connection) throws java.sql.SQLException
+	{
+		try (var row = connection.prepareStatement("INSERT INTO items (owner_id,item_id,count,loc,loc_data,enchant_level,object_id,custom_type1,custom_type2,mana_left,time) VALUES (?,?,?,?,?,?,?,?,?,?,?)"))
+		{
+			row.setInt(1, _ownerId);
+			row.setInt(2, _itemId);
+			row.setLong(3, _count);
+			row.setString(4, _loc.name());
+			row.setInt(5, _locData);
+			row.setInt(6, _enchantLevel);
+			row.setInt(7, getObjectId());
+			row.setInt(8, _type1);
+			row.setInt(9, _type2);
+			row.setInt(10, _mana);
+			row.setLong(11, _time);
+			if (row.executeUpdate() != 1) { throw new java.sql.SQLException("Native item insertion did not write exactly one row."); }
+		}
+	}
+
+	/** The product stays detached until the payer has confirmed the same durable receipt and product. */
+	public void stagePlainInventoryCredit(Connection connection) throws java.sql.SQLException
+	{
+		if (_existsInDb || _ownerId <= 0 || getObjectId() <= 0 || _count != 1 || _loc != ItemLocation.INVENTORY || _locData != 0
+			|| !isStackable() || _itemTemplate.isEquipable() || _wear || _enchantLevel != 0 || _type1 != 0 || _type2 != 0
+			|| _augmentation != null || _elementals != null || _mana != -1 || _time != -1)
+		{
+			throw new java.sql.SQLException("Native paid credit requires a detached plain inventory item.");
+		}
+		requirePlainStackRows(connection);
+		insertRow(connection);
+	}
+
+	public void acknowledgePlainInventoryCredit()
+	{
+		_existsInDb = true;
+		_storedInDb = true;
+		setLastChange(ADDED);
 	}
 	
 	/**

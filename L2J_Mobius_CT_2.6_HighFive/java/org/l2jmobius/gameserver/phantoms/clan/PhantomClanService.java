@@ -385,6 +385,10 @@ public final class PhantomClanService
 			return expectedLevel == 0 && current.getAsBoolean() ? developAutonomous(leader, expectedClanId, masterObjectId) : ClanFoundingDevelopment.Outcome.NOT_READY;
 		}
 		default boolean mayStartAutonomousDevelopment(MemberRef leader) { return true; }
+		default ClanFoundingDevelopment.Outcome acquireDevelopmentItem(MemberRef leader, int clanId, int level, long expiresAt, BooleanSupplier stillCurrent)
+		{
+			return ClanFoundingDevelopment.Outcome.NOT_READY;
+		}
 
 		default ClanDepartureService.Outcome leaveOrdinaryClan(MemberRef member, int expectedClanId, int expectedLeaderId) { return ClanDepartureService.Outcome.STALE; }
 
@@ -864,6 +868,20 @@ public final class PhantomClanService
 				final var goal = autonomousGoal(actor, BUILD_GOAL, clanRef(clan.clanId()), List.of(), now);
 				reconcile(member, clan, goal);
 				current = _persistence.load(member.profileId()).orElse(null);
+			}
+			if (current != null && development != null && development.itemsDue() > 0 && development.spDue() == 0 && root != null && root.status() == PhantomGoalStatus.ACTIVE
+				&& (root.deadlineEpochMillis() == 0 || root.deadlineEpochMillis() > now)
+				&& org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
+			{
+				final long expires = root.deadlineEpochMillis() == 0 ? development.expires() : Math.min(root.deadlineEpochMillis(), development.expires());
+				final var purchase = _backend.acquireDevelopmentItem(member, clan.clanId(), clan.level(), expires, () ->
+					_state == State.RUNNING && _clock.getAsLong() < expires
+						&& _goals.load(member.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root::equals).isPresent());
+				if (purchase != ClanFoundingDevelopment.Outcome.NOT_READY)
+				{
+					observeAutonomousOutcome("clan.autonomous.development.shop." + purchase.name().toLowerCase(java.util.Locale.ROOT));
+					if (purchase != ClanFoundingDevelopment.Outcome.DEFERRED) { return; }
+				}
 			}
 			final var incoming = incomingAllianceOffer(member.profileId(), member.characterObjectId(), now);
 			if (incoming != null && acceptAutonomousAlliance(actor, current, incoming, preference, now)) { return; }

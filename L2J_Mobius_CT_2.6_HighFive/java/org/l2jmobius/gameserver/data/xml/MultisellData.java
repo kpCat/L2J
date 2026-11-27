@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.multisell.Entry;
 import org.l2jmobius.gameserver.model.multisell.Ingredient;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.multisell.ListContainer;
 import org.l2jmobius.gameserver.model.multisell.PreparedListContainer;
 import org.l2jmobius.gameserver.network.SystemMessageId;
@@ -365,6 +366,22 @@ public class MultisellData implements IXmlReader
 	public boolean hasList(int listId)
 	{
 		return _entries.containsKey(listId);
+	}
+
+	/** Recheck the curated quote against the list currently served after a native reload. */
+	public boolean matchesPersonalProgressionOffer(int itemId, long price)
+	{
+		final var list = _entries.get(PersonalProgressionShopService.SHOP_LIST_ID);
+		return list != null && list.isNpcAllowed(-1) && !list.getApplyTaxes() && !list.getMaintainEnchantment()
+			&& list.getEntries().stream().anyMatch(entry -> entry.getIngredients().size() == 1 && entry.getProducts().size() == 1
+				&& matchesPlainIngredient(entry.getIngredients().getFirst(), Inventory.ADENA_ID, price)
+				&& matchesPlainIngredient(entry.getProducts().getFirst(), itemId, 1));
+	}
+
+	private static boolean matchesPlainIngredient(Ingredient ingredient, int id, long count)
+	{
+		return ingredient.getItemId() == id && ingredient.getItemCount() == count && ingredient.getEnchantLevel() == 0
+			&& !ingredient.isTaxIngredient() && !ingredient.getMaintainIngredient();
 	}
 
 	public static boolean hasSpecialIngredient(int id, long amount, Player player)

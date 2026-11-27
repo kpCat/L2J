@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipEpoch;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipResult;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.MembershipSnapshot;
 import org.l2jmobius.gameserver.model.clan.ClanDepartureService;
+import org.l2jmobius.gameserver.model.clan.ClanDevelopmentShop;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment;
 import org.l2jmobius.gameserver.model.clan.ClanInvitationService;
 import org.l2jmobius.gameserver.model.clan.ClanWarService;
@@ -82,6 +83,7 @@ public final class L2jPhantomClanBackend implements Backend
 	private final PhantomPvpPolicy _pvpPolicy;
 	private final PhantomSocialAffiliationContextPort _affiliationContexts;
 	private final BiPredicate<Long, Player> _mandatoryPreparationPending;
+	private volatile java.util.function.ToLongBiFunction<Long, Player> _developmentPurchaseReserve = (_, _) -> -1;
 
 	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization)
 	{
@@ -296,6 +298,29 @@ public final class L2jPhantomClanBackend implements Backend
 	public boolean mandatoryPreparationPending(long profileId, Player player)
 	{
 		return PhantomNativeEquipmentPolicy.hasRequiredEquipment(player) || _mandatoryPreparationPending.test(profileId, player);
+	}
+
+	public void bindDevelopmentPurchaseReserve(java.util.function.ToLongBiFunction<Long, Player> reserve)
+	{
+		_developmentPurchaseReserve = Objects.requireNonNull(reserve);
+	}
+
+	@Override
+	public ClanFoundingDevelopment.Outcome acquireDevelopmentItem(MemberRef member, int clanId, int level, long expiresAt, BooleanSupplier stillCurrent)
+	{
+		try (var acquired = acquire(member))
+		{
+			if (acquired == null || !ordinaryPlayer(acquired.player())) { return ClanFoundingDevelopment.Outcome.NOT_READY; }
+			final Player player = acquired.player();
+			final long id = member.profileId();
+			if (player.getPendingClanPurchase() != null)
+			{
+				return ClanDevelopmentShop.settlePending(player) ? ClanFoundingDevelopment.Outcome.DEFERRED : ClanFoundingDevelopment.Outcome.UNCONFIRMED;
+			}
+			if (mandatoryPreparationPending(id, player)) { return ClanFoundingDevelopment.Outcome.NOT_READY; }
+			final long reserve = _developmentPurchaseReserve.applyAsLong(id, player);
+			return ClanDevelopmentShop.buy(id, player, clanId, level, reserve < 0 ? reserve : Math.max(1, reserve), expiresAt, stillCurrent);
+		}
 	}
 
 	@Override

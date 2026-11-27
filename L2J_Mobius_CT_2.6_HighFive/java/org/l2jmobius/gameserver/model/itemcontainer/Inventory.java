@@ -801,6 +801,24 @@ public abstract class Inventory extends ItemContainer
 			return removed;
 		}
 	}
+
+	/** Keep the paid object's durable identity when an earned copy arrived during the payment. */
+	public boolean publishPurchasedClanItem(Item item)
+	{
+		if (item.getOwnerId() != getOwnerId() || item.getItemLocation() != ItemLocation.INVENTORY || item.getCount() != 1
+			|| !ClanFoundingDevelopment.isItemFee(item.getId())) { return false; }
+		final var world = World.getInstance();
+		final var existing = world.findObject(item.getObjectId());
+		if (existing != null && existing != item) { return false; }
+		final var inInventory = getItemByObjectId(item.getObjectId());
+		if (inInventory == item) { return true; }
+		if (inInventory != null) { return false; }
+		item.acknowledgePlainInventoryCredit();
+		world.addObject(item);
+		addItem(item);
+		refreshWeight();
+		return true;
+	}
 	
 	/**
 	 * Drop item from inventory and updates database

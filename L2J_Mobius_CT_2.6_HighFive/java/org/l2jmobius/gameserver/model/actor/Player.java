@@ -192,6 +192,7 @@ import org.l2jmobius.gameserver.model.actor.transform.AdditionalSkillHolder;
 import org.l2jmobius.gameserver.model.actor.transform.Transform;
 import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.model.clan.ClanDepartureService;
+import org.l2jmobius.gameserver.model.clan.ClanDevelopmentShop;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment;
 import org.l2jmobius.gameserver.model.clan.ClanAccess;
 import org.l2jmobius.gameserver.model.clan.ClanMember;
@@ -840,6 +841,7 @@ public class Player extends Playable
 	private Clan _clan;
 	private Clan _pendingClanCreation;
 	private ClanFoundingDevelopment.PendingPayment _pendingClanDevelopment;
+	private ClanDevelopmentShop.PendingPurchase _pendingClanPurchase;
 	private volatile ClanDepartureService.PendingDeparture _pendingClanDeparture;
 	
 	/** Apprentice and Sponsor IDs */
@@ -6855,6 +6857,16 @@ public class Player extends Playable
 		_pendingClanDevelopment = payment;
 	}
 
+	public synchronized ClanDevelopmentShop.PendingPurchase getPendingClanPurchase()
+	{
+		return _pendingClanPurchase;
+	}
+
+	public synchronized void setPendingClanPurchase(ClanDevelopmentShop.PendingPurchase purchase)
+	{
+		_pendingClanPurchase = purchase;
+	}
+
 	public ClanDepartureService.PendingDeparture getPendingClanDeparture()
 	{
 		return _pendingClanDeparture;
@@ -8243,7 +8255,8 @@ public class Player extends Playable
 	private boolean nativeClanWorkResolved()
 	{
 		return _pendingClanDeparture == null && (_pendingClanCreation == null || ClanTable.getInstance().settleClanCreation(this))
-			&& (_pendingClanDevelopment == null || ClanFoundingDevelopment.settlePending(this));
+			&& (_pendingClanDevelopment == null || ClanFoundingDevelopment.settlePending(this))
+			&& (_pendingClanPurchase == null || ClanDevelopmentShop.settlePending(this));
 	}
 
 	private void storeNative(boolean storeActiveEffects, OwnedStoreSnapshot snapshot)

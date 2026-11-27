@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -16,6 +17,7 @@ import org.l2jmobius.commons.config.DatabaseConfig;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
+import org.l2jmobius.gameserver.data.xml.MultisellData;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment.DurableOutcome;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment.Payment;
@@ -137,12 +139,126 @@ public final class ClanFoundingDevelopment017Checks
 				conn.rollback();
 			}
 			verifyNativeItemFees();
+			verifyNativeShopPurchase();
 		}
 		finally
 		{
 			DatabaseFactory.close();
 		}
 		System.out.println("PASS 021 native Item debit with stock DDL, fault rollback, commit and cold SQL readback");
+	}
+
+	private static void verifyNativeShopPurchase() throws Exception
+	{
+		final var stock = MultisellData.getInstance();
+		require(stock.matchesPersonalProgressionOffer(1419, 10_000_000) && stock.matchesPersonalProgressionOffer(3874, 25_000_000)
+			&& stock.matchesPersonalProgressionOffer(3870, 50_000_000) && !stock.matchesPersonalProgressionOffer(3874, 24_999_999),
+			"The active native 91002 list does not match the curated stock quotes.");
+		final int actor = 21002123;
+		final int adenaId = 21002125;
+		final int productId = 21002126;
+		final var purchase = new ClanDevelopmentShop.Purchase(21002122, actor, 21002124, 3, adenaId, 30_000_000, productId, 3874, 25_000_000, new UUID(21, 21002102));
+		try (var conn = DatabaseFactory.getConnection(); var sql = conn.createStatement())
+		{
+			sql.executeUpdate("INSERT INTO phantom_profiles(profile_id,character_object_id) VALUES(21002122,21002123)");
+			sql.executeUpdate("INSERT INTO phantom_profile_components(profile_id,component_type,component_schema_version,payload) VALUES(21002122,'clan.organization',2,X'01')");
+			sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id) VALUES(21002124,'ClanShopProof021',3,21002123)");
+			sql.executeUpdate("INSERT INTO characters(charId,char_name,sp,classid,base_class,clanid) VALUES(21002123,'ClanShopProof021',1000000,88,88,21002124)");
+		}
+		final var adena = plainInventoryItem(adenaId, Inventory.ADENA_ID, actor, purchase.adenaBefore());
+		final var product = plainInventoryItem(productId, purchase.itemId(), actor, 1);
+		final Item.CountTransaction<Void> shopAuthority = conn -> ClanDevelopmentShop.lockAuthority(conn, purchase, List.of());
+		adena.updateDatabase(true);
+		try (var conn = DatabaseFactory.getConnection(); var sql = conn.createStatement())
+		{
+			sql.executeUpdate("UPDATE items SET count=29999999 WHERE object_id=21002125 AND owner_id=21002123");
+		}
+		adena.setCount(purchase.adenaBefore() - 1);
+		adena.setCount(purchase.adenaBefore());
+		try
+		{
+			adena.transactExactRecoverableAdenaDebit(actor, purchase.adenaBefore(), purchase.price(), shopAuthority,
+				connection -> { throw new AssertionError("Conflicting Adena reached purchase staging."); });
+			throw new AssertionError("Conflicting Adena was accepted.");
+		}
+		catch (IllegalStateException expected)
+		{
+			require("Native currency preimage differs.".equals(expected.getMessage()), "The exact Adena preimage check did not reject the dirty stack.");
+		}
+		try (var conn = DatabaseFactory.getConnection(); var sql = conn.createStatement())
+		{
+			require(shopAdena(conn) == purchase.adenaBefore() - 1, "The payment overwrote the foreign durable Adena preimage.");
+			sql.executeUpdate("UPDATE items SET count=30000000 WHERE object_id=21002125 AND owner_id=21002123");
+		}
+		try
+		{
+			adena.transactExactRecoverableAdenaDebit(actor, purchase.adenaBefore(), purchase.price(), shopAuthority, connection ->
+			{
+				ClanDevelopmentShop.stage(connection, purchase, product);
+				throw new SQLException("021 shop failure before commit");
+			});
+			throw new AssertionError("Shop rollback control did not fail.");
+		}
+		catch (SQLException expected)
+		{
+			require("021 shop failure before commit".equals(expected.getMessage()), "Shop mutation never reached its staged effects.");
+		}
+		try (var conn = DatabaseFactory.getConnection())
+		{
+			conn.setAutoCommit(false);
+			final long durableAdena = shopAdena(conn);
+			require(durableAdena == purchase.adenaBefore() && ClanDevelopmentShop.readback(conn, purchase, durableAdena) == DurableOutcome.ROLLED_BACK, "Uncommitted purchase changed Adena or left a product or receipt.");
+			conn.rollback();
+		}
+		try
+		{
+			adena.transactExactRecoverableAdenaDebit(actor, purchase.adenaBefore(), purchase.price(), shopAuthority, connection ->
+			{
+				ClanDevelopmentShop.stage(connection, purchase, product);
+				// The server commits, then the writer's commit call encounters a closed connection.
+				connection.commit();
+				connection.close();
+				return null;
+			});
+			throw new AssertionError("The missing acknowledgement control did not fail.");
+		}
+		catch (SQLException expected)
+		{
+			require(adena.hasPendingAdenaDebit(), "A durable commit without acknowledgement did not retain its native guard.");
+		}
+		adena.changeCount(null, 17, null, null);
+		final var recovered = adena.reconcileCountTransaction(actor, purchase.adenaBefore(), purchase.adenaAfter(),
+			(conn, durable) -> ClanDevelopmentShop.readback(conn, purchase, durable) == DurableOutcome.APPLIED ? DurableOutcome.APPLIED : null);
+		require(recovered == DurableOutcome.APPLIED && !adena.hasPendingAdenaDebit() && adena.getCount() == purchase.adenaAfter() + 17,
+			"Native readback did not reconcile the committed purchase and retain later earned Adena.");
+		try (var conn = DatabaseFactory.getConnection())
+		{
+			conn.setAutoCommit(false);
+			final long durableAdena = shopAdena(conn);
+			require(durableAdena == purchase.adenaAfter() && ClanDevelopmentShop.readback(conn, purchase, durableAdena) == DurableOutcome.APPLIED, "Committed Adena debit, product or exact receipt missing.");
+			final var foreign = new ClanDevelopmentShop.Purchase(21002122, actor, 21002124, 3, adenaId, purchase.adenaBefore(), productId, 3874, 25_000_000, new UUID(21, 21002103));
+			require(ClanDevelopmentShop.readback(conn, foreign, purchase.adenaAfter()) == DurableOutcome.CONFLICT, "Another purchase accepted a foreign receipt.");
+			conn.rollback();
+		}
+		System.out.println("PASS 021 native clan shop quotes, exact Adena, rollback, missing acknowledgement, late credit and cold readback");
+	}
+
+	private static long shopAdena(Connection conn) throws SQLException
+	{
+		try (var query = conn.createStatement(); var rows = query.executeQuery("SELECT count FROM items WHERE object_id=21002125 AND owner_id=21002123 AND item_id=57 AND loc='INVENTORY'"))
+		{
+			require(rows.next(), "The exact TEST Adena row is absent.");
+			return rows.getLong(1);
+		}
+	}
+
+	private static Item plainInventoryItem(int objectId, int itemId, int ownerId, long count)
+	{
+		final var item = new Item(objectId, itemId);
+		item.setOwnerId(ownerId);
+		item.setItemLocation(ItemLocation.INVENTORY, 0, false);
+		item.setCount(count);
+		return item;
 	}
 
 	private static void verifyNativeItemFees() throws Exception

@@ -145,7 +145,7 @@ public final class ClanFoundingDevelopment
 		});
 	}
 
-	private static boolean authorizedAction(Player player, long profileId)
+	static boolean authorizedAction(Player player, long profileId)
 	{
 		if (!(player.getNativeWorkOwner() instanceof PhantomNativeWorkScope owner) || owner.player() != player || !owner.isCurrent()) { return false; }
 		final var execution = owner.currentExecutionStamp();
@@ -185,17 +185,22 @@ public final class ClanFoundingDevelopment
 		return Outcome.APPLIED;
 	}
 
-	static long stage(Connection connection, Payment payment, LongPredicate witnessedCredit) throws SQLException
+	static void requireOrganizationOwner(Connection connection, long profileId, int actorId) throws SQLException
 	{
 		try (var profile = connection.prepareStatement("SELECT p.character_object_id FROM phantom_profiles p INNER JOIN phantom_profile_components c ON c.profile_id=p.profile_id AND c.component_type=? WHERE p.profile_id=? FOR UPDATE"))
 		{
 			profile.setString(1, PhantomClanStore.COMPONENT_TYPE);
-			profile.setLong(2, payment.profileId());
+			profile.setLong(2, profileId);
 			try (var rows = profile.executeQuery())
 			{
-				if (!rows.next() || rows.getInt(1) != payment.actorId()) { throw new SQLException("Missing exact clan organization owner."); }
+				if (!rows.next() || rows.getInt(1) != actorId) { throw new SQLException("Missing exact clan organization owner."); }
 			}
 		}
+	}
+
+	static long stage(Connection connection, Payment payment, LongPredicate witnessedCredit) throws SQLException
+	{
+		requireOrganizationOwner(connection, payment.profileId(), payment.actorId());
 		try (var receipt = connection.prepareStatement("SELECT component_schema_version FROM phantom_profile_components WHERE profile_id=? AND component_type=? FOR UPDATE"))
 		{
 			receipt.setLong(1, payment.profileId());
