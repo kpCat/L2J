@@ -404,6 +404,8 @@ public final class PhantomClanService
 		default boolean mayContinueWarehouse(MemberRef member, ClanSnapshot clan, WarehouseOffer offer) { return false; }
 		default WarehouseOffer chooseWarehouse(MemberRef member, ClanSnapshot clan, WarehouseDemand demand, boolean mayDonate,
 			ClanWarehouseTransfer.DonationPolicy donation, long now) { return null; }
+		default WarehouseOffer chooseEquipmentDonation(MemberRef member, ClanSnapshot clan, List<Long> peers,
+			ClanWarehouseTransfer.DonationPolicy donation, long now) { return null; }
 		default ClanWarehouseTransfer.TransferOutcome useWarehouse(MemberRef member, int npcId, ClanWarehouseTransfer.Request request,
 			WarehouseOffer offer, WarehouseDemand demand, BooleanSupplier current, BooleanSupplier localExecution)
 		{
@@ -548,7 +550,7 @@ public final class PhantomClanService
 		boolean hasRootDeadline() { return paidDevelopment() || this == WAREHOUSE; }
 	}
 	public enum VisitOutcome { HANDLED, STALE, BUSY }
-	public enum WarehousePurpose { DONATE, DEVELOP, EQUIPMENT }
+	public enum WarehousePurpose { DONATE, DEVELOP, EQUIPMENT, DONATE_EQUIPMENT }
 
 	public record WarehouseDemand(int itemId, long count)
 	{
@@ -558,17 +560,27 @@ public final class PhantomClanService
 		}
 	}
 
-	public record WarehouseOffer(WarehousePurpose purpose, int leaderId, int objectId, int itemId, long count, UUID operation)
+	public record WarehouseOffer(WarehousePurpose purpose, int leaderId, int objectId, int itemId, long count, UUID operation, MemberRef recipient)
 	{
+		public WarehouseOffer(WarehousePurpose purpose, int leaderId, int objectId, int itemId, long count, UUID operation)
+		{
+			this(purpose, leaderId, objectId, itemId, count, operation, null);
+		}
+
 		public WarehouseOffer
 		{
 			if (purpose == null || leaderId <= 0 || objectId <= 0 || itemId <= 0 || count <= 0 || operation == null)
 			{
 				throw new IllegalArgumentException("A warehouse offer needs an exact clan resource.");
 			}
+			if (purpose == WarehousePurpose.DONATE_EQUIPMENT ? recipient == null || recipient.kind() != MemberKind.PHANTOM || count != 1 : recipient != null)
+			{
+				throw new IllegalArgumentException("An equipment donation needs one object and an ordinary recipient.");
+			}
 		}
 
-		public boolean deposit() { return purpose == WarehousePurpose.DONATE; }
+		public boolean deposit() { return purpose == WarehousePurpose.DONATE || purpose == WarehousePurpose.DONATE_EQUIPMENT; }
+		boolean developmentResource() { return purpose == WarehousePurpose.DONATE || purpose == WarehousePurpose.DEVELOP; }
 	}
 
 	public record VisitRequest(VisitPurpose purpose, MemberRef member, PhantomGoal root, int clanId, int currentLevel, MemberRef peer, int peerClanId, List<MemberRef> alternatePeers, int preference, long offeredAt, long deadline, ClanFoundingDevelopment.PledgeTerms pledge, WarehouseOffer warehouse)
@@ -996,11 +1008,17 @@ public final class PhantomClanService
 				{
 					if (!warehouseVisitMatches(visit, clan) || prior == null) { return VisitOutcome.STALE; }
 					final var offer = visit.warehouse();
-					final var demand = offer.purpose() == WarehousePurpose.EQUIPMENT ? null : warehouseDemand(actor, now);
-					if (offer.purpose() != WarehousePurpose.EQUIPMENT
+					final var demand = offer.developmentResource() ? warehouseDemand(actor, now) : null;
+					if (offer.developmentResource()
 						&& (demand == null || demand.itemId() != offer.itemId() || demand.count() < offer.count())) { return VisitOutcome.STALE; }
+					final long warehouseCeiling = switch (offer.purpose())
+					{
+						case DONATE -> demand.count();
+						case DONATE_EQUIPMENT -> 1;
+						default -> 0;
+					};
 					final var request = new ClanWarehouseTransfer.Request(clan.clanId(), clan.leaderObjectId(), offer.objectId(), offer.count(), offer.deposit(),
-						offer.operation(), deadline, offer.deposit() ? demand.count() : 0, offer.deposit() ? _warehouseDonation : null, visit.currentLevel());
+						offer.operation(), deadline, warehouseCeiling, offer.deposit() ? _warehouseDonation : null, visit.currentLevel());
 					final var outcome = _backend.useWarehouse(actor.member(), masterObjectId, request, offer, demand,
 						() -> current.getAsBoolean() && _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).filter(visit.root()::equals).isPresent(),
 						local);
@@ -1041,7 +1059,7 @@ public final class PhantomClanService
 			if (clan.leaderObjectId() != member.characterObjectId())
 			{
 				considerOrdinaryDeparture(actor, now);
-				offerWarehouseVisit(actor, root, current, preference, now);
+				offerWarehouseVisit(actor, root, current, peers, preference, now);
 				return;
 			}
 			if (_state == State.RUNNING && developmentReady(development) && _backend.mayStartAutonomousDevelopment(member))
@@ -1087,7 +1105,7 @@ public final class PhantomClanService
 						root.deadlineEpochMillis() == 0 ? deadline : Math.min(root.deadlineEpochMillis(), deadline), pledge));
 				}
 			}
-			if (!developmentReady(development)) { offerWarehouseVisit(actor, root, current, preference, now); }
+			if (!developmentReady(development)) { offerWarehouseVisit(actor, root, current, peers, preference, now); }
 			if (clan.memberCount() >= clan.maxMembers() && !diplomacyDue(member.profileId(), now)) { return; }
 		}
 		final var available = peers.get().stream().filter(id -> id != member.profileId() && !_active.containsKey(id)).limit(8)
@@ -1122,7 +1140,8 @@ public final class PhantomClanService
 		return clan != null && offer != null && clan.clanId() == visit.clanId() && clan.level() == visit.currentLevel()
 			&& clan.leaderObjectId() == offer.leaderId()
 			&& (offer.purpose() != WarehousePurpose.DEVELOP || clan.leaderObjectId() == visit.member().characterObjectId())
-			&& (!offer.deposit() || clan.leaderObjectId() != visit.member().characterObjectId());
+			&& (!offer.deposit() || clan.leaderObjectId() != visit.member().characterObjectId())
+			&& (offer.recipient() == null || !visit.member().equals(offer.recipient()));
 	}
 
 	private WarehouseDemand warehouseDemand(AutonomousActor actor, long now)
@@ -1139,7 +1158,7 @@ public final class PhantomClanService
 		return development.itemsDue() > 0 ? new WarehouseDemand(development.requirement().itemId(), development.itemsDue()) : null;
 	}
 
-	private void offerWarehouseVisit(AutonomousActor actor, PhantomGoal root, StoredMetadata metadata, int preference, long now)
+	private void offerWarehouseVisit(AutonomousActor actor, PhantomGoal root, StoredMetadata metadata, Supplier<List<Long>> peers, int preference, long now)
 	{
 		final var destination = _autonomousVisits;
 		final var clan = actor.clan();
@@ -1158,7 +1177,11 @@ public final class PhantomClanService
 				while (_materialAssistance.size() > MAX_ACTIVE_OPERATIONS) { _materialAssistance.pollFirstEntry(); }
 			}
 		}
-		final var offer = _backend.chooseWarehouse(member, clan, demand, mayDonate, _warehouseDonation, now);
+		var offer = _backend.chooseWarehouse(member, clan, demand, mayDonate, _warehouseDonation, now);
+		if (offer == null && mayDonate)
+		{
+			offer = _backend.chooseEquipmentDonation(member, clan, peers.get().stream().filter(id -> id != member.profileId()).limit(8).toList(), _warehouseDonation, now);
+		}
 		if (offer == null) { return; }
 		if (metadata == null || metadata.metadata().canonicalClanId() != clan.clanId()
 			|| metadata.metadata().canonicalLeaderObjectId() != clan.leaderObjectId())

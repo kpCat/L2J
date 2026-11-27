@@ -106,6 +106,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 			{
 				registry.add("019-founder-requires-current-root-and-native-arrival", this::autonomousFounderVisit);
 				registry.add("021-warehouse-consent-and-current-farm-root", this::autonomousWarehouseVisit);
+				registry.add("021-voluntary-equipment-donation-targets-current-clan-member", this::voluntaryEquipmentDonation);
 				registry.add("021-development-keeps-personal-adena-reserve", this::autonomousDevelopmentReserve);
 			}
 			case CREATION_RESTART ->
@@ -269,6 +270,41 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(1, fixture.backend.warehouseWrites, "Expected one exact bounded warehouse action.");
 		PhantomAssertions.assertEquals(farm, fixture.goals.load(2).orElseThrow().goal(), "A warehouse trip replaced the existing farm root.");
 		context.record("goal021.warehouse.visit", "consent; exact warehouse; stale root refused; one writer admission");
+	}
+
+	private void voluntaryEquipmentDonation(PhantomTestContext context)
+	{
+		final var fixture = new Fixture();
+		fixture.backend.addPhantom(1, 100);
+		fixture.backend.addPhantom(2, 200);
+		fixture.backend.addPhantom(3, 300);
+		final var clan = new ClanSnapshot(42, "CodexClan", 100, 1, 3, 12, 0, 0, PhantomClanService.sha256("clan|42"));
+		for (int objectId : List.of(100, 200, 300)) { fixture.backend.clans.put(objectId, clan); }
+		final var recipient = MemberRef.phantom(3, 300);
+		fixture.backend.warehouseOffer = new WarehouseOffer(WarehousePurpose.DONATE_EQUIPMENT, 100, 734, 1, 1, new UUID(21, 92), recipient);
+		fixture.backend.atWarehouse = true;
+		final var donorRoot = goalWithDeadline(2, 805, "farm.background", null, null, List.of(), 2, NOW + 600_000);
+		final var recipientRoot = goalWithDeadline(3, 806, "farm.background", null, null, List.of(), 1, NOW + 600_000);
+		fixture.goals.put(2, donorRoot);
+		fixture.goals.put(3, recipientRoot);
+		final var observed = new java.util.concurrent.atomic.AtomicReference<PhantomClanService.VisitRequest>();
+		final var declined = fixture.service();
+		declined.bindAutonomousVisits(observed::set);
+		declined.advanceAutonomous(2, 200, () -> List.of(3L), -1);
+		PhantomAssertions.assertTrue(observed.get() == null, "Declined voluntary gear was scheduled.");
+		final var service = fixture.service();
+		service.bindAutonomousVisits(observed::set);
+		service.advanceAutonomous(2, 200, () -> List.of(3L), 2);
+		final var visit = java.util.Objects.requireNonNull(observed.get(), "The agreed gear donation did not reach the warehouse.");
+		PhantomAssertions.assertEquals(recipient, visit.warehouse().recipient(), "The useful gear lost its intended recipient.");
+		fixture.backend.clans.remove(300);
+		PhantomAssertions.assertEquals(PhantomClanService.VisitOutcome.STALE, service.completeAutonomousVisit(visit, 30005), "A request for a departed recipient reached the writer.");
+		PhantomAssertions.assertEquals(0, fixture.backend.warehouseWrites, "A departed recipient caused a deposit.");
+		fixture.backend.clans.put(300, clan);
+		PhantomAssertions.assertEquals(PhantomClanService.VisitOutcome.HANDLED, service.completeAutonomousVisit(visit, 30005), "The voluntary plain object did not reach the warehouse transaction.");
+		PhantomAssertions.assertEquals(1, fixture.backend.warehouseWrites, "The donation did not admit exactly one transfer.");
+		PhantomAssertions.assertEquals(donorRoot, fixture.goals.load(2).orElseThrow().goal(), "The donor's farm root changed.");
+		PhantomAssertions.assertEquals(recipientRoot, fixture.goals.load(3).orElseThrow().goal(), "The recipient was assigned a new farm root.");
 	}
 
 	private void autonomousDevelopmentReserve(PhantomTestContext context)
@@ -972,11 +1008,20 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		}
 
 		@Override
+		public WarehouseOffer chooseEquipmentDonation(MemberRef member, ClanSnapshot clan, List<Long> peers,
+			ClanWarehouseTransfer.DonationPolicy donation, long now)
+		{
+			return warehouseOffer != null && warehouseOffer.recipient() != null && peers.contains(warehouseOffer.recipient().profileId()) ? warehouseOffer : null;
+		}
+
+		@Override
 		public ClanWarehouseTransfer.TransferOutcome useWarehouse(MemberRef member, int npcId, ClanWarehouseTransfer.Request request,
 			WarehouseOffer offer, WarehouseDemand demand, BooleanSupplier current, BooleanSupplier localExecution)
 		{
-			if (!current.getAsBoolean() || !localExecution.getAsBoolean() || !request.operation().equals(warehouseOffer.operation())
-				|| request.clanId() != 42 || request.leaderId() != 100 || request.objectId() != 733 || request.count() != 30 || !request.deposit())
+			if (!current.getAsBoolean() || !localExecution.getAsBoolean() || !offer.equals(warehouseOffer) || !request.operation().equals(warehouseOffer.operation())
+				|| request.clanId() != 42 || request.leaderId() != 100 || request.objectId() != warehouseOffer.objectId()
+				|| request.count() != warehouseOffer.count() || !request.deposit() || request.donation() == null
+				|| offer.recipient() != null && (demand != null || request.warehouseCeiling() != 1 || !clans.containsKey(offer.recipient().characterObjectId())))
 			{
 				return ClanWarehouseTransfer.TransferOutcome.NOT_READY;
 			}

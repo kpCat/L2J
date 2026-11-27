@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy;
 
 /** Exact durable item/fee outcomes against the 021 isolated MariaDB stock schema. */
 public final class ClanWarehouse021Checks
@@ -244,9 +245,30 @@ public final class ClanWarehouse021Checks
 						&& player.getAdena() == 930 && warehouse.getAdena() == 40, "Duplicate spending was possible inside the durable contribution cooldown.");
 				}
 			}
+			verifySpareEquipment(player);
 		}
 		finally { player.stopAllTasks(); }
 		System.out.println("PASS 021 native warehouse containers, stock exclusion, rights, protected surplus and durable contribution cooldown");
+	}
+
+	private static void verifySpareEquipment(Player player)
+	{
+		final Item equipped = player.getInventory().addItem(ItemProcessType.NONE, 1, 1, player, null);
+		final Item spare = player.getInventory().addItem(ItemProcessType.NONE, 1, 1, player, null);
+		player.getInventory().updateDatabase();
+		check(!PhantomNativeEquipmentPolicy.hasEquippedReplacement(player, spare), "A missing personal weapon was available to donate.");
+		player.getInventory().equipItem(equipped);
+		check(equipped != spare && equipped.isEquipped() && PhantomNativeEquipmentPolicy.hasEquippedReplacement(player, spare),
+			"An unequipped plain duplicate was not recognized as surplus.");
+		spare.setEnchantLevel(1);
+		check(!PhantomNativeEquipmentPolicy.hasEquippedReplacement(player, spare), "A protected enhanced item qualified as a plain gear donation.");
+		final Item firstRing = player.getInventory().addItem(ItemProcessType.NONE, 878, 1, player, null);
+		final Item secondRing = player.getInventory().addItem(ItemProcessType.NONE, 878, 1, player, null);
+		player.getInventory().updateDatabase();
+		player.getInventory().equipItem(firstRing);
+		check(firstRing.isEquipped() && PhantomNativeEquipmentPolicy.upgrade(player, secondRing.getTemplate())
+			&& !PhantomNativeEquipmentPolicy.hasEquippedReplacement(player, secondRing), "A ring that fills the personal loadout qualified as surplus.");
+		System.out.println("PASS 021 native surplus gear keeps the equipped weapon, enhanced item and second ring");
 	}
 
 	private static void verifyCompetingWithdrawals(Path scratch, int itemObjectId) throws Exception

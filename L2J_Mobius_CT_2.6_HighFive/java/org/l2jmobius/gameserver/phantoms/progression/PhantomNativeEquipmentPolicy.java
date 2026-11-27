@@ -380,6 +380,18 @@ public final class PhantomNativeEquipmentPolicy
 		return item == null || item.getEnchantLevel() > 0 || item.isAugmented() || item.getElementals() != null && item.getElementals().length > 0 || protectedTemplateEffects(item.getTemplate());
 	}
 
+	/** An unequipped plain item is surplus only when the same kind of slot is already covered. */
+	public static boolean hasEquippedReplacement(Player player, Item item)
+	{
+		if (protectedEffects(item) || !item.getTemplate().isEquipable() || item.isEquipped() || upgrade(player, item.getTemplate())) { return false; }
+		final var template = item.getTemplate();
+		final double utility = power(player, template);
+		return player.getInventory().getPaperdollItems(equipped -> equipped.getTemplate().getBodyPart() == template.getBodyPart()
+			&& equipped.getItemType() == template.getItemType() && equipped.hasStoredWarehouseRow() && !equipped.isShadowItem()
+			&& !equipped.isTimeLimitedItem()).stream().anyMatch(equipped -> equipped.getId() == item.getId()
+				|| improvesLoadout(equipped.getTemplate(), List.of(item), utility, power(player, equipped.getTemplate())));
+	}
+
 	private static boolean accessory(BodyPart body)
 	{
 		return switch (body) { case NECK, L_EAR, R_EAR, LR_EAR, L_FINGER, R_FINGER, LR_FINGER -> true; default -> false; };

@@ -69,6 +69,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy;
@@ -358,6 +359,42 @@ public final class L2jPhantomClanBackend implements Backend
 	}
 
 	@Override
+	public WarehouseOffer chooseEquipmentDonation(MemberRef member, ClanSnapshot expected, List<Long> peers,
+		ClanWarehouseTransfer.DonationPolicy donation, long now)
+	{
+		if (peers.isEmpty()) { return null; }
+		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
+		{
+			if (lease == null || lease.player().getObjectId() != member.characterObjectId()) { return null; }
+			final Player donor = lease.player();
+			final Clan clan = donor.getClan();
+			if (!warehouseActor(donor, clan, expected.clanId(), expected.leaderObjectId()) || clan.getLeaderId() == donor.getObjectId()
+				|| donor.getAdena() - _personalAdenaReserve < 30 || mandatoryPreparationPending(member.profileId(), donor)) { return null; }
+			final Set<Integer> personal = _warehousePrivateMaterials.apply(member.profileId(), donor);
+			final List<Item> surplus = donor.getInventory().getItems().stream().filter(item -> !personal.contains(item.getId()) && spareWarehouseGear(donor, item))
+				.filter(item -> ClanWarehouseTransfer.remainingDonationRoom(clan.getWarehouse(), item.getId(), 1) > 0).limit(12).toList();
+			if (surplus.isEmpty() || !ClanWarehouseTransfer.donationDue(member.profileId(), now, donation)) { return null; }
+			for (long peer : peers)
+			{
+				try (var observed = _materialization.tryAcquireObservation(peer).orElse(null))
+				{
+					if (observed == null || observed.player() == donor || !gearRecipient(observed.player(), clan)) { continue; }
+					final Player recipient = observed.player();
+					final Item upgrade = surplus.stream().filter(item -> usefulWarehouseGear(recipient, item))
+						.max(Comparator.comparingDouble((Item item) -> PhantomNativeEquipmentPolicy.power(recipient, item.getTemplate()))
+							.thenComparingInt(Item::getObjectId)).orElse(null);
+					if (upgrade != null)
+					{
+						return new WarehouseOffer(WarehousePurpose.DONATE_EQUIPMENT, clan.getLeaderId(), upgrade.getObjectId(), upgrade.getId(), 1,
+							UUID.randomUUID(), MemberRef.phantom(peer, recipient.getObjectId()));
+					}
+				}
+			}
+			return null;
+		}
+	}
+
+	@Override
 	public boolean mayContinueWarehouse(MemberRef member, ClanSnapshot clan, WarehouseOffer offer)
 	{
 		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
@@ -366,6 +403,7 @@ public final class L2jPhantomClanBackend implements Backend
 				&& warehouseActor(lease.player(), lease.player().getClan(), clan.clanId(), offer.leaderId())
 				&& !_mandatoryPreparationPending.test(member.profileId(), lease.player())
 				&& (offer.purpose() == WarehousePurpose.EQUIPMENT || !PhantomNativeEquipmentPolicy.hasRequiredEquipment(lease.player()))
+				&& (offer.recipient() == null || gearRecipient(World.getInstance().getPlayer(offer.recipient().characterObjectId()), lease.player().getClan()))
 				&& (offer.deposit() || ClanWarehouseTransfer.canWithdraw(lease.player(), lease.player().getClan()));
 		}
 	}
@@ -395,16 +433,37 @@ public final class L2jPhantomClanBackend implements Backend
 			}
 			final var source = offer.deposit() ? player.getInventory() : clan.getWarehouse();
 			final Item item = source.getItemByObjectId(offer.objectId());
-			if (item == null || item.getId() != offer.itemId() || !warehouseItem(item)
-				|| offer.purpose() == WarehousePurpose.EQUIPMENT && !usefulWarehouseGear(player, item)
-				|| offer.purpose() != WarehousePurpose.EQUIPMENT && (demand == null || demand.itemId() != offer.itemId() || demand.count() < offer.count()))
+			if (item == null || item.getId() != offer.itemId() || !warehouseItem(item)) { return ClanWarehouseTransfer.TransferOutcome.NOT_READY; }
+			final Player recipient;
+			try (var observed = offer.recipient() == null ? null : _materialization.tryAcquireObservation(offer.recipient().profileId()).orElse(null))
 			{
-				return ClanWarehouseTransfer.TransferOutcome.NOT_READY;
+				recipient = observed != null && observed.player().getObjectId() == offer.recipient().characterObjectId() ? observed.player() : null;
 			}
+			final BooleanSupplier useful = switch (offer.purpose())
+			{
+				case EQUIPMENT -> () -> usefulWarehouseGear(player, item);
+				case DONATE_EQUIPMENT -> () -> recipient != player && gearRecipient(recipient, clan)
+					&& spareWarehouseGear(player, item) && !PhantomNativeEquipmentPolicy.hasRequiredEquipment(player) && usefulWarehouseGear(recipient, item);
+				case DONATE, DEVELOP -> () -> demand != null && demand.itemId() == offer.itemId() && demand.count() >= offer.count();
+			};
+			if (!useful.getAsBoolean()) { return ClanWarehouseTransfer.TransferOutcome.NOT_READY; }
 			return ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _personalAdenaReserve, current,
-				() -> localExecution.getAsBoolean() && PhantomNativeLootControl.threat(player) == null
-					&& (offer.purpose() != WarehousePurpose.EQUIPMENT || usefulWarehouseGear(player, item)));
+				() -> localExecution.getAsBoolean() && PhantomNativeLootControl.threat(player) == null && useful.getAsBoolean());
 		}
+	}
+
+	private boolean gearRecipient(Player recipient, Clan clan)
+	{
+		if (recipient == null || clan == null || recipient.getClan() != clan || World.getInstance().getPlayer(recipient.getObjectId()) != recipient
+			|| !warehouseActor(recipient, clan, clan.getId(), clan.getLeaderId())) { return false; }
+		return recipient.getNativeWorkOwner() instanceof PhantomNativeWorkScope owner && owner.openForCooperation()
+			&& ClanWarehouseTransfer.canWithdraw(recipient, clan);
+	}
+
+	private static boolean spareWarehouseGear(Player donor, Item item)
+	{
+		return item.getCount() == 1 && item.getItemLocation() == ItemLocation.INVENTORY && warehouseItem(item)
+			&& item.isAvailable(donor, false, false) && PhantomNativeEquipmentPolicy.hasEquippedReplacement(donor, item);
 	}
 
 	private boolean warehouseActor(Player player, Clan clan, int clanId, int leaderId)
@@ -441,7 +500,8 @@ public final class L2jPhantomClanBackend implements Backend
 
 	private static boolean usefulWarehouseGear(Player player, Item item)
 	{
-		if (!item.getTemplate().isEquipable() || !PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate())) { return false; }
+		if (!item.getTemplate().isEquipable() || !player.getInventory().validateCapacity(1)
+			|| !player.getInventory().validateWeightByItemId(item.getId(), 1) || !PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate())) { return false; }
 		final var candidate = item.getTemplate();
 		return player.getInventory().getItems().stream().filter(owned -> owned.getTemplate().getBodyPart() == candidate.getBodyPart())
 			.noneMatch(owned -> owned.getId() == item.getId() || PhantomNativeEquipmentPolicy.upgrade(player, owned.getTemplate())

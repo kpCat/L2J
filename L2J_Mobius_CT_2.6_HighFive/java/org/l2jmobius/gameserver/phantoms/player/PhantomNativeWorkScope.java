@@ -227,6 +227,11 @@ public final class PhantomNativeWorkScope implements Owner
 	}
 	@Override public PlayerNativeEvidence evidence() { return _evidence; }
 	@Override public boolean nativeObservationHealthy() { return _failure.isEmpty() && !_player.hasPendingOwnedStore(); }
+	/** A read-only check for another actor's eligibility while native resource locks are held. */
+	public boolean openForCooperation()
+	{
+		return _state == State.OPEN && !_permanentSeal && isCurrent() && nativeObservationHealthy();
+	}
 	/** Only an exact healthy control checkpoint is temporary; shutdown and native failure never are. */
 	public boolean temporaryCheckpoint()
 	{
