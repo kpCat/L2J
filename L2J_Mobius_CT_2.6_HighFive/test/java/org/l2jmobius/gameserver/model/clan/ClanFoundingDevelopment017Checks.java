@@ -3,14 +3,21 @@
  */
 package org.l2jmobius.gameserver.model.clan;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.l2jmobius.commons.config.DatabaseConfig;
@@ -31,6 +38,18 @@ import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.itemcontainer.ItemContainer;
+import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Status;
+import org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard;
 
 /** Exact receipt and stock fee staging against isolated, connection-local native row fixtures. */
@@ -155,12 +174,91 @@ public final class ClanFoundingDevelopment017Checks
 			verifyNativeReputationLevels();
 			verifyNativePledgeSkill();
 			ClanWarehouse021Checks.verify();
+			verifyCleanupPrepareTimeout(21002182, 1, false, false);
+			verifyCleanupPrepareTimeout(21002184, 2, false, false);
+			verifyCleanupPrepareTimeout(21002186, 0, true, false);
+			verifyCleanupPrepareTimeout(21002188, 1, false, true);
 		}
 		finally
 		{
 			DatabaseFactory.close();
 		}
 		System.out.println("PASS 021 native Item debit with stock DDL, Adena reserve, stale authority rollback and cold SQL readback");
+	}
+
+	private static void verifyCleanupPrepareTimeout(int profileId, int statementTimeouts, boolean loseCommitAck, boolean loseRollbackAck) throws Exception
+	{
+		final int actorId = profileId + 1;
+		final var identity = new PhantomBackgroundState.Identity(profileId, actorId, 0, 0, 0);
+		final var skills = new L2jPhantomBackgroundAuthority(() -> null, () -> null, () -> null, () -> null).autoGetSkills(identity, 1);
+		final var baseline = new PhantomBackgroundState(State.MATERIALIZED, identity, new PhantomBackgroundState.Progress(1, 0, 0, 0),
+			new PhantomBackgroundState.Vitals(100, 100, 100, 100, 0, 10), new PhantomBackgroundState.Position(0, 1, 2, 3, 0, "test.021"),
+			new PhantomBackgroundState.CombatFacts(PhantomBackgroundState.ModelKind.MELEE, 100, 100, 100, 100, 100, 100, 0, 0, 1, 1, 0, 1, 1, 1, 1),
+			PhantomBackgroundState.Loadout.none(), new PhantomBackgroundState.InventoryFacts(List.of(57), List.of(), "", 0, 1000, 0, 20),
+			skills, new PhantomBackgroundState.Clock(profileId, 0, 0), PhantomBackgroundState.Receipt.empty(),
+			new PhantomBackgroundState.Hashes("a".repeat(64), "b".repeat(64), "c".repeat(64), "d".repeat(64)));
+		try (var connection = DatabaseFactory.getConnection(); var sql = connection.createStatement())
+		{
+			sql.executeUpdate("INSERT INTO phantom_profiles(profile_id,character_object_id) VALUES(" + profileId + "," + actorId + ")");
+			sql.executeUpdate("INSERT INTO characters(charId,char_name,level,exp,sp,classid,base_class,race,maxHp,curHp,maxMp,curMp,maxCp,curCp,x,y,z,vitality_points) VALUES("
+				+ actorId + ",'Store021" + actorId + "',1,0,0,0,0,0,100,100,100,100,10,0,1,2,3,0)");
+			for (var skill : skills)
+			{
+				sql.executeUpdate("INSERT INTO character_skills(charId,skill_id,skill_level,class_index) VALUES("
+					+ actorId + "," + skill.skillId() + "," + skill.skillLevel() + ",0)");
+			}
+		}
+		final var profiles = PhantomProfileRepository.open();
+		final var goal = new PhantomGoal(profileId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Integer.toString(profileId)),
+			null, 1, 0, null, List.of(), null, "farm.background", 500, 0, 0, 0, Map.of(), "test.021", 0);
+		new PhantomGoalStateStore(profiles).insert(profileId, goal);
+		final byte[] original = new PhantomBackgroundStateCodec().encode(baseline);
+		profiles.insertComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundState.SCHEMA_VERSION, original);
+		final var attempts = new AtomicInteger();
+		final var ownerChecks = new AtomicInteger();
+		final var transaction = new PhantomBackgroundTransaction(() ->
+		{
+			final Connection connection = DatabaseFactory.getConnection();
+			final int attempt = attempts.incrementAndGet();
+			return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] { Connection.class }, (_, method, arguments) ->
+			{
+				final Object result = invokeSql(connection, method, arguments);
+				if (loseCommitAck && method.getName().equals("commit")) { throw new SQLTimeoutException("TEST lost PREPARE commit acknowledgement"); }
+				if (loseRollbackAck && method.getName().equals("rollback")) { throw new SQLTimeoutException("TEST lost PREPARE rollback acknowledgement"); }
+				if (attempt <= statementTimeouts && result instanceof PreparedStatement statement && arguments[0] instanceof String sql
+					&& sql.startsWith("UPDATE phantom_profile_components SET component_schema_version"))
+				{
+					return Proxy.newProxyInstance(PreparedStatement.class.getClassLoader(), new Class<?>[] { PreparedStatement.class }, (_, statementMethod, values) ->
+					{
+						final Object update = invokeSql(statement, statementMethod, values);
+						if (statementMethod.getName().equals("executeUpdate")) { throw new SQLTimeoutException("TEST PREPARE state write timed out"); }
+						return update;
+					});
+				}
+				return result;
+			});
+		}, PhantomBackgroundTransaction.ObjectIdAllocator.production(), PhantomBackgroundTransaction.FaultInjector.none());
+		final var prepared = transaction.prepareOwnedStore(baseline, goal, profileId, State.READY, null, () ->
+		{
+			ownerChecks.incrementAndGet();
+			require(Arrays.equals(original, profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload())
+				&& profiles.findComponent(profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty(), "Retry crossed an unconfirmed PREPARE write.");
+		});
+		final Status expected = loseCommitAck ? Status.COMMIT_OUTCOME_UNKNOWN : loseRollbackAck || statementTimeouts == 2 ? Status.BACKEND_FAILURE : Status.SUCCESS;
+		final boolean noRetry = loseCommitAck || loseRollbackAck;
+		require(prepared.status() == expected && attempts.get() == (noRetry ? 1 : 2) && ownerChecks.get() == (noRetry ? 0 : 1),
+			"Unexpected PREPARE timeout recovery: " + prepared.status() + ", attempts=" + attempts.get() + ", ownerChecks=" + ownerChecks.get());
+		final var receipt = profiles.findComponent(profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE);
+		require(expected == Status.BACKEND_FAILURE ? prepared.intent() == null && receipt.isEmpty()
+			: prepared.intent() != null && receipt.isPresent() && Arrays.equals(receipt.get().payload(), prepared.intent().encode()),
+			"PREPARE timeout recovery lost or duplicated the exact receipt.");
+		System.out.println("PASS 021 owned STORE PREPARE timeout " + expected + " attempts=" + attempts.get());
+	}
+
+	private static Object invokeSql(Object delegate, Method method, Object[] arguments) throws Throwable
+	{
+		try { return method.invoke(delegate, arguments); }
+		catch (InvocationTargetException failure) { throw failure.getCause(); }
 	}
 
 	private static void verifyNativeReputationLevels() throws Exception

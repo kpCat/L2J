@@ -1530,9 +1530,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				}
 				final State target = cleanup || (previous == null) || (previous.state() != State.MATERIALIZED) ? (captured.vitals().currentHp() == 0 ? State.DEAD : State.READY) : State.MATERIALIZED;
 				final var witnessed = captureOwnedInventory(player, captured);
+				final Runnable revalidateCleanupOwner = cleanup && arrival == null ? () ->
+				{
+					checkOwner();
+					requireStoreTransition(profileId);
+					if (_materialization.get().find(profileId).map(value -> value.materializedAtNanos() != entry.materializedAtNanos()).orElse(true)
+						|| !Objects.equals(_goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), intentGoal))
+					{
+						throw new IllegalStateException("OWNED_STORE_PREPARE_RETRY_AUTHORITY_CHANGED");
+					}
+				} : null;
 				checkpointStage(player, "PREPARE_ATTEMPTED");
-				final var prepared = transaction(() -> retained == null ? _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target, nativeCapture)
-					: _transactions.prepareRetainedNativeStore(witnessed, retained, entry.materializedAtNanos(), target, nativeCapture));
+				final var prepared = transaction(() -> retained == null ? _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target, nativeCapture, revalidateCleanupOwner)
+					: _transactions.prepareRetainedNativeStore(witnessed, retained, entry.materializedAtNanos(), target, nativeCapture, revalidateCleanupOwner));
 				_intentGoal = intentGoal;
 				_intent = prepared.intent();
 				_nativeCapture = _intent == null ? null : nativeCapture;

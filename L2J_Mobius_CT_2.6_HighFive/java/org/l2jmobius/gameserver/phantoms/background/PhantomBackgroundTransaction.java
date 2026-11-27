@@ -27,6 +27,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -414,10 +415,30 @@ public final class PhantomBackgroundTransaction
 	public OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target, PhantomNativeContext.Capture nativeCapture)
 	{ return prepareOwnedStore(captured, goal, epoch, target, nativeCapture, null); }
 
+	/** A sealed cleanup may repeat preparation once after an acknowledged rollback. */
+	public OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target,
+		PhantomNativeContext.Capture nativeCapture, Runnable revalidateCleanupOwner)
+	{ return prepareOwnedStore(captured, goal, epoch, target, nativeCapture, null, revalidateCleanupOwner); }
+
 	/** Retained execution-checkpoint authority is valid only for canonical native persistence, never offscreen execution. */
 	public OwnedStorePreparation prepareRetainedNativeStore(PhantomBackgroundState captured, PhantomGoalStateStore.RetainedNativeGoal authority, long epoch, State target, PhantomNativeContext.Capture nativeCapture)
-	{ return prepareOwnedStore(captured, authority.goal(), epoch, target, nativeCapture, authority); }
-	private OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target, PhantomNativeContext.Capture nativeCapture, PhantomGoalStateStore.RetainedNativeGoal retained)
+	{ return prepareRetainedNativeStore(captured, authority, epoch, target, nativeCapture, null); }
+
+	OwnedStorePreparation prepareRetainedNativeStore(PhantomBackgroundState captured, PhantomGoalStateStore.RetainedNativeGoal authority,
+		long epoch, State target, PhantomNativeContext.Capture nativeCapture, Runnable revalidateCleanupOwner)
+	{ return prepareOwnedStore(captured, authority.goal(), epoch, target, nativeCapture, authority, revalidateCleanupOwner); }
+
+	private OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target,
+		PhantomNativeContext.Capture nativeCapture, PhantomGoalStateStore.RetainedNativeGoal retained, Runnable revalidateCleanupOwner)
+	{
+		final var preparation = attemptOwnedStorePreparation(captured, goal, epoch, target, nativeCapture, retained);
+		if (revalidateCleanupOwner == null || !preparation.rolledBackTimeout() || Thread.currentThread().isInterrupted()) { return preparation; }
+		revalidateCleanupOwner.run();
+		return attemptOwnedStorePreparation(captured, goal, epoch, target, nativeCapture, retained);
+	}
+
+	private OwnedStorePreparation attemptOwnedStorePreparation(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target,
+		PhantomNativeContext.Capture nativeCapture, PhantomGoalStateStore.RetainedNativeGoal retained)
 	{
 		final long profileId = captured.identity().profileId();
 		final int objectId = captured.identity().characterObjectId();
@@ -477,14 +498,17 @@ public final class PhantomBackgroundTransaction
 			}
 			catch (Throwable failure)
 			{
+				boolean rolledBackTimeout = false;
 				if (!commitAttempted)
 				{
 					final int suppressedBefore = itemWitnessSuppressedCount(failure);
+					final int failuresBeforeRollback = failure.getSuppressed().length;
 					rollback(connection, failure);
 					itemWitness = rolledBackItemWitness(failure, suppressedBefore);
+					rolledBackTimeout = failure instanceof SQLTimeoutException && failure.getSuppressed().length == failuresBeforeRollback;
 				}
 				reportOwnedStoreBackendFailure(failure, profileId, commitAttempted);
-				return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null);
+				return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null, rolledBackTimeout);
 			}
 		}
 		catch (SQLException | RuntimeException failure) { itemWitness = null; reportOwnedStoreBackendFailure(failure, profileId, commitAttempted); return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null); }
@@ -747,8 +771,9 @@ public final class PhantomBackgroundTransaction
 		return (canonical.classId() == state.identity().activeClassId()) && (canonical.raceOrdinal() == state.identity().raceOrdinal()) && new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()).equals(state.progress()) && vitalsEqual(canonical.vitals(), state.vitals()) && (canonical.position().x() == state.position().x()) && (canonical.position().y() == state.position().y()) && (canonical.position().z() == state.position().z()) && (canonical.position().heading() == state.position().heading()) && inventoryFacts(items, state.inventory()).equals(state.inventory());
 	}
 
-	public record OwnedStorePreparation(Status status, PhantomOwnedStoreIntent intent)
+	public record OwnedStorePreparation(Status status, PhantomOwnedStoreIntent intent, boolean rolledBackTimeout)
 	{
+		public OwnedStorePreparation(Status status, PhantomOwnedStoreIntent intent) { this(status, intent, false); }
 		public boolean successful() { return status == Status.SUCCESS; }
 	}
 
