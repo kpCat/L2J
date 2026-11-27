@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
@@ -16,13 +17,18 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
+import org.l2jmobius.gameserver.data.xml.SkillData;
+import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.VillageMaster;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
+import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.InventoryUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.MagicSkillLaunched;
@@ -30,6 +36,9 @@ import org.l2jmobius.gameserver.network.serverpackets.MagicSkillUse;
 import org.l2jmobius.gameserver.network.serverpackets.StatusUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanStore;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 
 /** Actor-owned paid clan development with exact native commit evidence. */
@@ -41,15 +50,22 @@ public final class ClanFoundingDevelopment
 	private static final String TRANSITION_COMPONENT_TYPE = "clan.development.transition";
 	private static final String ITEM_TRANSITION_COMPONENT_TYPE = "clan.development.item-transition";
 	private static final String REPUTATION_TRANSITION_COMPONENT_TYPE = "clan.development.reputation-transition";
+	private static final String SKILL_PAYMENT_COMPONENT_TYPE = "clan.development.skill-payment";
 	private static final Logger LOGGER = Logger.getLogger(ClanFoundingDevelopment.class.getName());
 	private static final Set<Integer> FEE_ITEM_IDS = IntStream.range(2, 11).map(level -> Clan.levelRequirement(level).itemId())
 		.filter(id -> id > 0).boxed().collect(Collectors.toUnmodifiableSet());
+	// Plain stack fees used by the stock ordinary pledge tree.
+	private static final Set<Integer> PLEDGE_FEE_ITEM_IDS = Set.of(8175, 8176, 9814, 9815, 9816, 9817, 9818);
 
 	public enum Outcome { APPLIED, NOT_READY, DEFERRED, UNCONFIRMED }
 	enum DurableOutcome { APPLIED, ROLLED_BACK, CONFLICT }
 
+	public record PledgeTerms(int clanLevel, int skillId, int rank, int reputation, int itemId, long itemCount)
+	{
+	}
+
 	static record Payment(long profileId, int actorId, int clanId, int baseClassId, int itemObjectId, long itemBefore,
-		long spBefore, UUID operation, Clan.LevelRequirement requirement, int reputationBefore, int territoryCastleId)
+		long spBefore, UUID operation, Clan.LevelRequirement requirement, int reputationBefore, int territoryCastleId, PledgeTerms pledge)
 	{
 		Payment(long profileId, int actorId, int clanId, int baseClassId, int itemObjectId, long itemBefore, long spBefore, UUID operation)
 		{
@@ -67,14 +83,31 @@ public final class ClanFoundingDevelopment
 			this(profileId, actorId, clanId, baseClassId, itemObjectId, itemBefore, spBefore, operation, requirement, reputationBefore, 0);
 		}
 
-		Payment
+		Payment(long profileId, int actorId, int clanId, int baseClassId, int itemObjectId, long itemBefore, long spBefore, UUID operation,
+			Clan.LevelRequirement requirement, int reputationBefore, int territoryCastleId)
 		{
-			if (requirement == null || !supportsLevel(requirement.currentLevel())) { throw new IllegalArgumentException("No recoverable payment for this clan level."); }
+			this(profileId, actorId, clanId, baseClassId, itemObjectId, itemBefore, spBefore, operation, requirement, reputationBefore, territoryCastleId, null);
 		}
 
-		int currentLevel() { return requirement.currentLevel(); }
+		Payment(long profileId, int actorId, int clanId, int baseClassId, int itemObjectId, long itemBefore, UUID operation,
+			PledgeTerms pledge, int reputationBefore)
+		{
+			this(profileId, actorId, clanId, baseClassId, itemObjectId, itemBefore, 0, operation, null, reputationBefore, 0, pledge);
+		}
+
+		Payment
+		{
+			if (pledge == null && (requirement == null || !supportsLevel(requirement.currentLevel()))) { throw new IllegalArgumentException("No recoverable payment for this clan level."); }
+		}
+
+		int currentLevel() { return pledge != null ? pledge.clanLevel() : requirement.currentLevel(); }
+		int targetLevel() { return pledge != null ? currentLevel() : requirement.nextLevel(); }
+		long spCost() { return pledge != null ? 0 : requirement.sp(); }
+		int reputationCost() { return pledge != null ? pledge.reputation() : requirement.reputation(); }
+		int requiredMembers() { return pledge != null ? 0 : requirement.members(); }
+		boolean needsTerritory() { return pledge == null && requirement.territory(); }
 		boolean reputationTier() { return currentLevel() >= 5; }
-		int version() { return reputationTier() ? 4 : Math.min(currentLevel() + 1, 3); }
+		int version() { return pledge != null ? 5 : reputationTier() ? 4 : Math.min(currentLevel() + 1, 3); }
 		String componentType()
 		{
 			return switch (version())
@@ -82,14 +115,15 @@ public final class ClanFoundingDevelopment
 				case 1 -> COMPONENT_TYPE;
 				case 2 -> TRANSITION_COMPONENT_TYPE;
 				case 3 -> ITEM_TRANSITION_COMPONENT_TYPE;
+				case 5 -> SKILL_PAYMENT_COMPONENT_TYPE;
 				default -> REPUTATION_TRANSITION_COMPONENT_TYPE;
 			};
 		}
-		int feeItemId() { return currentLevel() < 2 ? Inventory.ADENA_ID : requirement.itemId(); }
-		long feeCount() { return currentLevel() < 2 ? requirement.adena() : requirement.itemCount(); }
+		int feeItemId() { return pledge != null ? pledge.itemId() : currentLevel() < 2 ? Inventory.ADENA_ID : requirement.itemId(); }
+		long feeCount() { return pledge != null ? pledge.itemCount() : currentLevel() < 2 ? requirement.adena() : requirement.itemCount(); }
 		long itemAfter() { return itemBefore - feeCount(); }
-		long spAfter() { return spBefore - requirement.sp(); }
-		int reputationAfter() { return reputationBefore - requirement.reputation(); }
+		long spAfter() { return spBefore - spCost(); }
+		int reputationAfter() { return reputationBefore - reputationCost(); }
 		byte[] evidence()
 		{
 			final int version = version();
@@ -98,16 +132,21 @@ public final class ClanFoundingDevelopment
 				case 1 -> 56;
 				case 2 -> 76;
 				case 3 -> 80;
+				case 5 -> 96;
 				default -> 100;
 			};
 			final var bytes = ByteBuffer.allocate(size).putLong(operation.getMostSignificantBits()).putLong(operation.getLeastSignificantBits())
 				.putLong(profileId).putInt(actorId).putInt(clanId).putInt(baseClassId).putInt(itemObjectId).putLong(itemBefore).putLong(spBefore);
-			if (version >= 2) { bytes.putInt(currentLevel()).putLong(feeCount()).putLong(requirement.sp()); }
+			if (version >= 2) { bytes.putInt(currentLevel()).putLong(feeCount()).putLong(spCost()); }
 			if (version >= 3) { bytes.putInt(feeItemId()); }
 			if (version == 4)
 			{
 				bytes.putInt(reputationBefore).putInt(requirement.reputation()).putInt(requirement.members())
 					.putInt(requirement.territory() ? 1 : 0).putInt(territoryCastleId);
+			}
+			if (pledge != null)
+			{
+				bytes.putInt(reputationBefore).putInt(pledge.reputation()).putInt(pledge.skillId()).putInt(pledge.rank());
 			}
 			return bytes.array();
 		}
@@ -152,7 +191,7 @@ public final class ClanFoundingDevelopment
 	/** Multiple exact fee stacks can survive a full-debit rollback with a concurrent native reward. */
 	public static boolean isItemFee(int itemId)
 	{
-		return FEE_ITEM_IDS.contains(itemId);
+		return FEE_ITEM_IDS.contains(itemId) || PLEDGE_FEE_ITEM_IDS.contains(itemId);
 	}
 
 	public static Item findItemFee(Player leader, int itemId)
@@ -160,6 +199,125 @@ public final class ClanFoundingDevelopment
 		return leader.getInventory().getAllItemsByItemId(itemId).stream()
 			.filter(item -> item.getOwnerId() == leader.getObjectId() && item.getItemLocation() == ItemLocation.INVENTORY && !item.blocksInventoryDebit())
 			.max(Comparator.comparingLong(Item::getCount).thenComparingInt(Item::getObjectId)).orElse(null);
+	}
+
+	static PledgeTerms pledgeTerms(int clanLevel, SkillLearn learn)
+	{
+		if (learn == null || learn.isResidencialSkill() || clanLevel < 5 || clanLevel < learn.getGetLevel()
+			|| learn.getSkillLevel() <= 0 || learn.getLevelUpSp() < 0) { return null; }
+		final var items = learn.getRequiredItems();
+		if (!PlayerConfig.LIFE_CRYSTAL_NEEDED || items.isEmpty())
+		{
+			return new PledgeTerms(clanLevel, learn.getSkillId(), learn.getSkillLevel(), learn.getLevelUpSp(), 0, 0);
+		}
+		if (items.size() != 1) { return null; }
+		final var item = items.iterator().next();
+		return PLEDGE_FEE_ITEM_IDS.contains(item.getId()) && item.getCount() > 0
+			? new PledgeTerms(clanLevel, learn.getSkillId(), learn.getSkillLevel(), learn.getLevelUpSp(), item.getId(), item.getCount()) : null;
+	}
+
+	private static boolean pledgeReady(Clan clan, PledgeTerms offer)
+	{
+		if (offer == null || offer.reputation() > clan.getReputationScore() / 2) { return false; }
+		final Skill previous = clan.getSkills().get(offer.skillId());
+		final int rank = previous == null ? 0 : previous.getLevel();
+		return rank + 1 == offer.rank() && offer.equals(pledgeTerms(clan.getLevel(), SkillTreeData.getInstance().getPledgeSkill(offer.skillId(), offer.rank())));
+	}
+
+	public static PledgeTerms choosePledgeSkill(Player leader)
+	{
+		final Clan clan = leader.getClan();
+		if (clan == null) { return null; }
+		synchronized (clan)
+		{
+			if (clan.getLeaderId() != leader.getObjectId() || clan.firstLevelPaymentPending() || clan.getDissolvingExpiryTime() != 0)
+			{
+				return null;
+			}
+			PledgeTerms best = null;
+			int bestClass = Integer.MAX_VALUE;
+			for (SkillLearn learn : SkillTreeData.getInstance().getAvailablePledgeSkills(clan))
+			{
+				final PledgeTerms offer = pledgeTerms(clan.getLevel(), learn);
+				if (!pledgeReady(clan, offer)) { continue; }
+				final Skill skill = SkillData.getInstance().getSkill(offer.skillId(), offer.rank());
+				if (skill == null) { continue; }
+				if (offer.itemId() != 0)
+				{
+					final Item fee = findItemFee(leader, offer.itemId());
+					if (fee == null || fee.getCount() < offer.itemCount()) { continue; }
+				}
+				final int pledgeClass = Clan.minimumOrdinarySkillPledgeClass(skill);
+				if (best == null || pledgeClass < bestClass || pledgeClass == bestClass
+					&& Comparator.comparingInt(PledgeTerms::rank).thenComparingInt(PledgeTerms::reputation)
+						.thenComparingInt(PledgeTerms::skillId).compare(offer, best) < 0)
+				{
+					best = offer;
+					bestClass = pledgeClass;
+				}
+			}
+			return best;
+		}
+	}
+
+	public static Outcome payForPledgeSkill(long profileId, Player leader, VillageMaster npc, int expectedClanId, PledgeTerms offer,
+		long expiresAt, BooleanSupplier preparationOrAuthorityChanged)
+	{
+		if (profileId <= 0 || leader == null || !leader.hasHeadlessOutboundSession() || leader.isDedicatedGeoScout()
+			|| !authorizedAction(leader, profileId) || offer == null) { return Outcome.NOT_READY; }
+		final Clan clan = leader.getClan();
+		if (clan == null || clan.getId() != expectedClanId || preparationOrAuthorityChanged.getAsBoolean()) { return Outcome.NOT_READY; }
+		if (leader.getPendingClanDevelopment() != null) { return settlePending(leader) ? Outcome.DEFERRED : Outcome.UNCONFIRMED; }
+		if (offer.itemId() == 0)
+		{
+			return payForPledgeSkillWithClaim(profileId, leader, clan, npc, offer, expiresAt, null, List.of());
+		}
+		final Item fee = findItemFee(leader, offer.itemId());
+		if (fee == null) { return Outcome.NOT_READY; }
+		final long before = fee.getCount();
+		if (before < offer.itemCount()) { return Outcome.NOT_READY; }
+		final var resources = List.of(new Reservation(profileId, leader.getObjectId(), 0, ResourceKind.ITEM_OBJECT,
+			fee.getObjectId(), fee.getId(), offer.itemCount(), before, fee.getEnchantLevel(), ItemLocation.INVENTORY.name()));
+		try (var claim = PhantomEconomyConflictPort.claim(profileId, null, resources))
+		{
+			return claim.acquired() ? payForPledgeSkillWithClaim(profileId, leader, clan, npc, offer, expiresAt, fee, resources) : Outcome.NOT_READY;
+		}
+	}
+
+	private static Outcome payForPledgeSkillWithClaim(long profileId, Player leader, Clan clan, VillageMaster npc, PledgeTerms offer,
+		long expiresAt, Item fee, List<Reservation> resources)
+	{
+		final var fence = ClanSocialMutationFence.getInstance();
+		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(clan.getId()) }, () ->
+		{
+			synchronized (leader)
+			{
+				synchronized (clan)
+				{
+					if (leader.getPendingClanDevelopment() != null) { return settleLocked(leader); }
+					final BooleanSupplier eligible = () -> System.currentTimeMillis() < expiresAt && !fence.isRetiring(clan.getId())
+						&& eligibleActor(leader, clan, npc, offer.clanLevel())
+						&& !leader.isProcessingTransaction() && !leader.isInventoryDisabled()
+						&& leader.getPendingClanPurchase() == null && leader.getPendingClanDeparture() == null
+						&& pledgeReady(clan, offer);
+					if (clan.firstLevelPaymentPending() || !eligible.getAsBoolean()) { return Outcome.NOT_READY; }
+					final int reputation = clan.getReputationScore();
+					if (fee == null)
+					{
+						final var payment = new Payment(profileId, leader.getObjectId(), clan.getId(), leader.getActiveClass(), 0, 0, UUID.randomUUID(), offer, reputation);
+						return payReputationLocked(leader, clan, null, payment, eligible, resources);
+					}
+					synchronized (fee)
+					{
+						if (fee.getCount() != resources.getFirst().expectedCount() || fee.blocksInventoryDebit()
+							|| leader.getInventory().getItemByObjectId(fee.getObjectId()) != fee) { return Outcome.NOT_READY; }
+						final var payment = new Payment(profileId, leader.getObjectId(), clan.getId(), leader.getActiveClass(),
+							fee.getObjectId(), fee.getCount(), UUID.randomUUID(), offer, reputation);
+						return payReputationLocked(leader, clan, fee, payment, eligible, resources);
+					}
+				}
+			}
+		});
 	}
 
 	public static Outcome payForFirstLevel(long profileId, Player leader, VillageMaster npc, BooleanSupplier mandatoryPreparationPending)
@@ -216,13 +374,19 @@ public final class ClanFoundingDevelopment
 
 	private static boolean eligible(Player leader, Clan clan, VillageMaster npc, Clan.LevelRequirement requirement)
 	{
-		return ClanTable.getInstance().getClan(clan.getId()) == clan && leader.getClan() == clan && clan.getLeaderId() == leader.getObjectId()
-			&& clan.getLevel() == requirement.currentLevel() && clan.getMembersCount() >= (requirement.currentLevel() == 0 ? 2 : requirement.members())
+		return eligibleActor(leader, clan, npc, requirement.currentLevel())
+			&& clan.getMembersCount() >= (requirement.currentLevel() == 0 ? 2 : requirement.members())
 			&& (requirement.currentLevel() < 5 || clan.getReputationScore() >= requirement.reputation())
 			&& (!requirement.territory() || clan.ownsTerritory())
-			&& clan.getDissolvingExpiryTime() == 0
+			&& leader.getSp() >= requirement.sp();
+	}
+
+	private static boolean eligibleActor(Player leader, Clan clan, VillageMaster npc, int clanLevel)
+	{
+		return ClanTable.getInstance().getClan(clan.getId()) == clan && leader.getClan() == clan && clan.getLeaderId() == leader.getObjectId()
+			&& clan.getLevel() == clanLevel && clan.getDissolvingExpiryTime() == 0
 			&& !leader.isAlikeDead() && !leader.isInCombat() && !leader.isChangingClass() && leader.getClassIndex() == 0 && leader.getActiveClass() == leader.getBaseClass()
-			&& leader.getSp() >= requirement.sp() && npc != null && npc.isSpawned() && !npc.isAlikeDead() && npc.canInteract(leader)
+			&& npc != null && npc.isSpawned() && !npc.isAlikeDead() && npc.canInteract(leader)
 			&& GeoEngine.getInstance().canSeeTarget(leader, npc);
 	}
 
@@ -251,15 +415,20 @@ public final class ClanFoundingDevelopment
 
 	private static Outcome payReputationLocked(Player leader, Clan clan, Item fee, Payment payment, VillageMaster npc, long expiresAt)
 	{
+		return payReputationLocked(leader, clan, fee, payment, () -> System.currentTimeMillis() < expiresAt
+			&& payment.requirement().equals(Clan.levelRequirement(payment.currentLevel()))
+			&& (!payment.needsTerritory() || clan.ownsTerritory(payment.territoryCastleId()))
+			&& eligible(leader, clan, npc, payment.requirement()), List.of());
+	}
+
+	private static Outcome payReputationLocked(Player leader, Clan clan, Item fee, Payment payment, BooleanSupplier eligible, List<Reservation> resources)
+	{
 		final Item.CountTransaction<Void> stage = connection ->
 		{
 			final int stored = stageReputation(connection, payment, clan.storedReputationScore());
-			if (System.currentTimeMillis() >= expiresAt || !authorizedAction(leader, payment.profileId())
-				|| !payment.requirement().equals(Clan.levelRequirement(payment.currentLevel()))
-				|| payment.requirement().territory() && !clan.ownsTerritory(payment.territoryCastleId())
-				|| !eligible(leader, clan, npc, payment.requirement()))
+			if (!authorizedAction(leader, payment.profileId()) || !eligible.getAsBoolean())
 			{
-				throw new SQLException("Native clan level authority changed before commit.");
+				throw new SQLException("Native clan payment authority changed before commit.");
 			}
 			clan.beginReputationResolution(payment.reputationBefore(), payment.reputationAfter());
 			leader.setPendingClanDevelopment(new PendingPayment(clan, fee, payment, 0, stored));
@@ -273,6 +442,7 @@ public final class ClanFoundingDevelopment
 				fee.transactRecoverableInventoryDebit(payment.actorId(), payment.itemBefore(), payment.feeCount(), connection ->
 				{
 					requireOrganizationOwner(connection, payment.profileId(), payment.actorId());
+					if (!resources.isEmpty()) { PhantomEconomyConflictPort.requireNoConflict(connection, null, resources); }
 					return null;
 				}, stage);
 			}
@@ -378,16 +548,16 @@ public final class ClanFoundingDevelopment
 
 	static int stageReputation(Connection connection, Payment payment, int witnessedReputation) throws SQLException
 	{
-		final var requirement = payment.requirement();
-		if (!payment.reputationTier() || requirement.reputation() < 0 || payment.reputationAfter() < 0 || payment.itemAfter() < 0
-			|| (payment.itemObjectId() == 0) != (requirement.itemId() == 0))
+		final var pledge = payment.pledge();
+		if (!payment.reputationTier() || payment.reputationCost() < 0 || payment.reputationAfter() < 0 || payment.itemAfter() < 0
+			|| (payment.itemObjectId() == 0) != (payment.feeItemId() == 0))
 		{
 			throw new SQLException("Invalid native reputation payment.");
 		}
 		requireOrganizationOwner(connection, payment.profileId(), payment.actorId());
 		lockReceipt(connection, payment);
 		readSp(connection, payment, true); // The durable actor still owns the clan and the base class.
-		if (requirement.members() > 0)
+		if (payment.requiredMembers() > 0)
 		{
 			try (var query = connection.prepareStatement("SELECT charId FROM characters WHERE clanid=? FOR UPDATE"))
 			{
@@ -395,8 +565,8 @@ public final class ClanFoundingDevelopment
 				try (var members = query.executeQuery())
 				{
 					int count = 0;
-					while (count < requirement.members() && members.next()) { count++; }
-					if (count < requirement.members()) { throw new SQLException("Native clan membership is below the required count."); }
+					while (count < payment.requiredMembers() && members.next()) { count++; }
+					if (count < payment.requiredMembers()) { throw new SQLException("Native clan membership is below the required count."); }
 				}
 			}
 		}
@@ -409,7 +579,7 @@ public final class ClanFoundingDevelopment
 			try (var row = query.executeQuery())
 			{
 				if (!row.next()) { throw new SQLException("Native clan leadership or level changed."); }
-				if (requirement.territory() && (payment.territoryCastleId() <= 0 || row.getInt(2) != payment.territoryCastleId()))
+				if (payment.needsTerritory() && (payment.territoryCastleId() <= 0 || row.getInt(2) != payment.territoryCastleId()))
 				{
 					throw new SQLException("Native territory ownership changed.");
 				}
@@ -417,15 +587,31 @@ public final class ClanFoundingDevelopment
 			}
 		}
 		if (stored != witnessedReputation && stored != payment.reputationBefore()) { throw new SQLException("Native reputation preimage changed."); }
-		try (var update = connection.prepareStatement("UPDATE clan_data SET clan_level=?,reputation_score=? WHERE clan_id=? AND clan_level=? AND leader_id=? AND reputation_score=? AND dissolving_expiry_time=0"))
+		if (pledge != null)
 		{
-			update.setInt(1, requirement.nextLevel());
-			update.setInt(2, payment.reputationAfter());
-			update.setInt(3, payment.clanId());
-			update.setInt(4, payment.currentLevel());
-			update.setInt(5, payment.actorId());
-			update.setInt(6, stored);
-			if (update.executeUpdate() != 1) { throw new SQLException("Could not publish the exact clan reputation and level."); }
+			final var skill = SkillData.getInstance().getSkill(pledge.skillId(), pledge.rank());
+			if (skill == null || !pledge.equals(pledgeTerms(payment.currentLevel(), SkillTreeData.getInstance().getPledgeSkill(pledge.skillId(), pledge.rank()))))
+			{
+				throw new SQLException("Native clan skill terms changed.");
+			}
+			if (Clan.readOrdinarySkillRank(connection, payment.clanId(), pledge.skillId()) != pledge.rank() - 1)
+			{
+				throw new SQLException("Native clan skill rank changed.");
+			}
+			Clan.storeSkillRank(connection, payment.clanId(), skill, -2, pledge.rank() - 1);
+		}
+		if (payment.currentLevel() != payment.targetLevel() || stored != payment.reputationAfter())
+		{
+			try (var update = connection.prepareStatement("UPDATE clan_data SET clan_level=?,reputation_score=? WHERE clan_id=? AND clan_level=? AND leader_id=? AND reputation_score=? AND dissolving_expiry_time=0"))
+			{
+				update.setInt(1, payment.targetLevel());
+				update.setInt(2, payment.reputationAfter());
+				update.setInt(3, payment.clanId());
+				update.setInt(4, payment.currentLevel());
+				update.setInt(5, payment.actorId());
+				update.setInt(6, stored);
+				if (update.executeUpdate() != 1) { throw new SQLException("Could not publish the exact native clan payment."); }
+			}
 		}
 		writeReceipt(connection, payment);
 		return stored;
@@ -519,7 +705,7 @@ public final class ClanFoundingDevelopment
 	{
 		if (latest == pending._lastDurableReputation && latest == pending._attemptedReputationSave) { return true; }
 		final var payment = pending._payment;
-		final int level = applied ? payment.requirement().nextLevel() : payment.currentLevel();
+		final int level = applied ? payment.targetLevel() : payment.currentLevel();
 		try (Connection connection = DatabaseFactory.getConnection())
 		{
 			connection.setAutoCommit(false);
@@ -569,11 +755,15 @@ public final class ClanFoundingDevelopment
 				final int level = row.getInt(1);
 				final int reputation = row.getInt(2);
 				final boolean receipt = hasReceipt(connection, payment);
-				if (receipt && level == payment.requirement().nextLevel() && reputation == payment.reputationAfter() && count == payment.itemAfter())
+				final var pledge = payment.pledge();
+				final int rank = pledge == null ? 0 : Clan.readOrdinarySkillRank(connection, payment.clanId(), pledge.skillId());
+				if (receipt && level == payment.targetLevel() && reputation == payment.reputationAfter() && count == payment.itemAfter()
+					&& (pledge == null || rank == pledge.rank()))
 				{
 					return DurableOutcome.APPLIED;
 				}
-				if (!receipt && level == payment.currentLevel() && reputation == originalDurableReputation && count == payment.itemBefore())
+				if (!receipt && level == payment.currentLevel() && reputation == originalDurableReputation && count == payment.itemBefore()
+					&& (pledge == null || rank == pledge.rank() - 1))
 				{
 					return DurableOutcome.ROLLED_BACK;
 				}
@@ -643,7 +833,7 @@ public final class ClanFoundingDevelopment
 
 	private static void publishPaid(Player leader, PendingPayment pending)
 	{
-		final var requirement = pending._payment.requirement();
+		final var payment = pending._payment;
 		final Clan clan = pending._clan;
 		if (pending._payment.reputationTier())
 		{
@@ -652,14 +842,18 @@ public final class ClanFoundingDevelopment
 		}
 		else
 		{
-			leader.setSp(leader.getSp() - requirement.sp());
+			leader.setSp(leader.getSp() - payment.spCost());
 			leader.getStat().acknowledgeStoredSkillPoints(0, pending._payment.spAfter());
 		}
 		final boolean removed;
 		try
 		{
-			removed = requirement.itemId() > 0 && leader.getInventory().publishCommittedStackDebit(pending._item, leader);
-			if (ClanTable.getInstance().getClan(clan.getId()) == clan) { clan.publishPaidLevel(leader, requirement); }
+			removed = payment.currentLevel() >= 2 && payment.feeItemId() > 0 && leader.getInventory().publishCommittedStackDebit(pending._item, leader);
+			if (ClanTable.getInstance().getClan(clan.getId()) == clan)
+			{
+				if (payment.pledge() == null) { clan.publishPaidLevel(leader, payment.requirement()); }
+				else { clan.publishPaidPledgeSkill(payment.pledge().skillId(), payment.pledge().rank()); }
+			}
 		}
 		finally { clearPending(leader, pending); }
 		if (pending._item != null)
@@ -669,26 +863,29 @@ public final class ClanFoundingDevelopment
 			else { inventory.addModifiedItem(pending._item); }
 			leader.sendInventoryUpdate(inventory);
 		}
-		if (requirement.itemId() > 0)
+		if (payment.currentLevel() >= 2 && payment.feeItemId() > 0)
 		{
 			final var message = new SystemMessage(pending._payment.reputationTier() ? SystemMessageId.S2_S1_HAS_DISAPPEARED : SystemMessageId.S1_HAS_DISAPPEARED)
-				.addItemName(requirement.itemId());
-			if (pending._payment.reputationTier()) { message.addLong(requirement.itemCount()); }
+				.addItemName(payment.feeItemId());
+			if (pending._payment.reputationTier()) { message.addLong(payment.feeCount()); }
 			leader.sendPacket(message);
 		}
 		if (pending._payment.reputationTier())
 		{
-			leader.sendPacket(new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE).addInt(requirement.reputation()));
+			leader.sendPacket(new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE).addInt(payment.reputationCost()));
 		}
 		else
 		{
 			final var sp = new StatusUpdate(leader);
 			sp.addAttribute(StatusUpdate.SP, (int) leader.getSp());
 			leader.sendPacket(sp);
-			leader.sendPacket(new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1).addInt((int) requirement.sp()));
+			leader.sendPacket(new SystemMessage(SystemMessageId.YOUR_SP_HAS_DECREASED_BY_S1).addInt((int) payment.spCost()));
 		}
-		leader.broadcastSkillPacket(new MagicSkillUse(leader, 5103, 1, 0, 0), leader);
-		leader.broadcastSkillPacket(new MagicSkillLaunched(leader, 5103, 1), leader);
+		if (payment.pledge() == null)
+		{
+			leader.broadcastSkillPacket(new MagicSkillUse(leader, 5103, 1, 0, 0), leader);
+			leader.broadcastSkillPacket(new MagicSkillLaunched(leader, 5103, 1), leader);
+		}
 	}
 
 	private static void clearPending(Player player, PendingPayment pending)

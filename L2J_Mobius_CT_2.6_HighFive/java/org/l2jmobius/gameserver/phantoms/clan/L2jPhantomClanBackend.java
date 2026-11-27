@@ -351,6 +351,29 @@ public final class L2jPhantomClanBackend implements Backend
 	}
 
 	@Override
+	public ClanFoundingDevelopment.PledgeTerms choosePledgeSkill(MemberRef member, int clanId)
+	{
+		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
+		{
+			if (lease == null || lease.player().getObjectId() != member.characterObjectId() || lease.player().getClanId() != clanId
+				|| !ordinaryPlayer(lease.player()) || mandatoryPreparationPending(member.profileId(), lease.player())) { return null; }
+			return ClanFoundingDevelopment.choosePledgeSkill(lease.player());
+		}
+	}
+
+	@Override
+	public ClanFoundingDevelopment.Outcome learnPledgeSkill(MemberRef member, int clanId, int masterObjectId, ClanFoundingDevelopment.PledgeTerms terms, long expiresAt, BooleanSupplier current)
+	{
+		try (var acquired = acquire(member))
+		{
+			if (acquired == null || !ordinaryPlayer(acquired.player()) || masterObjectId <= 0) { return ClanFoundingDevelopment.Outcome.NOT_READY; }
+			final Player player = acquired.player();
+			return ClanFoundingDevelopment.payForPledgeSkill(member.profileId(), player, availableClanMaster(player, masterObjectId), clanId, terms, expiresAt,
+				() -> mandatoryPreparationPending(member.profileId(), player) || !current.getAsBoolean());
+		}
+	}
+
+	@Override
 	public ClanDepartureService.Outcome leaveOrdinaryClan(MemberRef member, int expectedClanId, int expectedLeaderId)
 	{
 		try (var acquired = acquire(member))

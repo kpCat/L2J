@@ -19,7 +19,12 @@ import org.l2jmobius.gameserver.config.FeatureConfig;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.data.xml.MultisellData;
+import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
+import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
+import org.l2jmobius.gameserver.model.actor.templates.PlayerTemplate;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment.DurableOutcome;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment.Payment;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
@@ -143,6 +148,7 @@ public final class ClanFoundingDevelopment017Checks
 			verifyNativeItemFees();
 			verifyNativeShopPurchase();
 			verifyNativeReputationLevels();
+			verifyNativePledgeSkill();
 		}
 		finally
 		{
@@ -287,6 +293,121 @@ public final class ClanFoundingDevelopment017Checks
 		}
 		require(nativeClan.getReputationScore() == 99_999_900, "Rollback lost late native reputation at the stock cap.");
 		System.out.println("PASS 021 reputation-only and mixed native fees, exact rollback and late credit");
+	}
+
+	private static void verifyNativePledgeSkill() throws Exception
+	{
+		final int actor = 21002143;
+		final int clan = 21002144;
+		final int object = 21002145;
+		final var offer = ClanFoundingDevelopment.pledgeTerms(5, SkillTreeData.getInstance().getPledgeSkill(370, 1));
+		require(offer != null && offer.itemId() == 9816 && offer.itemCount() == 10 && offer.reputation() == 1_500,
+			"Expected a stock Clan Body rank with the active Life Crystal fee.");
+		try (var connection = DatabaseFactory.getConnection(); var sql = connection.createStatement())
+		{
+			sql.executeUpdate("INSERT INTO phantom_profiles(profile_id,character_object_id) VALUES(21002142,21002143)");
+			sql.executeUpdate("INSERT INTO phantom_profile_components(profile_id,component_type,component_schema_version,payload) VALUES(21002142,'clan.organization',2,X'01')");
+			sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id,reputation_score) VALUES(21002144,'ClanSkillProof021',5,21002143,5000)");
+			sql.executeUpdate("INSERT INTO characters(charId,char_name,sp,classid,base_class,clanid) VALUES(21002143,'ClanSkillProof021',450,88,88,21002144)");
+		}
+		final var payment = new Payment(21002142, actor, clan, 88, object, 11, new UUID(21, 370), offer, 5_000);
+		final var item = plainInventoryItem(object, offer.itemId(), actor, payment.itemBefore());
+		item.updateDatabase(true);
+		final var insufficientReputation = new Payment(21002142, actor, clan, 88, object, 11, new UUID(21, 372), offer, 1_499);
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				ClanFoundingDevelopment.stageReputation(connection, insufficientReputation, 5_000);
+				throw new AssertionError("A pledge payment was staged with insufficient reputation.");
+			}
+			catch (SQLException expected)
+			{
+				require("Invalid native reputation payment.".equals(expected.getMessage()), "Insufficient reputation was rejected for the wrong reason.");
+			}
+			connection.rollback();
+		}
+		try
+		{
+			item.transactRecoverableInventoryDebit(actor, payment.itemBefore(), payment.feeCount(), connection ->
+			{
+				ClanFoundingDevelopment.stageReputation(connection, payment, 5_000);
+				throw new SQLException("TEST pledge abort");
+			});
+			throw new AssertionError("Pledge rollback fixture committed.");
+		}
+		catch (SQLException expected)
+		{
+			require("TEST pledge abort".equals(expected.getMessage()), "Pledge fixture did not reach its deliberate abort.");
+		}
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			require(item.getCount() == 11 && ClanFoundingDevelopment.readReputation(connection, payment, 11, 5_000) == DurableOutcome.ROLLED_BACK,
+				"Rolled back skill left a rank, debit or receipt.");
+			connection.rollback();
+		}
+		item.transactRecoverableInventoryDebit(actor, payment.itemBefore(), payment.feeCount(), connection ->
+		{
+			ClanFoundingDevelopment.stageReputation(connection, payment, 5_000);
+			return null;
+		});
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			try (var query = connection.prepareStatement("SELECT count,owner_id,item_id,loc FROM items WHERE object_id=?"))
+			{
+				query.setInt(1, object);
+				try (var row = query.executeQuery())
+				{
+					require(row.next() && row.getLong(1) == 1 && row.getInt(2) == actor && row.getInt(3) == offer.itemId() && "INVENTORY".equals(row.getString(4))
+						&& ClanFoundingDevelopment.readReputation(connection, payment, row.getLong(1), 5_000) == DurableOutcome.APPLIED,
+						"Pledge transaction did not leave the exact rank, reputation, item and receipt.");
+				}
+			}
+			connection.rollback();
+			final var duplicate = new Payment(21002142, actor, clan, 88, object, 11, new UUID(21, 371), offer, 3_500);
+			try
+			{
+				ClanFoundingDevelopment.stageReputation(connection, duplicate, 3_500);
+				throw new AssertionError("An existing clan rank was charged again.");
+			}
+			catch (SQLException expected)
+			{
+				require("Native clan skill rank changed.".equals(expected.getMessage()), "Duplicate rank was rejected for the wrong reason.");
+			}
+			connection.rollback();
+		}
+		final var restored = new Clan(clan);
+		final var skill = restored.getSkills().get(offer.skillId());
+		require(restored.getLevel() == 5 && restored.getLeaderId() == actor && restored.getReputationScore() == 3_500
+			&& skill != null && skill.getLevel() == offer.rank() && Clan.minimumOrdinarySkillPledgeClass(skill) > 0
+			&& SkillTreeData.getInstance().getAvailablePledgeSkills(restored).stream().noneMatch(next -> next.getSkillId() == offer.skillId()),
+			"Native cold restore lost the skill, requirements, rank restriction or clan.");
+		final var constructor = Player.class.getDeclaredConstructor(int.class, PlayerTemplate.class, String.class, PlayerAppearance.class);
+		constructor.setAccessible(true);
+		final var member = constructor.newInstance(actor, PlayerTemplateData.getInstance().getTemplate(0), "test021",
+			new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		try
+		{
+			restored.getClanMember(actor).setPlayer(member);
+			member.setClan(restored);
+			final int minimumClass = Clan.minimumOrdinarySkillPledgeClass(skill);
+			member.setPledgeClass(minimumClass - 1);
+			restored.addSkillEffects(member);
+			require(member.getSkillLevel(offer.skillId()) < 1, "Native login applied the skill below its pledge class.");
+			member.setPledgeClass(minimumClass);
+			restored.addSkillEffects(member);
+			require(member.getSkillLevel(offer.skillId()) == offer.rank(), "Native login did not apply the paid clan skill.");
+			restored.removeSkillEffects(member);
+			require(member.getSkillLevel(offer.skillId()) < 1, "Native membership loss did not revoke the skill.");
+		}
+		finally
+		{
+			member.stopAllTasks();
+		}
+		System.out.println("PASS 021 native ordinary PLEDGE, rollback, cold clan restore, member eligibility and revocation");
 	}
 
 	private static void verifyNativeShopPurchase() throws Exception

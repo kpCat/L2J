@@ -215,7 +215,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		return player.getObjectId() == visit.request.member().characterObjectId() && !player.isAlikeDead() && player.getParty() == null && player.getInstanceId() == 0
 			&& !player.isInsideZone(ZoneId.WATER) && !player.isInStoreMode() && !player.isTransformed() && !player.isMounted()
 			&& (visit.request.purpose() == PhantomClanService.VisitPurpose.FOUND ? player.getClanId() == 0 : player.getClanId() == visit.request.clanId())
-			&& (visit.request.purpose() != PhantomClanService.VisitPurpose.DEVELOP
+			&& (!visit.request.purpose().paidDevelopment()
 				|| clan != null && clan.getLeaderId() == player.getObjectId() && clan.getLevel() == visit.request.currentLevel());
 	}
 
@@ -450,6 +450,12 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 
 		private Visit(VisitRequest request) { this.request = request; }
 
-		private long deadline() { return accepted ? acceptedDeadline : request.deadline(); }
+		private long deadline()
+		{
+			if (!accepted) { return request.deadline(); }
+			final long rootDeadline = request.root().deadlineEpochMillis();
+			return request.purpose() == PhantomClanService.VisitPurpose.PLEDGE_SKILL && rootDeadline > 0
+				? Math.min(rootDeadline, acceptedDeadline) : acceptedDeadline;
+		}
 	}
 }

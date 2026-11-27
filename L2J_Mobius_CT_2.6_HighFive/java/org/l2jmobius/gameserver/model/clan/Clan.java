@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.communitybbs.BB.Forum;
 import org.l2jmobius.gameserver.communitybbs.Manager.ForumsBBSManager;
 import org.l2jmobius.gameserver.config.FeatureConfig;
@@ -1500,9 +1501,9 @@ public class Clan
 	 * @param newSkill
 	 * @return
 	 */
-	public Skill addSkill(Skill newSkill)
+	public synchronized Skill addSkill(Skill newSkill)
 	{
-		return newSkill != null ? _skills.put(newSkill.getId(), newSkill) : null;
+		return newSkill != null && !_firstLevelPaymentPending ? _skills.put(newSkill.getId(), newSkill) : null;
 	}
 	
 	public Skill addNewSkill(Skill newSkill)
@@ -1518,88 +1519,147 @@ public class Clan
 	 */
 	public Skill addNewSkill(Skill newSkill, int subType)
 	{
-		Skill oldSkill = null;
-		if (newSkill != null)
+		if (newSkill == null) { return null; }
+		final var fence = ClanSocialMutationFence.getInstance();
+		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			synchronized (this)
+			{
+				if (fence.isRetiring(_clanId) || _firstLevelPaymentPending) { return null; }
+				return storeNewSkill(newSkill, subType);
+			}
+		});
+	}
+
+	public boolean buyClanSkill(Player player, Skill skill, int subType, java.util.function.BooleanSupplier spend)
+	{
+		return withReputationSpending(player, () ->
 		{
 			if (subType == -2)
 			{
-				oldSkill = _skills.put(newSkill.getId(), newSkill);
+				final Skill previous = _skills.get(skill.getId());
+				if ((previous == null ? 0 : previous.getLevel()) + 1 != skill.getLevel()) { return false; }
 			}
-			else if (subType == 0)
-			{
-				oldSkill = _subPledgeSkills.put(newSkill.getId(), newSkill);
-			}
-			else
-			{
-				final SubPledge subunit = getSubPledge(subType);
-				if (subunit == null)
-				{
-					LOGGER.log(Level.WARNING, "Subpledge " + subType + " does not exist for clan " + this);
-					return oldSkill;
-				}
-				
-				oldSkill = subunit.addNewSkill(newSkill);
-			}
-			
-			try (Connection con = DatabaseFactory.getConnection())
-			{
-				if (oldSkill != null)
-				{
-					try (PreparedStatement ps = con.prepareStatement("UPDATE clan_skills SET skill_level=? WHERE skill_id=? AND clan_id=?"))
-					{
-						ps.setInt(1, newSkill.getLevel());
-						ps.setInt(2, oldSkill.getId());
-						ps.setInt(3, _clanId);
-						ps.execute();
-					}
-				}
-				else
-				{
-					try (PreparedStatement ps = con.prepareStatement("INSERT INTO clan_skills (clan_id,skill_id,skill_level,skill_name,sub_pledge_id) VALUES (?,?,?,?,?)"))
-					{
-						ps.setInt(1, _clanId);
-						ps.setInt(2, newSkill.getId());
-						ps.setInt(3, newSkill.getLevel());
-						ps.setString(4, newSkill.getName());
-						ps.setInt(5, subType);
-						ps.execute();
-					}
-				}
-			}
-			catch (Exception e)
-			{
-				LOGGER.log(Level.WARNING, "Error could not store clan skills: " + e.getMessage(), e);
-			}
-			
-			final SystemMessage sm = new SystemMessage(SystemMessageId.THE_CLAN_SKILL_S1_HAS_BEEN_ADDED);
-			sm.addSkillName(newSkill.getId());
-			
-			for (ClanMember temp : _members.values())
-			{
-				if ((temp != null) && (temp.getPlayer() != null) && temp.isOnline())
-				{
-					if (subType == -2)
-					{
-						if (newSkill.getMinPledgeClass() <= temp.getPlayer().getPledgeClass())
-						{
-							temp.getPlayer().addSkill(newSkill, false); // Skill is not saved to player DB
-							temp.getPlayer().sendPacket(new PledgeSkillListAdd(newSkill.getId(), newSkill.getLevel()));
-							temp.getPlayer().sendPacket(sm);
-							temp.getPlayer().sendSkillList();
-						}
-					}
-					else if (temp.getPledgeType() == subType)
-					{
-						temp.getPlayer().addSkill(newSkill, false); // Skill is not saved to player DB
-						temp.getPlayer().sendPacket(new ExSubPledgeSkillAdd(subType, newSkill.getId(), newSkill.getLevel()));
-						temp.getPlayer().sendPacket(sm);
-						temp.getPlayer().sendSkillList();
-					}
-				}
-			}
+			else if (!isLearnableSubPledgeSkill(skill, subType)) { return false; }
+			if (!spend.getAsBoolean()) { return false; }
+			storeNewSkill(skill, subType);
+			return true;
+		});
+	}
+
+	private Skill currentClanSkill(int skillId, int subType)
+	{
+		if (subType == -2) { return _skills.get(skillId); }
+		if (subType == 0) { return _subPledgeSkills.get(skillId); }
+		final SubPledge subunit = getSubPledge(subType);
+		return subunit == null ? null : subunit.getSkills().stream().filter(skill -> skill.getId() == skillId).findFirst().orElse(null);
+	}
+
+	private Skill storeNewSkill(Skill skill, int subType)
+	{
+		final SubPledge subunit = subType == -2 || subType == 0 ? null : getSubPledge(subType);
+		if (subType != -2 && subType != 0 && subunit == null)
+		{
+			LOGGER.log(Level.WARNING, "Subpledge " + subType + " does not exist for clan " + this);
+			return null;
 		}
-		
+
+		final Skill oldSkill = currentClanSkill(skill.getId(), subType);
+		try (Connection connection = DatabaseFactory.getConnection())
+		{
+			storeSkillRank(connection, _clanId, skill, subType, oldSkill == null ? 0 : oldSkill.getLevel());
+		}
+		catch (SQLException failure)
+		{
+			LOGGER.log(Level.WARNING, "Could not store clan skills for clan " + _clanId, failure);
+		}
+		if (subType == -2) { _skills.put(skill.getId(), skill); }
+		else if (subType == 0) { _subPledgeSkills.put(skill.getId(), skill); }
+		else { subunit.addNewSkill(skill); }
+		scheduleClanSkillEffects(skill, subType);
 		return oldSkill;
+	}
+
+	static int readOrdinarySkillRank(Connection connection, int clanId, int skillId) throws SQLException
+	{
+		try (PreparedStatement query = connection.prepareStatement("SELECT skill_level FROM clan_skills WHERE clan_id=? AND skill_id=? AND sub_pledge_id=-2 FOR UPDATE"))
+		{
+			query.setInt(1, clanId);
+			query.setInt(2, skillId);
+			try (ResultSet row = query.executeQuery()) { return row.next() ? row.getInt(1) : 0; }
+		}
+	}
+
+	static void storeSkillRank(Connection connection, int clanId, Skill skill, int subType, int previous) throws SQLException
+	{
+		if (previous == skill.getLevel()) { return; }
+		if (previous == 0)
+		{
+			try (PreparedStatement insert = connection.prepareStatement("INSERT INTO clan_skills (clan_id,skill_id,skill_level,skill_name,sub_pledge_id) VALUES (?,?,?,?,?)"))
+			{
+				insert.setInt(1, clanId);
+				insert.setInt(2, skill.getId());
+				insert.setInt(3, skill.getLevel());
+				insert.setString(4, skill.getName());
+				insert.setInt(5, subType);
+				if (insert.executeUpdate() != 1) { throw new SQLException("Could not insert native clan skill."); }
+			}
+			return;
+		}
+		try (PreparedStatement update = connection.prepareStatement("UPDATE clan_skills SET skill_level=? WHERE clan_id=? AND skill_id=? AND sub_pledge_id=? AND skill_level=?"))
+		{
+			update.setInt(1, skill.getLevel());
+			update.setInt(2, clanId);
+			update.setInt(3, skill.getId());
+			update.setInt(4, subType);
+			update.setInt(5, previous);
+			if (update.executeUpdate() != 1) { throw new SQLException("Could not update the exact native clan skill rank."); }
+		}
+	}
+
+	void publishPaidPledgeSkill(int skillId, int rank)
+	{
+		final Skill skill = SkillData.getInstance().getSkill(skillId, rank);
+		if (skill != null)
+		{
+			_skills.put(skillId, skill);
+			scheduleClanSkillEffects(skill, -2);
+		}
+	}
+
+	private void scheduleClanSkillEffects(Skill skill, int subType)
+	{
+		ThreadPool.execute(() ->
+		{
+			final var message = new SystemMessage(SystemMessageId.THE_CLAN_SKILL_S1_HAS_BEEN_ADDED).addSkillName(skill.getId());
+			for (ClanMember member : _members.values())
+			{
+				final Player player = member.getPlayer();
+				if (player == null) { continue; }
+				synchronized (player)
+				{
+					synchronized (this)
+					{
+						if (_members.get(player.getObjectId()) != member || !member.isOnline() || member.getPlayer() != player
+							|| player.getClan() != this || currentClanSkill(skill.getId(), subType) != skill) { continue; }
+						if (subType == -2 ? minimumOrdinarySkillPledgeClass(skill) > player.getPledgeClass() : player.getPledgeType() != subType) { continue; }
+						player.addSkill(skill, false);
+						if (_reputationScore < 0) { player.disableSkill(skill, -1); }
+					}
+					if (subType == -2) { player.sendPacket(new PledgeSkillListAdd(skill.getId(), skill.getLevel())); }
+					else { player.sendPacket(new ExSubPledgeSkillAdd(subType, skill.getId(), skill.getLevel())); }
+					player.sendPacket(message);
+					player.sendSkillList();
+				}
+			}
+		});
+	}
+
+	static int minimumOrdinarySkillPledgeClass(Skill skill)
+	{
+		final SkillLearn learn = SkillTreeData.getInstance().getPledgeSkill(skill.getId(), skill.getLevel());
+		final int treeClass = learn == null || learn.getSocialClass() == null ? 0 : learn.getSocialClass().ordinal() - 1;
+		return Math.max(skill.getMinPledgeClass(), treeClass);
 	}
 	
 	public void addSkillEffects()
@@ -1610,7 +1670,7 @@ public class Clan
 			{
 				try
 				{
-					if ((temp != null) && temp.isOnline() && (skill.getMinPledgeClass() <= temp.getPlayer().getPledgeClass()))
+					if ((temp != null) && temp.isOnline() && (minimumOrdinarySkillPledgeClass(skill) <= temp.getPlayer().getPledgeClass()))
 					{
 						temp.getPlayer().addSkill(skill, false);
 					}
@@ -1633,8 +1693,7 @@ public class Clan
 		final int playerSocialClass = player.getPledgeClass() + 1;
 		for (Skill skill : _skills.values())
 		{
-			final SkillLearn skillLearn = SkillTreeData.getInstance().getPledgeSkill(skill.getId(), skill.getLevel());
-			if ((skillLearn == null) || (skillLearn.getSocialClass() == null) || (playerSocialClass >= skillLearn.getSocialClass().ordinal()))
+			if (player.getPledgeClass() >= minimumOrdinarySkillPledgeClass(skill))
 			{
 				player.addSkill(skill, false); // Skill is not saved to player DB
 			}

@@ -384,6 +384,11 @@ public final class PhantomClanService
 		{
 			return expectedLevel == 0 && current.getAsBoolean() ? developAutonomous(leader, expectedClanId, masterObjectId) : ClanFoundingDevelopment.Outcome.NOT_READY;
 		}
+		default ClanFoundingDevelopment.PledgeTerms choosePledgeSkill(MemberRef leader, int clanId) { return null; }
+		default ClanFoundingDevelopment.Outcome learnPledgeSkill(MemberRef leader, int clanId, int masterObjectId, ClanFoundingDevelopment.PledgeTerms terms, long expiresAt, BooleanSupplier current)
+		{
+			return ClanFoundingDevelopment.Outcome.NOT_READY;
+		}
 		default boolean mayStartAutonomousDevelopment(MemberRef leader) { return true; }
 		default ClanFoundingDevelopment.Outcome acquireDevelopmentItem(MemberRef leader, int clanId, int level, long expiresAt, BooleanSupplier stillCurrent)
 		{
@@ -505,12 +510,22 @@ public final class PhantomClanService
 		}
 	}
 
-	public enum VisitPurpose { FOUND, DEVELOP, CREATE_ALLIANCE }
+	public enum VisitPurpose
+	{
+		FOUND, DEVELOP, PLEDGE_SKILL, CREATE_ALLIANCE;
+
+		boolean paidDevelopment() { return this == DEVELOP || this == PLEDGE_SKILL; }
+	}
 	public enum VisitOutcome { HANDLED, STALE, BUSY }
 
-	public record VisitRequest(VisitPurpose purpose, MemberRef member, PhantomGoal root, int clanId, int currentLevel, MemberRef peer, int peerClanId, List<MemberRef> alternatePeers, int preference, long offeredAt, long deadline)
+	public record VisitRequest(VisitPurpose purpose, MemberRef member, PhantomGoal root, int clanId, int currentLevel, MemberRef peer, int peerClanId, List<MemberRef> alternatePeers, int preference, long offeredAt, long deadline, ClanFoundingDevelopment.PledgeTerms pledge)
 	{
 		public VisitRequest { alternatePeers = List.copyOf(alternatePeers); }
+
+		public VisitRequest(VisitPurpose purpose, MemberRef member, PhantomGoal root, int clanId, int currentLevel, MemberRef peer, int peerClanId, List<MemberRef> alternatePeers, int preference, long offeredAt, long deadline)
+		{
+			this(purpose, member, root, clanId, currentLevel, peer, peerClanId, alternatePeers, preference, offeredAt, deadline, null);
+		}
 	}
 
 	public record AllianceActor(MemberRef member, long materializationEpoch, MembershipSnapshot membership)
@@ -779,7 +794,7 @@ public final class PhantomClanService
 
 	boolean mayContinueVisit(VisitRequest visit)
 	{
-		return visit.purpose() != VisitPurpose.DEVELOP || _backend.mayStartAutonomousDevelopment(visit.member());
+		return !visit.purpose().paidDevelopment() || _backend.mayStartAutonomousDevelopment(visit.member());
 	}
 
 	VisitOutcome completeAutonomousVisit(VisitRequest visit, int masterObjectId, long arrivalDeadline, BooleanSupplier currentExecution)
@@ -823,6 +838,15 @@ public final class PhantomClanService
 					if (!isLeader(actor) || clan.clanId() != visit.clanId() || clan.level() != visit.currentLevel() || !developmentReady(developmentPlan(actor, now))
 						|| !_backend.mayStartAutonomousDevelopment(actor.member())) { return VisitOutcome.STALE; }
 					if (!developAutonomously(actor, masterObjectId, arrivalDeadline, current)) { return VisitOutcome.STALE; }
+				}
+				case PLEDGE_SKILL ->
+				{
+					if (!isLeader(actor) || clan.clanId() != visit.clanId() || clan.level() != visit.currentLevel()
+						|| visit.pledge() == null || developmentReady(developmentPlan(actor, now))
+						|| !_backend.mayStartAutonomousDevelopment(actor.member())) { return VisitOutcome.STALE; }
+					final var outcome = _backend.learnPledgeSkill(actor.member(), clan.clanId(), masterObjectId, visit.pledge(), arrivalDeadline, current);
+					observeAutonomousOutcome("clan.autonomous.pledge_skill." + outcome.name().toLowerCase(java.util.Locale.ROOT));
+					if (outcome == ClanFoundingDevelopment.Outcome.NOT_READY || outcome == ClanFoundingDevelopment.Outcome.DEFERRED) { return VisitOutcome.STALE; }
 				}
 				case CREATE_ALLIANCE ->
 				{
@@ -886,6 +910,20 @@ public final class PhantomClanService
 			}
 			final var incoming = incomingAllianceOffer(member.profileId(), member.characterObjectId(), now);
 			if (incoming != null && acceptAutonomousAlliance(actor, current, incoming, preference, now)) { return; }
+			final var visits = _autonomousVisits;
+			if (_state == State.RUNNING && visits != null && current != null && clan.level() >= 5 && !developmentReady(development)
+				&& (development == null || development.membersDue() == 0)
+				&& root != null && root.status() == PhantomGoalStatus.ACTIVE && (root.deadlineEpochMillis() == 0 || root.deadlineEpochMillis() > now)
+				&& org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
+			{
+				final var pledge = _backend.choosePledgeSkill(member, clan.clanId());
+				if (pledge != null)
+				{
+					final long deadline = now + 4 * _discoveryMillis;
+					visits.accept(new VisitRequest(VisitPurpose.PLEDGE_SKILL, member, root, clan.clanId(), clan.level(), null, 0, List.of(), preference, now,
+						root.deadlineEpochMillis() == 0 ? deadline : Math.min(root.deadlineEpochMillis(), deadline), pledge));
+				}
+			}
 			if (clan.memberCount() >= clan.maxMembers() && !diplomacyDue(member.profileId(), now)) { return; }
 		}
 		final var available = peers.get().stream().filter(id -> id != member.profileId() && !_active.containsKey(id)).limit(8)
