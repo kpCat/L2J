@@ -10,8 +10,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.model.clan.ClanInvitationService;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDecision;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService;
@@ -35,6 +38,9 @@ import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.RoleOutcome;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.RoleResult;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.StoredMetadata;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WithdrawalOutcome;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WarehouseDemand;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WarehouseOffer;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WarehousePurpose;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
@@ -96,7 +102,11 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	{
 		switch (_mode)
 		{
-			case VISIT_019 -> registry.add("019-founder-requires-current-root-and-native-arrival", this::autonomousFounderVisit);
+			case VISIT_019 ->
+			{
+				registry.add("019-founder-requires-current-root-and-native-arrival", this::autonomousFounderVisit);
+				registry.add("021-warehouse-consent-and-current-farm-root", this::autonomousWarehouseVisit);
+			}
 			case CREATION_RESTART ->
 			{
 				registry.add("01-canonical-create-once-and-restart-reconcile", this::creationRestart);
@@ -111,7 +121,11 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 				registry.add("03-stop-does-not-wait-under-monitor-for-autonomous-observation", this::autonomousStop);
 			}
 			case ROLES -> registry.add("01-leadership-and-external-drift-replan", this::roles);
-			case TREASURY -> registry.add("01-prepared-completed-restart-no-dupe-and-withdraw-unsupported", this::treasury);
+			case TREASURY ->
+			{
+				registry.add("01-prepared-completed-restart-no-dupe-and-withdraw-unsupported", this::treasury);
+				registry.add("02-native-contribution-settles-before-replacement-and-rejects-legacy-replay", this::treasuryNativeRecovery);
+			}
 			case CHAT_DECISION -> registry.add("01-clan-chat-receipt-decision-and-lifecycle", this::chatDecision);
 			case CONSENT_CHAT_027A ->
 			{
@@ -218,6 +232,42 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(farm, fixture.goals.load(2).orElseThrow().goal(), "Social consent replaced the farm root.");
 		service.beginStop();
 		PhantomAssertions.assertTrue(service.finishStop(), "Completed consent prevented STOP.");
+	}
+
+	private void autonomousWarehouseVisit(PhantomTestContext context)
+	{
+		final var fixture = new Fixture();
+		fixture.backend.addPhantom(1, 100);
+		fixture.backend.addPhantom(2, 200);
+		final var clan = new ClanSnapshot(42, "CodexClan", 100, 1, 2, 12, 0, 0, PhantomClanService.sha256("clan|42"));
+		fixture.backend.clans.put(100, clan);
+		fixture.backend.clans.put(200, clan);
+		fixture.backend.warehouseOffer = new WarehouseOffer(WarehousePurpose.DONATE, 100, 733, 57, 30, new UUID(21, 91));
+		final var farm = goalWithDeadline(2, 800, "farm.background", null, null, List.of(), 1, 0, 2, NOW + 600_000);
+		final var nextFarm = goalWithDeadline(2, 800, "farm.background", null, null, List.of(), 1, 0, 3, NOW + 600_000);
+		fixture.goals.put(2, farm);
+		final var observed = new java.util.concurrent.atomic.AtomicReference<PhantomClanService.VisitRequest>();
+		final var declined = fixture.service();
+		declined.bindAutonomousVisits(observed::set);
+		declined.advanceAutonomous(2, 200, List::of, -1);
+		PhantomAssertions.assertTrue(observed.get() == null, "Disinclined member was assigned a donation.");
+		final var service = fixture.service();
+		service.bindAutonomousVisits(observed::set);
+		service.advanceAutonomous(2, 200, List::of, 4);
+		final var proposed = java.util.Objects.requireNonNull(observed.get(),
+			() -> "An accepted clan need did not reach the visit coordinator. " + service.autonomousOutcomes());
+		PhantomAssertions.assertEquals(PhantomClanService.VisitPurpose.WAREHOUSE, proposed.purpose(), "The selected request used the wrong NPC purpose.");
+		PhantomAssertions.assertEquals(0, fixture.backend.warehouseWrites, "Discovery wrote a warehouse effect.");
+		PhantomAssertions.assertEquals(PhantomClanService.VisitOutcome.STALE, service.completeAutonomousVisit(proposed, 30005), "A visit without an actual warehouse arrival reached execution.");
+		fixture.backend.atWarehouse = true;
+		fixture.goals.put(2, nextFarm);
+		PhantomAssertions.assertEquals(PhantomClanService.VisitOutcome.STALE, service.completeAutonomousVisit(proposed, 30005), "A stale farm root executed a warehouse operation.");
+		PhantomAssertions.assertEquals(0, fixture.backend.warehouseWrites, "Rejected conditions reached the warehouse writer.");
+		fixture.goals.put(2, farm);
+		PhantomAssertions.assertEquals(PhantomClanService.VisitOutcome.HANDLED, service.completeAutonomousVisit(proposed, 30005), "Current warehouse arrival did not use the admitted operation.");
+		PhantomAssertions.assertEquals(1, fixture.backend.warehouseWrites, "Expected one exact bounded warehouse action.");
+		PhantomAssertions.assertEquals(farm, fixture.goals.load(2).orElseThrow().goal(), "A warehouse trip replaced the existing farm root.");
+		context.record("goal021.warehouse.visit", "consent; exact warehouse; stale root refused; one writer admission");
 	}
 
 	private void autonomousStop(PhantomTestContext context) throws Exception
@@ -362,7 +412,8 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		final String answer = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/network/clientpackets/RequestAnswerJoinPledge.java"));
 		PhantomAssertions.assertTrue(backend.contains("ClanTable.getInstance().createClan"), "Production creation does not use ClanTable.createClan.");
 		PhantomAssertions.assertTrue(backend.contains("clan.setNewLeader"), "Production leadership does not use Clan.setNewLeader.");
-		PhantomAssertions.assertTrue(backend.contains("transferItem(ItemProcessType.TRANSFER"), "Production deposit does not use canonical inventory transfer.");
+		PhantomAssertions.assertTrue(backend.contains("ClanWarehouseTransfer.transfer") && !backend.contains("transferItem(ItemProcessType.TRANSFER"),
+			"Production deposit bypasses exact native warehouse settlement.");
 		PhantomAssertions.assertTrue(backend.contains("ChatType.CLAN") && backend.contains("openGeneratedDispatch"), "Clan chat bypasses canonical chat observation safety.");
 		PhantomAssertions.assertTrue(service.contains("clan.addClanMember(player)"), "Shared consent service does not own the exact join mutation.");
 		PhantomAssertions.assertTrue(request.contains("ClanInvitationService.getInstance().invite") && answer.contains("service.respond"), "Ordinary packets do not delegate the shared consent service.");
@@ -450,6 +501,37 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		final OrganizationMetadata metadata = fixture.persistence.load(2).orElseThrow().metadata();
 		PhantomAssertions.assertEquals(ContributionState.COMPLETED, metadata.contributionState(), "Durable contribution state is not COMPLETED.");
 		PhantomAssertions.assertEquals(WithdrawalOutcome.UNSUPPORTED, restarted.withdraw(2, 42, 1, 1), "Unproven autonomous withdrawal was not typed unsupported.");
+	}
+
+	private void treasuryNativeRecovery(PhantomTestContext context)
+	{
+		final Fixture fixture = new Fixture();
+		fixture.backend.addPhantom(2, 200);
+		fixture.backend.putClan(200, 100);
+		fixture.backend.inventory.put(900, 1_000L);
+		fixture.backend.nativeContribution = true;
+		final var clan = new PhantomDomainRef("clan.id", "42");
+		final var source = List.of(new PhantomDomainRef("item.object", "900"));
+		fixture.goals.put(2, goal(2, 40, PhantomClanService.CONTRIBUTE_GOAL, clan, null, source, 100, 100, 0));
+		final var service = fixture.service();
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, service.advance(2, 40, 0).status(), "A pending native transfer was terminalized.");
+		final var original = fixture.persistence.load(2).orElseThrow();
+		fixture.goals.put(2, goal(2, 40, PhantomClanService.CONTRIBUTE_GOAL, clan, null, source, 100, 100, 1));
+		PhantomAssertions.assertEquals(OperationStatus.WAITING, service.advance(2, 40, 1).status(), "Replacement bypassed an unresolved native transfer.");
+		PhantomAssertions.assertEquals(original, fixture.persistence.load(2).orElseThrow(), "Replacement discarded the original receipt reference.");
+		PhantomAssertions.assertEquals(1, fixture.backend.contributionCalls, "Replacement retried the debit before settlement.");
+		fixture.backend.contributionSettlement = ClanWarehouseTransfer.TransferOutcome.APPLIED;
+		service.advance(2, 40, 1);
+		PhantomAssertions.assertEquals(2, fixture.backend.contributionCalls, "Confirmed prior transfer did not release the replacement.");
+		final var prepared = fixture.persistence.load(2).orElseThrow();
+		final var metadata = prepared.metadata();
+		fixture.persistence.save(2, prepared.rowVersion(), new OrganizationMetadata(metadata.canonicalClanId(), metadata.clanName(),
+			metadata.canonicalLeaderObjectId(), metadata.roleIntent(), metadata.organizationGoalId(), metadata.goalRevision(),
+			metadata.contributionBudget(), metadata.contributionItemObjectId(), metadata.contributionAmount(),
+			metadata.contributionInventoryBefore(), metadata.contributionWarehouseBefore(), ContributionState.PREPARED,
+			List.of("item.object:900"), metadata.canonicalEvidenceHash(), metadata.intentEvidenceHash(), metadata.updatedEpochMillis(), metadata.diplomacy()));
+		PhantomAssertions.assertEquals(OperationStatus.FAILED, fixture.service().advance(2, 40, 1).status(), "Legacy intent authorized a second native debit.");
+		PhantomAssertions.assertEquals(2, fixture.backend.contributionCalls, "Legacy PREPARED reached the native writer.");
 	}
 
 	private void chatDecision(PhantomTestContext context)
@@ -799,6 +881,8 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private final Map<Integer, ClanInvitationService.InvitationSnapshot> invitations = new HashMap<>();
 		private final Map<Integer, Long> inventory = new HashMap<>();
 		private long warehouse;
+		private boolean nativeContribution;
+		private ClanWarehouseTransfer.TransferOutcome contributionSettlement = ClanWarehouseTransfer.TransferOutcome.UNCONFIRMED;
 		private long invitationSequence;
 		private ClanInvitationService.InvitationSnapshot replacementBeforeRespond;
 		private ClanInvitationService.Response lastResponse;
@@ -816,6 +900,9 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private final Map<Long, Integer> founderLevels = new HashMap<>();
 		private final java.util.Set<Long> atClanMaster = new java.util.HashSet<>();
 		private boolean canPlanAway;
+		private WarehouseOffer warehouseOffer;
+		private boolean atWarehouse;
+		private int warehouseWrites;
 
 		@Override
 		public boolean hasAutonomousInvitation(int objectId) { return invitations.containsKey(objectId); }
@@ -829,6 +916,29 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 
 		@Override
 		public boolean atAutonomousMaster(MemberRef actor, int masterObjectId) { return masterObjectId == 30346 && atClanMaster.contains(actor.profileId()); }
+
+		@Override
+		public boolean atAutonomousWarehouse(MemberRef member, int objectId) { return atWarehouse && objectId == 30005; }
+
+		@Override
+		public WarehouseOffer chooseWarehouse(MemberRef member, ClanSnapshot clan, WarehouseDemand demand, boolean mayDonate,
+			ClanWarehouseTransfer.DonationPolicy donation, long now)
+		{
+			return warehouseOffer != null && mayDonate && demand != null && demand.itemId() == warehouseOffer.itemId() ? warehouseOffer : null;
+		}
+
+		@Override
+		public ClanWarehouseTransfer.TransferOutcome useWarehouse(MemberRef member, int npcId, ClanWarehouseTransfer.Request request,
+			WarehouseOffer offer, WarehouseDemand demand, BooleanSupplier current, BooleanSupplier localExecution)
+		{
+			if (!current.getAsBoolean() || !localExecution.getAsBoolean() || !request.operation().equals(warehouseOffer.operation())
+				|| request.clanId() != 42 || request.leaderId() != 100 || request.objectId() != 733 || request.count() != 30 || !request.deposit())
+			{
+				return ClanWarehouseTransfer.TransferOutcome.NOT_READY;
+			}
+			warehouseWrites++;
+			return ClanWarehouseTransfer.TransferOutcome.APPLIED;
+		}
 
 		@Override
 		public CreationResult createAutonomous(MemberRef actor, String name) { return create(actor, name); }
@@ -1007,6 +1117,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		public ContributionResult contribute(MemberRef member, int expectedClanId, int inventoryObjectId, long count)
 		{
 			contributionCalls++;
+			if (nativeContribution) { return new ContributionResult(ContributionOutcome.UNCONFIRMED, 0, 0, ""); }
 			final long before = inventory.getOrDefault(inventoryObjectId, 0L);
 			if (before < count)
 			{
@@ -1015,6 +1126,15 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 			inventory.put(inventoryObjectId, before - count);
 			warehouse += count;
 			return new ContributionResult(ContributionOutcome.COMPLETED, count, count, PhantomClanService.sha256("transfer|" + contributionCalls));
+		}
+
+		@Override
+		public boolean nativeContributionReceipts() { return nativeContribution; }
+
+		@Override
+		public ClanWarehouseTransfer.TransferOutcome settleContribution(MemberRef member, int clanId, UUID operation)
+		{
+			return contributionSettlement;
 		}
 
 		@Override

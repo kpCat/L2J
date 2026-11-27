@@ -40,19 +40,53 @@ public final class ClanWarehouseTransfer
 {
 	static final long DEPOSIT_FEE = 30;
 	private static final String COMPONENT = "clan.warehouse.transfer";
+	private static final String DONATION_COMPONENT = "clan.warehouse.donation-time";
 	private static final int VERSION = 1;
 
 	enum Outcome { APPLIED, ROLLED_BACK, CONFLICT }
 
 	public enum TransferOutcome { APPLIED, NOT_READY, UNCONFIRMED }
 
-	public record Request(int clanId, int leaderId, int objectId, long count, boolean deposit, UUID operation, long expiresAt)
+	public record DonationPolicy(int percent, long intervalMillis)
 	{
+		public DonationPolicy
+		{
+			if (percent < 1 || percent > 10 || intervalMillis < 600_000 || intervalMillis > 3_600_000)
+			{
+				throw new IllegalArgumentException("Clan warehouse donation policy is outside its bounds.");
+			}
+		}
+
+		public long adenaLimit(long balance, long reserve)
+		{
+			final long surplus = balance >= reserve ? Math.max(0, balance - reserve - DEPOSIT_FEE) : 0;
+			return surplus / 100 * percent + surplus % 100 * percent / 100;
+		}
+	}
+
+	public record Request(int clanId, int leaderId, int objectId, long count, boolean deposit, UUID operation, long expiresAt,
+		long warehouseCeiling, DonationPolicy donation, int expectedLevel)
+	{
+		public Request(int clanId, int leaderId, int objectId, long count, boolean deposit, UUID operation, long expiresAt)
+		{
+			this(clanId, leaderId, objectId, count, deposit, operation, expiresAt, 0, null, -1);
+		}
+
+		public Request(int clanId, int leaderId, int objectId, long count, boolean deposit, UUID operation, long expiresAt,
+			long warehouseCeiling, DonationPolicy donation)
+		{
+			this(clanId, leaderId, objectId, count, deposit, operation, expiresAt, warehouseCeiling, donation, -1);
+		}
+
 		public Request
 		{
 			if (clanId <= 0 || leaderId <= 0 || objectId <= 0 || count <= 0 || operation == null || expiresAt <= 0)
 			{
 				throw new IllegalArgumentException("Incomplete clan warehouse request.");
+			}
+			if (donation != null ? !deposit || warehouseCeiling < count : warehouseCeiling != 0)
+			{
+				throw new IllegalArgumentException("An autonomous donation requires an exact warehouse budget.");
 			}
 		}
 	}
@@ -72,6 +106,89 @@ public final class ClanWarehouseTransfer
 	}
 
 	private ClanWarehouseTransfer() { }
+
+	public static boolean committed(long profileId, int actorId, int clanId, UUID operation, boolean deposit)
+	{
+		return readOperation(profileId, actorId, clanId, operation, deposit) == TransferOutcome.APPLIED;
+	}
+
+	private static TransferOutcome readOperation(long profileId, int actorId, int clanId, UUID operation, boolean deposit)
+	{
+		try (Connection connection = DatabaseFactory.getConnection();
+			var query = connection.prepareStatement("SELECT component_schema_version,payload FROM phantom_profile_components WHERE profile_id=? AND component_type=?"))
+		{
+			query.setLong(1, profileId);
+			query.setString(2, COMPONENT);
+			try (var row = query.executeQuery())
+			{
+				if (!row.next()) { return TransferOutcome.NOT_READY; }
+				if (row.getInt(1) != VERSION) { return TransferOutcome.UNCONFIRMED; }
+				final var payload = row.getBytes(2);
+				if (payload == null || payload.length < 41) { return TransferOutcome.UNCONFIRMED; }
+				final var bytes = ByteBuffer.wrap(payload);
+				final boolean sameOperation = bytes.getLong() == operation.getMostSignificantBits() && bytes.getLong() == operation.getLeastSignificantBits();
+				if (!sameOperation) { return TransferOutcome.NOT_READY; }
+				return bytes.getLong() == profileId && bytes.getInt() == actorId && bytes.getInt() == clanId
+					&& bytes.getInt() > 0 && bytes.get() == (deposit ? 1 : 0) ? TransferOutcome.APPLIED : TransferOutcome.UNCONFIRMED;
+			}
+		}
+		catch (SQLException unavailable) { return TransferOutcome.UNCONFIRMED; }
+	}
+
+	public static TransferOutcome reconcileContribution(Player player, long profileId, int clanId, UUID operation)
+	{
+		synchronized (player)
+		{
+			final var pending = player.getPendingClanWarehouse();
+			if (pending != null && (!pending._request.operation().equals(operation) || !settlePending(player)))
+			{
+				return TransferOutcome.UNCONFIRMED;
+			}
+			return readOperation(profileId, player.getObjectId(), clanId, operation, true);
+		}
+	}
+
+	public static long remainingDonationRoom(ItemContainer warehouse, int itemId, long ceiling)
+	{
+		if (ceiling <= 0) { return 0; }
+		long room = ceiling;
+		for (Item item : warehouse.getAllItemsByItemId(itemId))
+		{
+			if (item.getCount() >= room) { return 0; }
+			room -= item.getCount();
+		}
+		return room;
+	}
+
+	public static boolean donationDue(long profileId, long now, DonationPolicy policy)
+	{
+		try (Connection connection = DatabaseFactory.getConnection())
+		{
+			return donationDue(connection, profileId, now, policy, false);
+		}
+		catch (SQLException unavailable) { return false; }
+	}
+
+	private static boolean donationDue(Connection connection, long profileId, long now, DonationPolicy policy, boolean lock) throws SQLException
+	{
+		try (var query = connection.prepareStatement("SELECT component_schema_version,payload FROM phantom_profile_components WHERE profile_id=? AND component_type=?"
+			+ (lock ? " FOR UPDATE" : "")))
+		{
+			query.setLong(1, profileId);
+			query.setString(2, DONATION_COMPONENT);
+			try (var row = query.executeQuery())
+			{
+				if (!row.next()) { return true; }
+				final var payload = row.getBytes(2);
+				if (row.getInt(1) != VERSION || payload == null || payload.length != Long.BYTES)
+				{
+					throw new SQLException("Unsupported clan warehouse donation evidence.");
+				}
+				final long previous = ByteBuffer.wrap(payload).getLong();
+				return previous > 0 && previous <= now && now - previous >= policy.intervalMillis();
+			}
+		}
+	}
 
 	public static boolean canVisit(Player player, Warehouse npc)
 	{
@@ -149,6 +266,7 @@ public final class ClanWarehouseTransfer
 						final BooleanSupplier eligible = () -> System.currentTimeMillis() < request.expiresAt()
 							&& !fence.isRetiring(clan.getId()) && hasMembership(player, clan, warehouse)
 							&& clan.getLeaderId() == request.leaderId() && ClanFoundingDevelopment.authorizedAction(player, profileId)
+							&& (request.expectedLevel() < 0 || clan.getLevel() == request.expectedLevel())
 							&& localExecutionCurrent.getAsBoolean() && mayAct(player, npc) && (request.deposit() || canWithdraw(player, clan));
 						if (!eligible.getAsBoolean() || sourceContainer.getItemByObjectId(request.objectId()) != source) { return TransferOutcome.NOT_READY; }
 						return transferLocked(profileId, player, clan, warehouse, request, reserve, resources, eligible);
@@ -210,7 +328,10 @@ public final class ClanWarehouseTransfer
 		final long protectedAdena = Math.max(1, reserve);
 		final BooleanSupplier keepsReserve = () -> !deposit || fee != null && fee.getCount() >= protectedAdena
 			&& fee.getCount() - protectedAdena >= DEPOSIT_FEE && fee.getCount() - protectedAdena - DEPOSIT_FEE >= transferredAdena;
-		if (!keepsReserve.getAsBoolean()) { return TransferOutcome.NOT_READY; }
+		final BooleanSupplier donationAllowed = () -> request.donation() == null
+			|| remainingDonationRoom(warehouse, source.getId(), request.warehouseCeiling()) >= request.count()
+				&& (transferredAdena == 0 || request.donation().adenaLimit(fee.getCount(), protectedAdena) >= transferredAdena);
+		if (!keepsReserve.getAsBoolean() || !donationAllowed.getAsBoolean()) { return TransferOutcome.NOT_READY; }
 		Item target = null;
 		if (source.isStackable())
 		{
@@ -224,7 +345,7 @@ public final class ClanWarehouseTransfer
 		}
 		final boolean emptyWallet = !deposit && target != null && target.getId() == Inventory.ADENA_ID
 			&& !target.hasStoredWarehouseRow() && target.getCount() == 0;
-		final int extraSlots = target == null ? 1 : 0;
+		final int extraSlots = target == null || emptyWallet ? 1 : 0;
 		final BooleanSupplier canFit = () -> to.validateCapacity(extraSlots)
 			&& (deposit || to.validateWeightByItemId(source.getId(), request.count()));
 		if (!canFit.getAsBoolean()) { return TransferOutcome.NOT_READY; }
@@ -254,8 +375,8 @@ public final class ClanWarehouseTransfer
 		try
 		{
 			return finishTransfer(player, pending, move.execute(() -> stillAuthorized.getAsBoolean() && canFit.getAsBoolean()
-				&& keepsReserve.getAsBoolean() && treasuryAvailable.getAsBoolean(),
-				() -> pending.publishContainers(player), resources));
+				&& keepsReserve.getAsBoolean() && treasuryAvailable.getAsBoolean() && donationAllowed.getAsBoolean(),
+				() -> pending.publishContainers(player), resources, request.donation()));
 		}
 		finally
 		{
@@ -464,10 +585,10 @@ public final class ClanWarehouseTransfer
 		/** The caller holds native clan/container authority. No external reads in the commit predicate. */
 		Outcome execute(BooleanSupplier stillAuthorized, Runnable publishContainers)
 		{
-			return execute(stillAuthorized, publishContainers, List.of());
+			return execute(stillAuthorized, publishContainers, List.of(), null);
 		}
 
-		Outcome execute(BooleanSupplier stillAuthorized, Runnable publishContainers, List<Reservation> reservations)
+		Outcome execute(BooleanSupplier stillAuthorized, Runnable publishContainers, List<Reservation> reservations, DonationPolicy donation)
 		{
 			return Item.withWarehouseLocks(_items, () ->
 			{
@@ -484,6 +605,7 @@ public final class ClanWarehouseTransfer
 					try
 					{
 						stage(connection, reservations);
+						if (donation != null) { stageDonation(connection, donation); }
 						if (!stillAuthorized.getAsBoolean())
 						{
 							connection.rollback();
@@ -591,6 +713,21 @@ public final class ClanWarehouseTransfer
 				receipt.setInt(3, VERSION);
 				receipt.setBytes(4, _evidence);
 				receipt.executeUpdate();
+			}
+		}
+
+		private void stageDonation(Connection connection, DonationPolicy policy) throws SQLException
+		{
+			final long now = System.currentTimeMillis();
+			if (!donationDue(connection, _profileId, now, policy, true)) { throw new SQLException("Clan warehouse donation is on cooldown."); }
+			try (var write = connection.prepareStatement("INSERT INTO phantom_profile_components (profile_id,component_type,component_schema_version,payload) VALUES (?,?,?,?) "
+				+ "ON DUPLICATE KEY UPDATE payload=VALUES(payload),row_version=row_version+1"))
+			{
+				write.setLong(1, _profileId);
+				write.setString(2, DONATION_COMPONENT);
+				write.setInt(3, VERSION);
+				write.setBytes(4, ByteBuffer.allocate(Long.BYTES).putLong(now).array());
+				write.executeUpdate();
 			}
 		}
 

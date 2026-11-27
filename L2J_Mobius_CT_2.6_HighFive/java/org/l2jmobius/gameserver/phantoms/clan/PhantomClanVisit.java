@@ -14,9 +14,12 @@ import org.l2jmobius.gameserver.ai.PlayerAI;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.actor.instance.VillageMaster;
+import org.l2jmobius.gameserver.model.actor.instance.Warehouse;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand;
@@ -64,6 +67,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 	private final PhantomNormalGatekeeperTravel _gatekeepers;
 	private final L2jNavigationBackend _geo = new L2jNavigationBackend();
 	private final List<SpawnFact> _masters;
+	private final List<SpawnFact> _warehouses;
 	private final BiPredicate<Long, Long> _yieldFarm;
 	private final BiPredicate<Long, Long> _releaseFarmYield;
 	private final LongPredicate _allowed;
@@ -88,15 +92,21 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		_current = current;
 		_exclusiveOwner = exclusiveOwner;
 		_field = field;
-		_masters = knowledge.snapshot().spawnFactsByNpc().entrySet().stream()
-			.filter(entry -> { final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && npc.getType().startsWith("VillageMaster"); })
+		_masters = spawns(knowledge, "VillageMaster");
+		_warehouses = spawns(knowledge, "Warehouse");
+	}
+
+	private static List<SpawnFact> spawns(PhantomGameKnowledgeQuery knowledge, String type)
+	{
+		return knowledge.snapshot().spawnFactsByNpc().entrySet().stream()
+			.filter(entry -> { final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && npc.getType().startsWith(type); })
 			.flatMap(entry -> entry.getValue().stream()).filter(spawn -> spawn.pointKind() == SpawnPointKind.EXACT && spawn.instanceId() == 0 && spawn.amount() > 0)
 			.sorted(Comparator.comparingInt(SpawnFact::npcId).thenComparingInt(SpawnFact::spawnOrdinal)).toList();
 	}
 
 	public void offer(VisitRequest request)
 	{
-		if (_stopping || _masters.isEmpty()) { return; }
+		if (_stopping || (request.purpose() == PhantomClanService.VisitPurpose.WAREHOUSE ? _warehouses : _masters).isEmpty()) { return; }
 		final long id = request.member().profileId();
 		_visits.compute(id, (key, existing) -> existing == null ? new Visit(request) : existing);
 	}
@@ -161,7 +171,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 			{
 				return System.currentTimeMillis() < visit.yieldUntil ? retry("clan.visit.finish_target") : finish(id, visit, "clan.visit.field_busy");
 			}
-			final VillageMaster master;
+			final Npc master;
 			try (var lease = _materialization.tryAcquireAction(id).orElse(null))
 			{
 				if (lease == null) { return retry("clan.visit.actor_pending"); }
@@ -185,14 +195,14 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 					visit.activityGeneration = context.activityGeneration();
 					visit.execution = lease.executionStamp();
 					visit.origin = PhantomNativeTravelActions.point(player);
-					visit.choices = routeChoices(player, visit.origin);
+					visit.choices = routeChoices(visit.request, player, visit.origin);
 					if (visit.choices.isEmpty()) { return finish(id, visit, "clan.visit.master_unavailable"); }
 					visit.acceptedAt = System.currentTimeMillis();
 					visit.acceptedDeadline = visit.acceptedAt + MAXIMUM_VISIT_MILLIS;
 					visit.accepted = true;
 				}
-				master = visit.master == null ? visit.choices.stream().filter(value -> currentMaster(value) && L2jPhantomClanBackend.canVisit(player, value)).findFirst().orElse(null)
-					: currentMaster(visit.master) && L2jPhantomClanBackend.canVisit(player, visit.master) ? visit.master : null;
+				master = visit.master == null ? visit.choices.stream().filter(value -> canVisit(player, value)).findFirst().orElse(null)
+					: canVisit(player, visit.master) ? visit.master : null;
 				if (master == null)
 				{
 					if (visit.plan == null) { return plan(id, visit, player, context.logicalNowNanos()); }
@@ -202,7 +212,8 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 				if (player.isMoving()) { releaseWalk(visit); return retry("clan.visit.arrival_settling"); }
 			}
 			if (!live(id, visit, context)) { return finish(id, visit, "clan.visit.owner_changed"); }
-			final var result = _clans.completeAutonomousVisit(visit.request, master.getObjectId(), visit.deadline(), () -> live(id, visit, context));
+			final var result = _clans.completeAutonomousVisit(visit.request, master.getObjectId(), visit.deadline(), () -> live(id, visit, context),
+				() -> localExecution(id, visit, context));
 			return result == PhantomClanService.VisitOutcome.BUSY ? retry("clan.visit.writer_busy")
 				: finish(id, visit, result == PhantomClanService.VisitOutcome.HANDLED ? "clan.visit.arrival_handled" : "clan.visit.no_longer_eligible");
 		}
@@ -221,38 +232,50 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 
 	private boolean live(long id, Visit visit, PhantomStepContext context)
 	{
-		return !_stopping && !visit.done && _allowed.test(id) && _current.test(id, visit.request.root())
-			&& !context.cancellationToken().isCancelled() && !context.cancellationToken().yieldRequested() && System.currentTimeMillis() < visit.deadline();
+		return localExecution(id, visit, context) && _allowed.test(id) && _current.test(id, visit.request.root());
 	}
 
-	private List<VillageMaster> routeChoices(Player player, PhantomNavigationPoint origin)
+	private boolean localExecution(long id, Visit visit, PhantomStepContext context)
+	{
+		return !_stopping && !visit.done && _visits.get(id) == visit && System.currentTimeMillis() < visit.deadline()
+			&& !context.cancellationToken().isCancelled() && !context.cancellationToken().yieldRequested();
+	}
+
+	private static boolean canVisit(Player player, Npc npc)
+	{
+		return currentMaster(npc) && (npc instanceof Warehouse warehouse ? ClanWarehouseTransfer.canVisit(player, warehouse)
+			: npc instanceof VillageMaster master && L2jPhantomClanBackend.canVisit(player, master));
+	}
+
+	private List<Npc> routeChoices(VisitRequest request, Player player, PhantomNavigationPoint origin)
 	{
 		final var free = _gatekeepers.legs().stream().filter(leg -> PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, player.getClassIndex(), player.getLevel()) == 0)
 			.filter(PhantomNativeTravelActions::available).toList();
-		return _masters.stream().map(PhantomClanVisit::spawnedMaster).filter(java.util.Objects::nonNull).distinct()
-			.sorted(Comparator.comparingDouble((VillageMaster master) ->
+		final boolean warehouse = request.purpose() == PhantomClanService.VisitPurpose.WAREHOUSE;
+		return (warehouse ? _warehouses : _masters).stream().map(spawn -> spawnedMaster(spawn, warehouse)).filter(java.util.Objects::nonNull).distinct()
+			.sorted(Comparator.comparingDouble((Npc master) ->
 			{
 				final var target = point(master);
 				return Math.min(origin.distanceTo(target), free.stream().mapToDouble(leg ->
 					origin.distanceTo(new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0))
 					+ target.distanceTo(new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), leg.destinationZ(), 0))).min().orElse(Double.POSITIVE_INFINITY));
-			}).thenComparingInt(VillageMaster::getObjectId)).limit(MAXIMUM_ROUTE_CHOICES).toList();
+			}).thenComparingInt(Npc::getObjectId)).limit(MAXIMUM_ROUTE_CHOICES).toList();
 	}
 
-	private static VillageMaster spawnedMaster(SpawnFact spawn)
+	private static Npc spawnedMaster(SpawnFact spawn, boolean warehouse)
 	{
 		final var region = World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z());
-		return region == null ? null : region.getVisibleObjects().stream().filter(value -> value instanceof VillageMaster).map(VillageMaster.class::cast)
+		return region == null ? null : region.getVisibleObjects().stream().filter(value -> warehouse ? value instanceof Warehouse : value instanceof VillageMaster).map(Npc.class::cast)
 			.filter(master -> master.getId() == spawn.npcId() && currentMaster(master) && master.calculateDistance3D(spawn.x(), spawn.y(), spawn.z()) < 64)
-			.min(Comparator.comparingInt(VillageMaster::getObjectId)).orElse(null);
+			.min(Comparator.comparingInt(Npc::getObjectId)).orElse(null);
 	}
 
-	private static boolean currentMaster(VillageMaster master)
+	private static boolean currentMaster(Npc master)
 	{
 		return master.getInstanceId() == 0 && master.isSpawned() && !master.isAlikeDead() && World.getInstance().findObject(master.getObjectId()) == master;
 	}
 
-	private static PhantomNavigationPoint point(VillageMaster master)
+	private static PhantomNavigationPoint point(Npc master)
 	{
 		final int height = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(master.getX(), master.getY(), master.getZ());
 		return new PhantomNavigationPoint(master.getX(), master.getY(), height, master.getInstanceId());
@@ -298,7 +321,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		return retry("clan.visit.navigation_pending");
 	}
 
-	private PhantomStepResult acceptPlan(Visit visit, VillageMaster target, PhantomNavigationResult result)
+	private PhantomStepResult acceptPlan(Visit visit, Npc target, PhantomNavigationResult result)
 	{
 		final var candidate = _navigation.consumeTravelPlan(visit.navigationId).orElse(null);
 		visit.navigationId = 0;
@@ -441,10 +464,10 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		private long activityGeneration;
 		private int classId, classIndex;
 		private PhantomNavigationPoint origin;
-		private List<VillageMaster> choices;
+		private List<Npc> choices;
 		private int choice, stage, waypoint;
 		private long navigationId, navigationDeadline;
-		private VillageMaster master;
+		private Npc master;
 		private PhantomTravelStrategy.Candidate best, plan;
 		private PhantomNativeTravelActions.OwnedWalk walk;
 
@@ -454,7 +477,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		{
 			if (!accepted) { return request.deadline(); }
 			final long rootDeadline = request.root().deadlineEpochMillis();
-			return request.purpose() == PhantomClanService.VisitPurpose.PLEDGE_SKILL && rootDeadline > 0
+			return (request.purpose() == PhantomClanService.VisitPurpose.PLEDGE_SKILL || request.purpose() == PhantomClanService.VisitPurpose.WAREHOUSE) && rootDeadline > 0
 				? Math.min(rootDeadline, acceptedDeadline) : acceptedDeadline;
 		}
 	}

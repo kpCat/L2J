@@ -827,7 +827,9 @@ public class PlayerInventory extends Inventory
 	 */
 	public int getNonQuestSize()
 	{
-		return _items.size() - _questItemSize.get();
+		final Item wallet = _adena;
+		final boolean emptyNativeWallet = wallet != null && wallet.getCount() == 0 && !wallet.hasStoredWarehouseRow();
+		return _items.size() - _questItemSize.get() - (emptyNativeWallet ? 1 : 0);
 	}
 	
 	/**
@@ -950,7 +952,7 @@ public class PlayerInventory extends Inventory
 	{
 		int slots = 0;
 		final Item invItem = getItemByItemId(itemId);
-		if ((invItem == null) || !invItem.isStackable())
+		if ((invItem == null) || !invItem.isStackable() || itemId == ADENA_ID && invItem.getCount() == 0 && !invItem.hasStoredWarehouseRow())
 		{
 			slots++;
 		}

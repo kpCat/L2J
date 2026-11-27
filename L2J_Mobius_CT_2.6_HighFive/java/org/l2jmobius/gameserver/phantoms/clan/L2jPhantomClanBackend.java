@@ -3,11 +3,14 @@
  */
 package org.l2jmobius.gameserver.phantoms.clan;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.BooleanSupplier;
 
@@ -19,6 +22,7 @@ import org.l2jmobius.gameserver.handler.IChatHandler;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.VillageMaster;
+import org.l2jmobius.gameserver.model.actor.instance.Warehouse;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchHandle;
 import org.l2jmobius.gameserver.model.clan.Clan;
@@ -32,11 +36,13 @@ import org.l2jmobius.gameserver.model.clan.ClanDepartureService;
 import org.l2jmobius.gameserver.model.clan.ClanDevelopmentShop;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment;
 import org.l2jmobius.gameserver.model.clan.ClanInvitationService;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer;
 import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.model.clan.ClanWarService.WarIdentity;
-import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.ItemContainer;
+import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.AllianceObservation;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.AllianceActor;
@@ -56,6 +62,10 @@ import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.RoleOutcome;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.RelationshipEvidence;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.RoleResult;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WithdrawalOutcome;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WarehouseDemand;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WarehouseOffer;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanService.WarehousePurpose;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
@@ -84,6 +94,8 @@ public final class L2jPhantomClanBackend implements Backend
 	private final PhantomSocialAffiliationContextPort _affiliationContexts;
 	private final BiPredicate<Long, Player> _mandatoryPreparationPending;
 	private volatile java.util.function.ToLongBiFunction<Long, Player> _developmentPurchaseReserve = (_, _) -> -1;
+	private volatile long _warehouseReserve = -1;
+	private volatile BiFunction<Long, Player, Set<Integer>> _warehousePrivateMaterials = (_, _) -> Set.of();
 
 	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization)
 	{
@@ -283,6 +295,154 @@ public final class L2jPhantomClanBackend implements Backend
 			return lease != null && lease.player().getObjectId() == actor.characterObjectId() && ordinaryPlayer(lease.player())
 				&& masterObjectId > 0 && availableClanMaster(lease.player(), masterObjectId) != null;
 		}
+	}
+
+	@Override
+	public boolean atAutonomousWarehouse(MemberRef member, int objectId)
+	{
+		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
+		{
+			return lease != null && lease.player().getObjectId() == member.characterObjectId() && ordinaryPlayer(lease.player())
+				&& World.getInstance().findObject(objectId) instanceof Warehouse warehouse && ClanWarehouseTransfer.canVisit(lease.player(), warehouse);
+		}
+	}
+
+	public void bindWarehouseReserve(long reserve, BiFunction<Long, Player, Set<Integer>> privateMaterials)
+	{
+		if (reserve < 0) { throw new IllegalArgumentException("Clan warehouse requires an existing supply reserve."); }
+		_warehousePrivateMaterials = Objects.requireNonNull(privateMaterials);
+		_warehouseReserve = Math.max(1, reserve);
+	}
+
+	@Override
+	public WarehouseOffer chooseWarehouse(MemberRef member, ClanSnapshot clan, WarehouseDemand demand, boolean mayDonate,
+		ClanWarehouseTransfer.DonationPolicy donation, long now)
+	{
+		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
+		{
+			if (lease == null || lease.player().getObjectId() != member.characterObjectId()) { return null; }
+			final Player player = lease.player();
+			final Clan own = player.getClan();
+			if (!warehouseActor(player, own, clan.clanId(), clan.leaderObjectId()) || _mandatoryPreparationPending.test(member.profileId(), player))
+			{
+				return null;
+			}
+			final boolean canWithdraw = ClanWarehouseTransfer.canWithdraw(player, own);
+			if (canWithdraw)
+			{
+				final Item upgrade = bestWarehouseUpgrade(player, own.getWarehouse());
+				if (upgrade != null) { return warehouseOffer(WarehousePurpose.EQUIPMENT, own, upgrade, 1); }
+			}
+			if (demand == null || PhantomNativeEquipmentPolicy.hasRequiredEquipment(player)) { return null; }
+			if (demand.itemId() == Inventory.ADENA_ID && (own.getCastleId() > 0 || own.getFortId() > 0 || own.getHideoutId() > 0
+				|| own.getAuctionBiddedAt() > 0)) { return null; }
+			if (canWithdraw && own.getLeaderId() == player.getObjectId())
+			{
+				final Item stock = warehouseStack(own.getWarehouse(), demand.itemId(), ItemLocation.CLANWH);
+				return stock == null ? null : warehouseOffer(WarehousePurpose.DEVELOP, own, stock, Math.min(demand.count(), stock.getCount()));
+			}
+			if (!mayDonate || player.getAdena() - _warehouseReserve < 30) { return null; }
+			final int itemId = demand.itemId();
+			if (itemId != Inventory.ADENA_ID && _warehousePrivateMaterials.apply(member.profileId(), player).contains(itemId)) { return null; }
+			final Item stock = itemId == Inventory.ADENA_ID ? player.getInventory().getAdenaInstance() : warehouseStack(player.getInventory(), itemId, ItemLocation.INVENTORY);
+			if (stock == null || !warehouseItem(stock) || !stock.isAvailable(player, true, false)) { return null; }
+			final long room = ClanWarehouseTransfer.remainingDonationRoom(own.getWarehouse(), itemId, demand.count());
+			final long maximum = itemId == Inventory.ADENA_ID ? donation.adenaLimit(stock.getCount(), _warehouseReserve) : stock.getCount();
+			final long count = Math.min(room, maximum);
+			return count <= 0 || !ClanWarehouseTransfer.donationDue(member.profileId(), now, donation)
+				? null : warehouseOffer(WarehousePurpose.DONATE, own, stock, count);
+		}
+	}
+
+	@Override
+	public boolean mayContinueWarehouse(MemberRef member, ClanSnapshot clan, WarehouseOffer offer)
+	{
+		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
+		{
+			return lease != null && lease.player().getObjectId() == member.characterObjectId()
+				&& warehouseActor(lease.player(), lease.player().getClan(), clan.clanId(), offer.leaderId())
+				&& !_mandatoryPreparationPending.test(member.profileId(), lease.player())
+				&& (offer.purpose() == WarehousePurpose.EQUIPMENT || !PhantomNativeEquipmentPolicy.hasRequiredEquipment(lease.player()))
+				&& (offer.deposit() || ClanWarehouseTransfer.canWithdraw(lease.player(), lease.player().getClan()));
+		}
+	}
+
+	@Override
+	public ClanWarehouseTransfer.TransferOutcome useWarehouse(MemberRef member, int npcId, ClanWarehouseTransfer.Request request,
+		WarehouseOffer offer, WarehouseDemand demand, BooleanSupplier current, BooleanSupplier localExecution)
+	{
+		try (var acquired = acquire(member))
+		{
+			if (acquired == null || !(World.getInstance().findObject(npcId) instanceof Warehouse npc))
+			{
+				return ClanWarehouseTransfer.TransferOutcome.NOT_READY;
+			}
+			final Player player = acquired.player();
+			final Clan clan = player.getClan();
+			if (player.getPendingClanWarehouse() != null)
+			{
+				return ClanWarehouseTransfer.settlePending(player) ? ClanWarehouseTransfer.TransferOutcome.NOT_READY : ClanWarehouseTransfer.TransferOutcome.UNCONFIRMED;
+			}
+			if (!warehouseActor(player, clan, request.clanId(), request.leaderId())
+				|| _mandatoryPreparationPending.test(member.profileId(), player)
+				|| offer.purpose() != WarehousePurpose.EQUIPMENT && PhantomNativeEquipmentPolicy.hasRequiredEquipment(player)
+				|| offer.deposit() && offer.itemId() != Inventory.ADENA_ID && _warehousePrivateMaterials.apply(member.profileId(), player).contains(offer.itemId()))
+			{
+				return ClanWarehouseTransfer.TransferOutcome.NOT_READY;
+			}
+			final var source = offer.deposit() ? player.getInventory() : clan.getWarehouse();
+			final Item item = source.getItemByObjectId(offer.objectId());
+			if (item == null || item.getId() != offer.itemId() || !warehouseItem(item)
+				|| offer.purpose() == WarehousePurpose.EQUIPMENT && !usefulWarehouseGear(player, item)
+				|| offer.purpose() != WarehousePurpose.EQUIPMENT && (demand == null || demand.itemId() != offer.itemId() || demand.count() < offer.count()))
+			{
+				return ClanWarehouseTransfer.TransferOutcome.NOT_READY;
+			}
+			return ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _warehouseReserve, current,
+				() -> localExecution.getAsBoolean() && PhantomNativeLootControl.threat(player) == null
+					&& (offer.purpose() != WarehousePurpose.EQUIPMENT || usefulWarehouseGear(player, item)));
+		}
+	}
+
+	private boolean warehouseActor(Player player, Clan clan, int clanId, int leaderId)
+	{
+		return _warehouseReserve >= 0 && ordinaryPlayer(player) && !player.isAlikeDead() && !player.isInCombat() && player.getParty() == null
+			&& !player.hasPendingOwnedStore() && clan != null && clan.getId() == clanId && clan.getLeaderId() == leaderId
+			&& clan.getLevel() >= 1 && clan.getDissolvingExpiryTime() == 0 && clan.getClanMember(player.getObjectId()) != null
+			&& ClanTable.getInstance().getClan(clanId) == clan;
+	}
+
+	private static WarehouseOffer warehouseOffer(WarehousePurpose purpose, Clan clan, Item item, long count)
+	{
+		return new WarehouseOffer(purpose, clan.getLeaderId(), item.getObjectId(), item.getId(), count, UUID.randomUUID());
+	}
+
+	private static Item warehouseStack(ItemContainer container, int itemId, ItemLocation location)
+	{
+		return container.getAllItemsByItemId(itemId).stream().filter(item -> item.getItemLocation() == location && warehouseItem(item) && item.isPlainWarehouseStack())
+			.max(Comparator.comparingLong(Item::getCount).thenComparingInt(Item::getObjectId)).orElse(null);
+	}
+
+	private static boolean warehouseItem(Item item)
+	{
+		return item.getCount() > 0 && item.hasStoredWarehouseRow() && !item.blocksInventoryDebit() && !item.isQuestItem()
+			&& item.isDepositable(false) && !item.isTimeLimitedItem() && !item.isShadowItem();
+	}
+
+	private static Item bestWarehouseUpgrade(Player player, ItemContainer warehouse)
+	{
+		return warehouse.getItems().stream().filter(item -> item.getTemplate().isEquipable() && warehouseItem(item)).limit(48)
+			.filter(item -> usefulWarehouseGear(player, item)).max(Comparator.comparingDouble((Item item) -> PhantomNativeEquipmentPolicy.power(player, item.getTemplate()))
+				.thenComparingInt(Item::getObjectId)).orElse(null);
+	}
+
+	private static boolean usefulWarehouseGear(Player player, Item item)
+	{
+		if (!item.getTemplate().isEquipable() || !PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate())) { return false; }
+		final var candidate = item.getTemplate();
+		return player.getInventory().getItems().stream().filter(owned -> owned.getTemplate().getBodyPart() == candidate.getBodyPart())
+			.noneMatch(owned -> owned.getId() == item.getId() || PhantomNativeEquipmentPolicy.upgrade(player, owned.getTemplate())
+				&& PhantomNativeEquipmentPolicy.power(player, owned.getTemplate()) >= PhantomNativeEquipmentPolicy.power(player, candidate));
 	}
 
 	@Override
@@ -524,6 +684,32 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public ContributionResult contribute(MemberRef member, int expectedClanId, int inventoryObjectId, long count)
 	{
+		return contribution(ContributionOutcome.STALE, 0, 0, "");
+	}
+
+	@Override
+	public boolean nativeContributionReceipts() { return true; }
+
+	@Override
+	public boolean committedContribution(MemberRef member, int clanId, UUID operation)
+	{
+		return ClanWarehouseTransfer.committed(member.profileId(), member.characterObjectId(), clanId, operation, true);
+	}
+
+	@Override
+	public ClanWarehouseTransfer.TransferOutcome settleContribution(MemberRef member, int clanId, UUID operation)
+	{
+		try (var acquired = acquire(member))
+		{
+			return acquired == null ? ClanWarehouseTransfer.TransferOutcome.UNCONFIRMED
+				: ClanWarehouseTransfer.reconcileContribution(acquired.player(), member.profileId(), clanId, operation);
+		}
+	}
+
+	@Override
+	public ContributionResult contribute(MemberRef member, ClanSnapshot expected, int inventoryObjectId, long count, UUID operation,
+		long expiresAt, BooleanSupplier current)
+	{
 		try (AcquiredPlayer acquired = acquire(member))
 		{
 			if (acquired == null)
@@ -532,46 +718,73 @@ public final class L2jPhantomClanBackend implements Backend
 			}
 			final Player player = acquired.player();
 			final Clan clan = player.getClan();
-			if ((clan == null) || (clan.getId() != expectedClanId) || (ClanTable.getInstance().getClan(expectedClanId) != clan))
+			if (!warehouseActor(player, clan, expected.clanId(), expected.leaderObjectId()))
 			{
 				return contribution(ContributionOutcome.STALE, 0, 0, "");
+			}
+			if (!ClanWarehouseTransfer.settlePending(player))
+			{
+				return contribution(ContributionOutcome.UNCONFIRMED, 0, 0, "");
+			}
+			if (committedContribution(member, expected.clanId(), operation))
+			{
+				return contribution(ContributionOutcome.COMPLETED, count, count, PhantomClanService.sha256(operation.toString()));
 			}
 			final Item source = player.getInventory().getItemByObjectId(inventoryObjectId);
 			if ((source == null) || (count <= 0) || (source.getCount() < count))
 			{
 				return contribution(ContributionOutcome.SOURCE_MISSING, 0, 0, "");
 			}
-			if (!source.isDepositable(false) || !source.isAvailable(player, true, false))
+			if (!warehouseItem(source) || !source.isAvailable(player, true, false)
+				|| mandatoryPreparationPending(member.profileId(), player) || _warehousePrivateMaterials.apply(member.profileId(), player).contains(source.getId()))
 			{
 				return contribution(ContributionOutcome.NOT_DEPOSITABLE, 0, 0, "");
 			}
-			final ItemContainer warehouse = clan.getWarehouse();
-			final long slots = source.isStackable() ? (warehouse.getItemByItemId(source.getId()) == null ? 1 : 0) : count;
-			if (!warehouse.validateCapacity(slots))
+			final Warehouse npc = nearbyWarehouse(player);
+			if (npc == null || expiresAt <= System.currentTimeMillis())
 			{
-				return contribution(ContributionOutcome.CAPACITY, 0, 0, "");
+				return contribution(ContributionOutcome.STALE, 0, 0, "");
 			}
-			final long inventoryBefore = source.getCount();
-			final long warehouseBefore = itemCount(warehouse, source.getId());
-			final Item transferred = player.getInventory().transferItem(ItemProcessType.TRANSFER, inventoryObjectId, count, warehouse, player, null);
-			if (transferred == null)
+			final var request = new ClanWarehouseTransfer.Request(expected.clanId(), expected.leaderObjectId(), inventoryObjectId, count, true, operation, expiresAt);
+			return switch (ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _warehouseReserve, current,
+				() -> PhantomNativeLootControl.threat(player) == null))
 			{
-				return contribution(ContributionOutcome.FAILED, 0, 0, "");
-			}
-			final Item remaining = player.getInventory().getItemByObjectId(inventoryObjectId);
-			final long inventoryAfter = remaining == null ? 0 : remaining.getCount();
-			final long warehouseAfter = itemCount(warehouse, source.getId());
-			final long inventoryDecrease = inventoryBefore - inventoryAfter;
-			final long warehouseIncrease = warehouseAfter - warehouseBefore;
-			final ContributionOutcome outcome = (inventoryDecrease == count) && (warehouseIncrease == count) ? ContributionOutcome.COMPLETED : ContributionOutcome.INCONSISTENT;
-			return contribution(outcome, inventoryDecrease, warehouseIncrease, PhantomClanService.sha256(expectedClanId + "|" + inventoryObjectId + "|" + count + "|" + inventoryBefore + "|" + warehouseBefore + "|" + inventoryAfter + "|" + warehouseAfter));
+				case APPLIED -> contribution(ContributionOutcome.COMPLETED, count, count, PhantomClanService.sha256(operation.toString()));
+				case UNCONFIRMED -> contribution(ContributionOutcome.UNCONFIRMED, 0, 0, "");
+				case NOT_READY -> contribution(ContributionOutcome.STALE, 0, 0, "");
+			};
 		}
+	}
+
+	private static Warehouse nearbyWarehouse(Player player)
+	{
+		return player.getWorldRegion() == null ? null : World.getInstance().getVisibleObjects(player, Warehouse.class).stream()
+			.filter(npc -> ClanWarehouseTransfer.canVisit(player, npc)).min(Comparator.comparingInt(Warehouse::getObjectId)).orElse(null);
 	}
 
 	@Override
 	public WithdrawalOutcome withdraw(MemberRef member, int expectedClanId, int warehouseObjectId, long count)
 	{
-		return WithdrawalOutcome.UNSUPPORTED;
+		if (warehouseObjectId <= 0 || count <= 0) { return WithdrawalOutcome.NOT_READY; }
+		try (var acquired = acquire(member))
+		{
+			if (acquired == null) { return WithdrawalOutcome.NOT_READY; }
+			final Player player = acquired.player();
+			final Clan clan = player.getClan();
+			if (clan == null || !warehouseActor(player, clan, expectedClanId, clan.getLeaderId())
+				|| _mandatoryPreparationPending.test(member.profileId(), player)) { return WithdrawalOutcome.NOT_READY; }
+			final Warehouse npc = nearbyWarehouse(player);
+			if (npc == null || !ClanWarehouseTransfer.canWithdraw(player, clan)) { return WithdrawalOutcome.NOT_READY; }
+			final var request = new ClanWarehouseTransfer.Request(expectedClanId, clan.getLeaderId(), warehouseObjectId, count,
+				false, UUID.randomUUID(), System.currentTimeMillis() + 30_000);
+			return switch (ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _warehouseReserve, () -> true,
+				() -> PhantomNativeLootControl.threat(player) == null))
+			{
+				case APPLIED -> WithdrawalOutcome.COMPLETED;
+				case UNCONFIRMED -> WithdrawalOutcome.UNCONFIRMED;
+				case NOT_READY -> WithdrawalOutcome.NOT_READY;
+			};
+		}
 	}
 
 	@Override

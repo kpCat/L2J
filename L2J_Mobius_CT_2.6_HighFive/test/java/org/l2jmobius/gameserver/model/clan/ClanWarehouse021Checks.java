@@ -13,6 +13,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
 import org.l2jmobius.gameserver.model.actor.templates.PlayerTemplate;
 import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.Destination;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.DonationPolicy;
 import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.Request;
 import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.TransferOutcome;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
@@ -156,21 +157,49 @@ public final class ClanWarehouse021Checks
 			}
 			check(player.getInventory().destroyItemByItemId(ItemProcessType.NONE, Inventory.ADENA_ID, 72, player, null) != null
 				&& player.getInventory().getAdenaInstance() == null, "Could not prepare the isolated empty-wallet case.");
+			final int occupied = player.getInventory().getNonQuestSize();
 			final Item wallet = player.getInventory().getAdenaForCountTransaction();
 			final var toEmptyWallet = new Request(CLAN, ACTOR, warehouseAdenaId, 15, false, new UUID(21, 63), Long.MAX_VALUE);
 			synchronized (player)
 			{
 				synchronized (warehouse)
 				{
+					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, toEmptyWallet, 0, List.of(), () -> false) == TransferOutcome.NOT_READY
+						&& player.getInventory().getNonQuestSize() == occupied && player.getAdena() == 0 && !wallet.hasStoredWarehouseRow(),
+						"An aborted first Adena withdrawal occupied a real inventory slot or created currency.");
 					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, toEmptyWallet, 0, List.of(), () -> true) == TransferOutcome.APPLIED
 						&& player.getInventory().getAdenaInstance() == wallet && player.getAdena() == 15
 						&& player.getInventory().getAllItemsByItemId(Inventory.ADENA_ID).size() == 1 && warehouse.getItemByObjectId(warehouseAdenaId) == null,
 						"Empty-wallet withdrawal did not publish the one native Adena object.");
 				}
 			}
+			player.setClanPrivileges(new ClanPrivileges());
+			check(!ClanWarehouseTransfer.canWithdraw(player, clan), "A member without native warehouse permission could withdraw.");
+			player.setClanPrivileges(new ClanPrivileges(ClanAccess.ACCESS_WAREHOUSE.getMask()));
+			check(ClanWarehouseTransfer.canWithdraw(player, clan), "The stock warehouse privilege was ignored.");
+			player.getInventory().addAdena(ItemProcessType.NONE, 985, player, null);
+			player.getInventory().updateDatabase();
+			final DonationPolicy policy = new DonationPolicy(10, 600_000);
+			final UUID operation = new UUID(21, 71);
+			final var excessive = new Request(CLAN, ACTOR, wallet.getObjectId(), 48, true, new UUID(21, 70), Long.MAX_VALUE, 300, policy);
+			final var voluntary = new Request(CLAN, ACTOR, wallet.getObjectId(), 40, true, operation, Long.MAX_VALUE, 300, policy);
+			final var cooldown = new Request(CLAN, ACTOR, wallet.getObjectId(), 1, true, new UUID(21, 72), Long.MAX_VALUE, 300, policy);
+			synchronized (player)
+			{
+				synchronized (warehouse)
+				{
+					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, excessive, 500, List.of(), () -> true) == TransferOutcome.NOT_READY,
+						"Donation exceeded ten percent of protected surplus after the deposit fee.");
+					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, voluntary, 500, List.of(), () -> true) == TransferOutcome.APPLIED
+						&& ClanWarehouseTransfer.committed(PROFILE, ACTOR, CLAN, operation, true), "Eligible contribution did not commit its exact native receipt.");
+					check(!ClanWarehouseTransfer.donationDue(PROFILE, System.currentTimeMillis(), policy)
+						&& ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, cooldown, 500, List.of(), () -> true) == TransferOutcome.NOT_READY
+						&& player.getAdena() == 930 && warehouse.getAdena() == 40, "Duplicate spending was possible inside the durable contribution cooldown.");
+				}
+			}
 		}
 		finally { player.stopAllTasks(); }
-		System.out.println("PASS 021 native warehouse containers, protected reserve, stock exclusion and STORE settlement");
+		System.out.println("PASS 021 native warehouse containers, stock exclusion, rights, protected surplus and durable contribution cooldown");
 	}
 
 	private static void reject(ClanWarehouseTransfer.Move move, String reason) throws SQLException
