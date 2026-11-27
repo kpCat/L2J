@@ -211,11 +211,12 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 
 	private static boolean actorMatches(Visit visit, Player player)
 	{
+		final var clan = player.getClan();
 		return player.getObjectId() == visit.request.member().characterObjectId() && !player.isAlikeDead() && player.getParty() == null && player.getInstanceId() == 0
 			&& !player.isInsideZone(ZoneId.WATER) && !player.isInStoreMode() && !player.isTransformed() && !player.isMounted()
 			&& (visit.request.purpose() == PhantomClanService.VisitPurpose.FOUND ? player.getClanId() == 0 : player.getClanId() == visit.request.clanId())
 			&& (visit.request.purpose() != PhantomClanService.VisitPurpose.DEVELOP
-				|| player.getClan() != null && player.getClan().getLeaderId() == player.getObjectId() && player.getClan().getLevel() == visit.request.currentLevel());
+				|| clan != null && clan.getLeaderId() == player.getObjectId() && clan.getLevel() == visit.request.currentLevel());
 	}
 
 	private boolean live(long id, Visit visit, PhantomStepContext context)

@@ -110,7 +110,7 @@ public final class ClanFoundingDevelopment017Checks
 			{
 				adena.transactRecoverableAdenaDebit(payment.requirement().adena(), connection ->
 				{
-					ClanFoundingDevelopment.stage(connection, payment, 100, credit -> false);
+					ClanFoundingDevelopment.stage(connection, payment, credit -> false);
 					throw new SQLException("021 controlled failure before commit");
 				});
 				throw new AssertionError("Injected failure did not propagate.");
@@ -124,7 +124,7 @@ public final class ClanFoundingDevelopment017Checks
 			{
 				assertRows(conn, payment.adenaBefore(), payment.spBefore(), 1);
 			}
-			adena.transactRecoverableAdenaDebit(payment.requirement().adena(), conn -> ClanFoundingDevelopment.stage(conn, payment, 100, credit -> false));
+			adena.transactRecoverableAdenaDebit(payment.requirement().adena(), conn -> ClanFoundingDevelopment.stage(conn, payment, credit -> false));
 			require(adena.getCount() == payment.adenaAfter() && !adena.hasPendingAdenaDebit(), "Committed native debit was not published.");
 		}
 		finally
@@ -155,7 +155,7 @@ public final class ClanFoundingDevelopment017Checks
 
 		try (var sql = connection.createStatement())
 		{
-			sql.executeUpdate("UPDATE clan_data SET dissolving_expiry_time=200 WHERE clan_id=29");
+			sql.executeUpdate("UPDATE clan_data SET dissolving_expiry_time=50 WHERE clan_id=29");
 			connection.commit();
 		}
 		requireRefused(connection, payment, "Native clan leadership or level changed.");
@@ -166,13 +166,13 @@ public final class ClanFoundingDevelopment017Checks
 		}
 
 		debitFixtureCoins(connection, payment);
-		ClanFoundingDevelopment.stage(connection, payment, 100, credit -> false);
+		ClanFoundingDevelopment.stage(connection, payment, credit -> false);
 		connection.rollback();
 		assertRows(connection, payment.adenaBefore(), payment.spBefore(), 1);
 		require(ClanFoundingDevelopment.readback(connection, payment, payment.adenaBefore(), payment.spBefore()) == DurableOutcome.ROLLED_BACK, "L2 rollback was not recognized over the previous-version receipt.");
 
 		debitFixtureCoins(connection, payment);
-		ClanFoundingDevelopment.stage(connection, payment, 100, credit -> false);
+		ClanFoundingDevelopment.stage(connection, payment, credit -> false);
 		connection.commit();
 		assertRows(connection, payment.adenaAfter(), payment.spAfter(), 2);
 		require(ClanFoundingDevelopment.readback(connection, payment, payment.adenaAfter(), payment.spBefore()) == DurableOutcome.APPLIED, "L2 lost-ACK recovery did not confirm the exact effect.");
@@ -185,7 +185,7 @@ public final class ClanFoundingDevelopment017Checks
 	{
 		try
 		{
-			ClanFoundingDevelopment.stage(connection, payment, 100, credit -> false);
+			ClanFoundingDevelopment.stage(connection, payment, credit -> false);
 			throw new AssertionError("Invalid payment was accepted.");
 		}
 		catch (SQLException expected)
@@ -215,13 +215,13 @@ public final class ClanFoundingDevelopment017Checks
 		}
 		connection.setAutoCommit(false);
 		debitFixtureCoins(connection, PAYMENT);
-		require(ClanFoundingDevelopment.stage(connection, PAYMENT, 1, credit -> false) == BEFORE_SP, "Native SP preimage was lost.");
+		require(ClanFoundingDevelopment.stage(connection, PAYMENT, credit -> false) == BEFORE_SP, "Native SP preimage was lost.");
 		connection.rollback();
 		assertRows(connection, BEFORE_ADENA, BEFORE_SP, 0);
 		require(ClanFoundingDevelopment.readback(connection, PAYMENT, BEFORE_ADENA, BEFORE_SP) == DurableOutcome.ROLLED_BACK, "Exact rolled-back preimage was not recognized.");
 
 		debitFixtureCoins(connection, PAYMENT);
-		ClanFoundingDevelopment.stage(connection, PAYMENT, 1, credit -> false);
+		ClanFoundingDevelopment.stage(connection, PAYMENT, credit -> false);
 		connection.commit();
 		assertRows(connection, PAYMENT.adenaAfter(), PAYMENT.spAfter(), 1);
 		require(ClanFoundingDevelopment.readback(connection, PAYMENT, PAYMENT.adenaAfter(), BEFORE_SP) == DurableOutcome.APPLIED, "Committed receipt did not recover exact fees.");
@@ -230,7 +230,7 @@ public final class ClanFoundingDevelopment017Checks
 		debitFixtureCoins(connection, replay);
 		try
 		{
-			ClanFoundingDevelopment.stage(connection, replay, 1, credit -> false);
+			ClanFoundingDevelopment.stage(connection, replay, credit -> false);
 			throw new AssertionError("Paid level accepted a second payment.");
 		}
 		catch (SQLException expected)

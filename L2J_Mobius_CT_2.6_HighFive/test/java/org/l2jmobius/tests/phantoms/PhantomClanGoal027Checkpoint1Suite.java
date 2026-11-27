@@ -184,7 +184,18 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		service.completeAutonomousVisit(proposed, 30346);
 		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "A stale root executed a native mutation.");
 		fixture.goals.put(57, farm);
-		fixture.backend.founderLevels.put(91L, 9);
+		fixture.backend.founderLevels.put(91L, 30);
+		final var observations = new java.util.concurrent.atomic.AtomicInteger();
+		fixture.backend.beforeAutonomousObservation = () ->
+		{
+			if (observations.incrementAndGet() == 3) { fixture.clock.set(proposed.deadline()); }
+		};
+		PhantomAssertions.assertEquals(PhantomClanService.VisitOutcome.STALE, service.completeAutonomousVisit(proposed, 30346),
+			"Expiry during the alternate peer observation must cancel the write.");
+		PhantomAssertions.assertEquals(3, observations.get(), "The alternate peer was not observed.");
+		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "An expired visit reached the native writer.");
+		fixture.backend.beforeAutonomousObservation = null;
+		fixture.clock.set(NOW);
 		service.completeAutonomousVisit(proposed, 30346);
 		service.completeAutonomousVisit(proposed, 30346);
 		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "An eligible alternate should permit exactly one native founding on arrival.");
@@ -697,13 +708,14 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 
 	private static final class Fixture
 	{
+		private final java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong(NOW);
 		private final FakeGoals goals = new FakeGoals();
 		private final FakePersistence persistence = new FakePersistence();
 		private final FakeBackend backend = new FakeBackend();
 
 		private PhantomClanService service()
 		{
-			final PhantomClanService service = new PhantomClanService(goals, persistence, backend, () -> NOW);
+			final PhantomClanService service = new PhantomClanService(goals, persistence, backend, clock::get);
 			PhantomAssertions.assertTrue(service.start(), "Clan service did not start.");
 			return service;
 		}

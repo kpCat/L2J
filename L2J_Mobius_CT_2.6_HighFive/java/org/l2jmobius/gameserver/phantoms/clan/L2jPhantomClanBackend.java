@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.commons.util.StringUtil;
 import org.l2jmobius.gameserver.data.sql.ClanTable;
@@ -224,6 +225,12 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public CreationResult createAutonomous(MemberRef actor, String name, int masterObjectId)
 	{
+		return createAutonomous(actor, name, masterObjectId, () -> true);
+	}
+
+	@Override
+	public CreationResult createAutonomous(MemberRef actor, String name, int masterObjectId, BooleanSupplier current)
+	{
 		try (var acquired = acquire(actor))
 		{
 			if (acquired == null || actor.kind() != MemberKind.PHANTOM) { return new CreationResult(CreationOutcome.STALE, null); }
@@ -241,7 +248,7 @@ public final class L2jPhantomClanBackend implements Backend
 			if (System.currentTimeMillis() < player.getClanCreateExpiryTime()) { return new CreationResult(CreationOutcome.CREATE_COOLDOWN, null); }
 			if (ClanTable.getInstance().getClanByName(name) != null) { return new CreationResult(CreationOutcome.NAME_TAKEN, null); }
 			final var master = availableClanMaster(player, masterObjectId);
-			if (master == null) { return new CreationResult(CreationOutcome.STALE, null); }
+			if (master == null || !current.getAsBoolean()) { return new CreationResult(CreationOutcome.STALE, null); }
 			master.onBypassFeedback(player, "create_clan " + name);
 			final var created = player.getClan();
 			if (created == null && player.getPendingClanCreation() != null) { return new CreationResult(CreationOutcome.PERSISTENCE_PENDING, null); }
@@ -300,11 +307,11 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int masterObjectId)
 	{
-		return developAutonomous(member, expectedClanId, 0, masterObjectId);
+		return developAutonomous(member, expectedClanId, 0, masterObjectId, Long.MAX_VALUE, () -> true);
 	}
 
 	@Override
-	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int expectedLevel, int masterObjectId)
+	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int expectedLevel, int masterObjectId, long expiresAt, BooleanSupplier current)
 	{
 		try (var acquired = acquire(member))
 		{
@@ -313,8 +320,8 @@ public final class L2jPhantomClanBackend implements Backend
 				return ClanFoundingDevelopment.Outcome.NOT_READY;
 			}
 			final Player player = acquired.player();
-			return ClanFoundingDevelopment.payForLevel(member.profileId(), player, availableClanMaster(player, masterObjectId), expectedLevel,
-				() -> mandatoryPreparationPending(member, player));
+			return ClanFoundingDevelopment.payForLevel(member.profileId(), player, availableClanMaster(player, masterObjectId), expectedLevel, expiresAt,
+				() -> mandatoryPreparationPending(member, player) || !current.getAsBoolean());
 		}
 	}
 

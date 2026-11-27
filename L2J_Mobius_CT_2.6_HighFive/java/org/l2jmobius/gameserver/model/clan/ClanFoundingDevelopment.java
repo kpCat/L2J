@@ -85,10 +85,10 @@ public final class ClanFoundingDevelopment
 
 	public static Outcome payForFirstLevel(long profileId, Player leader, VillageMaster npc, BooleanSupplier mandatoryPreparationPending)
 	{
-		return payForLevel(profileId, leader, npc, 0, mandatoryPreparationPending);
+		return payForLevel(profileId, leader, npc, 0, Long.MAX_VALUE, mandatoryPreparationPending);
 	}
 
-	public static Outcome payForLevel(long profileId, Player leader, VillageMaster npc, int expectedLevel, BooleanSupplier mandatoryPreparationPending)
+	public static Outcome payForLevel(long profileId, Player leader, VillageMaster npc, int expectedLevel, long expiresAt, BooleanSupplier mandatoryPreparationPending)
 	{
 		if (profileId <= 0 || leader == null || !leader.hasHeadlessOutboundSession() || leader.isDedicatedGeoScout() || !authorizedAction(leader, profileId)) { return Outcome.NOT_READY; }
 		final Clan clan = leader.getClan();
@@ -107,7 +107,8 @@ public final class ClanFoundingDevelopment
 				if (coin == null) { return Outcome.NOT_READY; }
 				synchronized (coin)
 				{
-					if (coin.getId() != Inventory.ADENA_ID || coin.getOwnerId() != leader.getObjectId() || coin.getCount() < requirement.adena()) { return Outcome.NOT_READY; }
+					if (System.currentTimeMillis() >= expiresAt || coin.getId() != Inventory.ADENA_ID
+						|| coin.getOwnerId() != leader.getObjectId() || coin.getCount() < requirement.adena()) { return Outcome.NOT_READY; }
 					return payLocked(profileId, leader, clan, coin, requirement);
 				}
 			}
@@ -125,7 +126,7 @@ public final class ClanFoundingDevelopment
 	{
 		return ClanTable.getInstance().getClan(clan.getId()) == clan && leader.getClan() == clan && clan.getLeaderId() == leader.getObjectId()
 			&& clan.getLevel() == requirement.currentLevel() && (requirement.currentLevel() != 0 || clan.getMembersCount() >= 2)
-			&& clan.getDissolvingExpiryTime() <= System.currentTimeMillis()
+			&& clan.getDissolvingExpiryTime() == 0
 			&& !leader.isAlikeDead() && !leader.isInCombat() && !leader.isChangingClass() && leader.getClassIndex() == 0 && leader.getActiveClass() == leader.getBaseClass()
 			&& leader.getSp() >= requirement.sp() && npc != null && npc.isSpawned() && !npc.isAlikeDead() && npc.canInteract(leader)
 			&& GeoEngine.getInstance().canSeeTarget(leader, npc);
@@ -138,7 +139,7 @@ public final class ClanFoundingDevelopment
 		{
 			coin.transactRecoverableAdenaDebit(requirement.adena(), connection ->
 			{
-				final long durableBefore = stage(connection, payment, System.currentTimeMillis(), leader.getStat()::matchesNativeSkillPointCredit);
+				final long durableBefore = stage(connection, payment, leader.getStat()::matchesNativeSkillPointCredit);
 				if (payment.spBefore() == durableBefore) { leader.getStat().acknowledgeStoredSkillPoints(0, durableBefore); }
 				leader.setPendingClanDevelopment(new PendingPayment(clan, coin, payment, durableBefore));
 				clan.setFirstLevelPaymentPending(true);
@@ -155,7 +156,7 @@ public final class ClanFoundingDevelopment
 		return Outcome.APPLIED;
 	}
 
-	static long stage(Connection connection, Payment payment, long now, LongPredicate witnessedCredit) throws SQLException
+	static long stage(Connection connection, Payment payment, LongPredicate witnessedCredit) throws SQLException
 	{
 		try (var profile = connection.prepareStatement("SELECT p.character_object_id FROM phantom_profiles p INNER JOIN phantom_profile_components c ON c.profile_id=p.profile_id AND c.component_type=? WHERE p.profile_id=? FOR UPDATE"))
 		{
@@ -180,13 +181,12 @@ public final class ClanFoundingDevelopment
 		{
 			throw new SQLException("Native clan payment preimage changed.");
 		}
-		try (var clan = connection.prepareStatement("UPDATE clan_data SET clan_level=? WHERE clan_id=? AND clan_level=? AND leader_id=? AND dissolving_expiry_time<=?"))
+		try (var clan = connection.prepareStatement("UPDATE clan_data SET clan_level=? WHERE clan_id=? AND clan_level=? AND leader_id=? AND dissolving_expiry_time=0"))
 		{
 			clan.setInt(1, payment.requirement().nextLevel());
 			clan.setInt(2, payment.clanId());
 			clan.setInt(3, payment.currentLevel());
 			clan.setInt(4, payment.actorId());
-			clan.setLong(5, now);
 			if (clan.executeUpdate() != 1) { throw new SQLException("Native clan leadership or level changed."); }
 		}
 		if (payment.spAfter() != durableSp)
