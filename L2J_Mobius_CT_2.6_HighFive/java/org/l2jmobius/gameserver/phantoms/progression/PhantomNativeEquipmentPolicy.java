@@ -5,7 +5,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
+import org.l2jmobius.gameserver.data.holders.ArmorSet;
 import org.l2jmobius.gameserver.data.xml.ArmorSetData;
+import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.conditions.Condition;
@@ -23,11 +26,17 @@ import org.l2jmobius.gameserver.model.item.type.EtcItemType;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.stats.Stat;
 import org.l2jmobius.gameserver.model.stats.functions.FuncTemplate;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropSourceKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 
 /** Read-only loadout preference. Native Progression equips; native Commerce buys. */
 public final class PhantomNativeEquipmentPolicy
 {
 	private static final List<BodyPart> ARMOR_SLOTS = List.of(BodyPart.HEAD, BodyPart.CHEST, BodyPart.LEGS, BodyPart.FULL_ARMOR, BodyPart.GLOVES, BodyPart.FEET);
+	private static final List<Integer> SET_SLOTS = List.of(Inventory.PAPERDOLL_CHEST, Inventory.PAPERDOLL_LEGS, Inventory.PAPERDOLL_HEAD, Inventory.PAPERDOLL_GLOVES, Inventory.PAPERDOLL_FEET);
 	private static final Set<Stat> MASTERY_STATS = Set.of(Stat.POWER_ATTACK, Stat.MAGIC_ATTACK, Stat.POWER_DEFENCE, Stat.MAGIC_DEFENCE, Stat.POWER_ATTACK_SPEED, Stat.MAGIC_ATTACK_SPEED, Stat.MAX_HP, Stat.MAX_MP, Stat.EVASION_RATE, Stat.CRITICAL_RATE);
 	private PhantomNativeEquipmentPolicy() { }
 
@@ -82,6 +91,14 @@ public final class PhantomNativeEquipmentPolicy
 		return !protectedEffects(equipped) && (!compatible || target.getLevel() - equipped.getTemplate().getCrystalType().getLevel() >= 2) ? Need.REQUIRED : Need.IMPROVEMENT;
 	}
 
+	/** An adjacent grade is urgent only when its legal, projected gain is substantial. */
+	public static Need upgradeNeed(Item equipped, ItemTemplate candidate, CrystalType target, double currentUtility, double candidateUtility)
+	{
+		return equipped != null && !protectedEffects(equipped) && candidate.getCrystalType() == target
+			&& target.getLevel() - equipped.getTemplate().getCrystalType().getLevel() == 1
+			&& candidateUtility - currentUtility >= Math.max(5, currentUtility * 0.35) ? Need.REQUIRED : Need.IMPROVEMENT;
+	}
+
 	public static EquipmentNeeds equipmentNeeds(Player player)
 	{
 		final var target = targetGrade(player.getLevel(), player.getExpertiseLevel());
@@ -130,7 +147,14 @@ public final class PhantomNativeEquipmentPolicy
 			final var current = player.getActiveWeaponItem();
 			return player.isMageClass() || current == null || current == player.getFistsWeaponItem() || current.isMagicWeapon() || current.getItemType() == weapon.getItemType();
 		}
-		if (!(item instanceof Armor armor) || !ARMOR_SLOTS.contains(item.getBodyPart()) && !accessory(item.getBodyPart())) { return false; }
+		if (!(item instanceof Armor armor)) { return false; }
+		if (item.getBodyPart() == BodyPart.L_HAND)
+		{
+			final var weapon = player.getActiveWeaponItem();
+			return (weapon == null || weapon.getBodyPart() != BodyPart.LR_HAND)
+				&& (affinity(player, item) > 0 || (player.isMageClass() ? armor.getItemType() == ArmorType.SIGIL : armor.getItemType() == ArmorType.SHIELD));
+		}
+		if (!ARMOR_SLOTS.contains(item.getBodyPart()) && !accessory(item.getBodyPart())) { return false; }
 		return armor.getItemType() == ArmorType.NONE || affinity(player, item) > 0 || (player.isMageClass() ? armor.getItemType() == ArmorType.MAGIC : armor.getItemType() == ArmorType.LIGHT || armor.getItemType() == ArmorType.HEAVY);
 	}
 
@@ -173,51 +197,152 @@ public final class PhantomNativeEquipmentPolicy
 	private static double utility(Player player, ItemTemplate item)
 	{
 		// Preference weights are author policy; native combat calculation and skill/set application remain unchanged.
-		return power(player, item) * (1 + Math.min(0.5, affinity(player, item) * 0.02) + (completedSet(player, item) ? 0.1 : 0));
+		return power(player, item) * (1 + Math.min(0.5, affinity(player, item) * 0.02));
 	}
 
-	private static boolean completedSet(Player player, ItemTemplate candidate)
+	private static ArmorSet completedSet(Player player, ItemTemplate candidate)
 	{
-		if (!(candidate instanceof Armor)) { return false; }
 		final int chest = projectedSlot(player, candidate, Inventory.PAPERDOLL_CHEST, BodyPart.CHEST);
 		final var set = chest > 0 ? ArmorSetData.getInstance().getSet(chest) : null;
-		return set != null && !set.getSkills().isEmpty() && set.containAll(chest,
+		return set != null && set.containAll(chest,
 			projectedSlot(player, candidate, Inventory.PAPERDOLL_LEGS, BodyPart.LEGS), projectedSlot(player, candidate, Inventory.PAPERDOLL_HEAD, BodyPart.HEAD),
-			projectedSlot(player, candidate, Inventory.PAPERDOLL_GLOVES, BodyPart.GLOVES), projectedSlot(player, candidate, Inventory.PAPERDOLL_FEET, BodyPart.FEET));
+			projectedSlot(player, candidate, Inventory.PAPERDOLL_GLOVES, BodyPart.GLOVES), projectedSlot(player, candidate, Inventory.PAPERDOLL_FEET, BodyPart.FEET)) ? set : null;
 	}
 
 	private static int projectedSlot(Player player, ItemTemplate candidate, int slot, BodyPart body)
 	{
-		if (candidate.getBodyPart() == body || body == BodyPart.CHEST && candidate.getBodyPart() == BodyPart.FULL_ARMOR) { return candidate.getId(); }
-		if (body == BodyPart.LEGS && candidate.getBodyPart() == BodyPart.FULL_ARMOR) { return 0; }
+		final var replacement = candidate == null ? null : candidate.getBodyPart();
+		if (replacement == body || body == BodyPart.CHEST && replacement == BodyPart.FULL_ARMOR) { return candidate.getId(); }
+		if (body == BodyPart.LEGS && replacement == BodyPart.FULL_ARMOR || body == BodyPart.L_HAND && replacement == BodyPart.LR_HAND) { return 0; }
 		final var current = player.getInventory().getPaperdollItem(slot);
-		if (body == BodyPart.CHEST && candidate.getBodyPart() == BodyPart.LEGS && current != null && current.getTemplate().getBodyPart() == BodyPart.FULL_ARMOR) { return 0; }
+		if (body == BodyPart.CHEST && replacement == BodyPart.LEGS && current != null && current.getTemplate().getBodyPart() == BodyPart.FULL_ARMOR) { return 0; }
 		return current == null ? 0 : current.getId();
 	}
 
 	public static double power(Player player, ItemTemplate item)
 	{
 		if (item == null) { return 0; }
-		final Stat stat = item instanceof Weapon ? player.isMageClass() ? Stat.MAGIC_ATTACK : Stat.POWER_ATTACK : accessory(item.getBodyPart()) ? Stat.MAGIC_DEFENCE : Stat.POWER_DEFENCE;
+		final Stat stat = item instanceof Weapon ? player.isMageClass() ? Stat.MAGIC_ATTACK : Stat.POWER_ATTACK
+			: accessory(item.getBodyPart()) ? Stat.MAGIC_DEFENCE : item.getItemType() == ArmorType.SHIELD ? Stat.SHIELD_DEFENCE : Stat.POWER_DEFENCE;
 		return item.getStatFuncs(null, player).stream().filter(function -> function.getStat() == stat && function.getApplyCond() == null).mapToDouble(function -> Math.max(0, function.getValue())).max().orElse(0);
 	}
 
 	public static boolean upgrade(Player player, ItemTemplate candidate)
 	{
-		if (!compatible(player, candidate)) { return false; }
+		return evaluateUpgrade(player, candidate) != null;
+	}
+
+	public record Upgrade(Need need, double gain, double relativeGain) { }
+
+	public record FarmDrop(int itemId, Upgrade upgrade, double stockWeight, DropSourceKind kind)
+	{
+		public double value() { return stockWeight * Math.min(2, upgrade.relativeGain()); }
+	}
+
+	/** Bounded by one useful, level-appropriate NPC and authoritative loot rows. */
+	public static List<FarmDrop> farmDrops(Player player, PhantomGameKnowledgeQuery knowledge, int npcId, boolean protectWeapon)
+	{
+		final var npc = knowledge.findNpc(npcId).orElse(null);
+		if (npc == null || !npc.attackable() || !npc.targetable() || npc.exp() <= 0 || Math.abs(npc.level() - player.getLevel()) > 4) { return List.of(); }
+		final var target = targetGrade(player.getLevel(), player.getExpertiseLevel());
+		final var facts = new java.util.ArrayList<>(knowledge.snapshot().dropFactsByNpc().getOrDefault(npcId, List.of()));
+		if (canSpoil(player))
+		{
+			facts.addAll(knowledge.snapshot().spoilFactsByNpc().getOrDefault(npcId, List.of()));
+		}
+		final var sources = new java.util.HashMap<ItemTemplate, DropFact>();
+		for (var fact : facts)
+		{
+			final var item = ItemData.getInstance().getTemplate(fact.itemId());
+			if (!(item instanceof Armor || !protectWeapon && item instanceof Weapon) || item.getCrystalType().getLevel() > target.getLevel()) { continue; }
+			if (farmLootWeight(fact) > 0) { sources.merge(item, fact, (left, right) -> farmLootWeight(left) >= farmLootWeight(right) ? left : right); }
+		}
+		return sources.entrySet().stream().sorted(Comparator.<java.util.Map.Entry<ItemTemplate, DropFact>>comparingDouble(entry -> farmLootWeight(entry.getValue())).reversed().thenComparingInt(entry -> entry.getKey().getId())).limit(16)
+			.map(entry ->
+			{
+				final var item = entry.getKey();
+				final var upgrade = evaluateUpgrade(player, item);
+				return upgrade == null || player.getInventory().getInventoryItemCount(item.getId(), -1) > 0 ? null
+					: new FarmDrop(item.getId(), upgrade, farmLootWeight(entry.getValue()), entry.getValue().sourceKind());
+			}).filter(java.util.Objects::nonNull).sorted(Comparator.comparingDouble(FarmDrop::value).reversed().thenComparingInt(FarmDrop::itemId)).limit(4).toList();
+	}
+
+	private static double farmLootWeight(DropFact fact)
+	{
+		// Stock spoil does not reveal the probability of landing Spoil and completing the owned Sweep.
+		return PhantomAcquisitionSourcePlanner.stockDropWeight(fact) * (fact.sourceKind() == DropSourceKind.SPOIL ? 0.5 : 1);
+	}
+
+	public static double farmMaterialValue(Player player, PhantomGameKnowledgeQuery knowledge, int npcId, Set<Integer> missing)
+	{
+		if (missing.isEmpty()) { return 0; }
+		final var npc = knowledge.findNpc(npcId).orElse(null);
+		if (npc == null || !npc.attackable() || !npc.targetable() || npc.exp() <= 0 || Math.abs(npc.level() - player.getLevel()) > 4) { return 0; }
+		final var stock = knowledge.snapshot();
+		final var drop = stock.dropFactsByNpc().getOrDefault(npcId, List.of()).stream();
+		final var spoil = canSpoil(player) ? stock.spoilFactsByNpc().getOrDefault(npcId, List.of()).stream() : java.util.stream.Stream.<DropFact>empty();
+		return java.util.stream.Stream.concat(drop, spoil).filter(fact -> missing.contains(fact.itemId()))
+			.mapToDouble(fact -> farmLootWeight(fact) * Math.min(3, fact.minimumCount()) * 0.25).max().orElse(0);
+	}
+
+	private static boolean canSpoil(Player player)
+	{
+		final var spoil = player.getKnownSkill(254);
+		return AutoPlayConfig.ENABLE_AUTO_SKILL && !AutoPlayConfig.DISABLED_AUTO_SKILLS.contains(254) && player.getSkillLevel(42) > 0
+			&& spoil != null && spoil.isActive() && !spoil.isPassive() && !spoil.isToggle() && PhantomNativeCombatCapability.ordinaryUtility(spoil);
+	}
+
+	public static Upgrade evaluateUpgrade(Player player, ItemTemplate candidate)
+	{
+		if (!compatible(player, candidate)) { return null; }
+		final var inventory = player.getInventory();
+		final List<Item> replaced;
 		if (candidate instanceof Weapon)
 		{
 			final var current = player.getActiveWeaponInstance();
-			final var offhand = candidate.getBodyPart() == BodyPart.LR_HAND ? player.getInventory().getPaperdollItem(Inventory.PAPERDOLL_LHAND) : null;
-			final var replaced = java.util.stream.Stream.of(current, offhand).filter(java.util.Objects::nonNull).distinct().toList();
-			if (current != null && affinity(player, current.getTemplate()) > 0 && affinity(player, candidate) <= 0) { return false; }
-			return improvesLoadout(candidate, replaced, current == null ? 0 : utility(player, current.getTemplate()), utility(player, candidate));
+			final var offhand = candidate.getBodyPart() == BodyPart.LR_HAND ? inventory.getPaperdollItem(Inventory.PAPERDOLL_LHAND) : null;
+			replaced = java.util.stream.Stream.of(current, offhand).filter(java.util.Objects::nonNull).distinct().toList();
 		}
-		final var replaced = accessory(candidate.getBodyPart()) ? accessoryReplacements(candidate.getBodyPart(), player.getInventory()::getPaperdollItem)
-			: player.getInventory().getItems().stream().filter(Item::isEquipped).filter(item -> overlaps(candidate.getBodyPart(), item.getTemplate().getBodyPart())).toList();
-		if (replaced.stream().anyMatch(item -> affinity(player, item.getTemplate()) > 0) && affinity(player, candidate) <= 0) { return false; }
-		if (replaced.stream().anyMatch(item -> completedSet(player, item.getTemplate())) && !completedSet(player, candidate)) { return false; }
-		return improvesLoadout(candidate, replaced, replaced.stream().mapToDouble(item -> utility(player, item.getTemplate())).sum(), utility(player, candidate));
+		else if (accessory(candidate.getBodyPart())) { replaced = accessoryReplacements(candidate.getBodyPart(), inventory::getPaperdollItem); }
+		else if (candidate.getBodyPart() == BodyPart.L_HAND)
+		{
+			final var offhand = inventory.getPaperdollItem(Inventory.PAPERDOLL_LHAND);
+			replaced = offhand == null ? List.of() : List.of(offhand);
+		}
+		else
+		{
+			replaced = SET_SLOTS.stream().map(inventory::getPaperdollItem).filter(java.util.Objects::nonNull)
+				.filter(item -> overlaps(candidate.getBodyPart(), item.getTemplate().getBodyPart())).toList();
+		}
+		if (replaced.stream().anyMatch(item -> affinity(player, item.getTemplate()) > 0) && affinity(player, candidate) <= 0) { return null; }
+		final double currentUtility = replaced.stream().filter(item -> item.getTemplate() instanceof Weapon || item.getTemplate() instanceof Armor)
+			.mapToDouble(item -> utility(player, item.getTemplate())).sum();
+		double candidateUtility = utility(player, candidate);
+		if (!accessory(candidate.getBodyPart()) && (!(candidate instanceof Weapon) || candidate.getBodyPart() == BodyPart.LR_HAND))
+		{
+			final var before = completedSet(player, null);
+			final var after = completedSet(player, candidate);
+			final boolean shieldBefore = shieldBonus(player, before, null);
+			final boolean shieldAfter = shieldBonus(player, after, candidate);
+			if (before != null && before != after || shieldBefore && !shieldAfter) { return null; }
+			if (before == null && after != null || !shieldBefore && shieldAfter)
+			{
+				final double setDefence = SET_SLOTS.stream().map(inventory::getPaperdollItem).filter(java.util.Objects::nonNull)
+					.filter(item -> !replaced.contains(item)).mapToDouble(item -> utility(player, item.getTemplate())).sum() + candidateUtility;
+				candidateUtility += setDefence * ((before == null && after != null ? 0.10 : 0) + (shieldAfter && !shieldBefore ? 0.05 : 0));
+			}
+		}
+		if (!improvesLoadout(candidate, replaced, currentUtility, candidateUtility)) { return null; }
+		final var target = targetGrade(player.getLevel(), player.getExpertiseLevel());
+		final var primary = replaced.stream().filter(item -> item.getTemplate() instanceof Weapon || item.getTemplate() instanceof Armor).findFirst().orElse(null);
+		final var need = upgradeNeed(primary, candidate, target, currentUtility, candidateUtility);
+		return new Upgrade(need, candidateUtility - currentUtility, (candidateUtility - currentUtility) / Math.max(10, currentUtility));
+	}
+
+	private static boolean shieldBonus(Player player, ArmorSet set, ItemTemplate candidate)
+	{
+		return set != null && !set.getShieldSkillId().isEmpty()
+			&& set.containShield(projectedSlot(player, candidate, Inventory.PAPERDOLL_LHAND, BodyPart.L_HAND));
 	}
 
 	/** Shared read-only replacement gate for the actual paperdoll objects. */
@@ -286,7 +411,7 @@ public final class PhantomNativeEquipmentPolicy
 	{
 		final var values = new java.util.HashMap<Integer, Double>();
 		final var sets = new java.util.HashMap<Integer, Boolean>();
-		return preference(item -> values.computeIfAbsent(item.getId(), ignored -> utility(player, item)), item -> sets.computeIfAbsent(item.getId(), ignored -> completedSet(player, item)));
+		return preference(item -> values.computeIfAbsent(item.getId(), ignored -> utility(player, item)), item -> sets.computeIfAbsent(item.getId(), ignored -> item instanceof Armor && !accessory(item.getBodyPart()) && completedSet(player, item) != null));
 	}
 
 	private static Comparator<ItemTemplate> preference(java.util.function.ToDoubleFunction<ItemTemplate> utility, java.util.function.Predicate<ItemTemplate> completedSet)

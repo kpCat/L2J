@@ -863,6 +863,7 @@ public final class PhantomSystem
 				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService, this::marketPricingAuthority, () -> _offlineMerchantService == null ? java.util.List.of() : _offlineMerchantService.buyOwners());
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
+				_historicalBackgroundService.bindEquipmentMaterialNeed((id, player) -> _supplyJourney.equipmentMaterialNeed(id, player, System.currentTimeMillis()));
 				_supplyJourney.useGearUpgrades(_economyService);
 				_supplyJourney.useInventoryMaintenance(profileId -> (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty());
 				_supplyJourney.useThreatRetreat(_combatService);

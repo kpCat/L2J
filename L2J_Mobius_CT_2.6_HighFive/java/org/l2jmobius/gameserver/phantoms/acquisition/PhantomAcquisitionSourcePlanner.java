@@ -354,8 +354,16 @@ public final class PhantomAcquisitionSourcePlanner
 
 	private static int chanceUtility(DropFact fact)
 	{
-		final double chance = fact.chanceModel() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ChanceModel.GROUP_CUMULATIVE ? Math.min(100d, fact.rawGroupChance()) * Math.min(100d, fact.rawItemChance()) / 100d : Math.min(100d, fact.rawItemChance());
-		return (int) Math.clamp(Math.round(chance * Math.max(1, fact.minimumCount())), 1, 10000);
+		return (int) Math.clamp(Math.round(stockDropWeight(fact) * 100 * Math.max(1, fact.minimumCount())), 1, 10000);
+	}
+
+	/** Stock likelihood for ranking only. Live rates and player loot rights are evaluated by the native kill. */
+	public static double stockDropWeight(DropFact fact)
+	{
+		if (!validChance(fact)) { return 0; }
+		final double item = Math.min(100d, fact.rawItemChance()) / 100;
+		return fact.chanceModel() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ChanceModel.GROUP_CUMULATIVE
+			? item * (Math.min(100d, fact.rawGroupChance()) / 100) : item;
 	}
 
 	private static boolean validChance(DropFact fact)

@@ -2,6 +2,7 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.util.List;
+import java.util.Map;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.conditions.ConditionLogicAnd;
 import org.l2jmobius.gameserver.model.conditions.ConditionUsingItemType;
@@ -14,6 +15,12 @@ import org.l2jmobius.gameserver.model.item.type.CrystalType;
 import org.l2jmobius.gameserver.model.item.type.WeaponType;
 import org.l2jmobius.gameserver.model.stats.Stat;
 import org.l2jmobius.gameserver.model.stats.functions.FuncTemplate;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog.ItemAmount;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.State;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService.Status;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService.TransitionResult;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy;
 
 /** Read-only candidate projection; no fake inventory swap is needed to inspect learned mastery. */
@@ -31,6 +38,47 @@ public final class PhantomEquipment068PolicySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.REQUIRED, PhantomNativeEquipmentPolicy.slotNeed(ordinary, CrystalType.C, false), "Material debt in a key slot stayed optional.");
 			ordinary.setEnchantLevel(12);
 			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.IMPROVEMENT, PhantomNativeEquipmentPolicy.slotNeed(ordinary, CrystalType.C, false), "Grade displaced protected native effects.");
+		});
+		registry.add("020-adjacent-grade-requires-material-loadout-gain", context ->
+		{
+			final var ordinary = new Item(990091, gear(WeaponType.SWORD, CrystalType.NONE));
+			final var candidate = gear(WeaponType.SWORD, CrystalType.D);
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.IMPROVEMENT, PhantomNativeEquipmentPolicy.upgradeNeed(ordinary, candidate, CrystalType.D, 50, 56), "A small adjacent upgrade became mandatory.");
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.REQUIRED, PhantomNativeEquipmentPolicy.upgradeNeed(ordinary, candidate, CrystalType.D, 50, 80), "A major adjacent upgrade stayed optional.");
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.IMPROVEMENT, PhantomNativeEquipmentPolicy.upgradeNeed(ordinary, candidate, CrystalType.NONE, 50, 80), "An item beyond actual expertise became mandatory.");
+			ordinary.setEnchantLevel(1);
+			PhantomAssertions.assertEquals(PhantomNativeEquipmentPolicy.Need.IMPROVEMENT, PhantomNativeEquipmentPolicy.upgradeNeed(ordinary, candidate, CrystalType.D, 50, 80), "A protected object lost its replacement guard.");
+		});
+		registry.add("020-gear-receipts-require-exact-input-output-and-durable-state", context ->
+		{
+			final var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			final var xml = factory.newDocumentBuilder().parse(context.moduleRoot().resolve("dist/game/data/multisell/326150004.xml").toFile());
+			final var entry = (org.w3c.dom.Element) xml.getElementsByTagName("item").item(0);
+			final int npc = Integer.parseInt(xml.getElementsByTagName("npc").item(0).getTextContent());
+			PhantomAssertions.assertEquals(32615, npc, "Stock unseal counter changed.");
+			PhantomAssertions.assertEquals(new ItemAmount(9514, 1), stockAmount(entry, "ingredient", 0), "Stock sealed input changed.");
+			PhantomAssertions.assertEquals(new ItemAmount(57, 1_830_000), stockAmount(entry, "ingredient", 1), "Stock unseal fee changed.");
+			PhantomAssertions.assertEquals(new ItemAmount(9416, 1), stockAmount(entry, "production", 0), "Stock unseal product changed.");
+			final var before = Map.of(1, new PhantomReadySa.Fact(1, 9514, 1, "INVENTORY", 0, 0),
+				2, new PhantomReadySa.Fact(2, 57, 2_000_000, "INVENTORY", 0, 0));
+			final var inputs = Map.of(9514, 1L, 57, 1_830_000L);
+			final var output = new PhantomReadySa.Fact(3, 9416, 1, "INVENTORY", 0, 0);
+			PhantomAssertions.assertEquals(3, PhantomReadySa.conservedOutput(before, inputs, 9416, Map.of(2, new PhantomReadySa.Fact(2, 57, 170_000, "INVENTORY", 0, 0), 3, output)), "Native sealed object, fee and result were not attributed exactly.");
+			PhantomAssertions.assertEquals(0, PhantomReadySa.conservedOutput(before, inputs, 9416, Map.of(2, new PhantomReadySa.Fact(2, 57, 170_001, "INVENTORY", 0, 0), 3, output)), "A result with an incorrect debit was accepted.");
+			final var reached = PhantomEconomyService.class.getDeclaredMethod("nativeTransitionReached", TransitionResult.class, State.class);
+			reached.setAccessible(true);
+			PhantomAssertions.assertFalse((boolean) reached.invoke(null, new TransitionResult(Status.TRANSITIONED, State.INCONSISTENT), State.OBSERVING), "A participant-drift transition authorized a native write.");
+			PhantomAssertions.assertFalse((boolean) reached.invoke(null, new TransitionResult(Status.STATE_CONFLICT, State.OBSERVING), State.COMMITTED), "A missing terminal receipt was treated as committed.");
+			PhantomAssertions.assertTrue((boolean) reached.invoke(null, new TransitionResult(Status.TRANSITIONED, State.COMMITTED), State.COMMITTED), "An exact committed receipt was rejected.");
+		});
+		registry.add("020-productive-farm-opportunity-does-not-delay-cheap-gear-or-rare-loot", context ->
+		{
+			final var prefer = org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.class.getDeclaredMethod("preferFarmDrop", double.class, double.class, double.class, long.class, double.class, int.class);
+			prefer.setAccessible(true);
+			PhantomAssertions.assertTrue((boolean) prefer.invoke(null, 0.20, 10_000d, 2_000d, 20_000L, 100d, 4), "A viable local loot opportunity lost to a costly trip.");
+			PhantomAssertions.assertFalse((boolean) prefer.invoke(null, 0.001, 10_000d, 2_000d, 20_000L, 100d, 4), "A rare drop delayed a useful purchase.");
+			PhantomAssertions.assertFalse((boolean) prefer.invoke(null, 0.20, 500d, 0d, 20_000L, 100d, 4), "A nearby cheap purchase was needlessly postponed.");
 		});
 		registry.add("01-weapon-affinity-uses-native-mask-not-item-or-class-id", context ->
 		{
@@ -186,6 +234,11 @@ public final class PhantomEquipment068PolicySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(List.of(left), select.invoke(null, body, (java.util.function.IntFunction<Item>) slot -> slot == leftSlot ? left : slot == rightSlot ? right : null), "Full pair did not replace exactly native LEFT.");
 			}
 		});
+	}
+	private static ItemAmount stockAmount(org.w3c.dom.Element entry, String kind, int ordinal)
+	{
+		final var item = (org.w3c.dom.Element) entry.getElementsByTagName(kind).item(ordinal);
+		return new ItemAmount(Integer.parseInt(item.getAttribute("id")), Long.parseLong(item.getAttribute("count")));
 	}
 	private static Weapon gear(WeaponType type, CrystalType grade)
 	{

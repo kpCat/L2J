@@ -200,32 +200,46 @@ public final class PhantomOfflineSupply
 		}
 	}
 
-	/** Only published, physically owned stock is a gear candidate; no hypothetical full-grade catalog. */
+	/** Published native stock and known manufacture recipes are the only market prospects. */
 	public List<ItemTemplate> equipmentOffers(Player buyer)
 	{
-		return owners(buyer, owner -> owner.getPrivateStoreType() == PrivateStoreType.SELL && owner.getSellList().getItems().stream()
-			.anyMatch(line -> publishedStock(owner, line) > 0 && org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(buyer, line.getItem()))).stream()
-			.flatMap(owner -> owner.getSellList().getItems().stream().filter(line -> publishedStock(owner, line) > 0 && org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(buyer, line.getItem())).limit(MAXIMUM_STORE_LINES))
-			.map(line -> line.getItem()).filter(item -> org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(buyer, item))
-			.distinct().sorted(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.preference(buyer)).limit(64).toList();
+		return owners(buyer, owner -> owner.getPrivateStoreType() == PrivateStoreType.SELL
+			|| owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && owner.getRace() == Race.DWARF).stream()
+			.flatMap(owner -> owner.getPrivateStoreType() == PrivateStoreType.SELL
+				? owner.getSellList().getItems().stream().limit(MAXIMUM_STORE_LINES).filter(line -> publishedStock(owner, line) > 0).map(TradeItem::getItem)
+				: manufactureListings(owner).stream().sorted(Comparator.comparingInt(value -> value.getRecipeId())).limit(MAXIMUM_STORE_LINES)
+					.filter(listing -> listing.getCost() > 0 && listing.getCost() <= buyer.getAdena())
+					.map(listing -> RecipeData.getInstance().getRecipeList(listing.getRecipeId())).filter(java.util.Objects::nonNull)
+					.filter(recipe -> recipe.isDwarvenRecipe() && recipe.getSuccessRate() > 0 && owner.hasRecipeList(recipe.getId())
+						&& owner.getSkillLevel(CommonSkill.CREATE_DWARVEN.getId()) >= recipe.getLevel())
+					.map(recipe -> org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(recipe.getItemId())))
+			.filter(java.util.Objects::nonNull).distinct()
+			.filter(item -> org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(buyer, item))
+			.sorted(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.preference(buyer)).limit(64).toList();
 	}
 
-	/** Maintenance must not bank a partially purchased BOM while the matching supply need remains. */
-	public Set<Integer> neededIngredients(Player buyer, List<ItemTemplate> wantedProducts)
+	/** One affordable, currently listed recipe may supply a read-only farm preference for missing inputs. */
+	public Set<Integer> neededIngredients(Player buyer, List<ItemTemplate> wantedProducts, ToLongFunction<Player> roundTripFee, LongUnaryOperator availableBudget)
 	{
 		final var products = wantedProducts.stream().map(ItemTemplate::getId).collect(java.util.stream.Collectors.toUnmodifiableSet());
-		final var needed = new java.util.TreeSet<Integer>();
-		for (var maker : owners(buyer, World.getInstance().getPrivateStorePlayers(products), owner -> owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && matches(owner, products)))
+		if (products.isEmpty()) { return Set.of(); }
+		for (var maker : owners(buyer, World.getInstance().getPrivateStorePlayers(products), owner -> owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && matches(owner, products)).stream().limit(8).toList())
 		{
-			for (var listing : manufactureListings(maker).stream().filter(value ->
-			{ final var recipe = RecipeData.getInstance().getRecipeList(value.getRecipeId()); return recipe != null && products.contains(recipe.getItemId()); }).toList())
+			final long fees = roundTripFee.applyAsLong(maker);
+			if (fees < 0 || maker.isCrafting()) { continue; }
+			for (var listing : manufactureListings(maker).stream().sorted(Comparator.comparingInt(value -> value.getRecipeId())).limit(MAXIMUM_STORE_LINES).toList())
 			{
 				final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
-				if (recipe == null || !products.contains(recipe.getItemId()) || !recipe.isDwarvenRecipe() || !maker.hasRecipeList(recipe.getId()) || maker.getSkillLevel(CommonSkill.CREATE_DWARVEN.getId()) < recipe.getLevel()) { continue; }
-				for (var ingredient : recipe.getRecipes()) { needed.add(ingredient.getItemId()); }
+				if (recipe == null || !products.contains(recipe.getItemId()) || !recipe.isDwarvenRecipe() || recipe.getSuccessRate() <= 0
+					|| listing.getCost() <= 0 || listing.getCost() > availableBudget.applyAsLong(fees)
+					|| !maker.hasRecipeList(recipe.getId()) || maker.getSkillLevel(CommonSkill.CREATE_DWARVEN.getId()) < recipe.getLevel()) { continue; }
+				final var inventory = new java.util.HashMap<Integer, Long>();
+				for (var ingredient : recipe.getRecipes()) { inventory.put(ingredient.getItemId(), buyer.getInventory().getInventoryItemCount(ingredient.getItemId(), -1)); }
+				final var deficits = ingredientDeficits(recipe, inventory);
+				if (!deficits.isEmpty()) { return Set.copyOf(deficits.keySet()); }
 			}
 		}
-		return Set.copyOf(needed);
+		return Set.of();
 	}
 
 	static Map<Integer, Long> ingredientDeficits(org.l2jmobius.gameserver.model.item.recipe.RecipeList recipe, Map<Integer, Long> inventory)
@@ -662,9 +676,19 @@ public final class PhantomOfflineSupply
 
 	public StepResult advance(long profileId, PhantomGoal goal, long generation, long tick)
 	{
+		return advance(profileId, goal, generation, tick, true);
+	}
+
+	public StepResult advance(long profileId, PhantomGoal goal, long generation, long tick, boolean stillNeeded)
+	{
 		final long now = System.currentTimeMillis();
 		StepResult result = _service.discoverOrLoad(profileId, goal, now);
 		if (result.status() != StepStatus.SUCCESS) { return result; }
+		if (!stillNeeded && (result.operationId() == null || result.operationId().isEmpty()))
+		{
+			final var cancelled = _service.cancel(profileId, goal, now);
+			return cancelled.status() == StepStatus.SUCCESS ? new StepResult(StepStatus.REPLAN, result.offerId(), "", "supplies.offline.gear_no_longer_needed") : cancelled;
+		}
 		result = _service.offerOrAccept(profileId, goal, PhantomActivityState.ACTIVE, now);
 		if (result.status() != StepStatus.SUCCESS) { return result; }
 		result = _service.reserve(profileId, goal, generation, tick, now);

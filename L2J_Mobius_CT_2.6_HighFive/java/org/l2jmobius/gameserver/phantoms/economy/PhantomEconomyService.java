@@ -589,23 +589,30 @@ public final class PhantomEconomyService
 			final var current = saOperation(identity, quote, now);
 			if (!current.operationId().equals(durable.operationId()) || !durable.authorityHash().equals(quote.authority()) || !_reservations.findReservations(durable.operationId()).equals(PhantomEconomyOperation.canonicalReservations(quote.resources(), _policy.limits().reservationsPerOperation())))
 			{ return abortBeforeAction(durable, now, Result.STALE_AUTHORITY, "sa.resources.stale"); }
-			if (_reservations.transition(durable.operationId(), State.DISPATCHING, State.OBSERVING, now, null).status() != PhantomEconomyReservationService.Status.TRANSITIONED) { return ActiveResult.rejected(Result.CONFLICT); }
+			if (!nativeTransitionReached(_reservations.transition(durable.operationId(), State.DISPATCHING, State.OBSERVING, now, null), State.OBSERVING)) { return ActiveResult.rejected(Result.CONFLICT); }
 			try
 			{
 				final var outcome = PhantomReadySa.execute(quote);
 				if (outcome.result() == Result.ERROR || outcome.result() == Result.STALE_AUTHORITY)
 				{
-					_reservations.transition(durable.operationId(), State.OBSERVING, State.ABORTED, now, new Audit(outcome.result(), "sa.no_native_effect", new byte[0]));
-					return ActiveResult.rejected(outcome.result());
+					final var aborted = _reservations.transition(durable.operationId(), State.OBSERVING, State.ABORTED, now, new Audit(outcome.result(), "sa.no_native_effect", new byte[0]));
+					return ActiveResult.rejected(nativeTransitionReached(aborted, State.ABORTED) ? outcome.result() : Result.INCONSISTENT);
 				}
 				if (outcome.result() != Result.SUCCESS) { inconsistent(durable, now, "sa.attribution.ambiguous"); return ActiveResult.rejected(Result.INCONSISTENT); }
-				_goals.replace(identity.profileId(), stored.rowVersion(), PhantomReadySa.project(stored.goal()));
-				_reservations.transition(durable.operationId(), State.OBSERVING, State.COMMITTED, now, new Audit(Result.SUCCESS, "result.success", outcome.consequence(), outcome.consumed(), 1, 0, outcome.fee(), 0, 1));
+				final var projected = PhantomReadySa.project(stored.goal());
+				if (!projected.equals(_goals.replace(identity.profileId(), stored.rowVersion(), projected).goal())) { throw new IllegalStateException("Exchange projection changed."); }
+				final var committed = _reservations.transition(durable.operationId(), State.OBSERVING, State.COMMITTED, now, new Audit(Result.SUCCESS, "result.success", outcome.consequence(), outcome.consumed(), 1, 0, outcome.fee(), 0, 1));
+				if (!nativeTransitionReached(committed, State.COMMITTED)) { throw new IllegalStateException("Exchange receipt was not committed."); }
 				_committed.increment();
 				return new ActiveResult(Result.SUCCESS, durable.operationId());
 			}
 			catch (RuntimeException failure) { inconsistent(durable, now, "sa.attribution.ambiguous"); return ActiveResult.rejected(Result.INCONSISTENT); }
 		}
+	}
+
+	private static boolean nativeTransitionReached(PhantomEconomyReservationService.TransitionResult transition, State expected)
+	{
+		return transition.status() == PhantomEconomyReservationService.Status.TRANSITIONED && transition.state() == expected;
 	}
 
 	public ActiveResult executeActiveEnchant(Identity identity, int targetObjectId, int scrollObjectId, int supportObjectId, long nowEpochMillis)
@@ -657,7 +664,7 @@ public final class PhantomEconomyService
 			{
 				return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "enchant.authority.drift");
 			}
-			if (_reservations.transition(operation.operationId(), State.DISPATCHING, State.OBSERVING, nowEpochMillis, null).status() != PhantomEconomyReservationService.Status.TRANSITIONED)
+			if (!nativeTransitionReached(_reservations.transition(operation.operationId(), State.DISPATCHING, State.OBSERVING, nowEpochMillis, null), State.OBSERVING))
 			{
 				return ActiveResult.rejected(Result.CONFLICT);
 			}
@@ -693,9 +700,10 @@ public final class PhantomEconomyService
 					throw new IllegalStateException("Enchant evidence did not match its canonical terminal branch.");
 				}
 				final PhantomGoal nextGoal = goal.project(storedGoal.goal(), event.afterEnchantLevel(), result != Result.DESTROYED_WITH_CRYSTALS, expense, reason);
-				_goals.replace(identity.profileId(), storedGoal.rowVersion(), nextGoal);
+				if (!nextGoal.equals(_goals.replace(identity.profileId(), storedGoal.rowVersion(), nextGoal).goal())) { throw new IllegalStateException("Enchant projection changed."); }
 				final byte[] consequence = (result + "|" + event.beforeEnchantLevel() + "|" + event.afterEnchantLevel() + "|" + event.crystalItemId() + "|" + event.crystalCount()).getBytes(StandardCharsets.US_ASCII);
-				_reservations.transition(operation.operationId(), State.OBSERVING, State.COMMITTED, nowEpochMillis, new Audit(result, reason, consequence, supportItem == null ? 1 : 2, event.crystalCount(), 0, 0, event.crystalCount(), result == Result.DESTROYED_WITH_CRYSTALS ? 1 : 0));
+				final var committed = _reservations.transition(operation.operationId(), State.OBSERVING, State.COMMITTED, nowEpochMillis, new Audit(result, reason, consequence, supportItem == null ? 1 : 2, event.crystalCount(), 0, 0, event.crystalCount(), result == Result.DESTROYED_WITH_CRYSTALS ? 1 : 0));
+				if (!nativeTransitionReached(committed, State.COMMITTED)) { throw new IllegalStateException("Enchant receipt was not committed."); }
 				_committed.increment();
 				recordResult(result, Kind.ITEM_ENCHANT, false);
 				return new ActiveResult(result, operation.operationId());

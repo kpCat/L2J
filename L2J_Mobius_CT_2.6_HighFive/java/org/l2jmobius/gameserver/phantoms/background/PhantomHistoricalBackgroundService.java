@@ -84,6 +84,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private volatile PhantomVisibleFarmTravel _visibleTravel;
 	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _visibleIntent = (_, _) -> false;
+	private volatile java.util.function.BiFunction<Long, Player, Set<Integer>> _equipmentMaterialNeed = (_, _) -> Set.of();
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedIntent = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyNativeLifetime = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyCommittedDecision = (_, _) -> false;
@@ -103,6 +104,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public void bindVisibleIntent(java.util.function.BiPredicate<Long, PhantomGoal> intent)
 	{
 		_visibleIntent = Objects.requireNonNull(intent);
+	}
+
+	public void bindEquipmentMaterialNeed(java.util.function.BiFunction<Long, Player, Set<Integer>> need)
+	{
+		_equipmentMaterialNeed = Objects.requireNonNull(need);
 	}
 
 	/** A finite accepted child retains its exact root; HOLD still blocks all native actions separately. */
@@ -2172,7 +2178,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					anchor -> _visibleTravel.recoveryAnchorAvailable(player, anchor))
 				: sharedFarmSource == null
 				? (selectableTargets == null
-					? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
+					? (routeRecovery ? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
+							: _planner.replanVisibleGear(profileId, player, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, _equipmentMaterialNeed.apply(profileId, player)))
 					: _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, selectableTargets))
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));

@@ -171,10 +171,16 @@ public final class PhantomHistoricalBackgroundPlanner
 	private Result replanVisibleLocalPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<Candidate> available)
 	{
+		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, available, null);
+	}
+
+	private Result replanVisibleLocalPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<Candidate> available, java.util.function.IntToDoubleFunction gearLoot)
+	{
 		final var previous = visiblePredecessor(profileId, previousGoal);
 		final var loadout = state.loadout();
 		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
-		final var local = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state), false, available);
+		final var local = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state), false, available, new java.util.HashMap<>(), null, 0, gearLoot);
 		if (local.ready() || !"LOCAL_FARM_UNAVAILABLE".equals(local.reasonKey()) || live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return local; }
 		// Use the same finite knowledge pages, native viability and route exclusions as historical
 		// planning. The foreground owner must separately admit the actual departure and paid legs.
@@ -187,6 +193,18 @@ public final class PhantomHistoricalBackgroundPlanner
 		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted)
 	{
 		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, admitted, _ -> true);
+	}
+
+	/** Prefer useful gear loot only on an already viable and comparable local XP route. */
+	Result replanVisibleGear(long id, Player player, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted, Set<Integer> missingMaterials)
+	{
+		final var benefits = new java.util.HashMap<Integer, Double>();
+		return replanVisibleLocalPlan(id, state, previous, seed, ordinal, live, excludedTargets, excludedSteps, admitted, _ -> true,
+			player.isInParty() ? null : npc -> benefits.containsKey(npc) || benefits.size() < 8 ? benefits.computeIfAbsent(npc, key ->
+				Math.max(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.farmDrops(player, _knowledge, key, false).stream()
+					.mapToDouble(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.FarmDrop::value).max().orElse(0),
+					org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.farmMaterialValue(player, _knowledge, key, missingMaterials))) : 0);
 	}
 
 	Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
@@ -207,11 +225,18 @@ public final class PhantomHistoricalBackgroundPlanner
 		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted,
 		java.util.function.Predicate<Candidate> available)
 	{
+		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, admitted, available, null);
+	}
+
+	private Result replanVisibleLocalPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted,
+		java.util.function.Predicate<Candidate> available, java.util.function.IntToDoubleFunction gearLoot)
+	{
 		Objects.requireNonNull(admitted, "admitted");
 		final var excluded = new java.util.HashSet<>(excludedTargets);
 		for (int attempt = 0; attempt < 3; attempt++)
 		{
-			final var candidate = replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps, available);
+			final var candidate = replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps, available, gearLoot);
 			if (!candidate.ready() || admitted.test(candidate.goal())) { return candidate; }
 			excluded.add(candidate.spec().npcId() + "@" + candidate.spec().anchorId());
 		}
@@ -913,6 +938,12 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, Candidate exactPartyCandidate, int recoveryWalkDistance)
 	{
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter,
+			deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, admitted, viability, exactPartyCandidate, recoveryWalkDistance, null);
+	}
+
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, Candidate exactPartyCandidate, int recoveryWalkDistance, java.util.function.IntToDoubleFunction gearLoot)
+	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
 			return Result.blocked("planner.request.invalid");
@@ -965,7 +996,8 @@ public final class PhantomHistoricalBackgroundPlanner
 			if (candidates.size() > 8) { candidates.subList(8, candidates.size()).clear(); }
 		}
 		if (live != null) { candidates.sort(Comparator.comparingLong((Candidate value) -> visibleFarmDistance(value.anchor(), live, recoveryWalkDistance)).thenComparingInt(value -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id())); }
-		final Candidate selected = live == null ? selectGlobal(candidates, profileId, deterministicSeed, planOrdinal, level) : candidates.getFirst();
+		final Candidate selected = live == null ? selectGlobal(candidates, profileId, deterministicSeed, planOrdinal, level)
+			: gearLoot == null ? candidates.getFirst() : preferLocalLoot(candidates, live, gearLoot);
 		final Map<String, Long> constraints = new LinkedHashMap<>();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, shotItemId, PhantomBackgroundGoalSpec.SHOT_COUNT, shotsPerEncounter);
 		if (summonNpcId > 0)
@@ -981,6 +1013,23 @@ public final class PhantomHistoricalBackgroundPlanner
 		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
 		final String identity = digest(offscreen ? "BACKGROUND_OFFSCREEN_PLAN_V1" : "BACKGROUND_CATCHUP_PLAN_V1", profileId, level, activeClassId, currentAnchorId, deterministicSeed, planOrdinal, generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes(), npcId, anchorId, selected.routeEdgeIds(), constraints);
 		return new Result(goal, spec, identity, generation, selected.routeEdgeIds(), "planner.ready").withRejections(rejections);
+	}
+
+	private Candidate preferLocalLoot(List<Candidate> candidates, PhantomTopologyPoint live, java.util.function.IntToDoubleFunction gearLoot)
+	{
+		final var ordinary = candidates.getFirst();
+		final var baseline = ordinary.target().npc();
+		final double maximumDistance = Math.sqrt(localFarmDistance(ordinary.anchor(), live)) + 500;
+		var best = ordinary;
+		double maximumValue = 0.02;
+		for (var candidate : candidates)
+		{
+			final var npc = candidate.target().npc();
+			if (npc.exp() < baseline.exp() * 0.9 || npc.sp() < baseline.sp() * 0.9 || localFarmDistance(candidate.anchor(), live) > maximumDistance * maximumDistance) { continue; }
+			final double value = gearLoot.applyAsDouble(npc.npcId());
+			if (value > maximumValue) { best = candidate; maximumValue = value; }
+		}
+		return best;
 	}
 
 	public Result idleInitial(long profileId, Player player, long deterministicSeed, long planOrdinal)
