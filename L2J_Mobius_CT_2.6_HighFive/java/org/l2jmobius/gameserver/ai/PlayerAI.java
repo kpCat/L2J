@@ -20,6 +20,7 @@
  */
 package org.l2jmobius.gameserver.ai;
 
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -42,10 +43,21 @@ public class PlayerAI extends PlayableAI
 	{
 		super(player);
 	}
+
+	/** A finite native journey must issue its MOVE now or release its claim. */
+	public void moveImmediately(Location location)
+	{
+		setIntention(Intention.MOVE_TO, new ImmediateMove(location));
+	}
+
+	private static final class ImmediateMove extends Location
+	{
+		private ImmediateMove(Location location) { super(location.getX(), location.getY(), location.getZ()); }
+	}
 	
 	private void saveNextIntention(Intention intention, Object arg0, Object arg1)
 	{
-		_nextIntention = new IntentionCommand(intention, arg0, arg1);
+		_nextIntention = intention == Intention.MOVE_TO && arg0 instanceof ImmediateMove ? null : new IntentionCommand(intention, arg0, arg1);
 	}
 	
 	@Override

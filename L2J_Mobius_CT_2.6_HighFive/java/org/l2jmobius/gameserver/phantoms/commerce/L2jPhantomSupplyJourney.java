@@ -303,7 +303,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		{
 			final var offer = proposal(context.profileId(), context.goal(), false).orElse(null);
 			if (offer == null) { return new PhantomConsideration.Evaluation(0, "supplies.native.no_offer"); }
-			if (preference != null && offer.incomeFallback()) { return new PhantomConsideration.Evaluation(1000, "supplies.native.income_fallback", -100); }
+			if (offer.incomeFallback() && !offer.goal().equals(cached(context.profileId()).goal))
+			{ return new PhantomConsideration.Evaluation(0, "supplies.native.income_fallback"); }
 			if (offer.required() || preference == null) { return new PhantomConsideration.Evaluation(1000, "supplies.native.need"); }
 			return new PhantomConsideration.Evaluation(1000, "supplies.native.optional", preference.preparation(context.profileId(), PhantomSupplyIntentStore.social(offer.goal())));
 		})), 1000,

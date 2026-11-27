@@ -73,8 +73,13 @@ public final class PhantomNativeEquipmentPolicy
 	/** Separates material readiness from the optional pursuit of the next legal grade. */
 	public static Need slotNeed(Item equipped, CrystalType target, boolean usableWithoutItem)
 	{
+		return slotNeed(equipped, target, usableWithoutItem, true);
+	}
+
+	public static Need slotNeed(Item equipped, CrystalType target, boolean usableWithoutItem, boolean compatible)
+	{
 		if (equipped == null) { return usableWithoutItem ? Need.IMPROVEMENT : Need.CRITICAL; }
-		return !protectedEffects(equipped) && target.getLevel() - equipped.getTemplate().getCrystalType().getLevel() >= 2 ? Need.REQUIRED : Need.IMPROVEMENT;
+		return !protectedEffects(equipped) && (!compatible || target.getLevel() - equipped.getTemplate().getCrystalType().getLevel() >= 2) ? Need.REQUIRED : Need.IMPROVEMENT;
 	}
 
 	public static EquipmentNeeds equipmentNeeds(Player player)
@@ -88,8 +93,10 @@ public final class PhantomNativeEquipmentPolicy
 		final var inventory = player.getInventory();
 		final var chest = inventory.getPaperdollItem(Inventory.PAPERDOLL_CHEST);
 		final boolean fullArmor = chest != null && chest.getTemplate().getBodyPart() == BodyPart.FULL_ARMOR;
-		return new EquipmentNeeds(slotNeed(equippedWeapon, target, usableFists), slotNeed(chest, target, false),
-			fullArmor ? Need.IMPROVEMENT : slotNeed(inventory.getPaperdollItem(Inventory.PAPERDOLL_LEGS), target, false));
+		final var legs = inventory.getPaperdollItem(Inventory.PAPERDOLL_LEGS);
+		return new EquipmentNeeds(slotNeed(equippedWeapon, target, usableFists, equippedWeapon == null || weapon.isMagicWeapon() == player.isMageClass()),
+			slotNeed(chest, target, false, chest == null || compatible(player, chest.getTemplate())),
+			fullArmor ? Need.IMPROVEMENT : slotNeed(legs, target, false, legs == null || compatible(player, legs.getTemplate())));
 	}
 
 	public static boolean hasRequiredEquipment(Player player)

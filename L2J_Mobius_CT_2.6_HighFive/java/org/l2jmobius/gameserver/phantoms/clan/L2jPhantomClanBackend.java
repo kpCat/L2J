@@ -218,6 +218,12 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public CreationResult createAutonomous(MemberRef actor, String name)
 	{
+		return createAutonomous(actor, name, 0);
+	}
+
+	@Override
+	public CreationResult createAutonomous(MemberRef actor, String name, int masterObjectId)
+	{
 		try (var acquired = acquire(actor))
 		{
 			if (acquired == null || actor.kind() != MemberKind.PHANTOM) { return new CreationResult(CreationOutcome.STALE, null); }
@@ -234,7 +240,7 @@ public final class L2jPhantomClanBackend implements Backend
 			if (player.getLevel() < 10) { return new CreationResult(CreationOutcome.LEVEL_TOO_LOW, null); }
 			if (System.currentTimeMillis() < player.getClanCreateExpiryTime()) { return new CreationResult(CreationOutcome.CREATE_COOLDOWN, null); }
 			if (ClanTable.getInstance().getClanByName(name) != null) { return new CreationResult(CreationOutcome.NAME_TAKEN, null); }
-			final var master = availableClanMaster(player);
+			final var master = availableClanMaster(player, masterObjectId);
 			if (master == null) { return new CreationResult(CreationOutcome.STALE, null); }
 			master.onBypassFeedback(player, "create_clan " + name);
 			final var created = player.getClan();
@@ -244,16 +250,55 @@ public final class L2jPhantomClanBackend implements Backend
 		}
 	}
 
-	private static VillageMaster availableClanMaster(Player player)
+	private static VillageMaster availableClanMaster(Player player, int masterObjectId)
 	{
-		final var region = player.getWorldRegion();
-		if (region == null || player.isInCombat()) { return null; }
-		return region.getVisibleObjects().stream().filter(object -> object instanceof VillageMaster npc && npc.isSpawned() && !npc.isAlikeDead()
-			&& npc.canInteract(player) && GeoEngine.getInstance().canSeeTarget(player, npc)).map(VillageMaster.class::cast).findFirst().orElse(null);
+		if (player.getWorldRegion() == null || player.isInCombat()) { return null; }
+		if (masterObjectId > 0)
+		{
+			return World.getInstance().findObject(masterObjectId) instanceof VillageMaster master && canVisit(player, master) ? master : null;
+		}
+		return World.getInstance().getVisibleObjects(player, VillageMaster.class).stream().filter(master -> canVisit(player, master)).findFirst().orElse(null);
+	}
+
+	static boolean canVisit(Player player, VillageMaster master)
+	{
+		return master.getInstanceId() == player.getInstanceId() && master.isSpawned() && !master.isAlikeDead()
+			&& master.canInteract(player) && GeoEngine.getInstance().canSeeTarget(player, master);
+	}
+
+	@Override
+	public boolean atAutonomousMaster(MemberRef actor, int masterObjectId)
+	{
+		try (var lease = _materialization.tryAcquireObservation(actor.profileId()).orElse(null))
+		{
+			return lease != null && lease.player().getObjectId() == actor.characterObjectId() && ordinaryPlayer(lease.player())
+				&& masterObjectId > 0 && availableClanMaster(lease.player(), masterObjectId) != null;
+		}
+	}
+
+	@Override
+	public boolean mayStartAutonomousDevelopment(MemberRef member)
+	{
+		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
+		{
+			return lease != null && lease.player().getObjectId() == member.characterObjectId() && ordinaryPlayer(lease.player())
+				&& !mandatoryPreparationPending(member, lease.player());
+		}
+	}
+
+	private boolean mandatoryPreparationPending(MemberRef member, Player player)
+	{
+		return PhantomNativeEquipmentPolicy.hasRequiredEquipment(player) || _mandatoryPreparationPending.test(member.profileId(), player);
 	}
 
 	@Override
 	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId)
+	{
+		return developAutonomous(member, expectedClanId, 0);
+	}
+
+	@Override
+	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int masterObjectId)
 	{
 		try (var acquired = acquire(member))
 		{
@@ -262,8 +307,8 @@ public final class L2jPhantomClanBackend implements Backend
 				return ClanFoundingDevelopment.Outcome.NOT_READY;
 			}
 			final Player player = acquired.player();
-			return ClanFoundingDevelopment.payForFirstLevel(member.profileId(), player, availableClanMaster(player),
-				() -> PhantomNativeEquipmentPolicy.hasRequiredEquipment(player) || _mandatoryPreparationPending.test(member.profileId(), player));
+			return ClanFoundingDevelopment.payForFirstLevel(member.profileId(), player, availableClanMaster(player, masterObjectId),
+				() -> mandatoryPreparationPending(member, player));
 		}
 	}
 
@@ -291,7 +336,7 @@ public final class L2jPhantomClanBackend implements Backend
 			if (clan != null && (ClanTable.getInstance().getClan(clan.getId()) != clan || clan.getClanMember(player.getObjectId()) == null)) { return Optional.empty(); }
 			final long now = System.currentTimeMillis();
 			return Optional.of(new AutonomousActor(MemberRef.phantom(profileId, player.getObjectId()), clan == null ? null : snapshot(clan, player.getObjectId()), player.getLevel(),
-				now >= player.getClanJoinExpiryTime(), clan == null && player.getLevel() >= 10 && now >= player.getClanCreateExpiryTime() && availableClanMaster(player) != null,
+				now >= player.getClanJoinExpiryTime(), clan == null && player.getLevel() >= 10 && now >= player.getClanCreateExpiryTime(),
 				player.getAdena(), player.getSp()));
 		}
 	}
@@ -544,9 +589,15 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public ClanAllianceService.Result createAutonomousAlliance(AllianceActor actor, String name)
 	{
+		return createAutonomousAlliance(actor, name, 0);
+	}
+
+	@Override
+	public ClanAllianceService.Result createAutonomousAlliance(AllianceActor actor, String name, int masterObjectId)
+	{
 		try (var acquired = acquire(actor.member()))
 		{
-			return acquired != null && sameAllianceLifetime(actor, acquired.player()) && availableClanMaster(acquired.player()) != null
+			return acquired != null && sameAllianceLifetime(actor, acquired.player()) && availableClanMaster(acquired.player(), masterObjectId) != null
 				? _alliances.create(acquired.player(), name, actor.membership().epoch()) : allianceIneligible(ClanAllianceService.Reason.ACTOR_NOT_FOUND);
 		}
 	}

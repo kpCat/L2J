@@ -161,7 +161,8 @@ public final class PhantomBackgroundDecision
 				final boolean visible = visibleEligible(context.effectiveState(), directive);
 				final boolean recoverable = recoveryReady(context, directive);
 				final boolean executable = visible || (directive.kind() == DirectiveKind.FARM) || (directive.kind() == DirectiveKind.TRAVEL) || ((directive.kind() == DirectiveKind.RECOVER) && recoverable);
-				final int rank = preference != null && visible && "recovery.not_dead".equals(directive.reason())
+				final boolean ordinaryFarm = visible && ("recovery.not_dead".equals(directive.reason()) || "visible.travel_pending".equals(directive.reason()));
+				final int rank = preference != null && ordinaryFarm
 					? preference.farm(context.profileId(), _visibleRunning.apply(context.profileId(), context.goal())) : 0;
 				return new PhantomConsideration.Evaluation(executable ? 1000 : 0, executable ? "background.explicit.ready" : "background.explicit.blocked", rank);
 			})),

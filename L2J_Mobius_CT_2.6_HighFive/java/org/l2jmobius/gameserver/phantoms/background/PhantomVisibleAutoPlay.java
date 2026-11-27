@@ -268,6 +268,25 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	public boolean prepareExecutionYield(long profileId, long deadlineEpochMillis)
 	{ return yieldAfterCurrentTarget(profileId, deadlineEpochMillis, true); }
 
+	/** Release only the yield requested by the abandoned preparation turn. */
+	public boolean releasePreparationYield(long profileId, long deadlineEpochMillis)
+	{
+		final Session session;
+		synchronized (owner(profileId)) { session = _sessions.get(profileId); }
+		if (session == null || session._yieldDeadlineEpochMillis != deadlineEpochMillis) { return true; }
+		if (!session._commandGate.compareAndSet(false, true)) { return false; }
+		try
+		{
+			if (session._current.get() && session._yieldDeadlineEpochMillis == deadlineEpochMillis)
+			{
+				session._yieldRequested = false;
+				session._yieldTarget = null;
+			}
+			return true;
+		}
+		finally { session._commandGate.set(false); }
+	}
+
 	private boolean yieldAfterCurrentTarget(long profileId, long deadlineEpochMillis, boolean executionYield)
 	{
 		if (!executionYield && deadlineEpochMillis <= System.currentTimeMillis()) { return false; }

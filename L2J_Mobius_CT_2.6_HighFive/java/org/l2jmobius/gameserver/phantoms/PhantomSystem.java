@@ -340,6 +340,7 @@ public final class PhantomSystem
 	private final java.util.Map<Long, PhantomPopulationEcologyService.DemandFact> _backgroundMaterializationDemands = new java.util.LinkedHashMap<>();
 	private PhantomVisibleAutoPlay _visibleAutoPlay;
 	private PhantomVisibleFarmTravel _visibleFarmTravel;
+	private org.l2jmobius.gameserver.phantoms.clan.PhantomClanVisit _clanVisit;
 	private volatile org.l2jmobius.gameserver.phantoms.navigation.PhantomPhysicalGeoScout _physicalGeoScouts;
 	private PhantomHistoricalBackgroundService _historicalBackgroundService;
 	private PhantomAcquisitionService _acquisitionService;
@@ -856,7 +857,9 @@ public final class PhantomSystem
 				_learningJourney.enableAutonomous(productionProfiles, yieldFarm, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
 				_learningJourney.useCraftRecipeRewards(org.l2jmobius.gameserver.phantoms.progression.PhantomOrdinaryCraftRecipes.load(new File(ServerConfig.DATAPACK_ROOT, org.l2jmobius.gameserver.phantoms.progression.PhantomOrdinaryCraftRecipes.FILE).toPath(), productionProfiles, _materializationService, marketPricingAuthority()));
 				_learningJourney.useRelevanceSignals(new PhantomSchedulerRelevanceSignalPort(_scheduler));
-				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), yieldFarm, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
+				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), yieldFarm,
+					(id, root) -> _learningJourney.ownsAutomaticIntent(id, root) || _clanVisit != null && _clanVisit.blocksNewMovement(id),
+					PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
 				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService, this::marketPricingAuthority, () -> _offlineMerchantService == null ? java.util.List.of() : _offlineMerchantService.buyOwners());
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
@@ -870,7 +873,8 @@ public final class PhantomSystem
 						final var entry = _materializationService.find(profileId).orElse(null);
 						final var player = entry == null ? null : World.getInstance().getPlayer(entry.characterObjectId());
 						return player != null && (org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(root.goalType()) ? org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.ordinary(player) : _historicalBackgroundService.canStartNativeJourney(root, player)) && !_supplyJourney.ownsAutomaticIntent(profileId, root)
-							&& !_learningJourney.ownsAutomaticIntent(profileId, root) && !_questInstanceService.ownsAutonomousIntent(profileId, root);
+						&& !_learningJourney.ownsAutomaticIntent(profileId, root) && !_questInstanceService.ownsAutonomousIntent(profileId, root)
+						&& (_clanVisit == null || !_clanVisit.blocksNewMovement(profileId));
 					});
 				}
 				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, yieldFarm,
@@ -887,10 +891,22 @@ public final class PhantomSystem
 					.map(row -> row.group().defersOptionalSupply(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false)
 					|| partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true));
 				_questInstanceService.requireField(_historicalBackgroundService::canStartNativeJourney);
-				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.ownsAutomaticIntent(profileId, root) || _learningJourney.ownsAutomaticIntent(profileId, root));
+				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.ownsAutomaticIntent(profileId, root) || _learningJourney.ownsAutomaticIntent(profileId, root)
+					|| _clanVisit != null && _clanVisit.blocksNewMovement(profileId));
 				_questInstanceService.useFieldReturn((context, intent) -> _learningJourney.returnCareerToField(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos()), _learningJourney::suspendCareerReturn);
-				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsRequiredPreparationOrOwns(profileId, root) || _questInstanceService.ownsAutonomousIntent(profileId, root));
-				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService)));
+				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsRequiredPreparationOrOwns(profileId, root) || _questInstanceService.ownsAutonomousIntent(profileId, root)
+					|| _clanVisit != null && _clanVisit.blocksNewMovement(profileId));
+				_clanVisit = new org.l2jmobius.gameserver.phantoms.clan.PhantomClanVisit(_clanService, _materializationService, _navigationService, travel, _gameKnowledgeService.query(),
+					yieldFarm, _visibleAutoPlay::releasePreparationYield,
+					id -> soloExecution(id) && autonomousClanOrdinary(id) && !_partyCoordinator.blocksBackground(id) && !_phantomStoreService.blocksDecision(id) && !pvpHoldsOrdinaryFarm(id),
+					(id, root) -> _decisionEngine != null && _decisionEngine.currentGoal(id).filter(root::equals).isPresent(),
+					(id, root) -> _supplyJourney.ownsAutomaticIntent(id, root) || _learningJourney.ownsAutomaticIntent(id, root) || _questInstanceService.ownsAutonomousIntent(id, root)
+						|| _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(id, root),
+					_historicalBackgroundService::canStartNativeJourney);
+				_clanService.bindAutonomousVisits(_clanVisit::offer);
+				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_clanVisit,
+					org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney,
+						org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService))));
 				if (!_questInstanceService.start()) { throw new IllegalStateException("Phantom quest and instance service could not enter the running state."); }
 				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }
 				if (!_supplyJourney.start()) { throw new IllegalStateException("Phantom supply journey could not enter the running state."); }
@@ -899,8 +915,8 @@ public final class PhantomSystem
 				_historicalBackgroundService.bindPartyNativeLifetime(this::partyRetainsNativeLifetime, this::partyPermitsCommittedNativeDecision,
 					(id, root) -> _partyCoordinator.retainsFarmJourney(id, root)
 						|| partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true), _partyCoordinator::rendezvousTravelDecision);
-				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _questInstanceService.permitsAutonomousVisibleDecision(profileId, root) || _learningJourney.permitsAutomaticVisibleDecision(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.needsOrOwns(profileId, root) || _partyCoordinator.supportRendezvousTravel(profileId, root));
-				_historicalBackgroundService.bindAcceptedIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.protectsAutomaticRoot(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(profileId, root));
+				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _questInstanceService.permitsAutonomousVisibleDecision(profileId, root) || _learningJourney.permitsAutomaticVisibleDecision(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.needsOrOwns(profileId, root) || _partyCoordinator.supportRendezvousTravel(profileId, root) || _clanVisit.offers(profileId, root));
+				_historicalBackgroundService.bindAcceptedIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.protectsAutomaticRoot(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(profileId, root) || _clanVisit.owns(profileId, root));
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())
@@ -1038,6 +1054,7 @@ public final class PhantomSystem
 				populationDecision.registerHandlers(handlerRegistry);
 				partyDecision.registerHandlers(handlerRegistry);
 				clanDecision.registerHandlers(handlerRegistry);
+				_clanVisit.register(candidateRegistry, handlerRegistry);
 				riftDecision.registerHandlers(handlerRegistry);
 				raidDecision.registerHandlers(handlerRegistry);
 				siegeDecision.registerHandlers(handlerRegistry);
@@ -1227,7 +1244,7 @@ public final class PhantomSystem
 				_historicalBackgroundService.bindLogicalNativeDemand(id -> currentPhysicalDemand(id) != null);
 				_visibleFarmTravel.bindGroupTravelSafety((id, root) -> _logicalParties.knownGroupFor(id)
 					.map(row -> row.group().assemblyPending(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false));
-				controlPorts.add(executionControl(new PhantomCompositeSchedulerControlPort(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney)), org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo));
+				controlPorts.add(executionControl(new PhantomCompositeSchedulerControlPort(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney, _clanVisit)), org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo));
 				controlPorts.add(executionControl(autonomousFarm, this::executionPartyOwner));
 				if (_humanizedV4Catalog != null) { controlPorts.add(executionControl(humanizedConversation, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)); }
 				if (_autonomousMarketProducer != null)
@@ -2374,6 +2391,7 @@ public final class PhantomSystem
 
 	private void beginLifeJourneysStop()
 	{
+		if (_clanVisit != null) { _clanVisit.beginStop(); }
 		if (_learningJourney != null) { _learningJourney.beginStop(); }
 		if (_supplyJourney != null) { _supplyJourney.beginStop(); }
 	}
@@ -2382,7 +2400,8 @@ public final class PhantomSystem
 	{
 		final boolean learning = (_learningJourney == null) || _learningJourney.finishStop();
 		final boolean supply = (_supplyJourney == null) || _supplyJourney.finishStop();
-		return learning && supply;
+		final boolean clanVisit = _clanVisit == null || _clanVisit.finishStop();
+		return learning && supply && clanVisit;
 	}
 
 	public synchronized PhantomRaidAssemblyService raidAssembly()
@@ -3828,7 +3847,7 @@ public final class PhantomSystem
 
 	private boolean permitsNewOrdinaryFarmActions(long profileId)
 	{
-		return !pvpHoldsOrdinaryFarm(profileId) && permitsOrdinaryFarmContext(profileId);
+		return !pvpHoldsOrdinaryFarm(profileId) && (_clanVisit == null || !_clanVisit.blocksNewMovement(profileId)) && permitsOrdinaryFarmContext(profileId);
 	}
 
 	private boolean permitsOrdinaryFarmContext(long profileId)
@@ -3859,17 +3878,18 @@ public final class PhantomSystem
 	{
 		final long id = encounter.profileId();
 		if (_partyCoordinator.blocksBackground(id)) { return FarmYield.READY; }
-		if (!soloExecution(id) || _phantomStoreService.blocksDecision(id) || hasAcceptedNativeJourney(id)) { return FarmYield.UNAVAILABLE; }
 		final boolean actualAttack = encounter.source() == org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK;
+		if (!soloExecution(id) || _phantomStoreService.blocksDecision(id) || hasAcceptedNativeJourney(id, actualAttack)) { return FarmYield.UNAVAILABLE; }
 		if (!(actualAttack ? permitsOrdinaryFarmContext(id) : _materializationRetention.permitsNewActions(id))) { return FarmYield.UNAVAILABLE; }
 		try (var observation = _materializationService.tryAcquireObservation(id).orElse(null))
 		{
 			if (observation == null || observation.player().isAlikeDead() || observation.player().isInStoreMode() || observation.player().hasPendingOwnedStore()) { return FarmYield.UNAVAILABLE; }
 		}
 		holdFarm.run();
+		final boolean clanYielded = !actualAttack || _clanVisit == null || _clanVisit.prepareExecutionYield(id, System.currentTimeMillis()).ready();
 		final boolean travelYielded = _visibleFarmTravel.yieldForPreparation(id);
 		final boolean farmYielded = _visibleAutoPlay.prepareExecutionYield(id, 0);
-		return travelYielded && farmYielded ? FarmYield.READY : FarmYield.DRAINING;
+		return clanYielded && travelYielded && farmYielded ? FarmYield.READY : FarmYield.DRAINING;
 	}
 
 	private PhantomDomainRef executionPartyOwner(long id)
@@ -4094,6 +4114,7 @@ public final class PhantomSystem
 					? executionReady("execution.party_prepared", now) : executionWait("execution.party_earned", now);
 			}
 			final var supply = _supplyJourney.prepareExecutionYield(id, now); if (!supply.ready()) { return supply; }
+			final var clanVisit = _clanVisit.prepareExecutionYield(id, now); if (!clanVisit.ready()) { return clanVisit; }
 			final var learning = _learningJourney.prepareExecutionYield(id, now); if (!learning.ready()) { return learning; }
 			final var career = _questInstanceService.prepareExecutionYield(id, now); if (!career.ready()) { return career; }
 			if (_phantomStoreService.suspendForExecution(id) != PhantomStoreService.Result.CLOSED) { return executionWait("execution.native_listing", now); }
@@ -4380,6 +4401,7 @@ public final class PhantomSystem
 		if (_learningJourney != null) { owners.add(_learningJourney); }
 		if (_questInstanceService != null) { owners.add(_questInstanceService); }
 		if (_supplyJourney != null) { owners.add(_supplyJourney); }
+		if (_clanVisit != null) { owners.add(_clanVisit); }
 		if (_autonomousMarketProducer != null) { owners.add(_autonomousMarketProducer); }
 		if (_executionControl != null) { owners.add(_executionControl); }
 		return owners;
@@ -4387,12 +4409,18 @@ public final class PhantomSystem
 
 	private boolean hasAcceptedNativeJourney(long profileId)
 	{
+		return hasAcceptedNativeJourney(profileId, false);
+	}
+
+	private boolean hasAcceptedNativeJourney(long profileId, boolean canInterruptClanVisit)
+	{
 		final var root = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);
 		final long marketRootId = root == null ? 0 : root.goalId();
 		final long marketRootRevision = marketRootId == 0 ? 0 : root.goalRevision();
 		if (_autonomousMarketProducer != null && _autonomousMarketProducer.requiresNativeContext(profileId, marketRootId, marketRootRevision)) { return true; }
 		if (root != null && root.goalStatus() != org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE) { return false; }
-		return nativeJourneys().stream().anyMatch(owner -> owner.requiresNativeContext(profileId, root == null ? 0 : root.goalId(), root == null ? 0 : root.goalRevision()));
+		return nativeJourneys().stream().filter(owner -> !canInterruptClanVisit || owner != _clanVisit)
+			.anyMatch(owner -> owner.requiresNativeContext(profileId, root == null ? 0 : root.goalId(), root == null ? 0 : root.goalRevision()));
 	}
 
 	private boolean partyRetainsNativeLifetime(long profileId)
@@ -4483,6 +4511,7 @@ public final class PhantomSystem
 	{
 		try
 		{
+			if (_clanVisit != null && _clanVisit.blocksNewMovement(profileId)) { return false; }
 			final var hold = _materializationRetention.observe(profileId);
 			if (!hold.reclaimable() || _materializationRetention.recentHumanObservation(profileId) != PhantomMaterializationRetentionPolicy.HumanObservation.CLEAR) { return false; }
 			final var runtime = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);

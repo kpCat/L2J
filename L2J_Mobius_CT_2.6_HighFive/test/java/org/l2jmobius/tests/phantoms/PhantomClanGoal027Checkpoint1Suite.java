@@ -58,7 +58,8 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		CHAT_DECISION,
 		CONSENT_CHAT_027A,
 		NATURAL_CHAT_030CP2,
-		EXPIRY_REPLAY_027B
+		EXPIRY_REPLAY_027B,
+		VISIT_019
 	}
 
 	private static final long SEED = 27002701L;
@@ -81,6 +82,11 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	@Override
 	public void beforeAll(PhantomTestContext context)
 	{
+		if (_mode == Mode.VISIT_019)
+		{
+			PhantomAssertions.assertEquals(19001902L, context.seed(), "Clan visit used the wrong seed.");
+			return;
+		}
 		final long expectedSeed = _mode == Mode.NATURAL_CHAT_030CP2 ? 30003025L : _mode == Mode.EXPIRY_REPLAY_027B ? EXPIRY_REPLAY_SEED : _mode == Mode.CONSENT_CHAT_027A ? CORRECTIVE_SEED : SEED;
 		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 027 clan suite used the wrong seed.");
 	}
@@ -90,6 +96,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 	{
 		switch (_mode)
 		{
+			case VISIT_019 -> registry.add("019-founder-requires-current-root-and-native-arrival", this::autonomousFounderVisit);
 			case CREATION_RESTART ->
 			{
 				registry.add("01-canonical-create-once-and-restart-reconcile", this::creationRestart);
@@ -149,6 +156,36 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		fixture.service().advanceAutonomous(57, 1278, List::of, 8);
 		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "Restart repeated existing canonical creation.");
 		PhantomAssertions.assertEquals(farm, fixture.goals.load(57).orElseThrow().goal(), "Founding replaced the ongoing farm root.");
+	}
+
+	private void autonomousFounderVisit(PhantomTestContext context)
+	{
+		final var fixture = new Fixture();
+		fixture.backend.addPhantom(57, 1278);
+		fixture.backend.addPhantom(91, 2357);
+		fixture.backend.founderLevels.put(57L, 10);
+		fixture.backend.founderLevels.put(91L, 11);
+		fixture.backend.canPlanAway = true;
+		final var farm = goalWithDeadline(57, 451, "farm.background", null, null, List.of(), 1, 0, 3, NOW + 60000);
+		final var nextFarm = goalWithDeadline(57, 451, "farm.background", null, null, List.of(), 1, 0, 4, NOW + 60000);
+		fixture.goals.put(57, farm);
+		final var service = fixture.service();
+		final var visit = new java.util.concurrent.atomic.AtomicReference<PhantomClanService.VisitRequest>();
+		service.bindAutonomousVisits(value -> visit.set(value));
+		service.advanceAutonomous(57, 1278, () -> List.of(91L), 8);
+		final var proposed = java.util.Objects.requireNonNull(visit.get(), "Eligible founder away from the master had no visit.");
+		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "Discovery attempted a native creation.");
+		service.completeAutonomousVisit(proposed, 30346);
+		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "Travel without native arrival reached a writer.");
+		fixture.backend.atClanMaster.add(57L);
+		fixture.goals.put(57, nextFarm);
+		service.completeAutonomousVisit(proposed, 30346);
+		PhantomAssertions.assertEquals(0, fixture.backend.createCalls, "A stale root executed a native mutation.");
+		fixture.goals.put(57, farm);
+		service.completeAutonomousVisit(proposed, 30346);
+		service.completeAutonomousVisit(proposed, 30346);
+		PhantomAssertions.assertEquals(1, fixture.backend.createCalls, "Arrival must produce exactly one native write.");
+		PhantomAssertions.assertEquals(farm, fixture.goals.load(57).orElseThrow().goal(), "Clan visit replaced the farm root.");
 	}
 
 	private void autonomousInvitation(PhantomTestContext context)
@@ -763,6 +800,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private boolean founderWriteUnconfirmed;
 		private final Map<Long, Integer> founderLevels = new HashMap<>();
 		private final java.util.Set<Long> atClanMaster = new java.util.HashSet<>();
+		private boolean canPlanAway;
 
 		@Override
 		public boolean hasAutonomousInvitation(int objectId) { return invitations.containsKey(objectId); }
@@ -771,8 +809,11 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		public Optional<PhantomClanService.AutonomousActor> autonomousActor(long profileId)
 		{
 			if (beforeAutonomousObservation != null) { beforeAutonomousObservation.run(); }
-			return currentMember(profileId).map(member -> new PhantomClanService.AutonomousActor(member, observe(member).orElse(null), founderLevels.getOrDefault(profileId, 0), true, atClanMaster.contains(profileId), 0, 0));
+			return currentMember(profileId).map(member -> new PhantomClanService.AutonomousActor(member, observe(member).orElse(null), founderLevels.getOrDefault(profileId, 0), true, canPlanAway || atClanMaster.contains(profileId), 0, 0));
 		}
+
+		@Override
+		public boolean atAutonomousMaster(MemberRef actor, int masterObjectId) { return masterObjectId == 30346 && atClanMaster.contains(actor.profileId()); }
 
 		@Override
 		public CreationResult createAutonomous(MemberRef actor, String name) { return create(actor, name); }

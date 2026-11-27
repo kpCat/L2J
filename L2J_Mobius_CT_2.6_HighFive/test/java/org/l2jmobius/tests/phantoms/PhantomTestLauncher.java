@@ -564,6 +564,7 @@ public final class PhantomTestLauncher
 			case "raid-attempt-goal026cp5" -> new PhantomRaidAttemptGoal026Checkpoint5Suite();
 			case "raid-decision-goal026cp5" -> new PhantomRaidDecisionGoal026Checkpoint5Suite();
 			case "clan-creation-restart-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.CREATION_RESTART);
+			case "compatible-activity-intents-019" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.VISIT_019);
 			case "clan-recruitment-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.RECRUITMENT);
 			case "clan-roles-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.ROLES);
 			case "clan-treasury-goal027cp1" -> new PhantomClanGoal027Checkpoint1Suite(PhantomClanGoal027Checkpoint1Suite.Mode.TREASURY);

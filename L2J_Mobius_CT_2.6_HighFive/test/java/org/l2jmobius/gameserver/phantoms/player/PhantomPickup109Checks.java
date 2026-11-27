@@ -119,6 +119,7 @@ public final class PhantomPickup109Checks
 		scheduledField.set(null, scheduled); instantField.set(null, instant);
 		try
 		{
+			if (args.length == 1 && args[0].equals("clan-visit-move019")) { immediateClanVisitMove(); return; }
 			if (args.length == 1 && args[0].equals("free-travel128")) { freeTravel128(); return; }
 			if (args.length == 1 && args[0].equals("cleanup126")) { cleanup126(); return; }
 			if (args.length == 1 && args[0].equals("restore126")) { restore126(); return; }
@@ -141,6 +142,43 @@ public final class PhantomPickup109Checks
 			check(scheduled.awaitTermination(3, TimeUnit.SECONDS) && instant.awaitTermination(3, TimeUnit.SECONDS), "executor leaked");
 			scheduledField.set(null, oldScheduled); instantField.set(null, oldInstant);
 		}
+	}
+
+	private static void immediateClanVisitMove() throws Exception
+	{
+		try (var fixture = new Managed())
+		{
+			final var player = fixture.player;
+			final var ai = (PlayerAI) player.getAI();
+			final var destination = new org.l2jmobius.gameserver.model.Location(100, 100, 100);
+			player.disableAllSkills();
+			ai.moveImmediately(destination);
+			check(ai.getNextIntention() == null && !player.isMoving(), "A blocked clan visit queued a MOVE outside its owner.");
+			ai.setIntention(Intention.MOVE_TO, destination);
+			check(ai.getNextIntention() != null && ai.getNextIntention().getIntention() == Intention.MOVE_TO, "Stock MOVE lost its deferred behavior.");
+			ai.setIntention(Intention.IDLE);
+			player.enableAllSkills();
+			final class VisitCastAI extends PlayerAI
+			{
+				VisitCastAI() { super(player); }
+				@Override protected void onIntentionMoveTo(org.l2jmobius.gameserver.model.interfaces.ILocational point) { changeIntention(Intention.MOVE_TO, point, null); }
+				void interruptMove(org.l2jmobius.gameserver.model.skill.Skill toggle) { changeIntention(Intention.CAST, toggle, null); }
+			}
+			final var skills = new org.l2jmobius.gameserver.model.StatSet();
+			skills.set("skill_id", 1);
+			skills.set("level", 1);
+			skills.set("operateType", "T");
+			final var toggle = new org.l2jmobius.gameserver.model.skill.Skill(skills);
+			final var visitAi = new VisitCastAI();
+			visitAi.moveImmediately(destination);
+			visitAi.interruptMove(toggle);
+			check(visitAi.getNextIntention() == null, "A toggle interrupted MOVE and queued a stale clan route.");
+			visitAi.setIntention(Intention.MOVE_TO, destination);
+			visitAi.interruptMove(toggle);
+			check(visitAi.getNextIntention() != null && visitAi.getNextIntention().getIntention() == Intention.MOVE_TO, "A stock MOVE stopped resuming after toggle.");
+		}
+		check(!DatabaseFactory.isInitialized(), "Clan native ownership check initialized JDBC.");
+		System.out.println("CLAN_VISIT019_IMMEDIATE_MOVE_PASS DB0 World0");
 	}
 
 	private static void cleanup126() throws Exception
