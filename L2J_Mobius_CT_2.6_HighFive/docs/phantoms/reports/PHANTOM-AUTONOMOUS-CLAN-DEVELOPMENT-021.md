@@ -1,6 +1,6 @@
 # PHANTOM-AUTONOMOUS-CLAN-DEVELOPMENT-021
 
-27 ноября 2026, Кишинёв. **PARTIAL.** Первую поставку с переходами 0→1 и 1→2 описывает основной раздел. Продолжение r02 ниже расширяет нативную оплату до L5. Автоматическое получение недостающих предметов, репутационные уровни, склад и навыки остаются открыты. OWNER_QA открыт.
+27 ноября 2026, Кишинёв. **PARTIAL.** В Bartz установлены уровни 0–11 и действующие источники части средств. Обычный PLEDGE проверен на TEST. Установка PLEDGE остановилась на штатном `STOP_BLOCKED` предыдущего GS. Добровольные вклады, общий склад и снабжение членов открыты. OWNER_QA открыт.
 
 ## Исходная среда
 
@@ -33,7 +33,7 @@ Stock источники сверены для Blood Mark 1419 из таблиц
 - Mojibake-маркеры в изменённых файлах проверены.
 - Escaped Cyrillic и XML escaped Cyrillic в изменённых файлах проверены отдельно.
 
-## Матрица готовности
+## Матрица готовности первой поставки r01
 
 | Gate | Результат |
 |---|---|
@@ -154,3 +154,20 @@ Stock источники сверены для Blood Mark 1419 из таблиц
 - Escaped Cyrillic и XML escaped Cyrillic проверены отдельно.
 - Bounded scope r05 содержит 11 source/test файлов, включая общий выбор точного стека в native backend, и отдельный коммит отчёта. Выполнены `git symbolic-ref --short HEAD`, `git rev-parse HEAD refs/remotes/origin/feature/phantom-world`, адресный `git status --short`, `git merge-base --is-ancestor <baseline или STORE SHA> HEAD`, `git -c credential.interactive=never fetch origin`, `git -c credential.interactive=never ls-remote --exit-code origin refs/heads/feature/phantom-world`, `git ls-files -- <java> <test/java>`, `git show HEAD:<два WIP paths>`, `git diff --stat -- <scope>`, `git -c core.whitespace=cr-at-eol diff [--cached] --check -- <scope>`, `git diff --cached --name-only`, `git add -- <scope>`, `git commit --only -m <subject> -- <scope>`, `git diff-tree --no-commit-id --name-only -r HEAD` и обычный `git -c credential.interactive=never push origin HEAD:refs/heads/feature/phantom-world` с отдельным remote readback. WIP, runtime, learned и конфиги исключены из публикации.
 - Перед заключительным окном счётчик Goal показал 1 944 063 токена и 8749 секунд. Goal 021 остаётся активным, 022 не начат.
+
+## Продолжение r06 — обычный PLEDGE и блокировка поставки
+
+- Checkout и свежий origin совпали с `229a0b9eaeb3bcdd00effadc779d1a30edc4c9b0`. Baseline и STORE-фикс входят в ancestry. Сверены нативные `Clan`, `RequestAcquireSkill`, активные `pledgeSkillTree.xml` и `Player.ini`, точный Item writer, 019 visit, общая защита economy и фазовый STOP. Рабочий GS 17480, LS 10736 и SQL 18764 подтверждены на Bartz33331.
+- Код `1be71cc2b55c3a782150c990df817efbd2e38656` добавляет один следующий ordinary PLEDGE ранг через VillageMaster. Лидер выбирает навык с широким допуском соклановцев после личной подготовки, использует имеющийся законный стек и сохраняет минимум половину доступной репутации. Готовое повышение, набор недостающих членов и действующий срок farm root учитываются при выборе. SUBPLEDGE не автоматизирован.
+- Ранг `clan_skills` с `sub_pledge_id=-2`, репутация, точный предмет и 96-байтовая квитанция `clan.development.skill-payment` v5 фиксируются вместе. Старые receipts сохраняются. Порядок блокировок — claim предмета, clan stripe, Player, Clan, Item, SQL. Штатный клиент и GM используют общий барьер. Уведомления идут после публикации, допуск сверяется по текущему членству и social class штатного дерева. Ревью помогло закрыть гонки резерва, исключения и продления срока корня.
+- Ant `jar compile-tests` и owner profile 38/38 с XML/XSD вернули 0. TEST 33332, seed диапазона 21002102, подтвердила Clan Body I за 1500 rep и 9816 ×10, атомарный откат, durable item/rank/receipt, отказ при недостатке rep и повторной покупке. Нативный `Clan` восстановил ранг, `addSkillEffects` применил его при достаточном social class, `removeSkillEffects` снял. Числовой бонус HP и живой NPC-визит не измерялись. CP1/CP2, 019, Decision 42/42, экипировка 13/13 и три STORE-теста вернули 0. TEST PID 22704 штатно остановлен с exit 0.
+- C1 и C5 оставляют ограничения r05. C2/C3 открыты. C4 CODE_READY с TEST-подтверждением, LIVE_NOT_OBSERVED. Законная добыча life crystals для обычных игроков пока не наблюдалась. C6/C7 BLOCKED для установки r06 и повторной живой приёмки.
+- До STOP в 19:56:31 было 128 ordinary, 31 materialized scout при 32 ALWAYS в реестре, 200 лавок, 0 кланов и 0 записей ожидающего STORE. Пять профилей 10+ были вне игры. Сохранены 5000 READY, quarantine24, cap160, heap12 и профиль 7 с 141343 EXP, 6875 SP и прежним хешем. До drain PROVEN достиг 246931, полные journeys 4908. На диске 204 GeoData и 166 learned TSV.
+- У профиля 1968, object 268648748, в 19:56:52 на r05 произошёл `OWNED_STORE_PREPARE:BACKEND_FAILURE` с MySQLTimeoutException на `writeStateOnly` до попытки commit. Первый STOP в 19:58:35 дошёл до 29 удержанных игроков и `STOP_BLOCKED`. Повтор в 20:00:18 сохранил защиту. Оба RequestShutdown приняли запрос с exit 0, оба ожидания выхода GS вернули 1 по таймауту. Read-only Bartz показал 29 `online=2`, 0 `background.owned-store`, у 1968 durable EXP 654, SP 70 и `background.state:2`. Отсутствие receipt не подтверждает завершение STORE.
+- В 20:03:27 работали процессы GS 17480, LS 10736 и MariaDB 18764. GS и LS видимы в окнах Mobius. GS остался в незавершённом drain, игровая готовность после STOP не подтверждена. Пара r05 осталась на месте с прежними SHA-256. Кандидат r06 имел SHA-256 `EBB175BC60808C35EEC3A9EE01007E097942C6A449067A9E5331C2ED71A4492F`, установленную пару не заменяли. MAIN3308 не опрашивался.
+- Точная проверенная пара отката сохранена в `D:\Backups\PhantomWorld\PHANTOM-AUTONOMOUS-CLAN-DEVELOPMENT-021\r06`, 4 файла, 12 781 272 байта. Хеши совпадают с текущей парой r05, приложены `SHA256SUMS.txt` и `RESTORE.txt`. Изменений SQL-схемы нет.
+- Scratch `D:\Temp\Codex\PhantomWorld\PHANTOM-AUTONOMOUS-CLAN-DEVELOPMENT-021\r06` удалён после сверки owner marker, пути, reparse points, процессов, handles и 17 защищённых хешей. Удалено 7323 файла, 236 209 476 байт, включая повторяемый JAR, тестовый datadir и промежуточный thread snapshot. Основное свидетельство STOP сохранено в существующем `dist/game/log/java0.log`. Блокеров уборки нет.
+- Mojibake-маркеры в изменённых файлах проверены.
+- Escaped Cyrillic и XML escaped Cyrillic в изменённых файлах проверены отдельно.
+- В r06 повторены bounded команды Git, перечисленные для r05. `git add` и `git commit --only` охватили ровно семь файлов кода и теста, отчёт отдельным коммитом. Использована обычная публикация в `feature/phantom-world` с отдельным remote readback. WIP, runtime и learned остались за пределами коммитов.
+- В 20:03 счётчик Goal показал 2 330 806 токенов и 10436 секунд. 021 активен. 022 не начат.
