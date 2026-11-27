@@ -63,19 +63,18 @@ public class RequestPledgeSetMemberPowerGrade extends ClientPacket
 			return;
 		}
 		
-		if (member.getObjectId() == clan.getLeaderId())
+		clan.modifyPledgeMembers(player, ClanAccess.MODIFY_RANKS, member, member, () ->
 		{
-			return;
-		}
-		
-		if (member.getPledgeType() == Clan.SUBUNIT_ACADEMY)
-		{
-			// also checked from client side
-			player.sendMessage("You cannot change academy member grade");
-			return;
-		}
-		
-		member.setPowerGrade(_powerGrade);
-		clan.broadcastClanStatus();
+			if (member.getObjectId() == clan.getLeaderId()) { return; }
+			if (member.getPledgeType() == Clan.SUBUNIT_ACADEMY)
+			{
+				player.sendMessage("You cannot change academy member grade");
+				return;
+			}
+			member.setPowerGrade(_powerGrade);
+			final Player target = member.getPlayer();
+			if (target != null) { target.setClanPrivileges(clan.getRankPrivs(_powerGrade)); }
+			clan.broadcastClanStatus();
+		});
 	}
 }

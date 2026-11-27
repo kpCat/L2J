@@ -2283,7 +2283,18 @@ public class Clan
 		return _privs.get(rank) != null ? _privs.get(rank).getPrivs() : new ClanPrivileges();
 	}
 	
-	public void setRankPrivs(int rank, int privs)
+	public void setRankPrivs(Player actor, int rank, int privs)
+	{
+		final var fence = ClanSocialMutationFence.getInstance();
+		fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			if (!fence.isRetiring(_clanId) && actor.getClan() == this && actor.getObjectId() == getLeaderId()
+				&& _members.containsKey(actor.getObjectId())) { setRankPrivsLocked(rank, privs); }
+			return null;
+		});
+	}
+
+	private void setRankPrivsLocked(int rank, int privs)
 	{
 		if (_privs.get(rank) != null)
 		{

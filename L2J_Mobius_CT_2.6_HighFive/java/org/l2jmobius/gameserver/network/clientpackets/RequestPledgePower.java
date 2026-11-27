@@ -53,6 +53,8 @@ public class RequestPledgePower extends ClientPacket
 		{
 			return;
 		}
+		final var clan = player.getClan();
+		if (clan == null) { return; }
 		
 		if (_action == 2)
 		{
@@ -70,12 +72,12 @@ public class RequestPledgePower extends ClientPacket
 					_privs &= ClanAccess.ACCESS_WAREHOUSE.getMask() | ClanAccess.HALL_OPEN_DOOR.getMask() | ClanAccess.CASTLE_OPEN_DOOR.getMask();
 				}
 				
-				player.getClan().setRankPrivs(_rank, _privs);
+				clan.setRankPrivs(player, _rank, _privs);
 			}
 		}
 		else
 		{
-			player.sendPacket(new ManagePledgePower(player.getClan(), _action, _rank));
+			player.sendPacket(new ManagePledgePower(clan, _action, _rank));
 		}
 	}
 }

@@ -325,10 +325,18 @@ public class ClanHallAuction
 	 */
 	private boolean takeItem(Player bidder, long quantity)
 	{
-		if ((bidder.getClan() != null) && (bidder.getClan().getWarehouse().getAdena() >= quantity))
+		final var clan = bidder.getClan();
+		if (clan != null)
 		{
-			bidder.getClan().getWarehouse().destroyItemByItemId(ItemProcessType.BUY, ADENA_ID, quantity, bidder, bidder);
-			return true;
+			final var warehouse = clan.getWarehouse();
+			synchronized (warehouse)
+			{
+				if (bidder.getClan() == clan && warehouse.getAdena() >= quantity
+					&& warehouse.destroyItemByItemId(ItemProcessType.BUY, ADENA_ID, quantity, bidder, bidder) != null)
+				{
+					return true;
+				}
+			}
 		}
 		
 		bidder.sendPacket(SystemMessageId.THERE_IS_NOT_ENOUGH_ADENA_IN_THE_CLAN_HALL_WAREHOUSE);

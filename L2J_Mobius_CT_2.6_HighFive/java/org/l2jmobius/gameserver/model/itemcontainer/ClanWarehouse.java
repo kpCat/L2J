@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 public class ClanWarehouse extends Warehouse
 {
 	private final Clan _clan;
+	private volatile boolean _pendingTransfer;
 	
 	public ClanWarehouse(Clan clan)
 	{
@@ -84,36 +85,40 @@ public class ClanWarehouse extends Warehouse
 	{
 		return (_items.size() + slots) <= PlayerConfig.WAREHOUSE_SLOTS_CLAN;
 	}
+
+	public boolean hasPendingTransfer()
+	{
+		return _pendingTransfer;
+	}
+
+	public void setPendingTransfer(boolean pending)
+	{
+		if (!Thread.holdsLock(this)) { throw new IllegalStateException("Clan warehouse mutation lock is required."); }
+		_pendingTransfer = pending;
+	}
 	
 	@Override
-	public Item addItem(ItemProcessType process, int itemId, long count, Player actor, Object reference)
+	public synchronized Item addItem(ItemProcessType process, int itemId, long count, Player actor, Object reference)
 	{
+		if (_pendingTransfer) { return null; }
 		final Item item = super.addItem(process, itemId, count, actor, reference);
-		
-		// Notify to scripts
-		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_WH_ITEM_ADD, item.getTemplate()))
-		{
-			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanWHItemAdd(actor, item, this), item.getTemplate());
-		}
-		
+		if (item != null) { notifyCommittedDeposit(actor, item); }
 		return item;
 	}
 	
 	@Override
-	public Item addItem(ItemProcessType process, Item item, Player actor, Object reference)
+	public synchronized Item addItem(ItemProcessType process, Item item, Player actor, Object reference)
 	{
-		// Notify to scripts
-		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_WH_ITEM_ADD, item.getTemplate()))
-		{
-			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanWHItemAdd(actor, item, this), item.getTemplate());
-		}
-		
-		return super.addItem(process, item, actor, reference);
+		if (_pendingTransfer) { return null; }
+		final Item stored = super.addItem(process, item, actor, reference);
+		if (stored != null) { notifyCommittedDeposit(actor, stored); }
+		return stored;
 	}
 	
 	@Override
-	public Item destroyItem(ItemProcessType process, Item item, long count, Player actor, Object reference)
+	public synchronized Item destroyItem(ItemProcessType process, Item item, long count, Player actor, Object reference)
 	{
+		if (item == null || item.blocksInventoryDebit()) { return null; }
 		// Notify to scripts
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_WH_ITEM_DESTROY, item.getTemplate()))
 		{
@@ -124,16 +129,29 @@ public class ClanWarehouse extends Warehouse
 	}
 	
 	@Override
-	public Item transferItem(ItemProcessType process, int objectId, long count, ItemContainer target, Player actor, Object reference)
+	public synchronized Item transferItem(ItemProcessType process, int objectId, long count, ItemContainer target, Player actor, Object reference)
 	{
+		if (_pendingTransfer) { return null; }
 		final Item item = getItemByObjectId(objectId);
-		
-		// Notify to scripts
+		if (item == null) { return null; }
+		final Item transferred = super.transferItem(process, objectId, count, target, actor, reference);
+		if (transferred != null) { notifyCommittedWithdrawal(actor, item, count, target); }
+		return transferred;
+	}
+
+	public void notifyCommittedDeposit(Player actor, Item item)
+	{
+		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_WH_ITEM_ADD, item.getTemplate()))
+		{
+			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanWHItemAdd(actor, item, this), item.getTemplate());
+		}
+	}
+
+	public void notifyCommittedWithdrawal(Player actor, Item item, long count, ItemContainer target)
+	{
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_CLAN_WH_ITEM_TRANSFER, item.getTemplate()))
 		{
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerClanWHItemTransfer(actor, item, count, target), item.getTemplate());
 		}
-		
-		return super.transferItem(process, objectId, count, target, actor, reference);
 	}
 }

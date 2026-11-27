@@ -169,6 +169,8 @@ public class Item extends WorldObject
 	private boolean _storedInDb; // if DB data is up-to-date.
 	private volatile boolean _countTransactionUncertain;
 	private volatile boolean _warehouseTransferPending;
+	private boolean _warehouseRetainsAdena;
+	private long _warehouseAdenaCredits;
 	private volatile long _pendingInventoryDebitBase = -1;
 	private volatile boolean _committedInventoryRemoval;
 	
@@ -610,8 +612,14 @@ public class Item extends WorldObject
 		_dbLock.lock();
 		try
 		{
-			if (_committedInventoryRemoval || _warehouseTransferPending || _itemId != ADENA_ID && _pendingInventoryDebitBase == 0
+			if (_committedInventoryRemoval || _itemId != ADENA_ID && _pendingInventoryDebitBase == 0
 				|| !stillInContainer.getAsBoolean()) { return false; }
+			if (_warehouseTransferPending)
+			{
+				if (!_warehouseRetainsAdena || count <= 0) { return false; }
+				_warehouseAdenaCredits += Math.min(count, MAX_ADENA - _warehouseAdenaCredits);
+				return true;
+			}
 			changeCount(process, count, actor, reference);
 			return true;
 		}
@@ -1979,9 +1987,17 @@ public class Item extends WorldObject
 		}
 	}
 
-	public void setWarehouseTransferPending(boolean pending)
+	public void setWarehouseTransferPending(boolean pending, boolean retainsAdena)
 	{
 		if (!_dbLock.isHeldByCurrentThread()) { throw new IllegalStateException("Native warehouse item lock is required."); }
+		if (!pending && _warehouseAdenaCredits > 0)
+		{
+			_count += Math.min(_warehouseAdenaCredits, MAX_ADENA - _count);
+			_storedInDb = false;
+			setLastChange(MODIFIED);
+			_warehouseAdenaCredits = 0;
+		}
+		_warehouseRetainsAdena = pending && retainsAdena;
 		_warehouseTransferPending = pending;
 	}
 
@@ -2015,7 +2031,10 @@ public class Item extends WorldObject
 	/** Write only custody and count. Moving a whole object keeps its auxiliary rows and traits. */
 	public void stageWarehouseRow(Connection connection, WarehouseRow before, WarehouseRow after) throws java.sql.SQLException
 	{
-		if (before == null ? after == null || !after.equals(warehouseRow())
+		final var nativeRow = warehouseRow();
+		final boolean emptyAdena = _itemId == ADENA_ID && _count == 0 && _loc == ItemLocation.INVENTORY && after != null
+			&& nativeRow.at(_ownerId, _loc, after.item().count()).equals(after);
+		if (before == null ? after == null || !after.equals(nativeRow) && !emptyAdena
 			: before.item().objectId() != getObjectId() || after != null
 				&& !before.at(after.ownerId(), after.item().loc(), after.item().count()).equals(after))
 		{
@@ -2043,7 +2062,7 @@ public class Item extends WorldObject
 		}
 		if (before == null)
 		{
-			insertRow(connection);
+			insertRow(connection, after.item().count());
 			return;
 		}
 		final String change = after == null ? "DELETE FROM items WHERE object_id=?" : "UPDATE items SET owner_id=?,loc=?,loc_data=?,count=? WHERE object_id=?";
@@ -2322,11 +2341,16 @@ public class Item extends WorldObject
 
 	private void insertRow(Connection connection) throws java.sql.SQLException
 	{
+		insertRow(connection, _count);
+	}
+
+	private void insertRow(Connection connection, long count) throws java.sql.SQLException
+	{
 		try (var row = connection.prepareStatement("INSERT INTO items (owner_id,item_id,count,loc,loc_data,enchant_level,object_id,custom_type1,custom_type2,mana_left,time) VALUES (?,?,?,?,?,?,?,?,?,?,?)"))
 		{
 			row.setInt(1, _ownerId);
 			row.setInt(2, _itemId);
-			row.setLong(3, _count);
+			row.setLong(3, count);
 			row.setString(4, _loc.name());
 			row.setInt(5, _locData);
 			row.setInt(6, _enchantLevel);

@@ -791,11 +791,11 @@ public class PlayerInventory extends Inventory
 			_owner.setActiveEnchantItemId(Player.ID_NONE);
 		}
 		
-		if (item.getId() == ADENA_ID)
+		if (_adena == item)
 		{
 			_adena = null;
 		}
-		else if (item.getId() == ANCIENT_ADENA_ID)
+		else if (_ancientAdena == item)
 		{
 			_ancientAdena = null;
 		}
@@ -806,6 +806,12 @@ public class PlayerInventory extends Inventory
 		}
 		
 		return super.removeItem(item);
+	}
+
+	void acknowledgeClanWarehouseCredit(Item item)
+	{
+		if (item.getId() == ADENA_ID && (_adena == null || _adena.isCommittedInventoryRemoval())) { _adena = item; }
+		else if (item.getId() == ANCIENT_ADENA_ID && (_ancientAdena == null || _ancientAdena.isCommittedInventoryRemoval())) { _ancientAdena = item; }
 	}
 	
 	/**

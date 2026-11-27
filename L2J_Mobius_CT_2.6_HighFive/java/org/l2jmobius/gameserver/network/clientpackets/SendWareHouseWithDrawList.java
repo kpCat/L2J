@@ -26,6 +26,7 @@ import org.l2jmobius.gameserver.managers.PunishmentManager;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.ClanAccess;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.holders.ItemHolder;
 import org.l2jmobius.gameserver.model.item.instance.Item;
@@ -139,6 +140,17 @@ public class SendWareHouseWithDrawList extends ClientPacket
 				return;
 			}
 		}
+
+		if (warehouse instanceof ClanWarehouse clanWarehouse)
+		{
+			ClanWarehouseTransfer.withClientAccess(player, clanWarehouse, manager, false, () -> withdraw(player, warehouse, manager));
+			return;
+		}
+		withdraw(player, warehouse, manager);
+	}
+
+	private void withdraw(Player player, ItemContainer warehouse, Npc manager)
+	{
 		
 		int weight = 0;
 		int slots = 0;

@@ -2,13 +2,23 @@
 package org.l2jmobius.gameserver.model.clan;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.gameserver.config.IdManagerConfig;
 import org.l2jmobius.gameserver.data.xml.ItemData;
+import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
+import org.l2jmobius.gameserver.model.actor.templates.PlayerTemplate;
 import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.Destination;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.Request;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.TransferOutcome;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.itemcontainer.ClanWarehouse;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 
 /** Exact durable item/fee outcomes against the 021 isolated MariaDB stock schema. */
@@ -29,14 +39,17 @@ public final class ClanWarehouse021Checks
 			sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id) VALUES(21002164,'ClanWarehouseProof021',5,21002163)");
 			sql.executeUpdate("INSERT INTO characters(charId,char_name,sp,classid,base_class,clanid) VALUES(21002163,'ClanWarehouseProof021',450,88,88,21002164)");
 		}
-		final Item sword = item(21002165, 1, ACTOR, ItemLocation.INVENTORY, 1);
+		IdManagerConfig.load();
+		final int firstNativeObject = IdManagerConfig.FIRST_OBJECT_ID + 21021;
+		final Item sword = item(firstNativeObject, 1, ACTOR, ItemLocation.INVENTORY, 1);
 		sword.setEnchantLevel(4);
-		final Item adena = item(21002166, Inventory.ADENA_ID, ACTOR, ItemLocation.INVENTORY, 200);
-		final Item stems = item(21002167, 1864, ACTOR, ItemLocation.INVENTORY, 11);
+		final Item adena = item(firstNativeObject + 1, Inventory.ADENA_ID, ACTOR, ItemLocation.INVENTORY, 200);
+		final Item stems = item(firstNativeObject + 2, 1864, ACTOR, ItemLocation.INVENTORY, 11);
 		for (Item item : new Item[] { sword, adena, stems }) { item.updateDatabase(true); }
-		try (var connection = DatabaseFactory.getConnection(); var sql = connection.createStatement())
+		try (var connection = DatabaseFactory.getConnection(); var sql = connection.prepareStatement("UPDATE items SET time_of_use=7 WHERE object_id=?"))
 		{
-			check(sql.executeUpdate("UPDATE items SET time_of_use=7 WHERE object_id=21002165") == 1, "Isolated gear metadata fixture was not created.");
+			sql.setInt(1, sword.getObjectId());
+			check(sql.executeUpdate() == 1, "Isolated gear metadata fixture was not created.");
 		}
 		final var deposit = ClanWarehouseTransfer.prepare(PROFILE, ACTOR, CLAN, ACTOR, new UUID(21, 51), sword, null, adena, 1, true);
 		final var staleLeader = ClanWarehouseTransfer.prepare(PROFILE, ACTOR, CLAN, ACTOR + 1, new UUID(21, 56), sword, null, adena, 1, true);
@@ -63,13 +76,13 @@ public final class ClanWarehouse021Checks
 		commit(withdraw);
 		check(sword.getOwnerId() == ACTOR && sword.getItemLocation() == ItemLocation.INVENTORY && sword.getEnchantLevel() == 4 && adena.getCount() == 170,
 			"Withdrawal did not restore the original object without another fee.");
-		try (var connection = DatabaseFactory.getConnection(); var sql = connection.createStatement();
-			var row = sql.executeQuery("SELECT time_of_use FROM items WHERE object_id=21002165"))
+		try (var connection = DatabaseFactory.getConnection(); var sql = connection.prepareStatement("SELECT time_of_use FROM items WHERE object_id=?"))
 		{
-			check(row.next() && row.getInt(1) == 7, "Whole-object movement rewrote native usage metadata.");
+			sql.setInt(1, sword.getObjectId());
+			try (var row = sql.executeQuery()) { check(row.next() && row.getInt(1) == 7, "Whole-object movement rewrote native usage metadata."); }
 		}
 
-		final Item newStack = item(21002168, 1864, CLAN, ItemLocation.CLANWH, 4);
+		final Item newStack = item(firstNativeObject + 3, 1864, CLAN, ItemLocation.CLANWH, 4);
 		try
 		{
 			ClanWarehouseTransfer.prepare(PROFILE, ACTOR, CLAN, ACTOR, new UUID(21, 57), stems, new Destination(newStack, false), adena, 4, true);
@@ -88,18 +101,76 @@ public final class ClanWarehouse021Checks
 		commit(merge);
 		check(newStack.getCount() == 0 && stems.getCount() == 11 && adena.getCount() == 140, "Consumed stack or merged count differs.");
 
-		final var sameAdena = item(21002169, Inventory.ADENA_ID, CLAN, ItemLocation.CLANWH, 20);
+		final var sameAdena = item(firstNativeObject + 4, Inventory.ADENA_ID, CLAN, ItemLocation.CLANWH, 20);
 		final var money = ClanWarehouseTransfer.prepare(PROFILE, ACTOR, CLAN, ACTOR, new UUID(21, 55), adena, new Destination(sameAdena, true), adena, 20, true);
 		check(money.execute(() -> true, () -> { throw new IllegalStateException("TEST settlement interruption"); }) == ClanWarehouseTransfer.Outcome.CONFLICT
 			&& money.pending() && adena.blocksInventoryDebit() && sameAdena.blocksInventoryDebit(),
 			"Confirmed SQL with interrupted native publication lost its item fences.");
+		check(adena.tryCreditContainerStack(ItemProcessType.NONE, 7, null, null, () -> true),
+			"An earned native credit was diverted to a second Adena stack while settlement was pending.");
 		check(money.settle(() -> { }) == ClanWarehouseTransfer.Outcome.APPLIED && !money.pending() && !adena.blocksInventoryDebit(),
 			"Exact receipt did not complete interrupted native publication.");
-		check(adena.getCount() == 90 && sameAdena.getCount() == 20, "Adena deposit did not charge quantity plus exactly one fee.");
-		final Item cold = new Clan(CLAN).getWarehouse().getItemByObjectId(sameAdena.getObjectId());
+		check(adena.getCount() == 97 && sameAdena.getCount() == 20, "Adena deposit did not preserve the fee, transferred quantity and late credit.");
+		adena.updateDatabase(true);
+		final Clan restored = new Clan(CLAN);
+		final Item cold = restored.getWarehouse().getItemByObjectId(sameAdena.getObjectId());
 		check(cold != null && cold.getOwnerId() == CLAN && cold.getItemLocation() == ItemLocation.CLANWH && cold.getCount() == 20,
 			"Native clan warehouse did not restore the exact deposited currency object.");
 		System.out.println("PASS 021 native warehouse exact gear, split, merge, Adena, fee and cold transaction readback");
+		verifyNativeContainers(restored, sword.getObjectId(), cold.getObjectId());
+	}
+
+	private static void verifyNativeContainers(Clan clan, int swordId, int warehouseAdenaId) throws Exception
+	{
+		final var constructor = Player.class.getDeclaredConstructor(int.class, PlayerTemplate.class, String.class, PlayerAppearance.class);
+		constructor.setAccessible(true);
+		final var player = constructor.newInstance(ACTOR, PlayerTemplateData.getInstance().getTemplate(0), "test021",
+			new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		try
+		{
+			clan.getClanMember(ACTOR).setPlayer(player);
+			player.setClan(clan);
+			player.getInventory().restore();
+			final ClanWarehouse warehouse = (ClanWarehouse) clan.getWarehouse();
+			final Item sword = player.getInventory().getItemByObjectId(swordId);
+			check(sword != null && sword.getEnchantLevel() == 4 && player.getAdena() == 97, "Native inventory did not load the durable warehouse fixture.");
+			final var deposit = new Request(CLAN, ACTOR, swordId, 1, true, new UUID(21, 61), Long.MAX_VALUE);
+			final var withdrawal = new Request(CLAN, ACTOR, warehouseAdenaId, 5, false, new UUID(21, 62), Long.MAX_VALUE);
+			synchronized (player)
+			{
+				synchronized (warehouse)
+				{
+					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, deposit, 68, List.of(), () -> true) == TransferOutcome.NOT_READY,
+						"Deposit crossed the protected Adena reserve.");
+					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, deposit, 67, List.of(), () -> warehouse.hasPendingTransfer()
+						&& warehouse.transferItem(ItemProcessType.TRANSFER, warehouseAdenaId, 1, player.getInventory(), player, null) == null) == TransferOutcome.APPLIED,
+						"The native container deposit did not safely exclude a stock withdrawal.");
+					check(warehouse.getItemByObjectId(swordId) == sword && player.getInventory().getItemByObjectId(swordId) == null && player.getAdena() == 67,
+						"Native gear custody or player Adena cache differs after deposit.");
+					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, withdrawal, 0, List.of(), () -> true) == TransferOutcome.APPLIED,
+						"The native warehouse currency withdrawal did not complete.");
+					check(warehouse.getItemByObjectId(warehouseAdenaId).getCount() == 15 && player.getAdena() == 72
+						&& !warehouse.hasPendingTransfer() && player.getPendingClanWarehouse() == null && ClanWarehouseTransfer.settlePending(player),
+						"Native withdrawal left a retired item, stale Adena cache or unresolved STORE guard.");
+				}
+			}
+			check(player.getInventory().destroyItemByItemId(ItemProcessType.NONE, Inventory.ADENA_ID, 72, player, null) != null
+				&& player.getInventory().getAdenaInstance() == null, "Could not prepare the isolated empty-wallet case.");
+			final Item wallet = player.getInventory().getAdenaForCountTransaction();
+			final var toEmptyWallet = new Request(CLAN, ACTOR, warehouseAdenaId, 15, false, new UUID(21, 63), Long.MAX_VALUE);
+			synchronized (player)
+			{
+				synchronized (warehouse)
+				{
+					check(ClanWarehouseTransfer.transferLocked(PROFILE, player, clan, warehouse, toEmptyWallet, 0, List.of(), () -> true) == TransferOutcome.APPLIED
+						&& player.getInventory().getAdenaInstance() == wallet && player.getAdena() == 15
+						&& player.getInventory().getAllItemsByItemId(Inventory.ADENA_ID).size() == 1 && warehouse.getItemByObjectId(warehouseAdenaId) == null,
+						"Empty-wallet withdrawal did not publish the one native Adena object.");
+				}
+			}
+		}
+		finally { player.stopAllTasks(); }
+		System.out.println("PASS 021 native warehouse containers, protected reserve, stock exclusion and STORE settlement");
 	}
 
 	private static void reject(ClanWarehouseTransfer.Move move, String reason) throws SQLException

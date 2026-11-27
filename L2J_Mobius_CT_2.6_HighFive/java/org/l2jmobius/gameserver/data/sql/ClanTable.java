@@ -48,6 +48,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.ClanSocialMutationFence;
+import org.l2jmobius.gameserver.model.itemcontainer.ClanWarehouse;
 import org.l2jmobius.gameserver.model.clan.ClanWarService;
 import org.l2jmobius.gameserver.model.clan.ClanMember;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.clan.OnPlayerClanLeft.DepartureKind;
@@ -330,9 +331,10 @@ public class ClanTable
 		boolean retirementCompleted = false;
 		try
 		{
-			if (clan.firstLevelPaymentPending() || !clan.settleMemberDepartures())
+			if (clan.firstLevelPaymentPending() || clan.getWarehouse() instanceof ClanWarehouse warehouse && warehouse.hasPendingTransfer()
+				|| !clan.settleMemberDepartures())
 			{
-				LOGGER.warning("Clan destruction deferred while development or member departure is unresolved for clan " + clanId + ".");
+				LOGGER.warning("Clan destruction deferred while a native clan operation is unresolved for clan " + clanId + ".");
 				return;
 			}
 			final ClanAllianceService.Result allianceRemoval = ClanAllianceService.getInstance().removeAllForClan(retirement);

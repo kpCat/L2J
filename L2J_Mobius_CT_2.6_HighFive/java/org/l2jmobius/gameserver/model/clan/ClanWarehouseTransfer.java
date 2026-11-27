@@ -13,11 +13,27 @@ import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
-
+import org.l2jmobius.gameserver.config.PlayerConfig;
+import org.l2jmobius.gameserver.data.sql.ClanTable;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.managers.IdManager;
+import org.l2jmobius.gameserver.managers.ItemManager;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Npc;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.Warehouse;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.instance.Item.WarehouseRow;
+import org.l2jmobius.gameserver.model.itemcontainer.ClanWarehouse;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
+import org.l2jmobius.gameserver.model.itemcontainer.ItemContainer;
+import org.l2jmobius.gameserver.network.serverpackets.InventoryUpdate;
+import org.l2jmobius.gameserver.network.serverpackets.StatusUpdate;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
 
 /** Exact native settlement for a single clan warehouse line. */
 public final class ClanWarehouseTransfer
@@ -28,16 +44,311 @@ public final class ClanWarehouseTransfer
 
 	enum Outcome { APPLIED, ROLLED_BACK, CONFLICT }
 
-	private record Change(Item item, WarehouseRow before, WarehouseRow after)
+	public enum TransferOutcome { APPLIED, NOT_READY, UNCONFIRMED }
+
+	public record Request(int clanId, int leaderId, int objectId, long count, boolean deposit, UUID operation, long expiresAt)
 	{
+		public Request
+		{
+			if (clanId <= 0 || leaderId <= 0 || objectId <= 0 || count <= 0 || operation == null || expiresAt <= 0)
+			{
+				throw new IllegalArgumentException("Incomplete clan warehouse request.");
+			}
+		}
 	}
 
-	record Destination(Item item, boolean detached)
+	private record Change(Item item, WarehouseRow before, WarehouseRow after, WarehouseRow nativeBefore)
+	{
+		Change(Item item, WarehouseRow before, WarehouseRow after)
+		{
+			this(item, before, after, before == null ? item.warehouseRow() : before);
+		}
+	}
+
+	record Destination(Item item, boolean detached, boolean emptyWallet)
 	{
 		Destination { Objects.requireNonNull(item); }
+		Destination(Item item, boolean detached) { this(item, detached, false); }
 	}
 
 	private ClanWarehouseTransfer() { }
+
+	public static boolean canVisit(Player player, Warehouse npc)
+	{
+		return npc != null && npc.isSpawned() && !npc.isAlikeDead() && World.getInstance().findObject(npc.getObjectId()) == npc
+			&& npc.canInteract(player) && GeoEngine.getInstance().canSeeTarget(player, npc);
+	}
+
+	public static boolean canWithdraw(Player player, Clan clan)
+	{
+		return PlayerConfig.ALT_MEMBERS_CAN_WITHDRAW_FROM_CLANWH
+			? player.hasAccess(ClanAccess.ACCESS_WAREHOUSE) : clan.getLeaderId() == player.getObjectId();
+	}
+
+	private static boolean hasMembership(Player player, Clan clan, ClanWarehouse warehouse)
+	{
+		return clan != null && player.getClan() == clan && clan.getWarehouse() == warehouse
+			&& ClanTable.getInstance().getClan(clan.getId()) == clan && clan.getLevel() > 0 && clan.getDissolvingExpiryTime() == 0
+			&& clan.getClanMember(player.getObjectId()) != null;
+	}
+
+	/** Stock manual packets keep their existing transfer, serialized with the autonomous writer. */
+	public static void withClientAccess(Player player, ClanWarehouse warehouse, Npc npc, boolean deposit, Runnable action)
+	{
+		final Clan clan = player.getClan();
+		if (clan == null) { return; }
+		final var fence = ClanSocialMutationFence.getInstance();
+		fence.execute(new long[] { ClanSocialMutationFence.clanKey(clan.getId()) }, () ->
+		{
+			synchronized (player)
+			{
+				synchronized (warehouse)
+				{
+					if (!warehouse.hasPendingTransfer() && !fence.isRetiring(clan.getId()) && hasMembership(player, clan, warehouse)
+						&& player.getActiveWarehouse() == warehouse && player.getActiveTradeList() == null
+						&& (player.isGM() || npc != null && npc.isWarehouse() && npc.canInteract(player))
+						&& (deposit || canWithdraw(player, clan)))
+					{
+						action.run();
+					}
+				}
+			}
+			return null;
+		});
+	}
+
+	public static TransferOutcome transfer(long profileId, Player player, Warehouse npc, Request request, long reserve,
+		BooleanSupplier current, BooleanSupplier localExecutionCurrent)
+	{
+		if (profileId <= 0 || player == null || reserve < 0 || !player.hasHeadlessOutboundSession() || player.isDedicatedGeoScout()
+			|| !ClanFoundingDevelopment.authorizedAction(player, profileId) || !current.getAsBoolean()) { return TransferOutcome.NOT_READY; }
+		if (player.getPendingClanWarehouse() != null) { return settlePending(player) ? TransferOutcome.NOT_READY : TransferOutcome.UNCONFIRMED; }
+		final Clan clan = player.getClan();
+		if (clan == null || clan.getId() != request.clanId() || !(clan.getWarehouse() instanceof ClanWarehouse warehouse)
+			|| !canVisit(player, npc)) { return TransferOutcome.NOT_READY; }
+		final var sourceContainer = request.deposit() ? player.getInventory() : warehouse;
+		final Item source = sourceContainer.getItemByObjectId(request.objectId());
+		if (source == null || source.getCount() < request.count()) { return TransferOutcome.NOT_READY; }
+		final var resources = transferResources(profileId, player, source, request);
+		try (var claim = PhantomEconomyConflictPort.claim(profileId, null, resources))
+		{
+			if (!claim.acquired() || !current.getAsBoolean()) { return TransferOutcome.NOT_READY; }
+			// Claim the stock empty purse before taking the actor lock. Native inventory additions use the same purse allocator.
+			if (!request.deposit() && source.getId() == Inventory.ADENA_ID && player.getInventory().getAdenaInstance() == null
+				&& player.getInventory().validateCapacity(1) && mayAct(player, npc) && canWithdraw(player, clan))
+			{
+				player.getInventory().getAdenaForCountTransaction();
+			}
+			final var fence = ClanSocialMutationFence.getInstance();
+			return fence.execute(new long[] { ClanSocialMutationFence.clanKey(clan.getId()) }, () ->
+			{
+				synchronized (player)
+				{
+					synchronized (warehouse)
+					{
+						final BooleanSupplier eligible = () -> System.currentTimeMillis() < request.expiresAt()
+							&& !fence.isRetiring(clan.getId()) && hasMembership(player, clan, warehouse)
+							&& clan.getLeaderId() == request.leaderId() && ClanFoundingDevelopment.authorizedAction(player, profileId)
+							&& localExecutionCurrent.getAsBoolean() && mayAct(player, npc) && (request.deposit() || canWithdraw(player, clan));
+						if (!eligible.getAsBoolean() || sourceContainer.getItemByObjectId(request.objectId()) != source) { return TransferOutcome.NOT_READY; }
+						return transferLocked(profileId, player, clan, warehouse, request, reserve, resources, eligible);
+					}
+				}
+			});
+		}
+	}
+
+	private static boolean mayAct(Player player, Warehouse npc)
+	{
+		return !player.isGM() && player.getAccessLevel() != null && player.getAccessLevel().allowTransaction()
+			&& (PlayerConfig.ALT_GAME_KARMA_PLAYER_CAN_USE_WAREHOUSE || player.getKarma() == 0) && !player.isAlikeDead()
+			&& !player.isInCombat() && !player.isAttackingNow() && !player.isCastingNow() && !player.isMoving() && !player.isTeleporting()
+			&& player.getParty() == null && !player.isInStoreMode() && !player.isProcessingTransaction() && !player.isInventoryDisabled()
+			&& player.getActiveEnchantItemId() == Player.ID_NONE && player.getClassIndex() == 0 && !player.isChangingClass()
+			&& !player.hasPendingOwnedStore() && canVisit(player, npc);
+	}
+
+	private static List<Reservation> transferResources(long profileId, Player player, Item source, Request request)
+	{
+		final int actorId = player.getObjectId();
+		final List<Reservation> resources = new ArrayList<>(4);
+		resources.add(new Reservation(profileId, source.getOwnerId(), ResourceKind.ITEM_OBJECT, source.getObjectId(), source.getId(),
+			request.count(), source.getCount(), source.getEnchantLevel(), source.getItemLocation().name()));
+		if (request.deposit() || source.getId() == Inventory.ADENA_ID)
+		{
+			resources.add(new Reservation(profileId, actorId, ResourceKind.ADENA, 0, Inventory.ADENA_ID, request.deposit() ? DEPOSIT_FEE : request.count(),
+				player.getAdena(), 0, ItemLocation.INVENTORY.name()));
+		}
+		if (!request.deposit())
+		{
+			resources.add(new Reservation(profileId, actorId, ResourceKind.ITEM_COUNT, 0, source.getId(), request.count(),
+				player.getInventory().getInventoryItemCount(source.getId(), -1), 0, ItemLocation.INVENTORY.name()));
+			resources.add(new Reservation(profileId, actorId, ResourceKind.CAPACITY, 0, 0, 1, player.getInventory().getSize(), 0, ItemLocation.INVENTORY.name()));
+		}
+		return List.copyOf(resources);
+	}
+
+	static TransferOutcome transferLocked(long profileId, Player player, Clan clan, ClanWarehouse warehouse, Request request, long reserve,
+		List<Reservation> resources, BooleanSupplier stillAuthorized)
+	{
+		if (!Thread.holdsLock(player) || !Thread.holdsLock(warehouse)) { throw new IllegalStateException("Native actor and warehouse locks are required."); }
+		if (warehouse.hasPendingTransfer() || player.getPendingClanWarehouse() != null || player.getPendingClanPurchase() != null
+			|| player.getPendingClanDevelopment() != null || player.getPendingClanDeparture() != null) { return TransferOutcome.NOT_READY; }
+		final boolean deposit = request.deposit();
+		final ItemContainer from = deposit ? player.getInventory() : warehouse;
+		final ItemContainer to = deposit ? warehouse : player.getInventory();
+		final Item source = from.getItemByObjectId(request.objectId());
+		if (source == null || source.getCount() < request.count() || source.isQuestItem() || !source.isDepositable(false)
+			|| source.getId() == Inventory.ANCIENT_ADENA_ID
+			|| deposit && !source.isAvailable(player, true, false)) { return TransferOutcome.NOT_READY; }
+		// Treasury upkeep assumes an available Adena stack while the residence or bid is active.
+		final BooleanSupplier treasuryAvailable = () -> source.getId() != Inventory.ADENA_ID
+			|| clan.getCastleId() == 0 && clan.getFortId() == 0 && clan.getHideoutId() == 0 && clan.getAuctionBiddedAt() == 0;
+		if (!treasuryAvailable.getAsBoolean()) { return TransferOutcome.NOT_READY; }
+		final Item fee = deposit ? player.getInventory().getAdenaInstance() : null;
+		final long transferredAdena = deposit && source.getId() == Inventory.ADENA_ID ? request.count() : 0;
+		final long protectedAdena = Math.max(1, reserve);
+		final BooleanSupplier keepsReserve = () -> !deposit || fee != null && fee.getCount() >= protectedAdena
+			&& fee.getCount() - protectedAdena >= DEPOSIT_FEE && fee.getCount() - protectedAdena - DEPOSIT_FEE >= transferredAdena;
+		if (!keepsReserve.getAsBoolean()) { return TransferOutcome.NOT_READY; }
+		Item target = null;
+		if (source.isStackable())
+		{
+			final ItemLocation expected = deposit ? ItemLocation.CLANWH : ItemLocation.INVENTORY;
+			target = to.getAllItemsByItemId(source.getId()).stream().filter(item -> item.getItemLocation() == expected)
+				.min(Comparator.comparingInt(Item::getObjectId)).orElse(null);
+		}
+		if (!deposit && source.getId() == Inventory.ADENA_ID && (target == null || target != player.getInventory().getAdenaInstance()))
+		{
+			return TransferOutcome.NOT_READY;
+		}
+		final boolean emptyWallet = !deposit && target != null && target.getId() == Inventory.ADENA_ID
+			&& !target.hasStoredWarehouseRow() && target.getCount() == 0;
+		final int extraSlots = target == null ? 1 : 0;
+		final BooleanSupplier canFit = () -> to.validateCapacity(extraSlots)
+			&& (deposit || to.validateWeightByItemId(source.getId(), request.count()));
+		if (!canFit.getAsBoolean()) { return TransferOutcome.NOT_READY; }
+		Item detached = null;
+		if (target == null && source.isStackable() && (request.count() < source.getCount() || source == fee))
+		{
+			detached = new Item(IdManager.getInstance().getNextId(), source.getTemplate());
+			detached.setOwnerId(to.getOwnerId());
+			detached.setItemLocation(deposit ? ItemLocation.CLANWH : ItemLocation.INVENTORY, 0, false);
+			detached.setCount(request.count());
+			target = detached;
+		}
+		final Move move;
+		try
+		{
+			move = prepare(profileId, player.getObjectId(), clan.getId(), request.leaderId(), request.operation(), source,
+				target == null ? null : new Destination(target, target == detached, emptyWallet), fee, request.count(), deposit);
+		}
+		catch (IllegalArgumentException | ArithmeticException failure)
+		{
+			if (detached != null) { IdManager.getInstance().releaseId(detached.getObjectId()); }
+			return TransferOutcome.NOT_READY;
+		}
+		final var pending = new PendingTransfer(warehouse, move, source, target == null ? source : target, detached, request);
+		player.setPendingClanWarehouse(pending);
+		warehouse.setPendingTransfer(true);
+		try
+		{
+			return finishTransfer(player, pending, move.execute(() -> stillAuthorized.getAsBoolean() && canFit.getAsBoolean()
+				&& keepsReserve.getAsBoolean() && treasuryAvailable.getAsBoolean(),
+				() -> pending.publishContainers(player), resources));
+		}
+		finally
+		{
+			if (!move.pending() && player.getPendingClanWarehouse() == pending) { clearTransfer(player, pending, false); }
+		}
+	}
+
+	public static final class PendingTransfer
+	{
+		private final ClanWarehouse _warehouse;
+		private final Move _move;
+		private final Item _source;
+		private final Item _target;
+		private final Item _detached;
+		private final Request _request;
+
+		private PendingTransfer(ClanWarehouse warehouse, Move move, Item source, Item target, Item detached, Request request)
+		{
+			_warehouse = warehouse;
+			_move = move;
+			_source = source;
+			_target = target;
+			_detached = detached;
+			_request = request;
+		}
+
+		private ItemContainer container(Player player, WarehouseRow row)
+		{
+			return row.item().loc() == ItemLocation.CLANWH ? _warehouse : player.getInventory();
+		}
+
+		private void publishContainers(Player player)
+		{
+			for (Change change : _move._changes)
+			{
+				final WarehouseRow before = change.before();
+				final WarehouseRow after = change.after();
+				if (before != null && (after == null || before.item().loc() != after.item().loc()))
+				{
+					container(player, before).publishClanWarehouseItem(change.item(), false);
+				}
+				if (after != null) { container(player, after).publishClanWarehouseItem(change.item(), true); }
+			}
+			player.getInventory().refreshClanWarehouseLoad();
+		}
+	}
+
+	private static void clearTransfer(Player player, PendingTransfer pending, boolean applied)
+	{
+		if (!applied && pending._detached != null) { IdManager.getInstance().releaseId(pending._detached.getObjectId()); }
+		pending._warehouse.setPendingTransfer(false);
+		player.setPendingClanWarehouse(null);
+	}
+
+	private static TransferOutcome finishTransfer(Player player, PendingTransfer pending, Outcome outcome)
+	{
+		if (pending._move.pending()) { return TransferOutcome.UNCONFIRMED; }
+		final boolean applied = outcome == Outcome.APPLIED;
+		clearTransfer(player, pending, applied);
+		if (!applied) { return TransferOutcome.NOT_READY; }
+		final var inventory = new InventoryUpdate();
+		for (Change change : pending._move._changes)
+		{
+			final Item item = change.item();
+			final boolean before = change.before() != null && change.before().item().loc() == ItemLocation.INVENTORY;
+			final boolean after = change.after() != null && change.after().item().loc() == ItemLocation.INVENTORY;
+			if (before && after) { inventory.addModifiedItem(item); }
+			else if (before) { inventory.addRemovedItem(item); }
+			else if (after) { inventory.addNewItem(item); }
+			if (change.after() == null) { ItemManager.destroyItem(ItemProcessType.TRANSFER, item, player, null); }
+		}
+		player.sendInventoryUpdate(inventory);
+		final StatusUpdate status = new StatusUpdate(player);
+		status.addAttribute(StatusUpdate.CUR_LOAD, player.getCurrentLoad());
+		player.sendPacket(status);
+		if (pending._request.deposit()) { pending._warehouse.notifyCommittedDeposit(player, pending._target); }
+		else { pending._warehouse.notifyCommittedWithdrawal(player, pending._source, pending._request.count(), player.getInventory()); }
+		return TransferOutcome.APPLIED;
+	}
+
+	/** STORE already owns the actor monitor. Settling needs no clan stripe or renewed NPC authority. */
+	public static boolean settlePending(Player player)
+	{
+		synchronized (player)
+		{
+			final PendingTransfer pending = player.getPendingClanWarehouse();
+			if (pending == null) { return true; }
+			synchronized (pending._warehouse)
+			{
+				return finishTransfer(player, pending, pending._move.settle(() -> pending.publishContainers(player))) != TransferOutcome.UNCONFIRMED;
+			}
+		}
+	}
 
 	static Move prepare(long profileId, int actorId, int clanId, int leaderId, UUID operation, Item source, Destination destination, Item adena, long count, boolean deposit)
 	{
@@ -73,12 +384,14 @@ public final class ClanWarehouseTransfer
 			if (!source.isPlainWarehouseStack() || !target.isPlainWarehouseStack() || target == adena || target.getObjectId() <= 0
 				|| source.getId() != target.getId() || target.getOwnerId() != toOwner || target.getItemLocation() != to
 				|| target.blocksInventoryDebit() || target.getObjectId() == source.getObjectId() || debit > source.getCount()
-				|| destination.detached() == target.hasStoredWarehouseRow() || destination.detached() && target.getCount() != count)
+				|| (destination.detached() || destination.emptyWallet()) == target.hasStoredWarehouseRow()
+				|| destination.detached() && target.getCount() != count
+				|| destination.emptyWallet() && (destination.detached() || deposit || target.getId() != Inventory.ADENA_ID || target.getCount() != 0))
 			{
 				throw new IllegalArgumentException("Invalid clan warehouse stack transfer.");
 			}
 			final WarehouseRow targetRow = target.warehouseRow();
-			final WarehouseRow beforeTarget = destination.detached() ? null : targetRow;
+			final WarehouseRow beforeTarget = destination.detached() || destination.emptyWallet() ? null : targetRow;
 			final long targetAfter = beforeTarget == null ? count : Math.addExact(target.getCount(), count);
 			if (target.getId() == Inventory.ADENA_ID && targetAfter > Inventory.MAX_ADENA)
 			{
@@ -151,22 +464,26 @@ public final class ClanWarehouseTransfer
 		/** The caller holds native clan/container authority. No external reads in the commit predicate. */
 		Outcome execute(BooleanSupplier stillAuthorized, Runnable publishContainers)
 		{
+			return execute(stillAuthorized, publishContainers, List.of());
+		}
+
+		Outcome execute(BooleanSupplier stillAuthorized, Runnable publishContainers, List<Reservation> reservations)
+		{
 			return Item.withWarehouseLocks(_items, () ->
 			{
 				if (_pending) { return settleLocked(publishContainers); }
 				for (Change change : _changes)
 				{
 					final Item item = change.item();
-					final WarehouseRow expected = change.before() == null ? change.after() : change.before();
 					if (item.blocksInventoryDebit() || item.hasStoredWarehouseRow() != (change.before() != null)
-						|| !expected.equals(item.warehouseRow())) { return Outcome.CONFLICT; }
+						|| !change.nativeBefore().equals(item.warehouseRow())) { return Outcome.CONFLICT; }
 				}
 				try (Connection connection = DatabaseFactory.getConnection())
 				{
 					connection.setAutoCommit(false);
 					try
 					{
-						stage(connection);
+						stage(connection, reservations);
 						if (!stillAuthorized.getAsBoolean())
 						{
 							connection.rollback();
@@ -225,14 +542,26 @@ public final class ClanWarehouseTransfer
 
 		private void setPending(boolean pending)
 		{
-			_items.forEach(item -> item.setWarehouseTransferPending(pending));
+			for (Change change : _changes)
+			{
+				final boolean keepsAdena = change.item().getId() == Inventory.ADENA_ID && change.after() != null
+					&& change.nativeBefore().item().loc() == ItemLocation.INVENTORY && change.after().item().loc() == ItemLocation.INVENTORY;
+				change.item().setWarehouseTransferPending(pending, keepsAdena);
+			}
 			_pending = pending;
 		}
 
 		void stage(Connection connection) throws SQLException
 		{
+			stage(connection, List.of());
+		}
+
+		private void stage(Connection connection, List<Reservation> reservations) throws SQLException
+		{
 			ClanFoundingDevelopment.requireOrganizationOwner(connection, _profileId, _actorId);
-			if (hasReceipt(connection)) { throw new SQLException("Clan warehouse receipt already committed."); }
+			final byte[] receiptPayload = readReceipt(connection);
+			if (sameOperation(receiptPayload)) { throw new SQLException("Clan warehouse receipt already committed."); }
+			if (!reservations.isEmpty()) { PhantomEconomyConflictPort.requireNoConflict(connection, null, reservations); }
 			try (var membership = connection.prepareStatement("SELECT clanid FROM characters WHERE charId=? FOR UPDATE"))
 			{
 				membership.setInt(1, _actorId);
@@ -267,7 +596,9 @@ public final class ClanWarehouseTransfer
 
 		Outcome readback(Connection connection) throws SQLException
 		{
-			final boolean withReceipt = hasReceipt(connection);
+			final byte[] receipt = readReceipt(connection);
+			final boolean withReceipt = Arrays.equals(receipt, _evidence);
+			if (!withReceipt && sameOperation(receipt)) { return Outcome.CONFLICT; }
 			for (Change change : _changes)
 			{
 				final var liveRow = Item.readWarehouseRow(connection, change.item().getObjectId());
@@ -284,7 +615,12 @@ public final class ClanWarehouseTransfer
 			}
 		}
 
-		private boolean hasReceipt(Connection connection) throws SQLException
+		private boolean sameOperation(byte[] receipt)
+		{
+			return receipt != null && Arrays.equals(receipt, 0, 16, _evidence, 0, 16);
+		}
+
+		private byte[] readReceipt(Connection connection) throws SQLException
 		{
 			try (var receipt = connection.prepareStatement("SELECT component_schema_version,payload FROM phantom_profile_components WHERE profile_id=? AND component_type=? FOR UPDATE"))
 			{
@@ -292,9 +628,11 @@ public final class ClanWarehouseTransfer
 				receipt.setString(2, COMPONENT);
 				try (var row = receipt.executeQuery())
 				{
-					if (!row.next()) { return false; }
+					if (!row.next()) { return null; }
 					if (row.getInt(1) != VERSION) { throw new SQLException("Unsupported clan warehouse receipt schema."); }
-					return Arrays.equals(row.getBytes(2), _evidence);
+					final byte[] payload = row.getBytes(2);
+					if (payload == null || payload.length < 41) { throw new SQLException("Invalid clan warehouse receipt evidence."); }
+					return payload;
 				}
 			}
 		}

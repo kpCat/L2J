@@ -28,6 +28,8 @@ import java.util.List;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer;
+import org.l2jmobius.gameserver.model.itemcontainer.ClanWarehouse;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.holders.ItemHolder;
 import org.l2jmobius.gameserver.model.item.instance.Item;
@@ -125,6 +127,17 @@ public class SendWareHouseDepositList extends ClientPacket
 		{
 			return;
 		}
+
+		if (warehouse instanceof ClanWarehouse clanWarehouse)
+		{
+			ClanWarehouseTransfer.withClientAccess(player, clanWarehouse, manager, true, () -> deposit(player, warehouse, manager, false));
+			return;
+		}
+		deposit(player, warehouse, manager, isPrivate);
+	}
+
+	private void deposit(Player player, ItemContainer warehouse, Npc manager, boolean isPrivate)
+	{
 		
 		// Freight price from config or normal price per item slot (30)
 		final long fee = _items.size() * 30;

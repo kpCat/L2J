@@ -340,6 +340,18 @@ public abstract class ItemContainer
 		{
 			return null;
 		}
+		if (target instanceof ClanWarehouse warehouse)
+		{
+			synchronized (warehouse)
+			{
+				return warehouse.hasPendingTransfer() ? null : transferItemLocked(process, objectId, countValue, target, actor, reference);
+			}
+		}
+		return transferItemLocked(process, objectId, countValue, target, actor, reference);
+	}
+
+	private Item transferItemLocked(ItemProcessType process, int objectId, long countValue, ItemContainer target, Player actor, Object reference)
+	{
 		
 		final Item sourceitem = getItemByObjectId(objectId);
 		if (sourceitem == null)
@@ -540,6 +552,39 @@ public abstract class ItemContainer
 	protected boolean removeItem(Item item)
 	{
 		return _items.remove(item);
+	}
+
+	/** Publish an exact object already settled by the native clan warehouse transaction. */
+	public void publishClanWarehouseItem(Item item, boolean belongsHere)
+	{
+		final Item existing = getItemByObjectId(item.getObjectId());
+		if (existing != null && existing != item)
+		{
+			throw new IllegalStateException("Clan warehouse container contains a different object with the same identity.");
+		}
+		if (!belongsHere)
+		{
+			if (existing != null) { removeItem(item); }
+			return;
+		}
+		if (item.getOwnerId() != getOwnerId() || item.getItemLocation() != getBaseLocation() || item.getCount() <= 0)
+		{
+			throw new IllegalStateException("Committed clan warehouse item has a different owner or location.");
+		}
+		final var world = World.getInstance();
+		final var registered = world.findObject(item.getObjectId());
+		if (registered != null && registered != item)
+		{
+			throw new IllegalStateException("Committed clan warehouse object conflicts with World.");
+		}
+		if (registered == null) { world.addObject(item); }
+		if (existing == null) { addItem(item); }
+		if (this instanceof PlayerInventory inventory) { inventory.acknowledgeClanWarehouseCredit(item); }
+	}
+
+	public void refreshClanWarehouseLoad()
+	{
+		refreshWeight();
 	}
 	
 	/**
