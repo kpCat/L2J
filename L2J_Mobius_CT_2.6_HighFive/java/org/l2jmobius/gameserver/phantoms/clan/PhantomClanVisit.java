@@ -99,7 +99,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		_visits.compute(id, (key, existing) -> existing == null ? new Visit(request) : existing);
 	}
 
-	public void register(PhantomCandidateRegistry candidates, PhantomStepHandlerRegistry handlers)
+	public void registerCandidates(PhantomCandidateRegistry candidates)
 	{
 		candidates.register(new PhantomDecisionCandidate(CANDIDATE, Set.of(PhantomBackgroundGoalSpec.GOAL_TYPE),
 			Set.of(PhantomActivityState.ACTIVE, PhantomActivityState.NEARBY_PERCEPTIBLE), List.of(),
@@ -113,8 +113,9 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 				return new PhantomConsideration.Evaluation(1000, "clan.visit.ready", rank);
 			})), 1000, context -> new PhantomPlan(context.decisionSequence(), context.goal().goalId(), CANDIDATE,
 				List.of(new PhantomPlanStep(0, ACTION, null, Map.of(), 60_000, 10, "clan.visit.advance")), 60_000, context.logicalNowNanos())));
-		handlers.register(ACTION, this::advance);
 	}
+
+	public void registerHandlers(PhantomStepHandlerRegistry handlers) { handlers.register(ACTION, this::advance); }
 
 	private Visit eligible(long id, PhantomGoal root)
 	{

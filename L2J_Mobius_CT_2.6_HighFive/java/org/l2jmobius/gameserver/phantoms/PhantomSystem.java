@@ -1035,6 +1035,7 @@ public final class PhantomSystem
 				populationDecision.registerCandidates(candidateRegistry);
 				partyDecision.registerCandidates(candidateRegistry);
 				clanDecision.registerCandidates(candidateRegistry);
+				_clanVisit.registerCandidates(candidateRegistry);
 				riftDecision.registerCandidates(candidateRegistry);
 				raidDecision.registerCandidates(candidateRegistry);
 				siegeDecision.registerCandidates(candidateRegistry);
@@ -1054,7 +1055,7 @@ public final class PhantomSystem
 				populationDecision.registerHandlers(handlerRegistry);
 				partyDecision.registerHandlers(handlerRegistry);
 				clanDecision.registerHandlers(handlerRegistry);
-				_clanVisit.register(candidateRegistry, handlerRegistry);
+				_clanVisit.registerHandlers(handlerRegistry);
 				riftDecision.registerHandlers(handlerRegistry);
 				raidDecision.registerHandlers(handlerRegistry);
 				siegeDecision.registerHandlers(handlerRegistry);
