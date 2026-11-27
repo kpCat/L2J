@@ -864,6 +864,11 @@ public final class PhantomSystem
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService, this::marketPricingAuthority, () -> _offlineMerchantService == null ? java.util.List.of() : _offlineMerchantService.buyOwners());
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
 				_historicalBackgroundService.bindEquipmentMaterialNeed((id, player) -> _supplyJourney.equipmentMaterialNeed(id, player, System.currentTimeMillis()));
+				_historicalBackgroundService.bindClanDropNeed((id, player) ->
+				{
+					final int itemId = _clanService.developmentDropNeed(id, player);
+					return itemId > 0 && !clanBackend.mandatoryPreparationPending(id, player) ? itemId : 0;
+				});
 				_supplyJourney.useGearUpgrades(_economyService);
 				_supplyJourney.useInventoryMaintenance(profileId -> (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty());
 				_supplyJourney.useThreatRetreat(_combatService);

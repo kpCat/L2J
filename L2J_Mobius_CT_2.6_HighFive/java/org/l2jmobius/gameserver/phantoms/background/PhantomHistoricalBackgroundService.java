@@ -85,6 +85,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _visibleIntent = (_, _) -> false;
 	private volatile java.util.function.BiFunction<Long, Player, Set<Integer>> _equipmentMaterialNeed = (_, _) -> Set.of();
+	private volatile java.util.function.ToIntBiFunction<Long, Player> _clanDropNeed = (_, _) -> 0;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedIntent = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyNativeLifetime = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyCommittedDecision = (_, _) -> false;
@@ -109,6 +110,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public void bindEquipmentMaterialNeed(java.util.function.BiFunction<Long, Player, Set<Integer>> need)
 	{
 		_equipmentMaterialNeed = Objects.requireNonNull(need);
+	}
+
+	public void bindClanDropNeed(java.util.function.ToIntBiFunction<Long, Player> need)
+	{
+		_clanDropNeed = Objects.requireNonNull(need);
 	}
 
 	/** A finite accepted child retains its exact root; HOLD still blocks all native actions separately. */
@@ -2173,13 +2179,27 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					selectableTargets = _visibleAutoPlay.selectableFarmTargets(player);
 				}
 			}
+			int missingClanItem = 0;
+			if (sharedFarmSource == null && !routeRecovery && selectableTargets == null && player.getClanId() != 0)
+			{
+				try (var observation = _materialization.tryAcquireObservation(profileId).orElse(null))
+				{
+					final var nativeOwner = player.getNativeWorkOwner();
+					if (observation != null && observation.player() == player && quietVisiblePlayer(player)
+						&& nativeOwner != null && nativeOwner.isCurrent() && nativeOwner.epoch() == lifetime.materializedAtNanos())
+					{
+						missingClanItem = _clanDropNeed.applyAsInt(profileId, player);
+					}
+				}
+			}
 			var replacement = spatialRecovery
 				? _planner.proposeVisibleRecovery(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
 					anchor -> _visibleTravel.recoveryAnchorAvailable(player, anchor))
 				: sharedFarmSource == null
 				? (selectableTargets == null
 					? (routeRecovery ? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
-							: _planner.replanVisibleGear(profileId, player, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, _equipmentMaterialNeed.apply(profileId, player)))
+							: _planner.replanVisibleGear(profileId, player, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel,
+								_equipmentMaterialNeed.apply(profileId, player), missingClanItem))
 					: _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel, selectableTargets))
 				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), travelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));

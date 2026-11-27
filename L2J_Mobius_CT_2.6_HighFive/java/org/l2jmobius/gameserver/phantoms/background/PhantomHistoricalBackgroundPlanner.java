@@ -33,8 +33,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionSourcePlanner;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.RouteCost;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.PlanningSnapshot;
@@ -43,6 +45,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropFact;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.DropSourceKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.KnowledgePage;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaSummary;
@@ -66,6 +70,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	private static final int FALLBACK_TARGETS = 256;
 	private static final int MAXIMUM_TARGET_PAGES = 8;
 	private static final int MAXIMUM_OFFSCREEN_NATIVE_PROOFS = 256;
+	private static final double MINIMUM_PERSONAL_LOOT_VALUE = 0.02;
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomSsqFarmAccess _ssq;
@@ -175,12 +180,12 @@ public final class PhantomHistoricalBackgroundPlanner
 	}
 
 	private Result replanVisibleLocalPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
-		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<Candidate> available, java.util.function.IntToDoubleFunction gearLoot)
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<Candidate> available, IntFunction<LootValue> loot)
 	{
 		final var previous = visiblePredecessor(profileId, previousGoal);
 		final var loadout = state.loadout();
 		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
-		final var local = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state), false, available, new java.util.HashMap<>(), null, 0, gearLoot);
+		final var local = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state), false, available, new java.util.HashMap<>(), null, 0, loot);
 		if (local.ready() || !"LOCAL_FARM_UNAVAILABLE".equals(local.reasonKey()) || live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return local; }
 		// Use the same finite knowledge pages, native viability and route exclusions as historical
 		// planning. The foreground owner must separately admit the actual departure and paid legs.
@@ -195,16 +200,25 @@ public final class PhantomHistoricalBackgroundPlanner
 		return replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excludedTargets, excludedSteps, admitted, _ -> true);
 	}
 
-	/** Prefer useful gear loot only on an already viable and comparable local XP route. */
+	/** Prefer personal loot, then a missing clan fee item, on comparable local XP routes. */
 	Result replanVisibleGear(long id, Player player, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
-		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted, Set<Integer> missingMaterials)
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted,
+		Set<Integer> missingMaterials, int missingClanItem)
 	{
-		final var benefits = new java.util.HashMap<Integer, Double>();
+		final var benefits = new java.util.HashMap<Integer, LootValue>();
 		return replanVisibleLocalPlan(id, state, previous, seed, ordinal, live, excludedTargets, excludedSteps, admitted, _ -> true,
 			player.isInParty() ? null : npc -> benefits.containsKey(npc) || benefits.size() < 8 ? benefits.computeIfAbsent(npc, key ->
-				Math.max(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.farmDrops(player, _knowledge, key, false).stream()
+				new LootValue(Math.max(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.farmDrops(player, _knowledge, key, false).stream()
 					.mapToDouble(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.FarmDrop::value).max().orElse(0),
-					org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.farmMaterialValue(player, _knowledge, key, missingMaterials))) : 0);
+					org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.farmMaterialValue(player, _knowledge, key, missingMaterials)),
+					missingClanItem == 0 ? 0 : clanDropValue(missingClanItem, _knowledge.snapshot().dropFactsByNpc().getOrDefault(key, List.of())))) : LootValue.NONE);
+	}
+
+	static double clanDropValue(int itemId, List<DropFact> facts)
+	{
+		if (itemId <= 0) { return 0; }
+		return facts.stream().filter(fact -> fact.itemId() == itemId && fact.sourceKind() == DropSourceKind.DEATH_DROP)
+			.mapToDouble(PhantomAcquisitionSourcePlanner::stockDropWeight).max().orElse(0);
 	}
 
 	Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
@@ -230,13 +244,13 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private Result replanVisibleLocalPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted,
-		java.util.function.Predicate<Candidate> available, java.util.function.IntToDoubleFunction gearLoot)
+		java.util.function.Predicate<Candidate> available, IntFunction<LootValue> loot)
 	{
 		Objects.requireNonNull(admitted, "admitted");
 		final var excluded = new java.util.HashSet<>(excludedTargets);
 		for (int attempt = 0; attempt < 3; attempt++)
 		{
-			final var candidate = replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps, available, gearLoot);
+			final var candidate = replanVisibleLocalPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps, available, loot);
 			if (!candidate.ready() || admitted.test(candidate.goal())) { return candidate; }
 			excluded.add(candidate.spec().npcId() + "@" + candidate.spec().anchorId());
 		}
@@ -942,7 +956,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, admitted, viability, exactPartyCandidate, recoveryWalkDistance, null);
 	}
 
-	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, Candidate exactPartyCandidate, int recoveryWalkDistance, java.util.function.IntToDoubleFunction gearLoot)
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, Candidate exactPartyCandidate, int recoveryWalkDistance, IntFunction<LootValue> loot)
 	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
@@ -997,7 +1011,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		if (live != null) { candidates.sort(Comparator.comparingLong((Candidate value) -> visibleFarmDistance(value.anchor(), live, recoveryWalkDistance)).thenComparingInt(value -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id())); }
 		final Candidate selected = live == null ? selectGlobal(candidates, profileId, deterministicSeed, planOrdinal, level)
-			: gearLoot == null ? candidates.getFirst() : preferLocalLoot(candidates, live, gearLoot);
+			: loot == null ? candidates.getFirst() : preferLocalLoot(candidates, live, loot);
 		final Map<String, Long> constraints = new LinkedHashMap<>();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, shotItemId, PhantomBackgroundGoalSpec.SHOT_COUNT, shotsPerEncounter);
 		if (summonNpcId > 0)
@@ -1015,21 +1029,35 @@ public final class PhantomHistoricalBackgroundPlanner
 		return new Result(goal, spec, identity, generation, selected.routeEdgeIds(), "planner.ready").withRejections(rejections);
 	}
 
-	private Candidate preferLocalLoot(List<Candidate> candidates, PhantomTopologyPoint live, java.util.function.IntToDoubleFunction gearLoot)
+	private Candidate preferLocalLoot(List<Candidate> candidates, PhantomTopologyPoint live, IntFunction<LootValue> loot)
 	{
 		final var ordinary = candidates.getFirst();
 		final var baseline = ordinary.target().npc();
 		final double maximumDistance = Math.sqrt(localFarmDistance(ordinary.anchor(), live)) + 500;
 		var best = ordinary;
-		double maximumValue = 0.02;
+		var maximumValue = LootValue.NONE;
 		for (var candidate : candidates)
 		{
 			final var npc = candidate.target().npc();
 			if (npc.exp() < baseline.exp() * 0.9 || npc.sp() < baseline.sp() * 0.9 || localFarmDistance(candidate.anchor(), live) > maximumDistance * maximumDistance) { continue; }
-			final double value = gearLoot.applyAsDouble(npc.npcId());
-			if (value > maximumValue) { best = candidate; maximumValue = value; }
+			final var value = loot.apply(npc.npcId());
+			if (value.betterThan(maximumValue)) { best = candidate; maximumValue = value; }
 		}
 		return best;
+	}
+
+	record LootValue(double personal, double clan)
+	{
+		private static final LootValue NONE = new LootValue(0, 0);
+
+		boolean betterThan(LootValue other)
+		{
+			if (personal > MINIMUM_PERSONAL_LOOT_VALUE || other.personal > MINIMUM_PERSONAL_LOOT_VALUE)
+			{
+				return personal > other.personal;
+			}
+			return clan > other.clan;
+		}
 	}
 
 	public Result idleInitial(long profileId, Player player, long deterministicSeed, long planOrdinal)

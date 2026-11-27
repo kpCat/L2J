@@ -289,13 +289,13 @@ public final class L2jPhantomClanBackend implements Backend
 		try (var lease = _materialization.tryAcquireObservation(member.profileId()).orElse(null))
 		{
 			return lease != null && lease.player().getObjectId() == member.characterObjectId() && ordinaryPlayer(lease.player())
-				&& !mandatoryPreparationPending(member, lease.player());
+				&& !mandatoryPreparationPending(member.profileId(), lease.player());
 		}
 	}
 
-	private boolean mandatoryPreparationPending(MemberRef member, Player player)
+	public boolean mandatoryPreparationPending(long profileId, Player player)
 	{
-		return PhantomNativeEquipmentPolicy.hasRequiredEquipment(player) || _mandatoryPreparationPending.test(member.profileId(), player);
+		return PhantomNativeEquipmentPolicy.hasRequiredEquipment(player) || _mandatoryPreparationPending.test(profileId, player);
 	}
 
 	@Override
@@ -321,7 +321,7 @@ public final class L2jPhantomClanBackend implements Backend
 			}
 			final Player player = acquired.player();
 			return ClanFoundingDevelopment.payForLevel(member.profileId(), player, availableClanMaster(player, masterObjectId), expectedLevel, expiresAt,
-				() -> mandatoryPreparationPending(member, player) || !current.getAsBoolean());
+				() -> mandatoryPreparationPending(member.profileId(), player) || !current.getAsBoolean());
 		}
 	}
 

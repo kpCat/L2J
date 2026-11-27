@@ -19,6 +19,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.clan.Clan;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService;
 import org.l2jmobius.gameserver.model.clan.ClanAllianceService.AllianceIdentity;
@@ -1288,6 +1289,19 @@ public final class PhantomClanService
 			final var plan = _development.get(profileId);
 			return plan != null && plan.expires() > _clock.getAsLong() ? plan.farmPreference() : 0;
 		}
+	}
+
+	public int developmentDropNeed(long profileId, Player player)
+	{
+		if (_state != State.RUNNING || player.isInParty() || player.isAlikeDead()) { return 0; }
+		final var clan = player.getClan();
+		if (clan == null || clan.getLeaderId() != player.getObjectId()) { return 0; }
+		final DevelopmentPlan plan;
+		synchronized (_autonomousMonitor) { plan = _development.get(profileId); }
+		if (plan == null || plan.expires() <= _clock.getAsLong() || plan.clanId() != clan.getId()
+			|| plan.requirement().currentLevel() != clan.getLevel() || plan.itemsDue() <= 0) { return 0; }
+		final int itemId = plan.requirement().itemId();
+		return player.getInventory().getInventoryItemCount(itemId, -1) < plan.requirement().itemCount() ? itemId : 0;
 	}
 
 	private PhantomGoal autonomousGoal(AutonomousActor actor, String type, PhantomDomainRef target, List<PhantomDomainRef> sources, long now)
