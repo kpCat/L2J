@@ -477,7 +477,7 @@ public final class PhantomClanVisit implements PhantomNativeJourneyDemand, Phant
 		{
 			if (!accepted) { return request.deadline(); }
 			final long rootDeadline = request.root().deadlineEpochMillis();
-			return (request.purpose() == PhantomClanService.VisitPurpose.PLEDGE_SKILL || request.purpose() == PhantomClanService.VisitPurpose.WAREHOUSE) && rootDeadline > 0
+			return request.purpose().hasRootDeadline() && rootDeadline > 0
 				? Math.min(rootDeadline, acceptedDeadline) : acceptedDeadline;
 		}
 	}

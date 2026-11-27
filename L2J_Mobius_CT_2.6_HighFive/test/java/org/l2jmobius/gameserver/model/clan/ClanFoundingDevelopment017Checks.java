@@ -117,25 +117,30 @@ public final class ClanFoundingDevelopment017Checks
 			adena.setOwnerId(payment.actorId());
 			adena.setItemLocation(ItemLocation.INVENTORY, 0, false);
 			adena.setCount(payment.itemBefore());
-			try
+			final long reserve = payment.itemAfter();
+			for (boolean mayCommit : new boolean[] { true, false })
 			{
-				adena.transactRecoverableAdenaDebit(payment.requirement().adena(), connection ->
+				final long protectedAdena = mayCommit ? reserve + 1 : reserve;
+				try
 				{
-					ClanFoundingDevelopment.stage(connection, payment, credit -> false);
-					throw new SQLException("021 controlled failure before commit");
-				});
-				throw new AssertionError("Injected failure did not propagate.");
+					adena.transactRecoverableAdenaDebit(payment.requirement().adena(), connection ->
+						ClanFoundingDevelopment.stage(connection, payment, credit -> false, protectedAdena, () -> mayCommit));
+					throw new AssertionError("An unaffordable or stale clan payment was committed.");
+				}
+				catch (SQLException expected)
+				{
+					final String reason = mayCommit ? "Native clan payment would spend the personal Adena reserve."
+						: "Native clan payment authority changed before commit.";
+					require(reason.equals(expected.getMessage()), "Unexpected refusal: " + expected.getMessage());
+				}
+				require(adena.getCount() == payment.itemBefore() && !adena.hasPendingAdenaDebit(), "Failed native debit left a memory effect.");
+				try (var conn = DatabaseFactory.getConnection())
+				{
+					assertRows(conn, payment.itemBefore(), payment.spBefore(), 1);
+				}
 			}
-			catch (SQLException expected)
-			{
-				require("021 controlled failure before commit".equals(expected.getMessage()), "Did not reach native transaction after staging.");
-			}
-			require(adena.getCount() == payment.itemBefore() && !adena.hasPendingAdenaDebit(), "Failed native debit left a memory effect.");
-			try (var conn = DatabaseFactory.getConnection())
-			{
-				assertRows(conn, payment.itemBefore(), payment.spBefore(), 1);
-			}
-			adena.transactRecoverableInventoryDebit(payment.actorId(), payment.itemBefore(), payment.feeCount(), conn -> ClanFoundingDevelopment.stage(conn, payment, credit -> false));
+			adena.transactRecoverableInventoryDebit(payment.actorId(), payment.itemBefore(), payment.feeCount(),
+				conn -> ClanFoundingDevelopment.stage(conn, payment, credit -> false, reserve, () -> true));
 			require(adena.getCount() == payment.itemAfter() && !adena.hasPendingAdenaDebit(), "Committed native debit was not published.");
 			try (var conn = DriverManager.getConnection(url, user, password))
 			{
@@ -155,7 +160,7 @@ public final class ClanFoundingDevelopment017Checks
 		{
 			DatabaseFactory.close();
 		}
-		System.out.println("PASS 021 native Item debit with stock DDL, fault rollback, commit and cold SQL readback");
+		System.out.println("PASS 021 native Item debit with stock DDL, Adena reserve, stale authority rollback and cold SQL readback");
 	}
 
 	private static void verifyNativeReputationLevels() throws Exception

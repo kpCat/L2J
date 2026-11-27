@@ -386,16 +386,20 @@ public final class PhantomClanService
 
 		default ClanFoundingDevelopment.Outcome developAutonomous(MemberRef leader, int expectedClanId) { return ClanFoundingDevelopment.Outcome.NOT_READY; }
 		default ClanFoundingDevelopment.Outcome developAutonomous(MemberRef leader, int expectedClanId, int masterObjectId) { return developAutonomous(leader, expectedClanId); }
-		default ClanFoundingDevelopment.Outcome developAutonomous(MemberRef leader, int expectedClanId, int expectedLevel, int masterObjectId, long expiresAt, BooleanSupplier current)
+		default ClanFoundingDevelopment.Outcome developAutonomous(MemberRef leader, int expectedClanId, int expectedLevel, int masterObjectId, long expiresAt,
+			BooleanSupplier current, BooleanSupplier localExecution)
 		{
-			return expectedLevel == 0 && current.getAsBoolean() ? developAutonomous(leader, expectedClanId, masterObjectId) : ClanFoundingDevelopment.Outcome.NOT_READY;
+			return expectedLevel == 0 && current.getAsBoolean() && localExecution.getAsBoolean()
+				? developAutonomous(leader, expectedClanId, masterObjectId) : ClanFoundingDevelopment.Outcome.NOT_READY;
 		}
 		default ClanFoundingDevelopment.PledgeTerms choosePledgeSkill(MemberRef leader, int clanId) { return null; }
-		default ClanFoundingDevelopment.Outcome learnPledgeSkill(MemberRef leader, int clanId, int masterObjectId, ClanFoundingDevelopment.PledgeTerms terms, long expiresAt, BooleanSupplier current)
+		default ClanFoundingDevelopment.Outcome learnPledgeSkill(MemberRef leader, int clanId, int masterObjectId, ClanFoundingDevelopment.PledgeTerms terms,
+			long expiresAt, BooleanSupplier current, BooleanSupplier localExecution)
 		{
 			return ClanFoundingDevelopment.Outcome.NOT_READY;
 		}
 		default boolean mayStartAutonomousDevelopment(MemberRef leader) { return true; }
+		default long personalAdenaReserve() { return 0; }
 		default boolean atAutonomousWarehouse(MemberRef member, int objectId) { return false; }
 		default boolean mayContinueWarehouse(MemberRef member, ClanSnapshot clan, WarehouseOffer offer) { return false; }
 		default WarehouseOffer chooseWarehouse(MemberRef member, ClanSnapshot clan, WarehouseDemand demand, boolean mayDonate,
@@ -541,6 +545,7 @@ public final class PhantomClanService
 		FOUND, DEVELOP, PLEDGE_SKILL, CREATE_ALLIANCE, WAREHOUSE;
 
 		boolean paidDevelopment() { return this == DEVELOP || this == PLEDGE_SKILL; }
+		boolean hasRootDeadline() { return paidDevelopment() || this == WAREHOUSE; }
 	}
 	public enum VisitOutcome { HANDLED, STALE, BUSY }
 	public enum WarehousePurpose { DONATE, DEVELOP, EQUIPMENT }
@@ -900,8 +905,12 @@ public final class PhantomClanService
 		if (root != null && root.status() == PhantomGoalStatus.ACTIVE
 			&& org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
 		{
+			final long rootDeadline = root.deadlineEpochMillis();
+			final long expiry = now + 4 * _discoveryMillis;
+			final long deadline = purpose.hasRootDeadline() && rootDeadline > 0 ? Math.min(rootDeadline, expiry) : expiry;
+			if (now >= deadline) { return true; }
 			destination.accept(new VisitRequest(purpose, actor.member(), root, clanId, actor.clan() == null ? -1 : actor.clan().level(), peer == null ? null : peer.member(),
-				peer == null || peer.clan() == null ? 0 : peer.clan().clanId(), alternatePeers, preference, now, now + 4 * _discoveryMillis));
+				peer == null || peer.clan() == null ? 0 : peer.clan().clanId(), alternatePeers, preference, now, deadline));
 		}
 		return true;
 	}
@@ -931,10 +940,13 @@ public final class PhantomClanService
 	{
 		final long profileId = visit.member().profileId();
 		final long now = _clock.getAsLong();
-		final BooleanSupplier current = () -> _state == State.RUNNING && _clock.getAsLong() < arrivalDeadline && currentExecution.getAsBoolean();
+		final long rootDeadline = visit.root().deadlineEpochMillis();
+		final long deadline = visit.purpose().hasRootDeadline() && rootDeadline > 0 ? Math.min(rootDeadline, arrivalDeadline) : arrivalDeadline;
+		final BooleanSupplier current = () -> _state == State.RUNNING && _clock.getAsLong() < deadline && currentExecution.getAsBoolean();
+		final BooleanSupplier local = () -> _state == State.RUNNING && _clock.getAsLong() < deadline && localExecution.getAsBoolean();
 		synchronized (_autonomousMonitor)
 		{
-			if (_state != State.RUNNING || !_autonomousEnabled || now >= arrivalDeadline) { return VisitOutcome.STALE; }
+			if (_state != State.RUNNING || !_autonomousEnabled || now >= deadline) { return VisitOutcome.STALE; }
 			if (_autonomousActions + _active.size() >= MAX_ACTIVE_OPERATIONS || !_mutating.add(profileId)) { return VisitOutcome.BUSY; }
 			_autonomousActions++;
 		}
@@ -969,14 +981,14 @@ public final class PhantomClanService
 				{
 					if (!isLeader(actor) || clan.clanId() != visit.clanId() || clan.level() != visit.currentLevel() || !developmentReady(developmentPlan(actor, now))
 						|| !_backend.mayStartAutonomousDevelopment(actor.member())) { return VisitOutcome.STALE; }
-					if (!developAutonomously(actor, masterObjectId, arrivalDeadline, current)) { return VisitOutcome.STALE; }
+					if (!developAutonomously(actor, masterObjectId, deadline, current, local)) { return VisitOutcome.STALE; }
 				}
 				case PLEDGE_SKILL ->
 				{
 					if (!isLeader(actor) || clan.clanId() != visit.clanId() || clan.level() != visit.currentLevel()
 						|| visit.pledge() == null || developmentReady(developmentPlan(actor, now))
 						|| !_backend.mayStartAutonomousDevelopment(actor.member())) { return VisitOutcome.STALE; }
-					final var outcome = _backend.learnPledgeSkill(actor.member(), clan.clanId(), masterObjectId, visit.pledge(), arrivalDeadline, current);
+					final var outcome = _backend.learnPledgeSkill(actor.member(), clan.clanId(), masterObjectId, visit.pledge(), deadline, current, local);
 					observeAutonomousOutcome("clan.autonomous.pledge_skill." + outcome.name().toLowerCase(java.util.Locale.ROOT));
 					if (outcome == ClanFoundingDevelopment.Outcome.NOT_READY || outcome == ClanFoundingDevelopment.Outcome.DEFERRED) { return VisitOutcome.STALE; }
 				}
@@ -988,10 +1000,10 @@ public final class PhantomClanService
 					if (offer.purpose() != WarehousePurpose.EQUIPMENT
 						&& (demand == null || demand.itemId() != offer.itemId() || demand.count() < offer.count())) { return VisitOutcome.STALE; }
 					final var request = new ClanWarehouseTransfer.Request(clan.clanId(), clan.leaderObjectId(), offer.objectId(), offer.count(), offer.deposit(),
-						offer.operation(), arrivalDeadline, offer.deposit() ? demand.count() : 0, offer.deposit() ? _warehouseDonation : null, visit.currentLevel());
+						offer.operation(), deadline, offer.deposit() ? demand.count() : 0, offer.deposit() ? _warehouseDonation : null, visit.currentLevel());
 					final var outcome = _backend.useWarehouse(actor.member(), masterObjectId, request, offer, demand,
 						() -> current.getAsBoolean() && _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).filter(visit.root()::equals).isPresent(),
-						() -> _state == State.RUNNING && _clock.getAsLong() < arrivalDeadline && localExecution.getAsBoolean());
+						local);
 					observeAutonomousOutcome("clan.autonomous.warehouse." + offer.purpose().name().toLowerCase(java.util.Locale.ROOT)
 						+ "." + outcome.name().toLowerCase(java.util.Locale.ROOT));
 					if (outcome == ClanWarehouseTransfer.TransferOutcome.NOT_READY) { return VisitOutcome.STALE; }
@@ -1034,7 +1046,9 @@ public final class PhantomClanService
 			}
 			if (_state == State.RUNNING && developmentReady(development) && _backend.mayStartAutonomousDevelopment(member))
 			{
-				if (!offerVisit(VisitPurpose.DEVELOP, actor, root, clan.clanId(), null, preference, now) && developAutonomously(actor, 0, Long.MAX_VALUE, () -> _state == State.RUNNING)) { return; }
+				final BooleanSupplier serviceRunning = () -> _state == State.RUNNING;
+				if (!offerVisit(VisitPurpose.DEVELOP, actor, root, clan.clanId(), null, preference, now)
+					&& developAutonomously(actor, 0, Long.MAX_VALUE, serviceRunning, serviceRunning)) { return; }
 			}
 			if (current == null)
 			{
@@ -1201,10 +1215,10 @@ public final class PhantomClanService
 		return plan != null && plan.ready() && ClanFoundingDevelopment.supportsLevel(plan.requirement().currentLevel());
 	}
 
-	private boolean developAutonomously(AutonomousActor actor, int masterObjectId, long expiresAt, BooleanSupplier current)
+	private boolean developAutonomously(AutonomousActor actor, int masterObjectId, long expiresAt, BooleanSupplier current, BooleanSupplier localExecution)
 	{
 		if (!current.getAsBoolean()) { return false; }
-		final var outcome = _backend.developAutonomous(actor.member(), actor.clan().clanId(), actor.clan().level(), masterObjectId, expiresAt, current);
+		final var outcome = _backend.developAutonomous(actor.member(), actor.clan().clanId(), actor.clan().level(), masterObjectId, expiresAt, current, localExecution);
 		if (outcome == ClanFoundingDevelopment.Outcome.APPLIED)
 		{
 			synchronized (_autonomousMonitor) { _development.remove(actor.member().profileId()); }
@@ -1513,7 +1527,9 @@ public final class PhantomClanService
 		final var requirement = Clan.levelRequirement(clan.level());
 		if (requirement == null) { return null; }
 		final int members = requirement.currentLevel() == 0 ? 2 : requirement.members();
-		return new DevelopmentPlan(clan.clanId(), requirement, Math.max(0, requirement.adena() - actor.adena()),
+		final long fee = requirement.adena();
+		final long requiredAdena = fee == 0 ? 0 : fee + Math.clamp(_backend.personalAdenaReserve(), 0, Long.MAX_VALUE - fee);
+		return new DevelopmentPlan(clan.clanId(), requirement, Math.max(0, requiredAdena - Math.max(0, actor.adena())),
 			Math.max(0, requirement.sp() - actor.sp()), Math.max(0, requirement.itemCount() - actor.developmentItems()),
 			clan.level() < 5 ? 0 : Math.max(0, requirement.reputation() - clan.reputation()),
 			Math.max(0, members - clan.memberCount()), requirement.territory() && !actor.territory(), now + 2 * _discoveryMillis + 31_000);

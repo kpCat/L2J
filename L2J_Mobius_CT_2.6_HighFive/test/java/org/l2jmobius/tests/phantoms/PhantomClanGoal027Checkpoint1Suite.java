@@ -106,6 +106,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 			{
 				registry.add("019-founder-requires-current-root-and-native-arrival", this::autonomousFounderVisit);
 				registry.add("021-warehouse-consent-and-current-farm-root", this::autonomousWarehouseVisit);
+				registry.add("021-development-keeps-personal-adena-reserve", this::autonomousDevelopmentReserve);
 			}
 			case CREATION_RESTART ->
 			{
@@ -268,6 +269,40 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(1, fixture.backend.warehouseWrites, "Expected one exact bounded warehouse action.");
 		PhantomAssertions.assertEquals(farm, fixture.goals.load(2).orElseThrow().goal(), "A warehouse trip replaced the existing farm root.");
 		context.record("goal021.warehouse.visit", "consent; exact warehouse; stale root refused; one writer admission");
+	}
+
+	private void autonomousDevelopmentReserve(PhantomTestContext context)
+	{
+		final var fixture = new Fixture();
+		fixture.backend.addPhantom(1, 100);
+		fixture.backend.putClan(100, 100);
+		fixture.backend.developmentAdena = 2_500_000;
+		fixture.backend.developmentSp = 100_000;
+		fixture.backend.personalReserve = 50_000;
+		final var farm = goalWithDeadline(1, 801, "farm.background", null, null, List.of(), 2, NOW + 180_000);
+		fixture.goals.put(1, farm);
+		final var visit = new java.util.concurrent.atomic.AtomicReference<PhantomClanService.VisitRequest>();
+		final var service = fixture.service();
+		service.bindAutonomousVisits(visit::set);
+		service.advanceAutonomous(1, 100, List::of, 4);
+		PhantomAssertions.assertTrue(visit.get() == null, "The clan used a protected personal reserve to justify a paid trip.");
+		PhantomAssertions.assertEquals(4, service.developmentFarmPreference(1), "The missing clan funding did not remain part of ordinary farm.");
+		fixture.clock.addAndGet(120_000);
+		fixture.backend.developmentAdena += fixture.backend.personalReserve;
+		service.advanceAutonomous(1, 100, List::of, 4);
+		final var ready = java.util.Objects.requireNonNull(visit.get(),
+			() -> "Paying the exact fee above the reserve did not admit the clan trip. " + service.autonomousOutcomes());
+		PhantomAssertions.assertEquals(PhantomClanService.VisitPurpose.DEVELOP, ready.purpose(), "Clan money was attributed to a different purpose.");
+		PhantomAssertions.assertEquals(farm, ready.root(), "The paid visit replaced the current farm root.");
+		PhantomAssertions.assertEquals(farm.deadlineEpochMillis(), ready.deadline(), "A paid visit outlived a finite farm root.");
+
+		fixture.backend.addPhantom(2, 200);
+		fixture.backend.putClan(200, 100);
+		fixture.backend.developmentAdena = 1_000;
+		fixture.goals.put(2, goalWithDeadline(2, 802, "farm.background", null, null, List.of(), 2, NOW + 600_000));
+		service.advanceAutonomous(2, 200, List::of, 4);
+		PhantomAssertions.assertEquals(new WarehouseDemand(57, 2_549_000), fixture.backend.observedWarehouseDemand,
+			"The warehouse budget omitted the part of the clan fee needed when the leader was below the reserve.");
 	}
 
 	private void autonomousStop(PhantomTestContext context) throws Exception
@@ -901,8 +936,15 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		private final java.util.Set<Long> atClanMaster = new java.util.HashSet<>();
 		private boolean canPlanAway;
 		private WarehouseOffer warehouseOffer;
+		private WarehouseDemand observedWarehouseDemand;
 		private boolean atWarehouse;
 		private int warehouseWrites;
+		private long developmentAdena;
+		private long developmentSp;
+		private long personalReserve;
+
+		@Override
+		public long personalAdenaReserve() { return personalReserve; }
 
 		@Override
 		public boolean hasAutonomousInvitation(int objectId) { return invitations.containsKey(objectId); }
@@ -911,7 +953,8 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		public Optional<PhantomClanService.AutonomousActor> autonomousActor(long profileId)
 		{
 			if (beforeAutonomousObservation != null) { beforeAutonomousObservation.run(); }
-			return currentMember(profileId).map(member -> new PhantomClanService.AutonomousActor(member, observe(member).orElse(null), founderLevels.getOrDefault(profileId, 0), true, canPlanAway || atClanMaster.contains(profileId), 0, 0));
+			return currentMember(profileId).map(member -> new PhantomClanService.AutonomousActor(member, observe(member).orElse(null),
+				founderLevels.getOrDefault(profileId, 0), true, canPlanAway || atClanMaster.contains(profileId), developmentAdena, developmentSp));
 		}
 
 		@Override
@@ -924,6 +967,7 @@ public final class PhantomClanGoal027Checkpoint1Suite implements PhantomTestSuit
 		public WarehouseOffer chooseWarehouse(MemberRef member, ClanSnapshot clan, WarehouseDemand demand, boolean mayDonate,
 			ClanWarehouseTransfer.DonationPolicy donation, long now)
 		{
+			observedWarehouseDemand = demand;
 			return warehouseOffer != null && mayDonate && demand != null && demand.itemId() == warehouseOffer.itemId() ? warehouseOffer : null;
 		}
 

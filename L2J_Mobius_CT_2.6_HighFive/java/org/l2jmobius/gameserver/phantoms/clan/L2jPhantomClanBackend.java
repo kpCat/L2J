@@ -94,7 +94,7 @@ public final class L2jPhantomClanBackend implements Backend
 	private final PhantomSocialAffiliationContextPort _affiliationContexts;
 	private final BiPredicate<Long, Player> _mandatoryPreparationPending;
 	private volatile java.util.function.ToLongBiFunction<Long, Player> _developmentPurchaseReserve = (_, _) -> -1;
-	private volatile long _warehouseReserve = -1;
+	private volatile long _personalAdenaReserve = -1;
 	private volatile BiFunction<Long, Player, Set<Integer>> _warehousePrivateMaterials = (_, _) -> Set.of();
 
 	public L2jPhantomClanBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization)
@@ -307,12 +307,15 @@ public final class L2jPhantomClanBackend implements Backend
 		}
 	}
 
-	public void bindWarehouseReserve(long reserve, BiFunction<Long, Player, Set<Integer>> privateMaterials)
+	public void bindPersonalSupply(long reserve, BiFunction<Long, Player, Set<Integer>> privateMaterials)
 	{
-		if (reserve < 0) { throw new IllegalArgumentException("Clan warehouse requires an existing supply reserve."); }
+		if (reserve < 0) { throw new IllegalArgumentException("Autonomous clan spending requires an existing supply reserve."); }
 		_warehousePrivateMaterials = Objects.requireNonNull(privateMaterials);
-		_warehouseReserve = Math.max(1, reserve);
+		_personalAdenaReserve = Math.max(1, reserve);
 	}
+
+	@Override
+	public long personalAdenaReserve() { return _personalAdenaReserve; }
 
 	@Override
 	public WarehouseOffer chooseWarehouse(MemberRef member, ClanSnapshot clan, WarehouseDemand demand, boolean mayDonate,
@@ -341,13 +344,13 @@ public final class L2jPhantomClanBackend implements Backend
 				final Item stock = warehouseStack(own.getWarehouse(), demand.itemId(), ItemLocation.CLANWH);
 				return stock == null ? null : warehouseOffer(WarehousePurpose.DEVELOP, own, stock, Math.min(demand.count(), stock.getCount()));
 			}
-			if (!mayDonate || player.getAdena() - _warehouseReserve < 30) { return null; }
+			if (!mayDonate || player.getAdena() - _personalAdenaReserve < 30) { return null; }
 			final int itemId = demand.itemId();
 			if (itemId != Inventory.ADENA_ID && _warehousePrivateMaterials.apply(member.profileId(), player).contains(itemId)) { return null; }
 			final Item stock = itemId == Inventory.ADENA_ID ? player.getInventory().getAdenaInstance() : warehouseStack(player.getInventory(), itemId, ItemLocation.INVENTORY);
 			if (stock == null || !warehouseItem(stock) || !stock.isAvailable(player, true, false)) { return null; }
 			final long room = ClanWarehouseTransfer.remainingDonationRoom(own.getWarehouse(), itemId, demand.count());
-			final long maximum = itemId == Inventory.ADENA_ID ? donation.adenaLimit(stock.getCount(), _warehouseReserve) : stock.getCount();
+			final long maximum = itemId == Inventory.ADENA_ID ? donation.adenaLimit(stock.getCount(), _personalAdenaReserve) : stock.getCount();
 			final long count = Math.min(room, maximum);
 			return count <= 0 || !ClanWarehouseTransfer.donationDue(member.profileId(), now, donation)
 				? null : warehouseOffer(WarehousePurpose.DONATE, own, stock, count);
@@ -398,7 +401,7 @@ public final class L2jPhantomClanBackend implements Backend
 			{
 				return ClanWarehouseTransfer.TransferOutcome.NOT_READY;
 			}
-			return ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _warehouseReserve, current,
+			return ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _personalAdenaReserve, current,
 				() -> localExecution.getAsBoolean() && PhantomNativeLootControl.threat(player) == null
 					&& (offer.purpose() != WarehousePurpose.EQUIPMENT || usefulWarehouseGear(player, item)));
 		}
@@ -406,7 +409,7 @@ public final class L2jPhantomClanBackend implements Backend
 
 	private boolean warehouseActor(Player player, Clan clan, int clanId, int leaderId)
 	{
-		return _warehouseReserve >= 0 && ordinaryPlayer(player) && !player.isAlikeDead() && !player.isInCombat() && player.getParty() == null
+		return _personalAdenaReserve >= 0 && ordinaryPlayer(player) && !player.isAlikeDead() && !player.isInCombat() && player.getParty() == null
 			&& !player.hasPendingOwnedStore() && clan != null && clan.getId() == clanId && clan.getLeaderId() == leaderId
 			&& clan.getLevel() >= 1 && clan.getDissolvingExpiryTime() == 0 && clan.getClanMember(player.getObjectId()) != null
 			&& ClanTable.getInstance().getClan(clanId) == clan;
@@ -492,11 +495,12 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int masterObjectId)
 	{
-		return developAutonomous(member, expectedClanId, 0, masterObjectId, Long.MAX_VALUE, () -> true);
+		return developAutonomous(member, expectedClanId, 0, masterObjectId, Long.MAX_VALUE, () -> true, () -> true);
 	}
 
 	@Override
-	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int expectedLevel, int masterObjectId, long expiresAt, BooleanSupplier current)
+	public ClanFoundingDevelopment.Outcome developAutonomous(MemberRef member, int expectedClanId, int expectedLevel, int masterObjectId, long expiresAt,
+		BooleanSupplier current, BooleanSupplier localExecution)
 	{
 		try (var acquired = acquire(member))
 		{
@@ -505,8 +509,9 @@ public final class L2jPhantomClanBackend implements Backend
 				return ClanFoundingDevelopment.Outcome.NOT_READY;
 			}
 			final Player player = acquired.player();
-			return ClanFoundingDevelopment.payForLevel(member.profileId(), player, availableClanMaster(player, masterObjectId), expectedLevel, expiresAt,
-				() -> mandatoryPreparationPending(member.profileId(), player) || !current.getAsBoolean());
+			return ClanFoundingDevelopment.payForLevel(member.profileId(), player, availableClanMaster(player, masterObjectId), expectedLevel, personalAdenaReserve(),
+				expiresAt, () -> mandatoryPreparationPending(member.profileId(), player) || !current.getAsBoolean(),
+				() -> localDevelopmentCurrent(player, localExecution));
 		}
 	}
 
@@ -522,15 +527,21 @@ public final class L2jPhantomClanBackend implements Backend
 	}
 
 	@Override
-	public ClanFoundingDevelopment.Outcome learnPledgeSkill(MemberRef member, int clanId, int masterObjectId, ClanFoundingDevelopment.PledgeTerms terms, long expiresAt, BooleanSupplier current)
+	public ClanFoundingDevelopment.Outcome learnPledgeSkill(MemberRef member, int clanId, int masterObjectId, ClanFoundingDevelopment.PledgeTerms terms,
+		long expiresAt, BooleanSupplier current, BooleanSupplier localExecution)
 	{
 		try (var acquired = acquire(member))
 		{
 			if (acquired == null || !ordinaryPlayer(acquired.player()) || masterObjectId <= 0) { return ClanFoundingDevelopment.Outcome.NOT_READY; }
 			final Player player = acquired.player();
 			return ClanFoundingDevelopment.payForPledgeSkill(member.profileId(), player, availableClanMaster(player, masterObjectId), clanId, terms, expiresAt,
-				() -> mandatoryPreparationPending(member.profileId(), player) || !current.getAsBoolean());
+				() -> mandatoryPreparationPending(member.profileId(), player) || !current.getAsBoolean(), () -> localDevelopmentCurrent(player, localExecution));
 		}
+	}
+
+	private static boolean localDevelopmentCurrent(Player player, BooleanSupplier localExecution)
+	{
+		return localExecution.getAsBoolean() && PhantomNativeLootControl.threat(player) == null && !PhantomNativeEquipmentPolicy.hasRequiredEquipment(player);
 	}
 
 	@Override
@@ -746,7 +757,7 @@ public final class L2jPhantomClanBackend implements Backend
 				return contribution(ContributionOutcome.STALE, 0, 0, "");
 			}
 			final var request = new ClanWarehouseTransfer.Request(expected.clanId(), expected.leaderObjectId(), inventoryObjectId, count, true, operation, expiresAt);
-			return switch (ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _warehouseReserve, current,
+			return switch (ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _personalAdenaReserve, current,
 				() -> PhantomNativeLootControl.threat(player) == null))
 			{
 				case APPLIED -> contribution(ContributionOutcome.COMPLETED, count, count, PhantomClanService.sha256(operation.toString()));
@@ -777,7 +788,7 @@ public final class L2jPhantomClanBackend implements Backend
 			if (npc == null || !ClanWarehouseTransfer.canWithdraw(player, clan)) { return WithdrawalOutcome.NOT_READY; }
 			final var request = new ClanWarehouseTransfer.Request(expectedClanId, clan.getLeaderId(), warehouseObjectId, count,
 				false, UUID.randomUUID(), System.currentTimeMillis() + 30_000);
-			return switch (ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _warehouseReserve, () -> true,
+			return switch (ClanWarehouseTransfer.transfer(member.profileId(), player, npc, request, _personalAdenaReserve, () -> true,
 				() -> PhantomNativeLootControl.threat(player) == null))
 			{
 				case APPLIED -> WithdrawalOutcome.COMPLETED;

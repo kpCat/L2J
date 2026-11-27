@@ -911,7 +911,7 @@ public final class PhantomSystem
 						|| _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(id, root),
 					_historicalBackgroundService::canStartNativeJourney);
 				_clanService.bindAutonomousVisits(_clanVisit::offer);
-				clanBackend.bindWarehouseReserve(autonomousSupplyPolicy.minimumAdenaReserve(),
+				clanBackend.bindPersonalSupply(autonomousSupplyPolicy.minimumAdenaReserve(),
 					(id, player) -> _supplyJourney.equipmentMaterialNeed(id, player, System.currentTimeMillis()));
 				clanBackend.bindDevelopmentPurchaseReserve((id, player) ->
 					soloExecution(id) && autonomousClanOrdinary(id) && !_partyCoordinator.blocksBackground(id) && !_phantomStoreService.blocksDecision(id)
