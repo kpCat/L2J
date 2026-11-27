@@ -35,21 +35,30 @@ import org.l2jmobius.gameserver.qol.PersonalProgressionShopService;
 public final class ClanDevelopmentShop
 {
 	private static final String COMPONENT_TYPE = "clan.development.shop-purchase";
-	private static final int VERSION = 1;
+	private static final String BULK_COMPONENT_TYPE = "clan.development.shop-bulk-purchase";
 	private static final Logger LOGGER = Logger.getLogger(ClanDevelopmentShop.class.getName());
 
 	private ClanDevelopmentShop() { }
 
 	record Purchase(long profileId, int actorId, int clanId, int level, int adenaId, long adenaBefore,
-		int productId, int itemId, long price, UUID operation)
+		int productId, int itemId, long count, long price, UUID operation)
 	{
+		Purchase(long profileId, int actorId, int clanId, int level, int adenaId, long adenaBefore, int productId, int itemId, long price, UUID operation)
+		{
+			this(profileId, actorId, clanId, level, adenaId, adenaBefore, productId, itemId, 1, price, operation);
+		}
+
 		long adenaAfter() { return adenaBefore - price; }
+		int version() { return count == 1 ? 1 : 2; }
+		String componentType() { return version() == 1 ? COMPONENT_TYPE : BULK_COMPONENT_TYPE; }
 
 		byte[] evidence()
 		{
-			return ByteBuffer.allocate(64).putLong(operation.getMostSignificantBits()).putLong(operation.getLeastSignificantBits())
+			final var bytes = ByteBuffer.allocate(version() == 1 ? 64 : 72).putLong(operation.getMostSignificantBits()).putLong(operation.getLeastSignificantBits())
 				.putLong(profileId).putInt(actorId).putInt(clanId).putInt(level).putInt(adenaId).putLong(adenaBefore)
-				.putInt(productId).putInt(itemId).putLong(price).array();
+				.putInt(productId).putInt(itemId).putLong(price);
+			if (version() == 2) { bytes.putLong(count); }
+			return bytes.array();
 		}
 	}
 
@@ -78,17 +87,18 @@ public final class ClanDevelopmentShop
 		final var clan = leader.getClan();
 		final var requirement = Clan.levelRequirement(level);
 		if (clan == null || clan.getId() != clanId || !ClanFoundingDevelopment.supportsLevel(level)
-			|| requirement.itemCount() != 1 || requirement.itemId() == 0 || reserve < 0 || !mayUseShop(leader)) { return Outcome.NOT_READY; }
+			|| requirement.itemCount() <= 0 || requirement.itemId() == 0 || reserve < 0 || !mayUseShop(leader)) { return Outcome.NOT_READY; }
 		final int itemId = requirement.itemId();
+		final long count = requirement.itemCount();
 		final long price = PersonalProgressionShopService.getInstance().storefrontOffers().stream()
-			.filter(offer -> offer.itemId() == itemId && offer.count() == 1).mapToLong(PersonalProgressionShopService.StorefrontOffer::price)
+			.filter(offer -> offer.itemId() == itemId && offer.count() == count).mapToLong(PersonalProgressionShopService.StorefrontOffer::price)
 			.findFirst().orElse(0);
 		final var inventory = leader.getInventory();
 		if (price <= 0 || leader.getAdena() - reserve < price) { return Outcome.NOT_READY; }
 		final int actorId = leader.getObjectId();
 		final var resources = List.of(
 			new Reservation(profile, actorId, 0, ResourceKind.ADENA, 0, Inventory.ADENA_ID, price, leader.getAdena(), 0, "INVENTORY"),
-			new Reservation(profile, actorId, 0, ResourceKind.ITEM_COUNT, 0, itemId, 1, 0, 0, "INVENTORY"),
+			new Reservation(profile, actorId, 0, ResourceKind.ITEM_COUNT, 0, itemId, count, 0, 0, "INVENTORY"),
 			new Reservation(profile, actorId, 0, ResourceKind.CAPACITY, 0, 0, 1, inventory.getSize(), 0, "INVENTORY"));
 		try (var claim = PhantomEconomyConflictPort.claim(profile, null, resources))
 		{
@@ -103,35 +113,40 @@ public final class ClanDevelopmentShop
 		final int clanId = clan.getId();
 		final int level = requirement.currentLevel();
 		final int itemId = requirement.itemId();
+		final long count = requirement.itemCount();
 		final var fence = ClanSocialMutationFence.getInstance();
 		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(clanId) }, () ->
 		{
 			synchronized (leader)
 			{
-				if (leader.getPendingClanPurchase() != null || leader.getPendingClanDevelopment() != null || leader.getPendingClanDeparture() != null
-					|| !ClanFoundingDevelopment.authorizedAction(leader, profile) || !mayUseShop(leader) || !stillCurrent.getAsBoolean()
-					|| leader.getClan() != clan || ClanTable.getInstance().getClan(clanId) != clan || clan.getLeaderId() != leader.getObjectId()
-					|| clan.getLevel() != level || clan.getDissolvingExpiryTime() != 0 || fence.isRetiring(clanId)
-					|| clan.firstLevelPaymentPending() || leader.getSp() < requirement.sp()) { return Outcome.NOT_READY; }
-				final var inventory = leader.getInventory();
-				final var adena = inventory.getAdenaInstance();
-				if (adena == null || inventory.getInventoryItemCount(itemId, -1) > 0
-					|| !inventory.validateCapacityByItemId(itemId, 1) || !inventory.validateWeightByItemId(itemId, 1)) { return Outcome.NOT_READY; }
-				synchronized (adena)
+				synchronized (clan)
 				{
-					if (adena.getOwnerId() != leader.getObjectId() || adena.getCount() - reserve < price
-						|| adena.blocksInventoryDebit() || System.currentTimeMillis() >= expiresAt
-						|| !MultisellData.getInstance().matchesPersonalProgressionOffer(itemId, price)) { return Outcome.NOT_READY; }
-					final var template = ItemData.getInstance().getTemplate(itemId);
-					if (template == null || !template.isStackable() || template.isEquipable() || template.getDuration() != -1
-						|| template.getTime() != -1) { return Outcome.NOT_READY; }
-					final var product = new Item(IdManager.getInstance().getNextId(), template);
-					product.setOwnerId(leader.getObjectId());
-					product.setItemLocation(ItemLocation.INVENTORY, 0, false);
-					product.setCount(1);
-					final var purchase = new Purchase(profile, leader.getObjectId(), clanId, level, adena.getObjectId(), adena.getCount(),
-						product.getObjectId(), itemId, price, UUID.randomUUID());
-					return buyLocked(leader, new PendingPurchase(purchase, adena, product), expiresAt, resources);
+					if (leader.getPendingClanPurchase() != null || leader.getPendingClanDevelopment() != null || leader.getPendingClanDeparture() != null
+						|| !ClanFoundingDevelopment.authorizedAction(leader, profile) || !mayUseShop(leader) || !stillCurrent.getAsBoolean()
+						|| leader.getClan() != clan || ClanTable.getInstance().getClan(clanId) != clan || clan.getLeaderId() != leader.getObjectId()
+						|| clan.getLevel() != level || clan.getDissolvingExpiryTime() != 0 || fence.isRetiring(clanId)
+						|| clan.firstLevelPaymentPending() || leader.getSp() < requirement.sp() || level >= 5 && clan.getReputationScore() < requirement.reputation()
+						|| clan.getMembersCount() < requirement.members()) { return Outcome.NOT_READY; }
+					final var inventory = leader.getInventory();
+					final var adena = inventory.getAdenaInstance();
+					if (adena == null || inventory.getInventoryItemCount(itemId, -1) >= count
+						|| !inventory.validateCapacity(1) || !inventory.validateWeightByItemId(itemId, count)) { return Outcome.NOT_READY; }
+					synchronized (adena)
+					{
+						if (adena.getOwnerId() != leader.getObjectId() || adena.getCount() - reserve < price
+							|| adena.blocksInventoryDebit() || System.currentTimeMillis() >= expiresAt
+							|| !MultisellData.getInstance().matchesPersonalProgressionOffer(itemId, count, price)) { return Outcome.NOT_READY; }
+						final var template = ItemData.getInstance().getTemplate(itemId);
+						if (template == null || !template.isStackable() || template.isEquipable() || template.getDuration() != -1
+							|| template.getTime() != -1) { return Outcome.NOT_READY; }
+						final var product = new Item(IdManager.getInstance().getNextId(), template);
+						product.setOwnerId(leader.getObjectId());
+						product.setItemLocation(ItemLocation.INVENTORY, 0, false);
+						product.setCount(count);
+						final var purchase = new Purchase(profile, leader.getObjectId(), clanId, level, adena.getObjectId(), adena.getCount(),
+							product.getObjectId(), itemId, count, price, UUID.randomUUID());
+						return buyLocked(leader, new PendingPurchase(purchase, adena, product), expiresAt, resources);
+					}
 				}
 			}
 		});
@@ -163,7 +178,7 @@ public final class ClanDevelopmentShop
 				{
 					stage(connection, pending._purchase, pending._product);
 					if (System.currentTimeMillis() >= expiresAt || !mayUseShop(leader)
-						|| !MultisellData.getInstance().matchesPersonalProgressionOffer(pending._purchase.itemId(), pending._purchase.price()))
+						|| !MultisellData.getInstance().matchesPersonalProgressionOffer(pending._purchase.itemId(), pending._purchase.count(), pending._purchase.price()))
 					{
 						throw new SQLException("The clan shop quote expired before commit.");
 					}
@@ -205,18 +220,20 @@ public final class ClanDevelopmentShop
 	static void stage(Connection connection, Purchase purchase, Item product) throws SQLException
 	{
 		final var requirement = Clan.levelRequirement(purchase.level());
-		if (requirement == null || !ClanFoundingDevelopment.supportsLevel(purchase.level()) || requirement.itemCount() != 1
+		if (requirement == null || !ClanFoundingDevelopment.supportsLevel(purchase.level()) || requirement.itemCount() != purchase.count()
 			|| requirement.itemId() != purchase.itemId() || purchase.price() <= 0 || purchase.adenaAfter() < 0
 			|| purchase.itemId() == Inventory.ADENA_ID || purchase.adenaId() == purchase.productId()
 			|| product.getOwnerId() != purchase.actorId() || product.getObjectId() != purchase.productId()
-			|| product.getId() != purchase.itemId()) { throw new SQLException("Invalid native clan purchase facts."); }
-		try (var query = connection.prepareStatement("SELECT object_id FROM items WHERE owner_id=? AND item_id=? AND loc='INVENTORY' AND count>0 FOR UPDATE"))
+			|| product.getId() != purchase.itemId() || product.getCount() != purchase.count()) { throw new SQLException("Invalid native clan purchase facts."); }
+		try (var query = connection.prepareStatement("SELECT count FROM items WHERE owner_id=? AND item_id=? AND loc='INVENTORY' AND count>0 FOR UPDATE"))
 		{
 			query.setInt(1, purchase.actorId());
 			query.setInt(2, purchase.itemId());
 			try (var rows = query.executeQuery())
 			{
-				if (rows.next()) { throw new SQLException("The native clan fee item is already owned."); }
+				long count = 0;
+				while (count < purchase.count() && rows.next()) { count = Math.addExact(count, rows.getLong(1)); }
+				if (count >= purchase.count()) { throw new SQLException("The native clan fee item is already owned."); }
 			}
 		}
 		if (hasReceipt(connection, purchase)) { throw new SQLException("This clan purchase is already recorded."); }
@@ -224,7 +241,7 @@ public final class ClanDevelopmentShop
 		try (var receipt = connection.prepareStatement("INSERT INTO phantom_profile_components (profile_id,component_type,component_schema_version,payload) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE payload=VALUES(payload), row_version=row_version+1"))
 		{
 			bindReceipt(receipt, purchase);
-			receipt.setInt(3, VERSION);
+			receipt.setInt(3, purchase.version());
 			receipt.setBytes(4, purchase.evidence());
 			receipt.executeUpdate();
 		}
@@ -233,7 +250,7 @@ public final class ClanDevelopmentShop
 	private static void bindReceipt(java.sql.PreparedStatement statement, Purchase purchase) throws SQLException
 	{
 		statement.setLong(1, purchase.profileId());
-		statement.setString(2, COMPONENT_TYPE);
+		statement.setString(2, purchase.componentType());
 	}
 
 	private static boolean hasReceipt(Connection connection, Purchase purchase) throws SQLException
@@ -244,7 +261,7 @@ public final class ClanDevelopmentShop
 			try (var rows = query.executeQuery())
 			{
 				if (!rows.next()) { return false; }
-				if (rows.getInt(1) != VERSION) { throw new SQLException("Unsupported native clan shop receipt version."); }
+				if (rows.getInt(1) != purchase.version()) { throw new SQLException("Unsupported native clan shop receipt version."); }
 				return Arrays.equals(rows.getBytes(2), purchase.evidence());
 			}
 		}
@@ -263,7 +280,7 @@ public final class ClanDevelopmentShop
 					return !receipt && durableAdena == purchase.adenaBefore() ? DurableOutcome.ROLLED_BACK : DurableOutcome.CONFLICT;
 				}
 				return receipt && durableAdena == purchase.adenaAfter() && row.getInt(1) == purchase.actorId() && row.getInt(2) == purchase.itemId()
-					&& row.getLong(3) == 1 && "INVENTORY".equals(row.getString(4)) && row.getInt(5) == 0 && row.getInt(6) == 0
+					&& row.getLong(3) == purchase.count() && "INVENTORY".equals(row.getString(4)) && row.getInt(5) == 0 && row.getInt(6) == 0
 					&& row.getInt(7) == 0 && row.getInt(8) == 0 && row.getInt(9) == -1 && row.getLong(10) == -1
 					? DurableOutcome.APPLIED : DurableOutcome.CONFLICT;
 			}

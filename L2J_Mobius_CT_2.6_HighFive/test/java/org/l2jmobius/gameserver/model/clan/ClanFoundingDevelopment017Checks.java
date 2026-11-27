@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 
 import org.l2jmobius.commons.config.DatabaseConfig;
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.gameserver.config.FeatureConfig;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.data.xml.MultisellData;
@@ -95,6 +96,7 @@ public final class ClanFoundingDevelopment017Checks
 			"Native pool must use the already validated isolated credentials.");
 		ServerConfig.DATAPACK_ROOT = datapack.toRealPath().toFile();
 		PlayerConfig.load();
+		FeatureConfig.load();
 		DatabaseFactory.initFromConfig(config.toString());
 		final Payment payment = new Payment(21002102, 21002103, 21002104, 88, 21002105, 3_000_000, 120_000, new UUID(21, 21002102), 1);
 		try
@@ -140,6 +142,7 @@ public final class ClanFoundingDevelopment017Checks
 			}
 			verifyNativeItemFees();
 			verifyNativeShopPurchase();
+			verifyNativeReputationLevels();
 		}
 		finally
 		{
@@ -148,11 +151,151 @@ public final class ClanFoundingDevelopment017Checks
 		System.out.println("PASS 021 native Item debit with stock DDL, fault rollback, commit and cold SQL readback");
 	}
 
+	private static void verifyNativeReputationLevels() throws Exception
+	{
+		final long profile = 21002132;
+		final int actor = 21002133;
+		final int clan = 21002134;
+		final int durableReputation = 100_000;
+		try (var connection = DatabaseFactory.getConnection(); var sql = connection.createStatement())
+		{
+			sql.executeUpdate("INSERT INTO phantom_profiles(profile_id,character_object_id) VALUES(21002132,21002133)");
+			sql.executeUpdate("INSERT INTO phantom_profile_components(profile_id,component_type,component_schema_version,payload) VALUES(21002132,'clan.organization',2,X'01')");
+			sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id,reputation_score) VALUES(21002134,'ClanRepProof021',5,21002133,100000)");
+			sql.executeUpdate("INSERT INTO characters(charId,char_name,sp,classid,base_class,clanid) VALUES(21002133,'ClanRepProof021',450,88,88,21002134)");
+		}
+		final var requirement = Clan.levelRequirement(5);
+		require(requirement.reputation() > 0 && requirement.members() <= 1, "Expected stock Bartz level-6 requirements for the isolated fixture.");
+		final var first = new Payment(profile, actor, clan, 88, 0, 0, 0, new UUID(21, 21002102), requirement, durableReputation + 12);
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			require(ClanFoundingDevelopment.stageReputation(connection, first, durableReputation) == durableReputation, "Unsaved native reputation credit was not witnessed.");
+			connection.rollback();
+		}
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			require(ClanFoundingDevelopment.readReputation(connection, first, 0, durableReputation) == DurableOutcome.ROLLED_BACK, "Reputation rollback left an effect.");
+			ClanFoundingDevelopment.stageReputation(connection, first, durableReputation);
+			connection.commit();
+		}
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			require(ClanFoundingDevelopment.readReputation(connection, first, 0, durableReputation) == DurableOutcome.APPLIED, "Exact level-6 receipt did not survive reconnect.");
+			connection.rollback();
+		}
+		final var settlement = new ClanFoundingDevelopment.PendingPayment(new Clan(clan, "ClanRepProof021"), null, first, 0, first.reputationAfter());
+		final int afterLateCredit = first.reputationAfter() + 19;
+		require(ClanFoundingDevelopment.saveLateReputation(settlement, afterLateCredit, true) && ClanFoundingDevelopment.saveLateReputation(settlement, afterLateCredit, true),
+			"Late reputation could not be saved exactly once after deciding the payment outcome.");
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement();
+			var row = query.executeQuery("SELECT reputation_score,clan_level FROM clan_data WHERE clan_id=21002134"))
+		{
+			require(row.next() && row.getInt(1) == afterLateCredit && row.getInt(2) == 6, "Late reputation was not durable before publishing the resolved native level.");
+		}
+		for (int level = 6; level <= 9; level++)
+		{
+			final var fee = Clan.levelRequirement(level);
+			require(fee.reputation() > 0 && fee.members() <= 1, "Expected stock mixed-fee requirements for the isolated fixture.");
+			try (var connection = DatabaseFactory.getConnection(); var reset = connection.prepareStatement("UPDATE clan_data SET clan_level=?, reputation_score=? WHERE clan_id=?"))
+			{
+				reset.setInt(1, level);
+				reset.setInt(2, durableReputation);
+				reset.setInt(3, clan);
+				require(reset.executeUpdate() == 1, "Could not prepare the next isolated reputation fixture.");
+			}
+			final long before = fee.itemCount() + (level == 8 ? 1 : 0);
+			final int object = fee.itemId() == 0 ? 0 : 21002135 + level;
+			final var item = object == 0 ? null : plainInventoryItem(object, fee.itemId(), actor, before);
+			final var payment = new Payment(profile, actor, clan, 88, object, before, 0, new UUID(21, level), fee, durableReputation);
+			if (item == null)
+			{
+				try (var connection = DatabaseFactory.getConnection())
+				{
+					connection.setAutoCommit(false);
+					ClanFoundingDevelopment.stageReputation(connection, payment, durableReputation);
+					connection.commit();
+				}
+			}
+			else
+			{
+				item.updateDatabase(true);
+				item.transactRecoverableInventoryDebit(actor, before, fee.itemCount(), connection ->
+				{
+					ClanFoundingDevelopment.stageReputation(connection, payment, durableReputation);
+					return null;
+				});
+			}
+			try (var connection = DatabaseFactory.getConnection())
+			{
+				connection.setAutoCommit(false);
+				require(ClanFoundingDevelopment.readReputation(connection, payment, item == null ? 0 : item.getCount(), durableReputation)
+					== DurableOutcome.APPLIED, "The high-level fee and reputation did not settle together.");
+				if (item != null)
+				{
+					try (var query = connection.prepareStatement("SELECT count,owner_id,item_id,loc FROM items WHERE object_id=?"))
+					{
+						query.setInt(1, object);
+						try (var row = query.executeQuery())
+						{
+							require(payment.itemAfter() == 0 ? !row.next() : row.next() && row.getLong(1) == payment.itemAfter()
+								&& row.getInt(2) == actor && row.getInt(3) == fee.itemId() && "INVENTORY".equals(row.getString(4)), "The exact mixed fee did not persist.");
+						}
+					}
+				}
+				connection.rollback();
+			}
+		}
+		final var territorial = new Payment(profile, actor, clan, 88, 0, 0, 0, new UUID(21, 11), Clan.levelRequirement(10), durableReputation, 1);
+		final int levelTenReputation = durableReputation - Clan.levelRequirement(9).reputation();
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				ClanFoundingDevelopment.stageReputation(connection, territorial, levelTenReputation);
+				throw new AssertionError("A stale territory cache authorized the final level.");
+			}
+			catch (SQLException stale)
+			{
+				require("Native territory ownership changed.".equals(stale.getMessage()), "Final level rejection did not use the durable territory witness.");
+			}
+			connection.rollback();
+			try (var setup = connection.createStatement())
+			{
+				require(setup.executeUpdate("UPDATE clan_data SET hasCastle=1 WHERE clan_id=21002134") == 1, "Could not prepare the isolated territory witness.");
+			}
+			ClanFoundingDevelopment.stageReputation(connection, territorial, levelTenReputation);
+			connection.commit();
+			require(ClanFoundingDevelopment.readReputation(connection, territorial, 0, levelTenReputation) == DurableOutcome.APPLIED,
+				"Final level did not commit with the exact isolated SQL territory witness.");
+			connection.rollback();
+		}
+		final var nativeClan = new Clan(21002139, "ClanRepNative021");
+		nativeClan.addReputationScore(90_000_000);
+		synchronized (nativeClan)
+		{
+			nativeClan.beginReputationResolution(90_000_000, 89_990_000);
+		}
+		nativeClan.addReputationScore(10_005_000);
+		nativeClan.takeReputationScore(100);
+		synchronized (nativeClan)
+		{
+			nativeClan.resolveReputationPayment(false, 90_000_000);
+		}
+		require(nativeClan.getReputationScore() == 99_999_900, "Rollback lost late native reputation at the stock cap.");
+		System.out.println("PASS 021 reputation-only and mixed native fees, exact rollback and late credit");
+	}
+
 	private static void verifyNativeShopPurchase() throws Exception
 	{
 		final var stock = MultisellData.getInstance();
 		require(stock.matchesPersonalProgressionOffer(1419, 10_000_000) && stock.matchesPersonalProgressionOffer(3874, 25_000_000)
-			&& stock.matchesPersonalProgressionOffer(3870, 50_000_000) && !stock.matchesPersonalProgressionOffer(3874, 24_999_999),
+			&& stock.matchesPersonalProgressionOffer(3870, 50_000_000) && stock.matchesPersonalProgressionOffer(9910, 150, 75_000_000)
+			&& stock.matchesPersonalProgressionOffer(9911, 5, 100_000_000) && !stock.matchesPersonalProgressionOffer(3874, 24_999_999)
+			&& !stock.matchesPersonalProgressionOffer(9910, 149, 75_000_000),
 			"The active native 91002 list does not match the curated stock quotes.");
 		final int actor = 21002123;
 		final int adenaId = 21002125;

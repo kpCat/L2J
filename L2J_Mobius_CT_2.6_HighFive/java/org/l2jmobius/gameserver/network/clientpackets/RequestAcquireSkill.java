@@ -191,45 +191,13 @@ public class RequestAcquireSkill extends ClientPacket
 				}
 				
 				final Clan clan = player.getClan();
-				final int repCost = s.getLevelUpSp();
-				if (clan.getReputationScore() >= repCost)
+				if (payClanSkillCost(player, trainer, clan, s, true))
 				{
-					if (PlayerConfig.LIFE_CRYSTAL_NEEDED)
-					{
-						for (ItemHolder item : s.getRequiredItems())
-						{
-							if (!player.destroyItemByItemId(null, item.getId(), item.getCount(), trainer, false))
-							{
-								// Doesn't have required item.
-								player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_THE_NECESSARY_MATERIALS_OR_PREREQUISITES_TO_LEARN_THIS_SKILL);
-								VillageMaster.showPledgeSkillList(player);
-								return;
-							}
-							
-							final SystemMessage sm = new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED);
-							sm.addItemName(item.getId());
-							sm.addLong(item.getCount());
-							player.sendPacket(sm);
-						}
-					}
-					
-					clan.takeReputationScore(repCost);
-					
-					final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-					cr.addInt(repCost);
-					player.sendPacket(cr);
-					
 					clan.addNewSkill(skill);
-					
 					clan.broadcastToOnlineMembers(new PledgeSkillList(clan));
 					player.sendPacket(new AcquireSkillDone());
-					VillageMaster.showPledgeSkillList(player);
 				}
-				else
-				{
-					player.sendPacket(SystemMessageId.THE_ATTEMPT_TO_ACQUIRE_THE_SKILL_HAS_FAILED_BECAUSE_OF_AN_INSUFFICIENT_CLAN_REPUTATION_SCORE);
-					VillageMaster.showPledgeSkillList(player);
-				}
+				VillageMaster.showPledgeSkillList(player);
 				break;
 			}
 			case SUBPLEDGE:
@@ -253,33 +221,9 @@ public class RequestAcquireSkill extends ClientPacket
 					return;
 				}
 				
-				final int repCost = s.getLevelUpSp();
-				if (clan.getReputationScore() < repCost)
+				if (!payClanSkillCost(player, trainer, clan, s, false))
 				{
-					player.sendPacket(SystemMessageId.THE_ATTEMPT_TO_ACQUIRE_THE_SKILL_HAS_FAILED_BECAUSE_OF_AN_INSUFFICIENT_CLAN_REPUTATION_SCORE);
 					return;
-				}
-				
-				for (ItemHolder item : s.getRequiredItems())
-				{
-					if (!player.destroyItemByItemId(ItemProcessType.FEE, item.getId(), item.getCount(), trainer, false))
-					{
-						player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_THE_NECESSARY_MATERIALS_OR_PREREQUISITES_TO_LEARN_THIS_SKILL);
-						return;
-					}
-					
-					final SystemMessage sm = new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED);
-					sm.addItemName(item.getId());
-					sm.addLong(item.getCount());
-					player.sendPacket(sm);
-				}
-				
-				if (repCost > 0)
-				{
-					clan.takeReputationScore(repCost);
-					final SystemMessage cr = new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE);
-					cr.addInt(repCost);
-					player.sendPacket(cr);
 				}
 				
 				clan.addNewSkill(skill, _subType);
@@ -425,6 +369,37 @@ public class RequestAcquireSkill extends ClientPacket
 	 * @param skillLearn the skill to be learn.
 	 * @return {@code true} if all requirements are meet, {@code false} otherwise.
 	 */
+	private boolean payClanSkillCost(Player player, Npc trainer, Clan clan, SkillLearn skillLearn, boolean ordinary)
+	{
+		return clan != null && clan.withReputationSpending(player, () ->
+		{
+			final int reputation = skillLearn.getLevelUpSp();
+			if (clan.getReputationScore() < reputation)
+			{
+				player.sendPacket(SystemMessageId.THE_ATTEMPT_TO_ACQUIRE_THE_SKILL_HAS_FAILED_BECAUSE_OF_AN_INSUFFICIENT_CLAN_REPUTATION_SCORE);
+				return false;
+			}
+			if (!ordinary || PlayerConfig.LIFE_CRYSTAL_NEEDED)
+			{
+				for (ItemHolder item : skillLearn.getRequiredItems())
+				{
+					if (!player.destroyItemByItemId(ordinary ? null : ItemProcessType.FEE, item.getId(), item.getCount(), trainer, false))
+					{
+						player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_THE_NECESSARY_MATERIALS_OR_PREREQUISITES_TO_LEARN_THIS_SKILL);
+						return false;
+					}
+					player.sendPacket(new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED).addItemName(item.getId()).addLong(item.getCount()));
+				}
+			}
+			if (ordinary || reputation > 0)
+			{
+				clan.takeReputationScore(reputation);
+				player.sendPacket(new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE).addInt(reputation));
+			}
+			return true;
+		});
+	}
+
 	private boolean checkPlayerSkill(Player player, Npc trainer, SkillLearn skillLearn)
 	{
 		if ((skillLearn != null) && (skillLearn.getSkillId() == _id) && (skillLearn.getSkillLevel() == _level))

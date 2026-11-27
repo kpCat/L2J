@@ -171,6 +171,23 @@ public class MultiSellChoose extends ClientPacket
 			}
 		}
 		
+		final var clan = player.getClan();
+		if (clan != null && list.getEntries().stream().anyMatch(entry -> entry.getEntryId() == _entryId
+			&& entry.getIngredients().stream().anyMatch(ingredient -> ingredient.getItemId() == MultisellData.CLAN_REPUTATION)))
+		{
+			clan.withReputationSpending(player, () ->
+			{
+				if (player.getMultiSell() != list) { return false; }
+				executePreparedEntry(player, list, npc);
+				return true;
+			});
+			return;
+		}
+		executePreparedEntry(player, list, npc);
+	}
+
+	private void executePreparedEntry(Player player, PreparedListContainer list, Npc npc)
+	{
 		for (Entry entry : list.getEntries())
 		{
 			if (entry.getEntryId() == _entryId)

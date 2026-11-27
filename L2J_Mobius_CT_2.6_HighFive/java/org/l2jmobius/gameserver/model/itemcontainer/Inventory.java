@@ -805,7 +805,7 @@ public abstract class Inventory extends ItemContainer
 	/** Keep the paid object's durable identity when an earned copy arrived during the payment. */
 	public boolean publishPurchasedClanItem(Item item)
 	{
-		if (item.getOwnerId() != getOwnerId() || item.getItemLocation() != ItemLocation.INVENTORY || item.getCount() != 1
+		if (item.getOwnerId() != getOwnerId() || item.getItemLocation() != ItemLocation.INVENTORY || item.getCount() <= 0
 			|| !ClanFoundingDevelopment.isItemFee(item.getId())) { return false; }
 		final var world = World.getInstance();
 		final var existing = world.findObject(item.getObjectId());

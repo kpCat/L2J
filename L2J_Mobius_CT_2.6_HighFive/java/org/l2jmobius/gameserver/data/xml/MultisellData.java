@@ -371,11 +371,16 @@ public class MultisellData implements IXmlReader
 	/** Recheck the curated quote against the list currently served after a native reload. */
 	public boolean matchesPersonalProgressionOffer(int itemId, long price)
 	{
+		return matchesPersonalProgressionOffer(itemId, 1, price);
+	}
+
+	public boolean matchesPersonalProgressionOffer(int itemId, long count, long price)
+	{
 		final var list = _entries.get(PersonalProgressionShopService.SHOP_LIST_ID);
 		return list != null && list.isNpcAllowed(-1) && !list.getApplyTaxes() && !list.getMaintainEnchantment()
 			&& list.getEntries().stream().anyMatch(entry -> entry.getIngredients().size() == 1 && entry.getProducts().size() == 1
 				&& matchesPlainIngredient(entry.getIngredients().getFirst(), Inventory.ADENA_ID, price)
-				&& matchesPlainIngredient(entry.getProducts().getFirst(), itemId, 1));
+				&& matchesPlainIngredient(entry.getProducts().getFirst(), itemId, count));
 	}
 
 	private static boolean matchesPlainIngredient(Ingredient ingredient, int id, long count)

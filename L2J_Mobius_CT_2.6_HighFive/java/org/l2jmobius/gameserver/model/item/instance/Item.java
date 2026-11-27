@@ -567,11 +567,17 @@ public class Item extends WorldObject
 
 	public synchronized <T> T transactRecoverableInventoryDebit(int ownerId, long expectedCount, long debit, CountTransaction<T> transaction) throws Exception
 	{
+		return transactRecoverableInventoryDebit(ownerId, expectedCount, debit, null, transaction);
+	}
+
+	public synchronized <T> T transactRecoverableInventoryDebit(int ownerId, long expectedCount, long debit,
+		CountTransaction<Void> lockAuthority, CountTransaction<T> transaction) throws Exception
+	{
 		if (ownerId <= 0 || debit <= 0 || expectedCount < debit)
 		{
 			throw new IllegalArgumentException("An exact owned inventory stack is required.");
 		}
-		return transactCount(-debit, transaction, true, ownerId, expectedCount, null);
+		return transactCount(-debit, transaction, true, ownerId, expectedCount, lockAuthority);
 	}
 
 	/** Require the durable currency preimage without flushing a dirty native stack before the receipt transaction. */
@@ -2183,7 +2189,7 @@ public class Item extends WorldObject
 	/** The product stays detached until the payer has confirmed the same durable receipt and product. */
 	public void stagePlainInventoryCredit(Connection connection) throws java.sql.SQLException
 	{
-		if (_existsInDb || _ownerId <= 0 || getObjectId() <= 0 || _count != 1 || _loc != ItemLocation.INVENTORY || _locData != 0
+		if (_existsInDb || _ownerId <= 0 || getObjectId() <= 0 || _count <= 0 || _loc != ItemLocation.INVENTORY || _locData != 0
 			|| !isStackable() || _itemTemplate.isEquipable() || _wear || _enchantLevel != 0 || _type1 != 0 || _type2 != 0
 			|| _augmentation != null || _elementals != null || _mana != -1 || _time != -1)
 		{

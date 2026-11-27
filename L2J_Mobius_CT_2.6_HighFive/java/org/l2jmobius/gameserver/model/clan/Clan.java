@@ -155,7 +155,9 @@ public class Clan
 	private final Map<Integer, SubPledge> _subPledges = new ConcurrentHashMap<>();
 	private final Map<Integer, Skill> _subPledgeSkills = new ConcurrentHashMap<>();
 	
-	private int _reputationScore = 0;
+	private volatile int _reputationScore = 0;
+	private int _storedReputationScore;
+	private Integer _reputationIfCommitted;
 	private int _rank = 0;
 	
 	private String _notice;
@@ -1146,23 +1148,26 @@ public class Clan
 	{
 		ClanSocialMutationFence.getInstance().execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
 		{
+			final Player leader = _firstLevelPaymentPending && _leader != null ? _leader.getPlayer() : null;
+			if (leader != null) { ClanFoundingDevelopment.settlePending(leader); }
 			updateClanInDBLocked();
 			return null;
 		});
 	}
 
-	private void updateClanInDBLocked()
+	private synchronized void updateClanInDBLocked()
 	{
 		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement("UPDATE clan_data SET leader_id=?,reputation_score=?,char_penalty_expiry_time=?,dissolving_expiry_time=?,new_leader_id=? WHERE clan_id=?"))
+			PreparedStatement ps = con.prepareStatement("UPDATE clan_data SET leader_id=?,reputation_score=IF(?,reputation_score,?),char_penalty_expiry_time=?,dissolving_expiry_time=?,new_leader_id=? WHERE clan_id=?"))
 		{
 			ps.setInt(1, getLeaderId());
-			ps.setInt(2, _reputationScore);
-			ps.setLong(3, _charPenaltyExpiryTime);
-			ps.setLong(4, _dissolvingExpiryTime);
-			ps.setInt(5, _newLeaderId);
-			ps.setInt(6, _clanId);
-			ps.execute();
+			ps.setBoolean(2, _reputationIfCommitted != null);
+			ps.setInt(3, _reputationScore);
+			ps.setLong(4, _charPenaltyExpiryTime);
+			ps.setLong(5, _dissolvingExpiryTime);
+			ps.setInt(6, _newLeaderId);
+			ps.setInt(7, _clanId);
+			if (ps.executeUpdate() == 1 && _reputationIfCommitted == null) { _storedReputationScore = _reputationScore; }
 		}
 		catch (Exception e)
 		{
@@ -1281,7 +1286,8 @@ public class Clan
 					setCrestLargeId(clanData.getInt("crest_large_id"));
 					setAllyCrestId(clanData.getInt("ally_crest_id"));
 					
-					setReputationScore(clanData.getInt("reputation_score"));
+					_storedReputationScore = clanData.getInt("reputation_score");
+					setReputationScore(_storedReputationScore);
 					setAuctionBiddedAt(clanData.getInt("auction_bid_at"), false);
 					setNewLeaderId(clanData.getInt("new_leader_id"), false);
 					
@@ -2043,8 +2049,9 @@ public class Clan
 		return _subPledges.values();
 	}
 	
-	public SubPledge createSubPledge(Player player, int pledgeTypeValue, int leaderId, String subPledgeName)
+	public synchronized SubPledge createSubPledge(Player player, int pledgeTypeValue, int leaderId, String subPledgeName)
 	{
+		if (_firstLevelPaymentPending) { return null; }
 		SubPledge subPledge = null;
 		final int pledgeType = getAvailablePledgeTypes(pledgeTypeValue);
 		if (pledgeType == 0)
@@ -2093,11 +2100,11 @@ public class Clan
 				// Order of Knights 10000 points per each
 				if (pledgeType < SUBUNIT_KNIGHT1)
 				{
-					setReputationScore(_reputationScore - FeatureConfig.ROYAL_GUARD_COST);
+					takeReputationScore(FeatureConfig.ROYAL_GUARD_COST);
 				}
 				else
 				{
-					setReputationScore(_reputationScore - FeatureConfig.KNIGHT_UNIT_COST);
+					takeReputationScore(FeatureConfig.KNIGHT_UNIT_COST);
 					// TODO: clan lvl9 or more can reinforce knights cheaper if first knight unit already created, use Config.KNIGHT_REINFORCE_COST
 				}
 			}
@@ -2299,51 +2306,95 @@ public class Clan
 	
 	public synchronized void addReputationScore(int value)
 	{
-		setReputationScore(_reputationScore + value);
+		changeReputation(value);
 	}
 	
 	public synchronized void takeReputationScore(int value)
 	{
-		setReputationScore(_reputationScore - value);
+		changeReputation(-(long) value);
 	}
-	
+
+	private void changeReputation(long delta)
+	{
+		if (_reputationIfCommitted != null)
+		{
+			_reputationIfCommitted = boundedReputation(_reputationIfCommitted + delta);
+		}
+		setReputationScore(boundedReputation(_reputationScore + delta));
+	}
+
+	private static int boundedReputation(long score)
+	{
+		return (int) Math.clamp(score, -100_000_000L, 100_000_000L);
+	}
+
+	int storedReputationScore() { return _storedReputationScore; }
+
+	/** The caller holds the clan monitor. Keep both outcomes for concurrent native awards and losses. */
+	void beginReputationResolution(int before, int after)
+	{
+		if (_reputationIfCommitted != null || _reputationScore != before)
+		{
+			throw new IllegalStateException("Clan reputation preimage changed before recovery.");
+		}
+		_reputationIfCommitted = after;
+	}
+
+	void resolveReputationPayment(boolean applied, int durableScore)
+	{
+		final int published = reputationForResolution(applied, durableScore);
+		_reputationIfCommitted = null;
+		_storedReputationScore = durableScore;
+		if (published != _reputationScore) { setReputationScore(published); }
+	}
+
+	int reputationForResolution(boolean applied, int durableScore)
+	{
+		if (!applied) { return _reputationScore; }
+		return _reputationIfCommitted == null ? durableScore : _reputationIfCommitted;
+	}
+
+	/** Serializes native rep-priced human operations with clan development and leadership changes. */
+	public boolean withReputationSpending(Player player, java.util.function.BooleanSupplier spend)
+	{
+		final var fence = ClanSocialMutationFence.getInstance();
+		return fence.execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			synchronized (player)
+			{
+				synchronized (this)
+				{
+					return !fence.isRetiring(_clanId) && !_firstLevelPaymentPending && player.getClan() == this
+						&& getLeaderId() == player.getObjectId() && spend.getAsBoolean();
+				}
+			}
+		});
+	}
+
 	private void setReputationScore(int value)
 	{
-		if ((_reputationScore >= 0) && (value < 0))
+		final boolean wasDisabled = _reputationScore < 0;
+		_reputationScore = boundedReputation(value);
+		final boolean disabled = _reputationScore < 0;
+		try
 		{
-			broadcastToOnlineMembers(new SystemMessage(SystemMessageId.SINCE_THE_CLAN_REPUTATION_SCORE_HAS_DROPPED_TO_0_OR_LOWER_YOUR_CLAN_SKILL_S_WILL_BE_DE_ACTIVATED));
-			for (ClanMember member : _members.values())
+			if (disabled != wasDisabled)
 			{
-				if (member.isOnline() && (member.getPlayer() != null))
+				for (ClanMember member : _members.values())
 				{
-					skillsStatus(member.getPlayer(), true);
+					final Player player = member.getPlayer();
+					if (player != null && player.isOnline()) { skillsStatus(player, disabled); }
 				}
+				broadcastToOnlineMembers(new SystemMessage(disabled
+					? SystemMessageId.SINCE_THE_CLAN_REPUTATION_SCORE_HAS_DROPPED_TO_0_OR_LOWER_YOUR_CLAN_SKILL_S_WILL_BE_DE_ACTIVATED
+					: SystemMessageId.CLAN_SKILLS_WILL_NOW_BE_ACTIVATED_SINCE_THE_CLAN_S_REPUTATION_SCORE_IS_0_OR_HIGHER));
 			}
+			broadcastToOnlineMembers(new PledgeShowInfoUpdate(this));
 		}
-		else if ((_reputationScore < 0) && (value >= 0))
+		catch (RuntimeException publicationFailure)
 		{
-			broadcastToOnlineMembers(new SystemMessage(SystemMessageId.CLAN_SKILLS_WILL_NOW_BE_ACTIVATED_SINCE_THE_CLAN_S_REPUTATION_SCORE_IS_0_OR_HIGHER));
-			for (ClanMember member : _members.values())
-			{
-				if (member.isOnline() && (member.getPlayer() != null))
-				{
-					skillsStatus(member.getPlayer(), false);
-				}
-			}
+			LOGGER.log(Level.WARNING, "Could not publish clan reputation for clan " + _clanId, publicationFailure);
 		}
-		
-		_reputationScore = value;
-		if (_reputationScore > 100000000)
-		{
-			_reputationScore = 100000000;
-		}
-		
-		if (_reputationScore < -100000000)
-		{
-			_reputationScore = -100000000;
-		}
-		
-		broadcastToOnlineMembers(new PledgeShowInfoUpdate(this));
 	}
 	
 	public int getReputationScore()
@@ -2521,7 +2572,10 @@ public class Clan
 		{
 			synchronized (player)
 			{
-				return !fence.isRetiring(_clanId) && !_firstLevelPaymentPending && player.getPendingClanDevelopment() == null && levelUpClanLocked(player);
+				synchronized (this)
+				{
+					return !fence.isRetiring(_clanId) && !_firstLevelPaymentPending && player.getPendingClanDevelopment() == null && levelUpClanLocked(player);
+				}
 			}
 		});
 	}
@@ -2561,6 +2615,13 @@ public class Clan
 		return false;
 	}
 
+	boolean ownsTerritory(int castleId)
+	{
+		if (castleId <= 0 || _castleId != castleId) { return false; }
+		final var territory = TerritoryWarManager.getInstance().getTerritory(castleId);
+		return territory != null && territory.getOwnerClan() == this;
+	}
+
 	private boolean levelUpClanLocked(Player player)
 	{
 		if ((player.getClan() != this) || !player.isClanLeader())
@@ -2596,7 +2657,7 @@ public class Clan
 		}
 		if (_level >= 5)
 		{
-			setReputationScore(_reputationScore - requirement.reputation());
+			takeReputationScore(requirement.reputation());
 			player.sendPacket(new SystemMessage(SystemMessageId.S1_POINTS_HAVE_BEEN_DEDUCTED_FROM_THE_CLAN_S_REPUTATION_SCORE).addInt(requirement.reputation()));
 		}
 		if (requirement.itemId() > 0)

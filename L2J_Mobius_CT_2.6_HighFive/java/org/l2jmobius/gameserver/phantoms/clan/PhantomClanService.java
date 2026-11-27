@@ -870,6 +870,7 @@ public final class PhantomClanService
 				current = _persistence.load(member.profileId()).orElse(null);
 			}
 			if (current != null && development != null && development.itemsDue() > 0 && development.spDue() == 0 && root != null && root.status() == PhantomGoalStatus.ACTIVE
+				&& development.reputationDue() == 0 && development.membersDue() == 0 && !development.territoryDue()
 				&& (root.deadlineEpochMillis() == 0 || root.deadlineEpochMillis() > now)
 				&& org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
 			{
