@@ -149,6 +149,7 @@ public final class ClanFoundingDevelopment017Checks
 			verifyNativeShopPurchase();
 			verifyNativeReputationLevels();
 			verifyNativePledgeSkill();
+			ClanWarehouse021Checks.verify();
 		}
 		finally
 		{
@@ -579,7 +580,7 @@ public final class ClanFoundingDevelopment017Checks
 			require(item.getCount() == left && item.isCommittedInventoryRemoval() == (left == 0), "Committed item count or removal did not publish.");
 			if (left == 0)
 			{
-				require(!item.tryCreditContainerStack(null, 1, null, null) && item.getCount() == 0,
+				require(!item.tryCreditContainerStack(null, 1, null, null, () -> true) && item.getCount() == 0,
 					"A stale container credit resurrected the fully consumed object.");
 				verifySurvivingNativeStacks(item);
 			}

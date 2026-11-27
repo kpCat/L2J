@@ -315,7 +315,8 @@ public abstract class ItemContainer
 	{
 		for (Item item : _items)
 		{
-			if (item.getId() == itemId && item.isStackable() && item.tryCreditContainerStack(process, count, actor, reference))
+			if (item.getId() == itemId && item.isStackable() && item.tryCreditContainerStack(process, count, actor, reference,
+				() -> item.getOwnerId() == getOwnerId() && _items.contains(item)))
 			{
 				return item;
 			}

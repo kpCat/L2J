@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -166,6 +168,7 @@ public class Item extends WorldObject
 	private boolean _existsInDb; // if a record exists in DB.
 	private boolean _storedInDb; // if DB data is up-to-date.
 	private volatile boolean _countTransactionUncertain;
+	private volatile boolean _warehouseTransferPending;
 	private volatile long _pendingInventoryDebitBase = -1;
 	private volatile boolean _committedInventoryRemoval;
 	
@@ -431,7 +434,7 @@ public class Item extends WorldObject
 		_dbLock.lock();
 		try
 		{
-			if (_countTransactionUncertain) { throw new IllegalStateException("Item count transaction requires reload."); }
+			if (_countTransactionUncertain || _warehouseTransferPending) { throw new IllegalStateException("Item count transaction requires confirmation."); }
 			if (_count == count)
 			{
 				return;
@@ -593,7 +596,7 @@ public class Item extends WorldObject
 
 	public boolean blocksInventoryDebit()
 	{
-		return _pendingInventoryDebitBase >= 0 || _committedInventoryRemoval;
+		return _pendingInventoryDebitBase >= 0 || _committedInventoryRemoval || _warehouseTransferPending || _countTransactionUncertain;
 	}
 
 	public boolean isCommittedInventoryRemoval()
@@ -602,12 +605,13 @@ public class Item extends WorldObject
 	}
 
 	/** Hold late credits on a surviving stack. A possibly consumed stack must keep its retired identity. */
-	public boolean tryCreditContainerStack(ItemProcessType process, long count, Player actor, Object reference)
+	public boolean tryCreditContainerStack(ItemProcessType process, long count, Player actor, Object reference, BooleanSupplier stillInContainer)
 	{
 		_dbLock.lock();
 		try
 		{
-			if (_committedInventoryRemoval || _itemId != ADENA_ID && _pendingInventoryDebitBase == 0) { return false; }
+			if (_committedInventoryRemoval || _warehouseTransferPending || _itemId != ADENA_ID && _pendingInventoryDebitBase == 0
+				|| !stillInContainer.getAsBoolean()) { return false; }
 			changeCount(process, count, actor, reference);
 			return true;
 		}
@@ -619,7 +623,7 @@ public class Item extends WorldObject
 		_dbLock.lock();
 		try
 		{
-			if (_countTransactionUncertain || _committedInventoryRemoval || !isStackable() || _loc != ItemLocation.INVENTORY || _ownerId <= 0 || delta == 0)
+			if (_countTransactionUncertain || _committedInventoryRemoval || _warehouseTransferPending || !isStackable() || _loc != ItemLocation.INVENTORY || _ownerId <= 0 || delta == 0)
 			{
 				throw new IllegalStateException("Currency instance unavailable for transaction.");
 			}
@@ -754,7 +758,7 @@ public class Item extends WorldObject
 		{
 			if (source._ownerId <= 0 || source._ownerId != target._ownerId || source._loc != ItemLocation.INVENTORY || target._loc != ItemLocation.INVENTORY
 				|| !source.isStackable() || !target.isStackable() || source._countTransactionUncertain || target._countTransactionUncertain
-				|| source._committedInventoryRemoval || target._committedInventoryRemoval)
+				|| source._committedInventoryRemoval || target._committedInventoryRemoval || source._warehouseTransferPending || target._warehouseTransferPending)
 			{ throw new IllegalStateException("Native stack ownership or transaction state differs."); }
 			final long sourceAfter = Math.subtractExact(source._count, debit), targetAfter = Math.addExact(target._count, credit);
 			if (sourceAfter < 0 || (target._itemId == ADENA_ID && targetAfter > MAX_ADENA)) { throw new IllegalArgumentException("Native stack count outside limits."); }
@@ -822,6 +826,7 @@ public class Item extends WorldObject
 		_dbLock.lock();
 		try
 		{
+			if (_warehouseTransferPending) { throw new IllegalStateException("Clan warehouse item transfer requires confirmation."); }
 			if (count == 0)
 			{
 				return;
@@ -1882,7 +1887,7 @@ public class Item extends WorldObject
 		try
 		{
 			// An ambiguous commit must never be overwritten by an obsolete in-memory count.
-			if (_countTransactionUncertain || _committedInventoryRemoval) { return; }
+			if (_countTransactionUncertain || _committedInventoryRemoval || _warehouseTransferPending) { return; }
 			if (_existsInDb)
 			{
 				if ((_ownerId == 0) || (_loc == ItemLocation.VOID) || (_loc == ItemLocation.REFUND) || ((_count == 0) && (_loc != ItemLocation.LEASE)))
@@ -1929,6 +1934,154 @@ public class Item extends WorldObject
 	
 	public record RestoreRow(int objectId, int itemId, long count, ItemLocation loc, int locData, int enchantLevel, int customType1, int customType2, int manaLeft, long time)
 	{
+	}
+
+	/** Native row identity for the two supported clan warehouse locations. */
+	public record WarehouseRow(int ownerId, RestoreRow item)
+	{
+		public WarehouseRow at(int newOwner, ItemLocation location, long count)
+		{
+			return new WarehouseRow(newOwner, new RestoreRow(item.objectId(), item.itemId(), count, location, 0, item.enchantLevel(),
+				item.customType1(), item.customType2(), item.manaLeft(), item.time()));
+		}
+	}
+
+	public WarehouseRow warehouseRow()
+	{
+		return new WarehouseRow(_ownerId, new RestoreRow(getObjectId(), _itemId, _count, _loc, _locData, _enchantLevel, _type1, _type2, _mana, _time));
+	}
+
+	/** The caller supplies the exact warehouse objects in increasing ID order. */
+	public static <T> T withWarehouseLocks(List<Item> items, Supplier<T> action)
+	{
+		if (items.isEmpty() || items.size() > 3) { throw new IllegalArgumentException("One to three warehouse objects required."); }
+		for (int index = 1; index < items.size(); index++)
+		{
+			if (items.get(index - 1).getObjectId() >= items.get(index).getObjectId())
+			{
+				throw new IllegalArgumentException("Warehouse objects must follow strict native ID order.");
+			}
+		}
+		return lockWarehouseItems(items, 0, action);
+	}
+
+	private static <T> T lockWarehouseItems(List<Item> items, int index, Supplier<T> action)
+	{
+		if (index < items.size())
+		{
+			synchronized (items.get(index)) { return lockWarehouseItems(items, index + 1, action); }
+		}
+		for (Item item : items) { item._dbLock.lock(); }
+		try { return action.get(); }
+		finally
+		{
+			for (int locked = items.size() - 1; locked >= 0; locked--) { items.get(locked)._dbLock.unlock(); }
+		}
+	}
+
+	public void setWarehouseTransferPending(boolean pending)
+	{
+		if (!_dbLock.isHeldByCurrentThread()) { throw new IllegalStateException("Native warehouse item lock is required."); }
+		_warehouseTransferPending = pending;
+	}
+
+	public boolean hasStoredWarehouseRow()
+	{
+		return _existsInDb;
+	}
+
+	public boolean isPlainWarehouseStack()
+	{
+		return isStackable() && !_itemTemplate.isEquipable() && !_wear && _augmentation == null && _elementals == null
+			&& _type1 == 0 && _type2 == 0 && _enchantLevel == 0 && _mana == -1 && _time == -1;
+	}
+
+	public static WarehouseRow readWarehouseRow(Connection connection, int objectId) throws java.sql.SQLException
+	{
+		try (var query = connection.prepareStatement("SELECT object_id,owner_id,item_id,count,loc,loc_data,enchant_level,custom_type1,custom_type2,mana_left,time FROM items WHERE object_id=? FOR UPDATE"))
+		{
+			query.setInt(1, objectId);
+			try (var row = query.executeQuery())
+			{
+				if (!row.next()) { return null; }
+				final int owner = row.getInt("owner_id");
+				final var item = readRestoreRow(owner, row);
+				if (item == null) { throw new java.sql.SQLException("Could not decode exact warehouse item row."); }
+				return new WarehouseRow(owner, item);
+			}
+		}
+	}
+
+	/** Write only custody and count. Moving a whole object keeps its auxiliary rows and traits. */
+	public void stageWarehouseRow(Connection connection, WarehouseRow before, WarehouseRow after) throws java.sql.SQLException
+	{
+		if (before == null ? after == null || !after.equals(warehouseRow())
+			: before.item().objectId() != getObjectId() || after != null
+				&& !before.at(after.ownerId(), after.item().loc(), after.item().count()).equals(after))
+		{
+			throw new java.sql.SQLException("Clan warehouse change has an invalid native identity.");
+		}
+		if (!java.util.Objects.equals(before, readWarehouseRow(connection, getObjectId())))
+		{
+			throw new java.sql.SQLException("Native warehouse item preimage changed.");
+		}
+		if (before == null || after == null || before.item().count() != after.item().count())
+		{
+			if (!isPlainWarehouseStack()) { throw new java.sql.SQLException("Clan warehouse count changes require a plain stack."); }
+			requirePlainStackRows(connection);
+			if (before != null)
+			{
+				try (var usage = connection.prepareStatement("SELECT time_of_use FROM items WHERE object_id=?"))
+				{
+					usage.setInt(1, getObjectId());
+					try (var row = usage.executeQuery())
+					{
+						if (!row.next() || row.getInt(1) != 0) { throw new java.sql.SQLException("Clan warehouse stack has durable usage metadata."); }
+					}
+				}
+			}
+		}
+		if (before == null)
+		{
+			insertRow(connection);
+			return;
+		}
+		final String change = after == null ? "DELETE FROM items WHERE object_id=?" : "UPDATE items SET owner_id=?,loc=?,loc_data=?,count=? WHERE object_id=?";
+		try (var statement = connection.prepareStatement(change))
+		{
+			if (after == null) { statement.setInt(1, getObjectId()); }
+			else
+			{
+				statement.setInt(1, after.ownerId());
+				statement.setString(2, after.item().loc().name());
+				statement.setInt(3, after.item().locData());
+				statement.setLong(4, after.item().count());
+				statement.setInt(5, getObjectId());
+			}
+			if (statement.executeUpdate() != 1) { throw new java.sql.SQLException("Clan warehouse did not update exactly one item."); }
+		}
+	}
+
+	/** Change the existing object only after the caller verifies the warehouse commit. */
+	public void publishWarehouseRow(WarehouseRow result)
+	{
+		if (result == null)
+		{
+			_count = 0;
+			_existsInDb = false;
+			_storedInDb = true;
+			_committedInventoryRemoval = true;
+			setLastChange(REMOVED);
+			return;
+		}
+		final var row = result.item();
+		if (_loc == ItemLocation.INVENTORY && row.loc() != _loc) { setItemLocation(row.loc(), row.locData()); }
+		setOwnerId(result.ownerId());
+		setItemLocation(row.loc(), row.locData());
+		_count = row.count();
+		setLastChange(_existsInDb ? MODIFIED : ADDED);
+		_existsInDb = true;
+		_storedInDb = true;
 	}
 	
 	public static RestoreRow readRestoreRow(int ownerId, ResultSet rs)
