@@ -936,7 +936,7 @@ public final class PhantomClanService
 
 	private static boolean developmentReady(DevelopmentPlan plan)
 	{
-		return plan != null && plan.ready() && plan.requirement().adena() > 0;
+		return plan != null && plan.ready() && ClanFoundingDevelopment.supportsLevel(plan.requirement().currentLevel());
 	}
 
 	private boolean developAutonomously(AutonomousActor actor, int masterObjectId, long expiresAt, BooleanSupplier current)
@@ -1269,7 +1269,7 @@ public final class PhantomClanService
 			while (_development.size() > MAX_ACTIVE_OPERATIONS) { _development.pollFirstEntry(); }
 			if (old == null || old.clanId() != plan.clanId() || !old.requirement().equals(plan.requirement()))
 			{
-				if (plan.requirement().adena() == 0) { observeAutonomousOutcome("clan.autonomous.development.writer_unavailable"); }
+				if (!ClanFoundingDevelopment.supportsLevel(plan.requirement().currentLevel())) { observeAutonomousOutcome("clan.autonomous.development.writer_unavailable"); }
 			}
 			else if (plan.adenaDue() < old.adenaDue() || plan.spDue() < old.spDue() || plan.itemsDue() < old.itemsDue()
 				|| plan.reputationDue() < old.reputationDue() || plan.membersDue() < old.membersDue() || old.territoryDue() && !plan.territoryDue())

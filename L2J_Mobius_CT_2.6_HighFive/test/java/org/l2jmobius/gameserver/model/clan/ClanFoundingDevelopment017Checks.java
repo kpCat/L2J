@@ -16,11 +16,13 @@ import org.l2jmobius.commons.config.DatabaseConfig;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment.DurableOutcome;
 import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment.Payment;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
+import org.l2jmobius.gameserver.model.itemcontainer.ItemContainer;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseGuard;
 
 /** Exact receipt and stock fee staging against isolated, connection-local native row fixtures. */
@@ -38,11 +40,11 @@ public final class ClanFoundingDevelopment017Checks
 	public static void main(String[] args) throws Exception
 	{
 		final Payment other = new Payment(7, 11, 29, 88, 37, BEFORE_ADENA, BEFORE_SP, new UUID(17, 2));
-		require(PAYMENT.adenaAfter() == 850_000 && PAYMENT.spAfter() == 30_000, "Stock costs changed.");
+		require(PAYMENT.itemAfter() == 850_000 && PAYMENT.spAfter() == 30_000, "Stock costs changed.");
 		require(PAYMENT.evidence().length == 56 && Arrays.equals(PAYMENT.evidence(), PAYMENT.evidence()) && !Arrays.equals(PAYMENT.evidence(), other.evidence()), "Receipt does not identify the exact operation.");
 		System.out.println("PASS C4 stock fees and exact payment identity");
 		final Payment secondLevel = new Payment(7, 11, 29, 88, 37, 3_000_000, 120_000, new UUID(21, 21002102), 1);
-		require(secondLevel.adenaAfter() == 500_000 && secondLevel.spAfter() == 20_000 && secondLevel.evidence().length != PAYMENT.evidence().length, "L2 costs and receipt must identify the exact transition.");
+		require(secondLevel.itemAfter() == 500_000 && secondLevel.spAfter() == 20_000 && secondLevel.evidence().length != PAYMENT.evidence().length, "L2 costs and receipt must identify the exact transition.");
 		verifyRequirements();
 		if (args.length == 0) { return; }
 		final var target = ISOLATED_URL.matcher(args[0]);
@@ -102,10 +104,10 @@ public final class ClanFoundingDevelopment017Checks
 				sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id) VALUES(21002104,'ClanProof021',1,21002103)");
 				sql.executeUpdate("INSERT INTO characters(charId,char_name,sp,classid,base_class,clanid) VALUES(21002103,'ClanProof021',120000,88,88,21002104)");
 			}
-			final Item adena = new Item(payment.coinObjectId(), Inventory.ADENA_ID);
+			final Item adena = new Item(payment.itemObjectId(), Inventory.ADENA_ID);
 			adena.setOwnerId(payment.actorId());
 			adena.setItemLocation(ItemLocation.INVENTORY, 0, false);
-			adena.setCount(payment.adenaBefore());
+			adena.setCount(payment.itemBefore());
 			try
 			{
 				adena.transactRecoverableAdenaDebit(payment.requirement().adena(), connection ->
@@ -119,27 +121,177 @@ public final class ClanFoundingDevelopment017Checks
 			{
 				require("021 controlled failure before commit".equals(expected.getMessage()), "Did not reach native transaction after staging.");
 			}
-			require(adena.getCount() == payment.adenaBefore() && !adena.hasPendingAdenaDebit(), "Failed native debit left a memory effect.");
+			require(adena.getCount() == payment.itemBefore() && !adena.hasPendingAdenaDebit(), "Failed native debit left a memory effect.");
 			try (var conn = DatabaseFactory.getConnection())
 			{
-				assertRows(conn, payment.adenaBefore(), payment.spBefore(), 1);
+				assertRows(conn, payment.itemBefore(), payment.spBefore(), 1);
 			}
-			adena.transactRecoverableAdenaDebit(payment.requirement().adena(), conn -> ClanFoundingDevelopment.stage(conn, payment, credit -> false));
-			require(adena.getCount() == payment.adenaAfter() && !adena.hasPendingAdenaDebit(), "Committed native debit was not published.");
+			adena.transactRecoverableInventoryDebit(payment.actorId(), payment.itemBefore(), payment.feeCount(), conn -> ClanFoundingDevelopment.stage(conn, payment, credit -> false));
+			require(adena.getCount() == payment.itemAfter() && !adena.hasPendingAdenaDebit(), "Committed native debit was not published.");
+			try (var conn = DriverManager.getConnection(url, user, password))
+			{
+				conn.setAutoCommit(false);
+				assertRows(conn, payment.itemAfter(), payment.spAfter(), 2);
+				require(ClanFoundingDevelopment.readback(conn, payment, payment.itemAfter(), payment.spBefore()) == DurableOutcome.APPLIED,
+					"Reconnect lost the exact receipt, actor, level, Adena or SP.");
+				conn.rollback();
+			}
+			verifyNativeItemFees();
 		}
 		finally
 		{
 			DatabaseFactory.close();
 		}
-		try (var conn = DriverManager.getConnection(url, user, password))
+		System.out.println("PASS 021 native Item debit with stock DDL, fault rollback, commit and cold SQL readback");
+	}
+
+	private static void verifyNativeItemFees() throws Exception
+	{
+		final long profileId = 21002112;
+		final int actorId = 21002113;
+		final int clanId = 21002114;
+		try (var conn = DatabaseFactory.getConnection(); var sql = conn.createStatement())
+		{
+			sql.executeUpdate("INSERT INTO phantom_profiles(profile_id,character_object_id) VALUES(21002112,21002113)");
+			sql.executeUpdate("INSERT INTO phantom_profile_components(profile_id,component_type,component_schema_version,payload) VALUES(21002112,'clan.organization',2,X'01')");
+			sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id) VALUES(21002114,'ClanItemProof021',2,21002113)");
+			sql.executeUpdate("INSERT INTO characters(charId,char_name,sp,classid,base_class,clanid) VALUES(21002113,'ClanItemProof021',0,88,88,21002114)");
+		}
+		for (int level = 2; level <= 4; level++)
+		{
+			final var fee = Clan.levelRequirement(level);
+			final long before = level == 2 ? 2 : 1;
+			final long spBefore = fee.sp() + 15;
+			final int objectId = 21002115 + level;
+			final var payment = new Payment(profileId, actorId, clanId, 88, objectId, before, spBefore, new UUID(21002102, level), level);
+			final Item item = new Item(objectId, fee.itemId());
+			item.setOwnerId(actorId);
+			item.setItemLocation(ItemLocation.INVENTORY, 0, false);
+			item.setCount(before);
+			item.updateDatabase(true);
+			try (var conn = DatabaseFactory.getConnection(); var sql = conn.prepareStatement("UPDATE characters SET sp=? WHERE charId=?"))
+			{
+				sql.setLong(1, spBefore);
+				sql.setInt(2, actorId);
+				require(sql.executeUpdate() == 1, "Item fee fixture lacks an SP owner.");
+			}
+			if (level == 3)
+			{
+				checkForeignFeeRow(item, before, actorId);
+				try
+				{
+					item.transactRecoverableInventoryDebit(actorId, before, fee.itemCount(), conn ->
+					{
+						ClanFoundingDevelopment.stage(conn, payment, credit -> false);
+						throw new SQLException("021 controlled item fee rollback");
+					});
+					throw new AssertionError("Item fee did not roll back.");
+				}
+				catch (SQLException failure)
+				{
+					require("021 controlled item fee rollback".equals(failure.getMessage()), "Item fee never reached native staging.");
+				}
+				require(item.getCount() == before && !item.isCommittedInventoryRemoval(), "Rollback retired the item from inventory.");
+				assertItemFeeRows(payment, before, spBefore, level, DurableOutcome.ROLLED_BACK);
+			}
+			item.transactRecoverableInventoryDebit(actorId, before, fee.itemCount(), conn -> ClanFoundingDevelopment.stage(conn, payment, credit -> false));
+			final long left = before - fee.itemCount();
+			require(item.getCount() == left && item.isCommittedInventoryRemoval() == (left == 0), "Committed item count or removal did not publish.");
+			if (left == 0)
+			{
+				require(!item.tryCreditContainerStack(null, 1, null, null) && item.getCount() == 0,
+					"A stale container credit resurrected the fully consumed object.");
+				verifySurvivingNativeStacks(item);
+			}
+			assertItemFeeRows(payment, left, 15, level + 1, DurableOutcome.APPLIED);
+		}
+		System.out.println("PASS 021 native L2-to-L5 items, partial stack, full removal, rollback and exact receipts");
+	}
+
+	private static void verifySurvivingNativeStacks(Item retired)
+	{
+		final int itemId = retired.getId();
+		require(ClanFoundingDevelopment.isItemFee(itemId) && !ClanFoundingDevelopment.isItemFee(Inventory.ADENA_ID),
+			"The inventory restore rule must retain the exact fee stacks.");
+		final var original = new Item(retired.getObjectId() + 200, itemId);
+		final var earned = new Item(retired.getObjectId() + 201, itemId);
+		earned.setCount(4);
+		final var container = new FeeItemContainer(retired, original, earned);
+		require(container.getItemByItemId(itemId) != retired && container.getInventoryItemCount(itemId, -1) == 5,
+			"Stock lookups exposed a retired object or undercounted surviving stacks.");
+		final var credited = container.addItem(null, itemId, 2, null, null);
+		require((credited == original || credited == earned) && container.getSize() == 3
+			&& container.getInventoryItemCount(itemId, -1) == 7, "Credit must reuse an available owned stack.");
+	}
+
+	private static final class FeeItemContainer extends ItemContainer
+	{
+		private FeeItemContainer(Item... items)
+		{
+			for (Item item : items) { addItem(item); }
+		}
+
+		@Override
+		protected Creature getOwner() { return null; }
+
+		@Override
+		protected ItemLocation getBaseLocation() { return ItemLocation.INVENTORY; }
+	}
+
+	private static void checkForeignFeeRow(Item item, long expectedCount, int actorId) throws Exception
+	{
+		final int foreignOwner = actorId + 1;
+		item.setCount(expectedCount + 1);
+		item.setCount(expectedCount);
+		try (var conn = DatabaseFactory.getConnection(); var row = conn.prepareStatement("UPDATE items SET owner_id=? WHERE object_id=?"))
+		{
+			row.setInt(1, foreignOwner);
+			row.setInt(2, item.getObjectId());
+			require(row.executeUpdate() == 1, "Fixture item was not durable.");
+			try
+			{
+				item.transactRecoverableInventoryDebit(actorId, expectedCount, expectedCount, tx ->
+				{
+					throw new AssertionError("Foreign fee row was overwritten before exact validation.");
+				});
+				throw new AssertionError("The native item guard did not refuse a foreign row.");
+			}
+			catch (IllegalStateException expected)
+			{
+				require("Native currency preimage differs.".equals(expected.getMessage()), "The fee failed outside the exact row guard.");
+			}
+			try (var query = conn.prepareStatement("SELECT owner_id,count FROM items WHERE object_id=?"))
+			{
+				query.setInt(1, item.getObjectId());
+				try (var rows = query.executeQuery())
+				{
+					require(rows.next() && rows.getInt(1) == foreignOwner && rows.getLong(2) == expectedCount,
+						"Rejected fee changed the durable preimage.");
+				}
+			}
+			row.setInt(1, actorId);
+			require(row.executeUpdate() == 1, "Could not restore the TEST fee fixture preimage.");
+		}
+	}
+
+	private static void assertItemFeeRows(Payment payment, long count, long sp, int level, DurableOutcome outcome) throws SQLException
+	{
+		try (var conn = DatabaseFactory.getConnection();
+			var query = conn.prepareStatement("SELECT i.count,i.owner_id,i.item_id,i.loc,c.sp,d.clan_level FROM characters c JOIN clan_data d ON d.clan_id=c.clanid LEFT JOIN items i ON i.object_id=? WHERE c.charId=?"))
 		{
 			conn.setAutoCommit(false);
-			assertRows(conn, payment.adenaAfter(), payment.spAfter(), 2);
-			require(ClanFoundingDevelopment.readback(conn, payment, payment.adenaAfter(), payment.spBefore()) == DurableOutcome.APPLIED,
-				"Reconnect lost the exact receipt, actor, level, Adena or SP.");
+			query.setInt(1, payment.itemObjectId());
+			query.setInt(2, payment.actorId());
+			try (var rows = query.executeQuery())
+			{
+				require(rows.next() && rows.getLong(5) == sp && rows.getInt(6) == level, "Clan level or SP diverged from the item debit.");
+				final long durableCount = rows.getLong(1);
+				require(count == 0 ? rows.wasNull() : durableCount == count && rows.getInt(2) == payment.actorId()
+					&& rows.getInt(3) == payment.requirement().itemId() && "INVENTORY".equals(rows.getString(4)), "Exact item fee row diverged.");
+			}
+			require(ClanFoundingDevelopment.readback(conn, payment, count, payment.spBefore()) == outcome, "Item fee receipt did not reconcile.");
 			conn.rollback();
 		}
-		System.out.println("PASS 021 native Item debit with stock DDL, fault rollback, commit and cold SQL readback");
 	}
 
 	private static void verifySecondLevel(Connection connection, Payment payment) throws SQLException
@@ -168,16 +320,16 @@ public final class ClanFoundingDevelopment017Checks
 		debitFixtureCoins(connection, payment);
 		ClanFoundingDevelopment.stage(connection, payment, credit -> false);
 		connection.rollback();
-		assertRows(connection, payment.adenaBefore(), payment.spBefore(), 1);
-		require(ClanFoundingDevelopment.readback(connection, payment, payment.adenaBefore(), payment.spBefore()) == DurableOutcome.ROLLED_BACK, "L2 rollback was not recognized over the previous-version receipt.");
+		assertRows(connection, payment.itemBefore(), payment.spBefore(), 1);
+		require(ClanFoundingDevelopment.readback(connection, payment, payment.itemBefore(), payment.spBefore()) == DurableOutcome.ROLLED_BACK, "L2 rollback was not recognized over the previous-version receipt.");
 
 		debitFixtureCoins(connection, payment);
 		ClanFoundingDevelopment.stage(connection, payment, credit -> false);
 		connection.commit();
-		assertRows(connection, payment.adenaAfter(), payment.spAfter(), 2);
-		require(ClanFoundingDevelopment.readback(connection, payment, payment.adenaAfter(), payment.spBefore()) == DurableOutcome.APPLIED, "L2 lost-ACK recovery did not confirm the exact effect.");
+		assertRows(connection, payment.itemAfter(), payment.spAfter(), 2);
+		require(ClanFoundingDevelopment.readback(connection, payment, payment.itemAfter(), payment.spBefore()) == DurableOutcome.APPLIED, "L2 lost-ACK recovery did not confirm the exact effect.");
 		requireRefused(connection, payment, "Native clan payment preimage changed.");
-		assertRows(connection, payment.adenaAfter(), payment.spAfter(), 2);
+		assertRows(connection, payment.itemAfter(), payment.spAfter(), 2);
 		System.out.println("PASS 021 L1-to-L2 stock fees, legacy receipt, refusal, rollback and exact recovery");
 	}
 
@@ -223,10 +375,10 @@ public final class ClanFoundingDevelopment017Checks
 		debitFixtureCoins(connection, PAYMENT);
 		ClanFoundingDevelopment.stage(connection, PAYMENT, credit -> false);
 		connection.commit();
-		assertRows(connection, PAYMENT.adenaAfter(), PAYMENT.spAfter(), 1);
-		require(ClanFoundingDevelopment.readback(connection, PAYMENT, PAYMENT.adenaAfter(), BEFORE_SP) == DurableOutcome.APPLIED, "Committed receipt did not recover exact fees.");
-		require(ClanFoundingDevelopment.readback(connection, other, PAYMENT.adenaAfter(), BEFORE_SP) == DurableOutcome.CONFLICT, "Readback accepted a different operation's receipt.");
-		final Payment replay = new Payment(7, 11, 29, 88, 37, PAYMENT.adenaAfter(), PAYMENT.spAfter(), new UUID(17, 3));
+		assertRows(connection, PAYMENT.itemAfter(), PAYMENT.spAfter(), 1);
+		require(ClanFoundingDevelopment.readback(connection, PAYMENT, PAYMENT.itemAfter(), BEFORE_SP) == DurableOutcome.APPLIED, "Committed receipt did not recover exact fees.");
+		require(ClanFoundingDevelopment.readback(connection, other, PAYMENT.itemAfter(), BEFORE_SP) == DurableOutcome.CONFLICT, "Readback accepted a different operation's receipt.");
+		final Payment replay = new Payment(7, 11, 29, 88, 37, PAYMENT.itemAfter(), PAYMENT.spAfter(), new UUID(17, 3));
 		debitFixtureCoins(connection, replay);
 		try
 		{
@@ -241,16 +393,16 @@ public final class ClanFoundingDevelopment017Checks
 		{
 			connection.rollback();
 		}
-		assertRows(connection, PAYMENT.adenaAfter(), PAYMENT.spAfter(), 1);
+		assertRows(connection, PAYMENT.itemAfter(), PAYMENT.spAfter(), 1);
 	}
 
 	private static void debitFixtureCoins(Connection connection, Payment payment) throws SQLException
 	{
 		try (var sql = connection.prepareStatement("UPDATE items SET count=? WHERE object_id=? AND count=?"))
 		{
-			sql.setLong(1, payment.adenaAfter());
-			sql.setInt(2, payment.coinObjectId());
-			sql.setLong(3, payment.adenaBefore());
+			sql.setLong(1, payment.itemAfter());
+			sql.setInt(2, payment.itemObjectId());
+			sql.setLong(3, payment.itemBefore());
 			require(sql.executeUpdate() == 1, "Native currency preimage was lost.");
 		}
 	}

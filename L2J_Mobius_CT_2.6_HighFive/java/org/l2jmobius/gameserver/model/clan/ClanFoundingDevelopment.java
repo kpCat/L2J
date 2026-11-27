@@ -33,33 +33,46 @@ public final class ClanFoundingDevelopment
 	public static final long SP_COST = 20_000;
 	static final String COMPONENT_TYPE = "clan.development.payment";
 	private static final String TRANSITION_COMPONENT_TYPE = "clan.development.transition";
+	private static final String ITEM_TRANSITION_COMPONENT_TYPE = "clan.development.item-transition";
 	private static final Logger LOGGER = Logger.getLogger(ClanFoundingDevelopment.class.getName());
 
 	public enum Outcome { APPLIED, NOT_READY, DEFERRED, UNCONFIRMED }
 	enum DurableOutcome { APPLIED, ROLLED_BACK, CONFLICT }
 
-	static record Payment(long profileId, int actorId, int clanId, int baseClassId, int coinObjectId, long adenaBefore, long spBefore, UUID operation, int currentLevel)
+	static record Payment(long profileId, int actorId, int clanId, int baseClassId, int itemObjectId, long itemBefore, long spBefore, UUID operation, int currentLevel)
 	{
-		Payment(long profileId, int actorId, int clanId, int baseClassId, int coinObjectId, long adenaBefore, long spBefore, UUID operation)
+		Payment(long profileId, int actorId, int clanId, int baseClassId, int itemObjectId, long itemBefore, long spBefore, UUID operation)
 		{
-			this(profileId, actorId, clanId, baseClassId, coinObjectId, adenaBefore, spBefore, operation, 0);
+			this(profileId, actorId, clanId, baseClassId, itemObjectId, itemBefore, spBefore, operation, 0);
 		}
 
 		Payment
 		{
-			if (currentLevel < 0 || currentLevel > 1) { throw new IllegalArgumentException("No recoverable Adena payment for this clan level."); }
+			if (!supportsLevel(currentLevel)) { throw new IllegalArgumentException("No recoverable inventory payment for this clan level."); }
 		}
 
 		Clan.LevelRequirement requirement() { return Clan.levelRequirement(currentLevel); }
-		int version() { return currentLevel == 0 ? 1 : 2; }
-		String componentType() { return currentLevel == 0 ? COMPONENT_TYPE : TRANSITION_COMPONENT_TYPE; }
-		long adenaAfter() { return adenaBefore - requirement().adena(); }
+		int version() { return Math.min(currentLevel + 1, 3); }
+		String componentType()
+		{
+			return switch (version())
+			{
+				case 1 -> COMPONENT_TYPE;
+				case 2 -> TRANSITION_COMPONENT_TYPE;
+				default -> ITEM_TRANSITION_COMPONENT_TYPE;
+			};
+		}
+		int feeItemId() { return currentLevel < 2 ? Inventory.ADENA_ID : requirement().itemId(); }
+		long feeCount() { return currentLevel < 2 ? requirement().adena() : requirement().itemCount(); }
+		long itemAfter() { return itemBefore - feeCount(); }
 		long spAfter() { return spBefore - requirement().sp(); }
 		byte[] evidence()
 		{
-			final var bytes = ByteBuffer.allocate(version() == 1 ? 56 : 76).putLong(operation.getMostSignificantBits()).putLong(operation.getLeastSignificantBits())
-				.putLong(profileId).putInt(actorId).putInt(clanId).putInt(baseClassId).putInt(coinObjectId).putLong(adenaBefore).putLong(spBefore);
-			if (version() == 2) { bytes.putInt(currentLevel).putLong(requirement().adena()).putLong(requirement().sp()); }
+			final int version = version();
+			final var bytes = ByteBuffer.allocate(version == 1 ? 56 : version == 2 ? 76 : 80).putLong(operation.getMostSignificantBits()).putLong(operation.getLeastSignificantBits())
+				.putLong(profileId).putInt(actorId).putInt(clanId).putInt(baseClassId).putInt(itemObjectId).putLong(itemBefore).putLong(spBefore);
+			if (version >= 2) { bytes.putInt(currentLevel).putLong(feeCount()).putLong(requirement().sp()); }
+			if (version == 3) { bytes.putInt(feeItemId()); }
 			return bytes.array();
 		}
 	}
@@ -68,20 +81,35 @@ public final class ClanFoundingDevelopment
 	public static final class PendingPayment
 	{
 		private final Clan _clan;
-		private final Item _coin;
+		private final Item _item;
 		private final Payment _payment;
 		private final long _originalDurableSp;
 
-		private PendingPayment(Clan clan, Item coin, Payment payment, long originalDurableSp)
+		private PendingPayment(Clan clan, Item item, Payment payment, long originalDurableSp)
 		{
 			_clan = clan;
-			_coin = coin;
+			_item = item;
 			_payment = payment;
 			_originalDurableSp = originalDurableSp;
 		}
 	}
 
 	private ClanFoundingDevelopment() { }
+
+	public static boolean supportsLevel(int currentLevel)
+	{
+		return currentLevel >= 0 && currentLevel < 5;
+	}
+
+	/** Multiple exact fee stacks can survive a full-debit rollback with a concurrent native reward. */
+	public static boolean isItemFee(int itemId)
+	{
+		for (int level = 2; supportsLevel(level); level++)
+		{
+			if (Clan.levelRequirement(level).itemId() == itemId) { return true; }
+		}
+		return false;
+	}
 
 	public static Outcome payForFirstLevel(long profileId, Player leader, VillageMaster npc, BooleanSupplier mandatoryPreparationPending)
 	{
@@ -93,7 +121,7 @@ public final class ClanFoundingDevelopment
 		if (profileId <= 0 || leader == null || !leader.hasHeadlessOutboundSession() || leader.isDedicatedGeoScout() || !authorizedAction(leader, profileId)) { return Outcome.NOT_READY; }
 		final Clan clan = leader.getClan();
 		final Clan.LevelRequirement requirement = Clan.levelRequirement(expectedLevel);
-		if (clan == null || requirement == null || requirement.adena() <= 0) { return Outcome.NOT_READY; }
+		if (clan == null || !supportsLevel(expectedLevel)) { return Outcome.NOT_READY; }
 		if (leader.getPendingClanDevelopment() != null) { return settlePending(leader) ? Outcome.DEFERRED : Outcome.UNCONFIRMED; }
 		if (mandatoryPreparationPending.getAsBoolean()) { return Outcome.NOT_READY; }
 		final var fence = ClanSocialMutationFence.getInstance();
@@ -103,13 +131,15 @@ public final class ClanFoundingDevelopment
 			{
 				if (leader.getPendingClanDevelopment() != null) { return settleLocked(leader); }
 				if (fence.isRetiring(clan.getId()) || clan.firstLevelPaymentPending() || !eligible(leader, clan, npc, requirement)) { return Outcome.NOT_READY; }
-				final Item coin = leader.getInventory().getAdenaInstance();
-				if (coin == null) { return Outcome.NOT_READY; }
-				synchronized (coin)
+				final Item fee = requirement.itemId() == 0 ? leader.getInventory().getAdenaInstance() : leader.getInventory().getItemByItemId(requirement.itemId());
+				if (fee == null) { return Outcome.NOT_READY; }
+				synchronized (fee)
 				{
-					if (System.currentTimeMillis() >= expiresAt || coin.getId() != Inventory.ADENA_ID
-						|| coin.getOwnerId() != leader.getObjectId() || coin.getCount() < requirement.adena()) { return Outcome.NOT_READY; }
-					return payLocked(profileId, leader, clan, coin, requirement);
+					final var payment = new Payment(profileId, leader.getObjectId(), clan.getId(), leader.getActiveClass(),
+						fee.getObjectId(), fee.getCount(), leader.getSp(), UUID.randomUUID(), expectedLevel);
+					if (System.currentTimeMillis() >= expiresAt || fee.getId() != payment.feeItemId()
+						|| fee.getOwnerId() != leader.getObjectId() || payment.itemAfter() < 0) { return Outcome.NOT_READY; }
+					return payLocked(leader, clan, fee, payment);
 				}
 			}
 		});
@@ -132,16 +162,15 @@ public final class ClanFoundingDevelopment
 			&& GeoEngine.getInstance().canSeeTarget(leader, npc);
 	}
 
-	private static Outcome payLocked(long profileId, Player leader, Clan clan, Item coin, Clan.LevelRequirement requirement)
+	private static Outcome payLocked(Player leader, Clan clan, Item fee, Payment payment)
 	{
-		final var payment = new Payment(profileId, leader.getObjectId(), clan.getId(), leader.getActiveClass(), coin.getObjectId(), coin.getCount(), leader.getSp(), UUID.randomUUID(), requirement.currentLevel());
 		try
 		{
-			coin.transactRecoverableAdenaDebit(requirement.adena(), connection ->
+			fee.transactRecoverableInventoryDebit(payment.actorId(), payment.itemBefore(), payment.feeCount(), connection ->
 			{
 				final long durableBefore = stage(connection, payment, leader.getStat()::matchesNativeSkillPointCredit);
 				if (payment.spBefore() == durableBefore) { leader.getStat().acknowledgeStoredSkillPoints(0, durableBefore); }
-				leader.setPendingClanDevelopment(new PendingPayment(clan, coin, payment, durableBefore));
+				leader.setPendingClanDevelopment(new PendingPayment(clan, fee, payment, durableBefore));
 				clan.setFirstLevelPaymentPending(true);
 				return null;
 			});
@@ -177,7 +206,7 @@ public final class ClanFoundingDevelopment
 			}
 		}
 		final long durableSp = readSp(connection, payment, true);
-		if (payment.adenaAfter() < 0 || payment.spAfter() < 0 || (durableSp != payment.spBefore() && !witnessedCredit.test(durableSp)))
+		if (payment.itemAfter() < 0 || payment.spAfter() < 0 || (durableSp != payment.spBefore() && !witnessedCredit.test(durableSp)))
 		{
 			throw new SQLException("Native clan payment preimage changed.");
 		}
@@ -240,15 +269,24 @@ public final class ClanFoundingDevelopment
 	private static Outcome settleLocked(Player leader)
 	{
 		final PendingPayment pending = leader.getPendingClanDevelopment();
+		synchronized (pending._item)
+		{
+			return settleItemLocked(leader, pending);
+		}
+	}
+
+	private static Outcome settleItemLocked(Player leader, PendingPayment pending)
+	{
 		final Payment payment = pending._payment;
 		final DurableOutcome durable;
 		try
 		{
-			if (leader.getActiveClass() != payment.baseClassId() || leader.getClassIndex() != 0 || leader.getInventory().getAdenaInstance() != pending._coin || pending._coin.getOwnerId() != payment.actorId()
+			if (leader.getActiveClass() != payment.baseClassId() || leader.getClassIndex() != 0
+				|| leader.getInventory().getItemByObjectId(payment.itemObjectId()) != pending._item || pending._item.getOwnerId() != payment.actorId()
 				|| leader.getSp() < payment.spBefore() || (leader.getSp() != payment.spBefore() && !leader.getStat().matchesNativeSkillPointCredit(pending._originalDurableSp))) { return Outcome.UNCONFIRMED; }
-			durable = pending._coin.reconcileCountTransaction(payment.actorId(), payment.adenaBefore(), payment.adenaAfter(), (connection, adena) ->
+			durable = pending._item.reconcileCountTransaction(payment.actorId(), payment.itemBefore(), payment.itemAfter(), (connection, count) ->
 			{
-				final DurableOutcome observed = readback(connection, payment, adena, pending._originalDurableSp);
+				final DurableOutcome observed = readback(connection, payment, count, pending._originalDurableSp);
 				return observed == DurableOutcome.CONFLICT ? null : observed;
 			});
 		}
@@ -263,7 +301,7 @@ public final class ClanFoundingDevelopment
 		return Outcome.DEFERRED;
 	}
 
-	static DurableOutcome readback(Connection connection, Payment payment, long adena, long originalDurableSp) throws SQLException
+	static DurableOutcome readback(Connection connection, Payment payment, long count, long originalDurableSp) throws SQLException
 	{
 		final long sp = readSp(connection, payment, false);
 		final int level;
@@ -284,8 +322,8 @@ public final class ClanFoundingDevelopment
 			try (var rows = query.executeQuery())
 			{
 				final boolean receipt = rows.next() && rows.getInt(1) == payment.version() && Arrays.equals(rows.getBytes(2), payment.evidence());
-				if (receipt && level == payment.requirement().nextLevel() && adena == payment.adenaAfter() && sp == payment.spAfter()) { return DurableOutcome.APPLIED; }
-				if (!receipt && level == payment.currentLevel() && adena == payment.adenaBefore() && sp == originalDurableSp) { return DurableOutcome.ROLLED_BACK; }
+				if (receipt && level == payment.requirement().nextLevel() && count == payment.itemAfter() && sp == payment.spAfter()) { return DurableOutcome.APPLIED; }
+				if (!receipt && level == payment.currentLevel() && count == payment.itemBefore() && sp == originalDurableSp) { return DurableOutcome.ROLLED_BACK; }
 				return DurableOutcome.CONFLICT;
 			}
 		}
@@ -297,14 +335,21 @@ public final class ClanFoundingDevelopment
 		leader.setSp(leader.getSp() - requirement.sp());
 		leader.getStat().acknowledgeStoredSkillPoints(0, pending._payment.spAfter());
 		final Clan clan = pending._clan;
+		final boolean removed;
 		try
 		{
+			removed = requirement.itemId() > 0 && leader.getInventory().publishCommittedStackDebit(pending._item, leader);
 			if (ClanTable.getInstance().getClan(clan.getId()) == clan) { clan.publishPaidLevel(leader, requirement); }
 		}
 		finally { clearPending(leader, pending); }
 		final var inventory = new InventoryUpdate();
-		inventory.addModifiedItem(pending._coin);
+		if (removed) { inventory.addRemovedItem(pending._item); }
+		else { inventory.addModifiedItem(pending._item); }
 		leader.sendInventoryUpdate(inventory);
+		if (requirement.itemId() > 0)
+		{
+			leader.sendPacket(new SystemMessage(SystemMessageId.S1_HAS_DISAPPEARED).addItemName(requirement.itemId()));
+		}
 		final var sp = new StatusUpdate(leader);
 		sp.addAttribute(StatusUpdate.SP, (int) leader.getSp());
 		leader.sendPacket(sp);

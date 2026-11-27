@@ -166,7 +166,8 @@ public class Item extends WorldObject
 	private boolean _existsInDb; // if a record exists in DB.
 	private boolean _storedInDb; // if DB data is up-to-date.
 	private volatile boolean _countTransactionUncertain;
-	private volatile long _pendingAdenaDebitBase = -1;
+	private volatile long _pendingInventoryDebitBase = -1;
+	private volatile boolean _committedInventoryRemoval;
 	
 	private final ReentrantLock _dbLock = new ReentrantLock();
 	
@@ -492,14 +493,15 @@ public class Item extends WorldObject
 		T verify(Connection connection, long durableCount) throws Exception;
 	}
 
-	/** Resolve this exact native currency write only after the caller's receipt and count agree. */
+	/** Resolve the owned stack only after the caller's receipt and durable count agree. */
 	public synchronized <T> T reconcileCountTransaction(int ownerId, long before, long after, CountReadback<T> readback) throws Exception
 	{
 		_dbLock.lock();
 		try
 		{
-			if (_pendingAdenaDebitBase < 0 || _pendingAdenaDebitBase != after || _loc != ItemLocation.INVENTORY || _ownerId != ownerId) { return null; }
-			final long earned = _count - _pendingAdenaDebitBase;
+			if (_pendingInventoryDebitBase < 0 || _pendingInventoryDebitBase != after || _loc != ItemLocation.INVENTORY || _ownerId != ownerId) { return null; }
+			final long earned = _count - _pendingInventoryDebitBase;
+			final boolean removesStack = _itemId != ADENA_ID && after == 0;
 			final long durable;
 			final T verified;
 			try (Connection connection = DatabaseFactory.getConnection())
@@ -510,8 +512,17 @@ public class Item extends WorldObject
 					query.setInt(1, getObjectId());
 					try (var rows = query.executeQuery())
 					{
-						if (!rows.next() || rows.getInt(1) != _ownerId || rows.getInt(2) != _itemId || !"INVENTORY".equals(rows.getString(4))) { return null; }
-						durable = rows.getLong(3);
+						if (rows.next())
+						{
+							if (rows.getInt(1) != _ownerId || rows.getInt(2) != _itemId || !"INVENTORY".equals(rows.getString(4))) { return null; }
+							durable = rows.getLong(3);
+							if (removesStack && durable == 0) { return null; }
+						}
+						else
+						{
+							if (!removesStack) { return null; }
+							durable = 0;
+						}
 					}
 				}
 				if (durable != before && durable != after) { return null; }
@@ -519,11 +530,13 @@ public class Item extends WorldObject
 				if (verified == null) { return null; }
 				connection.commit();
 			}
-			_count = durable + Math.min(earned, MAX_ADENA - durable);
+			final long maximum = _itemId == ADENA_ID ? MAX_ADENA : Long.MAX_VALUE;
+			_count = durable + Math.min(earned, maximum - durable);
+			_existsInDb = !removesStack || durable > 0;
+			_committedInventoryRemoval = !_existsInDb && _count == 0;
+			_storedInDb = _existsInDb && _count == durable;
 			_countTransactionUncertain = false;
-			_pendingAdenaDebitBase = -1;
-			_existsInDb = true;
-			_storedInDb = _count == durable;
+			_pendingInventoryDebitBase = -1;
 			setLastChange(MODIFIED);
 			return verified;
 		}
@@ -537,34 +550,80 @@ public class Item extends WorldObject
 	 */
 	public synchronized <T> T transactCount(long delta, CountTransaction<T> transaction) throws Exception
 	{
-		return transactCount(delta, transaction, false);
+		return transactCount(delta, transaction, false, 0, 0);
 	}
 
 	/** Hold this exact stack on an unconfirmed debit while native earnings can still accrue. */
 	public synchronized <T> T transactRecoverableAdenaDebit(long debit, CountTransaction<T> transaction) throws Exception
 	{
 		if (_itemId != ADENA_ID || debit <= 0) { throw new IllegalArgumentException("Owned Adena debit required."); }
-		return transactCount(-debit, transaction, true);
+		return transactCount(-debit, transaction, true, 0, 0);
 	}
 
 	public boolean hasPendingAdenaDebit()
 	{
-		return _pendingAdenaDebitBase >= 0;
+		return _itemId == ADENA_ID && _pendingInventoryDebitBase >= 0;
 	}
 
-	private <T> T transactCount(long delta, CountTransaction<T> transaction, boolean retainAdenaCredits) throws Exception
+	public synchronized <T> T transactRecoverableInventoryDebit(int ownerId, long expectedCount, long debit, CountTransaction<T> transaction) throws Exception
+	{
+		if (ownerId <= 0 || debit <= 0 || expectedCount < debit)
+		{
+			throw new IllegalArgumentException("An exact owned inventory stack is required.");
+		}
+		return transactCount(-debit, transaction, true, ownerId, expectedCount);
+	}
+
+	public boolean blocksInventoryDebit()
+	{
+		return _pendingInventoryDebitBase >= 0 || _committedInventoryRemoval;
+	}
+
+	public boolean isCommittedInventoryRemoval()
+	{
+		return _committedInventoryRemoval;
+	}
+
+	/** Hold late credits on a surviving stack. A possibly consumed stack must keep its retired identity. */
+	public boolean tryCreditContainerStack(ItemProcessType process, long count, Player actor, Object reference)
 	{
 		_dbLock.lock();
 		try
 		{
-			if (_countTransactionUncertain || !isStackable() || _loc != ItemLocation.INVENTORY || _ownerId <= 0 || delta == 0)
+			if (_committedInventoryRemoval || _itemId != ADENA_ID && _pendingInventoryDebitBase == 0) { return false; }
+			changeCount(process, count, actor, reference);
+			return true;
+		}
+		finally { _dbLock.unlock(); }
+	}
+
+	private <T> T transactCount(long delta, CountTransaction<T> transaction, boolean recoverableDebit, int expectedOwner, long expectedCount) throws Exception
+	{
+		_dbLock.lock();
+		try
+		{
+			if (_countTransactionUncertain || _committedInventoryRemoval || !isStackable() || _loc != ItemLocation.INVENTORY || _ownerId <= 0 || delta == 0)
 			{
 				throw new IllegalStateException("Currency instance unavailable for transaction.");
 			}
+			if (expectedOwner != 0 && (_ownerId != expectedOwner || _count != expectedCount))
+			{
+				throw new IllegalStateException("Native inventory debit preimage changed.");
+			}
+			final boolean itemDebit = recoverableDebit && _itemId != ADENA_ID;
+			if (itemDebit && (_itemTemplate.isEquipable() || _wear || _augmentation != null || _elementals != null
+				|| _type1 != 0 || _type2 != 0 || _enchantLevel != 0 || _mana > 0 || _time > 0))
+			{
+				throw new IllegalStateException("Native item debit requires a plain stack.");
+			}
 			final long next = Math.addExact(_count, delta);
+			final boolean removesStack = itemDebit && next == 0;
 			if (next < 0 || (_itemId == ADENA_ID && next > MAX_ADENA)) { throw new IllegalArgumentException("Currency count outside native limits."); }
-			updateDatabase(true);
+			// A stock save may have left this stack dirty. An item fee must observe its durable
+			// preimage before writing anything. A later native inventory save can make it eligible.
+			if (!itemDebit) { updateDatabase(true); }
 			boolean committing = false;
+			final T result;
 			try (Connection connection = DatabaseFactory.getConnection())
 			{
 				connection.setAutoCommit(false);
@@ -575,26 +634,39 @@ public class Item extends WorldObject
 						try (var insert = connection.prepareStatement("INSERT INTO items(owner_id,object_id,item_id,count,loc,loc_data,enchant_level,mana_left,time) VALUES(?,?,?,0,'INVENTORY',0,0,?,?)"))
 						{ insert.setInt(1, _ownerId); insert.setInt(2, getObjectId()); insert.setInt(3, _itemId); insert.setInt(4, _mana); insert.setLong(5, _time); insert.executeUpdate(); }
 					}
-					try (var query = connection.prepareStatement("SELECT owner_id,item_id,count,loc FROM items WHERE object_id=? FOR UPDATE"))
+					final String columns = itemDebit ? "owner_id,item_id,count,loc,loc_data,enchant_level,custom_type1,custom_type2,mana_left,time" : "owner_id,item_id,count,loc";
+					try (var query = connection.prepareStatement("SELECT " + columns + " FROM items WHERE object_id=? FOR UPDATE"))
 					{
 						query.setInt(1, getObjectId());
 						try (var rows = query.executeQuery())
 						{
 							if (!rows.next() || rows.getInt(1) != _ownerId || rows.getInt(2) != _itemId || rows.getLong(3) != _count || !"INVENTORY".equals(rows.getString(4)))
 							{ throw new IllegalStateException("Native currency preimage differs."); }
+							if (itemDebit && (rows.getInt(5) != _locData || rows.getInt(6) != _enchantLevel || rows.getInt(7) != _type1
+								|| rows.getInt(8) != _type2 || rows.getInt(9) != _mana || rows.getLong(10) != _time))
+							{ throw new IllegalStateException("Native fee stack attributes differ."); }
 						}
 					}
-					try (var update = connection.prepareStatement("UPDATE items SET count=? WHERE object_id=?"))
+					if (itemDebit) { requirePlainStackRows(connection); }
+					if (removesStack)
 					{
-						update.setLong(1, next); update.setInt(2, getObjectId());
-						if (update.executeUpdate() != 1) { throw new IllegalStateException("Currency row changed."); }
+						try (var delete = connection.prepareStatement("DELETE FROM items WHERE object_id=?"))
+						{
+							delete.setInt(1, getObjectId());
+							if (delete.executeUpdate() != 1) { throw new IllegalStateException("Inventory fee row changed."); }
+						}
 					}
-					final T result = transaction.run(connection);
+					else
+					{
+						try (var update = connection.prepareStatement("UPDATE items SET count=? WHERE object_id=?"))
+						{
+							update.setLong(1, next); update.setInt(2, getObjectId());
+							if (update.executeUpdate() != 1) { throw new IllegalStateException("Currency row changed."); }
+						}
+					}
+					result = transaction.run(connection);
 					committing = true;
 					connection.commit();
-					_count = next; _storedInDb = true; _existsInDb = true;
-					setLastChange(MODIFIED);
-					return result;
 				}
 				catch (Exception failure)
 				{
@@ -605,16 +677,42 @@ public class Item extends WorldObject
 			}
 			catch (Exception failure)
 			{
-				if (committing && retainAdenaCredits)
+				if (committing && recoverableDebit)
 				{
 					_countTransactionUncertain = true;
 					_count = next;
-					_pendingAdenaDebitBase = next;
+					_pendingInventoryDebitBase = next;
 				}
 				throw failure;
 			}
+			_count = next;
+			_existsInDb = !removesStack;
+			_storedInDb = !removesStack;
+			_committedInventoryRemoval = removesStack;
+			setLastChange(MODIFIED);
+			return result;
 		}
 		finally { _dbLock.unlock(); }
+	}
+
+	private void requirePlainStackRows(Connection connection) throws SQLException
+	{
+		for (String query : new String[]
+		{
+			"SELECT itemId FROM item_attributes WHERE itemId=? FOR UPDATE",
+			"SELECT itemId FROM item_elementals WHERE itemId=? FOR UPDATE",
+			"SELECT id FROM item_variables WHERE id=? FOR UPDATE"
+		})
+		{
+			try (var statement = connection.prepareStatement(query))
+			{
+				statement.setInt(1, getObjectId());
+				try (var rows = statement.executeQuery())
+				{
+					if (rows.next()) { throw new SQLException("Native fee stack has durable item metadata."); }
+				}
+			}
+		}
 	}
 
 	/** Two owned native stacks and a durable caller receipt share one commit. Locks follow object ID order. */
@@ -636,7 +734,8 @@ public class Item extends WorldObject
 		try
 		{
 			if (source._ownerId <= 0 || source._ownerId != target._ownerId || source._loc != ItemLocation.INVENTORY || target._loc != ItemLocation.INVENTORY
-				|| !source.isStackable() || !target.isStackable() || source._countTransactionUncertain || target._countTransactionUncertain)
+				|| !source.isStackable() || !target.isStackable() || source._countTransactionUncertain || target._countTransactionUncertain
+				|| source._committedInventoryRemoval || target._committedInventoryRemoval)
 			{ throw new IllegalStateException("Native stack ownership or transaction state differs."); }
 			final long sourceAfter = Math.subtractExact(source._count, debit), targetAfter = Math.addExact(target._count, credit);
 			if (sourceAfter < 0 || (target._itemId == ADENA_ID && targetAfter > MAX_ADENA)) { throw new IllegalArgumentException("Native stack count outside limits."); }
@@ -711,7 +810,7 @@ public class Item extends WorldObject
 
 			final long old = _count;
 			final long max = _itemId == ADENA_ID ? MAX_ADENA : Long.MAX_VALUE;
-			if (count > 0 && hasPendingAdenaDebit())
+			if (count > 0 && (_pendingInventoryDebitBase > 0 || hasPendingAdenaDebit()))
 			{
 				// This is a native increment on the lower possible balance. Hold the delta until readback.
 				_count += Math.min(count, max - _count);
@@ -1764,7 +1863,7 @@ public class Item extends WorldObject
 		try
 		{
 			// An ambiguous commit must never be overwritten by an obsolete in-memory count.
-			if (_countTransactionUncertain) { return; }
+			if (_countTransactionUncertain || _committedInventoryRemoval) { return; }
 			if (_existsInDb)
 			{
 				if ((_ownerId == 0) || (_loc == ItemLocation.VOID) || (_loc == ItemLocation.REFUND) || ((_count == 0) && (_loc != ItemLocation.LEASE)))

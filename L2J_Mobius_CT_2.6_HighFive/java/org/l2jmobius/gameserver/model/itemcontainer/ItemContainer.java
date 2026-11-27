@@ -96,7 +96,7 @@ public abstract class ItemContainer
 	{
 		for (Item item : _items)
 		{
-			if (item.getId() == itemId)
+			if (item.getId() == itemId && !item.isCommittedInventoryRemoval())
 			{
 				return item;
 			}
@@ -148,7 +148,7 @@ public abstract class ItemContainer
 	{
 		for (Item item : _items)
 		{
-			if ((item.getId() == itemId) && !item.equals(itemToIgnore))
+			if ((item.getId() == itemId) && !item.equals(itemToIgnore) && !item.isCommittedInventoryRemoval())
 			{
 				return item;
 			}
@@ -199,12 +199,12 @@ public abstract class ItemContainer
 		{
 			if ((item.getId() == itemId) && ((item.getEnchantLevel() == enchantLevel) || (enchantLevel < 0)) && (includeEquipped || !item.isEquipped()))
 			{
-				if (item.isStackable())
-				{
-					return item.getCount();
-				}
-				
-				count++;
+				// A fee that may consume a full stack leaves an incoming reward on its own
+				// native object. If the fee rolled back, both owned stacks remain valid.
+				final long amount = item.isStackable() ? item.getCount() : 1;
+				if (amount < 0) { return amount; }
+				if (amount > Long.MAX_VALUE - count) { return Long.MAX_VALUE; }
+				count += amount;
 			}
 		}
 		
@@ -222,13 +222,11 @@ public abstract class ItemContainer
 	public Item addItem(ItemProcessType process, Item item, Player actor, Object reference)
 	{
 		Item newItem = item;
-		final Item olditem = getItemByItemId(newItem.getId());
+		final Item olditem = creditExistingStack(newItem.getId(), process, newItem.getCount(), actor, reference);
 		
 		// If stackable item is found in inventory just add to current quantity
-		if ((olditem != null) && olditem.isStackable())
+		if (olditem != null)
 		{
-			final long count = newItem.getCount();
-			olditem.changeCount(process, count, actor, reference);
 			olditem.setLastChange(Item.MODIFIED);
 			
 			// And destroys the item
@@ -261,12 +259,11 @@ public abstract class ItemContainer
 	 */
 	public Item addItem(ItemProcessType process, int itemId, long count, Player actor, Object reference)
 	{
-		Item item = getItemByItemId(itemId);
+		Item item = creditExistingStack(itemId, process, count, actor, reference);
 		
 		// If stackable item is found in inventory just add to current quantity
-		if ((item != null) && item.isStackable())
+		if (item != null)
 		{
-			item.changeCount(process, count, actor, reference);
 			item.setLastChange(Item.MODIFIED);
 		}
 		else // If item hasn't be found in inventory, create new one
@@ -313,6 +310,18 @@ public abstract class ItemContainer
 		refreshWeight();
 		return item;
 	}
+
+	private Item creditExistingStack(int itemId, ItemProcessType process, long count, Player actor, Object reference)
+	{
+		for (Item item : _items)
+		{
+			if (item.getId() == itemId && item.isStackable() && item.tryCreditContainerStack(process, count, actor, reference))
+			{
+				return item;
+			}
+		}
+		return null;
+	}
 	
 	/**
 	 * Transfers item to another inventory
@@ -337,11 +346,11 @@ public abstract class ItemContainer
 			return null;
 		}
 		
-		Item targetitem = sourceitem.isStackable() ? target.getItemByItemId(sourceitem.getId()) : null;
+		final Item targetitem;
 		synchronized (sourceitem)
 		{
 			// check if this item still present in this container
-			if ((getItemByObjectId(objectId) != sourceitem) || sourceitem.hasPendingAdenaDebit())
+			if ((getItemByObjectId(objectId) != sourceitem) || sourceitem.blocksInventoryDebit())
 			{
 				return null;
 			}
@@ -354,7 +363,7 @@ public abstract class ItemContainer
 			}
 			
 			// If possible, move entire item object
-			if ((sourceitem.getCount() == count) && (targetitem == null) && !sourceitem.isStackable())
+			if ((sourceitem.getCount() == count) && !sourceitem.isStackable())
 			{
 				removeItem(sourceitem);
 				target.addItem(process, sourceitem, actor, reference);
@@ -372,14 +381,8 @@ public abstract class ItemContainer
 					ItemManager.destroyItem(process, sourceitem, actor, reference);
 				}
 				
-				if (targetitem != null) // If possible, only update counts
-				{
-					targetitem.changeCount(process, count, actor, reference);
-				}
-				else // Otherwise add new item
-				{
-					targetitem = target.addItem(process, sourceitem.getId(), count, actor, reference);
-				}
+				final Item credited = sourceitem.isStackable() ? target.creditExistingStack(sourceitem.getId(), process, count, actor, reference) : null;
+				targetitem = credited != null ? credited : target.addItem(process, sourceitem.getId(), count, actor, reference);
 			}
 			
 			// Updates database
@@ -427,7 +430,7 @@ public abstract class ItemContainer
 	{
 		synchronized (item)
 		{
-			if (item.hasPendingAdenaDebit()) { return null; }
+			if (item.blocksInventoryDebit()) { return null; }
 			// Adjust item quantity
 			if (item.getCount() > count)
 			{

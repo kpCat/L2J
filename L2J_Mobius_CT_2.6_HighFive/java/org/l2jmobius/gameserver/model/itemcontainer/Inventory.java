@@ -42,6 +42,7 @@ import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.clan.ClanFoundingDevelopment;
 import org.l2jmobius.gameserver.model.events.EventDispatcher;
 import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerItemUnequip;
@@ -783,6 +784,23 @@ public abstract class Inventory extends ItemContainer
 	{
 		return new ChangeRecorder(this);
 	}
+
+	/** Retire the exact inventory object only after its full debit committed. */
+	public boolean publishCommittedStackDebit(Item item, Player actor)
+	{
+		synchronized (item)
+		{
+			final boolean removed = item.isCommittedInventoryRemoval() && item.getOwnerId() == getOwnerId()
+				&& item.getItemLocation() == ItemLocation.INVENTORY && removeItem(item);
+			if (removed)
+			{
+				ItemManager.destroyItem(ItemProcessType.FEE, item, actor, null);
+				item.stopAllTasks();
+			}
+			refreshWeight();
+			return removed;
+		}
+	}
 	
 	/**
 	 * Drop item from inventory and updates database
@@ -801,7 +819,7 @@ public abstract class Inventory extends ItemContainer
 		
 		synchronized (item)
 		{
-			if (!_items.contains(item) || item.hasPendingAdenaDebit())
+			if (!_items.contains(item) || item.blocksInventoryDebit())
 			{
 				return null;
 			}
@@ -837,7 +855,7 @@ public abstract class Inventory extends ItemContainer
 		
 		synchronized (item)
 		{
-			if (!_items.contains(item) || item.hasPendingAdenaDebit())
+			if (!_items.contains(item) || item.blocksInventoryDebit())
 			{
 				return null;
 			}
@@ -1615,8 +1633,9 @@ public abstract class Inventory extends ItemContainer
 				
 				World.getInstance().addObject(item);
 				
-				// If stackable item is found in inventory just add to current quantity
-				if (item.isStackable() && (getItemByItemId(item.getId()) != null))
+				// Keep independently durable fee stacks. The stock restore merge deletes
+				// one row before the surviving count is saved.
+				if (item.isStackable() && !ClanFoundingDevelopment.isItemFee(item.getId()) && getItemByItemId(item.getId()) != null)
 				{
 					addItem(ItemProcessType.RESTORE, item, getOwner().asPlayer(), null);
 				}
