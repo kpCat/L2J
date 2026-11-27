@@ -1,16 +1,31 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.gameserver.model.clan;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.config.GeoEngineConfig;
 import org.l2jmobius.gameserver.config.IdManagerConfig;
+import org.l2jmobius.gameserver.config.PlayerConfig;
+import org.l2jmobius.gameserver.config.ServerConfig;
+import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.data.xml.ItemData;
+import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
+import org.l2jmobius.gameserver.model.actor.instance.Warehouse;
 import org.l2jmobius.gameserver.model.actor.templates.PlayerTemplate;
 import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.Destination;
 import org.l2jmobius.gameserver.model.clan.ClanWarehouseTransfer.DonationPolicy;
@@ -21,6 +36,19 @@ import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.ClanWarehouse;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService;
+import org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 
 /** Exact durable item/fee outcomes against the 021 isolated MariaDB stock schema. */
 public final class ClanWarehouse021Checks
@@ -28,10 +56,13 @@ public final class ClanWarehouse021Checks
 	private static final int ACTOR = 21002163;
 	private static final int CLAN = 21002164;
 	private static final long PROFILE = 21002162L;
+	private static final int CONTEST_CLAN = 21002194;
+	private static final int FIRST_CONTENDER = 21002193;
+	private static final int SECOND_CONTENDER = 21002197;
 
 	private ClanWarehouse021Checks() { }
 
-	public static void verify() throws Exception
+	public static void verify(Path scratch) throws Exception
 	{
 		try (var connection = DatabaseFactory.getConnection(); var sql = connection.createStatement())
 		{
@@ -39,6 +70,10 @@ public final class ClanWarehouse021Checks
 			sql.executeUpdate("INSERT INTO phantom_profile_components(profile_id,component_type,component_schema_version,payload) VALUES(21002162,'clan.organization',2,X'01')");
 			sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id) VALUES(21002164,'ClanWarehouseProof021',5,21002163)");
 			sql.executeUpdate("INSERT INTO characters(charId,char_name,sp,classid,base_class,clanid) VALUES(21002163,'ClanWarehouseProof021',450,88,88,21002164)");
+			sql.executeUpdate("INSERT INTO phantom_profiles(profile_id,character_object_id) VALUES(21002192,21002193),(21002196,21002197)");
+			sql.executeUpdate("INSERT INTO phantom_profile_components(profile_id,component_type,component_schema_version,payload) VALUES(21002192,'clan.organization',2,X'01'),(21002196,'clan.organization',2,X'01')");
+			sql.executeUpdate("INSERT INTO clan_data(clan_id,clan_name,clan_level,leader_id) VALUES(21002194,'ContestedStock021',5,21002193)");
+			sql.executeUpdate("INSERT INTO characters(charId,char_name,classid,base_class,clanid) VALUES(21002193,'StockFirst021',0,0,21002194),(21002197,'StockSecond021',0,0,21002194)");
 		}
 		IdManagerConfig.load();
 		final int firstNativeObject = IdManagerConfig.FIRST_OBJECT_ID + 21021;
@@ -118,15 +153,27 @@ public final class ClanWarehouse021Checks
 		check(cold != null && cold.getOwnerId() == CLAN && cold.getItemLocation() == ItemLocation.CLANWH && cold.getCount() == 20,
 			"Native clan warehouse did not restore the exact deposited currency object.");
 		System.out.println("PASS 021 native warehouse exact gear, split, merge, Adena, fee and cold transaction readback");
-		verifyNativeContainers(restored, sword.getObjectId(), cold.getObjectId());
+		final boolean originalWithdrawalPolicy = PlayerConfig.ALT_MEMBERS_CAN_WITHDRAW_FROM_CLANWH;
+		try
+		{
+			PlayerConfig.ALT_MEMBERS_CAN_WITHDRAW_FROM_CLANWH = true;
+			verifyNativeContainers(restored, sword.getObjectId(), cold.getObjectId());
+			verifyCompetingWithdrawals(scratch, firstNativeObject + 7);
+		}
+		finally { PlayerConfig.ALT_MEMBERS_CAN_WITHDRAW_FROM_CLANWH = originalWithdrawalPolicy; }
+	}
+
+	private static Player fixturePlayer(int objectId) throws Exception
+	{
+		final var constructor = Player.class.getDeclaredConstructor(int.class, PlayerTemplate.class, String.class, PlayerAppearance.class);
+		constructor.setAccessible(true);
+		return constructor.newInstance(objectId, PlayerTemplateData.getInstance().getTemplate(0), "test021",
+			new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
 	}
 
 	private static void verifyNativeContainers(Clan clan, int swordId, int warehouseAdenaId) throws Exception
 	{
-		final var constructor = Player.class.getDeclaredConstructor(int.class, PlayerTemplate.class, String.class, PlayerAppearance.class);
-		constructor.setAccessible(true);
-		final var player = constructor.newInstance(ACTOR, PlayerTemplateData.getInstance().getTemplate(0), "test021",
-			new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		final Player player = fixturePlayer(ACTOR);
 		try
 		{
 			clan.getClanMember(ACTOR).setPlayer(player);
@@ -200,6 +247,186 @@ public final class ClanWarehouse021Checks
 		}
 		finally { player.stopAllTasks(); }
 		System.out.println("PASS 021 native warehouse containers, stock exclusion, rights, protected surplus and durable contribution cooldown");
+	}
+
+	private static void verifyCompetingWithdrawals(Path scratch, int itemObjectId) throws Exception
+	{
+		// Load just the stock Warehouse NPC's region in the isolated TEST JVM.
+		final Path geo = Files.createDirectories(scratch.resolve("warehouse-geo"));
+		final Path stockRegion = ServerConfig.DATAPACK_ROOT.toPath().resolve("data/geodata/17_25.l2j");
+		if (Files.isRegularFile(stockRegion) && !Files.exists(geo.resolve(stockRegion.getFileName())))
+		{
+			Files.copy(stockRegion, geo.resolve(stockRegion.getFileName()));
+		}
+		GeoEngineConfig.GEODATA_PATH = geo;
+		final var stock = item(itemObjectId, 1, CONTEST_CLAN, ItemLocation.CLANWH, 1);
+		stock.setEnchantLevel(4);
+		stock.updateDatabase(true);
+		final var reservations = new PhantomEconomyReservationService(PhantomEconomyPolicy.load(
+			ServerConfig.DATAPACK_ROOT.toPath().resolve("data/phantoms/economy/high-five-economy-v1.xml")));
+		try
+		{
+			ThreadPool.init();
+			check(reservations.start(), "The TEST economy reservation service did not start.");
+			PhantomEconomyConflictPort.install(reservations);
+			final Clan clan = ClanTable.getInstance().getClan(CONTEST_CLAN);
+			check(clan != null && clan.getWarehouse().getItemByObjectId(itemObjectId) != null, "The canonical clan table did not load the contested item.");
+			final Warehouse npc = new Warehouse(NpcData.getInstance().getTemplate(30005));
+			final var execution = new PhantomExecutionAdmission(2);
+			try (var first = new Contender(clan, FIRST_CONTENDER, execution); var second = new Contender(clan, SECOND_CONTENDER, execution))
+			{
+				npc.spawnMe(-81512, 243424, -3712);
+				final var firstRequest = new Request(CONTEST_CLAN, FIRST_CONTENDER, itemObjectId, 1, false, new UUID(21, 81), Long.MAX_VALUE);
+				final var secondRequest = new Request(CONTEST_CLAN, FIRST_CONTENDER, itemObjectId, 1, false, new UUID(21, 82), Long.MAX_VALUE);
+				final var foreign = new Request(CLAN, ACTOR, itemObjectId, 1, false, new UUID(21, 83), Long.MAX_VALUE);
+				check(first.run(() -> ClanWarehouseTransfer.transfer(first.profile, first.player, npc, foreign, 0, () -> true, () -> true)) == TransferOutcome.NOT_READY,
+					"A foreign clan request was admitted.");
+				final var authorityChecks = new AtomicInteger();
+				check(second.run(() -> ClanWarehouseTransfer.transfer(second.profile, second.player, npc, secondRequest, 0, () -> true, () ->
+				{
+					if (authorityChecks.incrementAndGet() == 2) { second.player.setClanPrivileges(new ClanPrivileges()); }
+					return true;
+				})) == TransferOutcome.NOT_READY && authorityChecks.get() == 2
+					&& clan.getWarehouse().getItemByObjectId(itemObjectId) != null
+					&& !ClanWarehouseTransfer.committed(second.profile, SECOND_CONTENDER, CONTEST_CLAN, secondRequest.operation(), false),
+					"Revoked withdrawal permission did not roll back the staged transfer.");
+				second.grantWarehouseAccess();
+
+				final var firstInsideFence = new CountDownLatch(1);
+				final var secondReadSource = new CountDownLatch(1);
+				final var secondPreflight = new AtomicInteger();
+				final var workers = Executors.newVirtualThreadPerTaskExecutor();
+				try
+				{
+					final var winner = workers.submit(() -> first.run(() -> ClanWarehouseTransfer.transfer(first.profile, first.player, npc, firstRequest, 0, () -> true, () ->
+					{
+						firstInsideFence.countDown();
+						await(secondReadSource);
+						return true;
+					})));
+					await(firstInsideFence);
+					final var loser = workers.submit(() -> second.run(() -> ClanWarehouseTransfer.transfer(second.profile, second.player, npc, secondRequest, 0, () ->
+					{
+						if (secondPreflight.incrementAndGet() == 2) { secondReadSource.countDown(); }
+						return true;
+					}, () -> true)));
+					check(winner.get(10, TimeUnit.SECONDS) == TransferOutcome.APPLIED && loser.get(10, TimeUnit.SECONDS) == TransferOutcome.NOT_READY,
+						"Contending native withdrawals did not produce one winner.");
+				}
+				finally
+				{
+					workers.shutdownNow();
+					check(workers.awaitTermination(5, TimeUnit.SECONDS), "The native withdrawal workers did not drain.");
+				}
+				final Item owned = first.player.getInventory().getItemByObjectId(itemObjectId);
+				final var stored = PhantomProfileRepository.open();
+				check(owned != null && owned.getEnchantLevel() == 4 && owned.getCount() == 1
+					&& second.player.getInventory().getItemByObjectId(itemObjectId) == null && clan.getWarehouse().getItemByObjectId(itemObjectId) == null
+					&& ClanWarehouseTransfer.committed(first.profile, FIRST_CONTENDER, CONTEST_CLAN, firstRequest.operation(), false)
+					&& stored.findComponent(second.profile, "clan.warehouse.transfer").isEmpty(),
+					"The sealed race left duplicate or missing gear or incorrect receipts.");
+				try (var connection = DatabaseFactory.getConnection(); var sql = connection.prepareStatement(
+					"SELECT object_id,owner_id,loc,count,enchant_level FROM items WHERE item_id=? AND owner_id IN (?,?,?)"))
+				{
+					sql.setInt(1, owned.getId());
+					sql.setInt(2, FIRST_CONTENDER);
+					sql.setInt(3, SECOND_CONTENDER);
+					sql.setInt(4, CONTEST_CLAN);
+					try (var row = sql.executeQuery())
+					{
+						check(row.next() && row.getInt(1) == itemObjectId && row.getInt(2) == FIRST_CONTENDER && "INVENTORY".equals(row.getString(3))
+							&& row.getLong(4) == 1 && row.getInt(5) == 4 && !row.next(), "Cold SQL readback lost or duplicated the winning object.");
+					}
+				}
+				first.player.getInventory().addAdena(ItemProcessType.NONE, 100, first.player, null);
+				final long now = System.currentTimeMillis();
+				final var reservation = new PhantomEconomyOperation(
+					new PhantomEconomyOperation.Identity(first.profile, FIRST_CONTENDER, 21002192, 0, 1, "warehouse.test021", 1, 1),
+					PhantomEconomyOperation.Kind.DIRECT_TRADE, PhantomEconomyOperation.State.PREPARED,
+					PhantomEconomyOperation.sha256("warehouse.before021"), PhantomEconomyOperation.sha256("warehouse.trade021"),
+					new byte[0], new byte[0], now, now, now + 120_000, 0);
+				final var reserved = new Reservation(first.profile, FIRST_CONTENDER, ResourceKind.ITEM_OBJECT, itemObjectId, owned.getId(), 1, 1, 4, "INVENTORY");
+				check(reservations.reserve(reservation, List.of(reserved)).status() == PhantomEconomyReservationService.Status.RESERVED,
+					"The native economy reservation did not claim the winning item.");
+				final var forbiddenDeposit = new Request(CONTEST_CLAN, FIRST_CONTENDER, itemObjectId, 1, true, new UUID(21, 84), Long.MAX_VALUE);
+				check(first.run(() -> ClanWarehouseTransfer.transfer(first.profile, first.player, npc, forbiddenDeposit, 1, () -> true, () -> true)) == TransferOutcome.NOT_READY
+					&& first.player.getInventory().getItemByObjectId(itemObjectId) == owned && first.player.getAdena() == 100
+					&& ClanWarehouseTransfer.committed(first.profile, FIRST_CONTENDER, CONTEST_CLAN, firstRequest.operation(), false),
+					"A warehouse deposit bypassed an active economy reservation.");
+			}
+			finally { npc.deleteMe(); }
+		}
+		finally
+		{
+			PhantomEconomyConflictPort.uninstall(reservations);
+			try { reservations.shutdown(System.currentTimeMillis()); }
+			finally { ThreadPool.shutdown(); }
+		}
+		System.out.println("PASS 021 simultaneous full native withdrawals, revoked authority, reserved item and single durable owner");
+	}
+
+	private static void await(CountDownLatch latch)
+	{
+		try { check(latch.await(5, TimeUnit.SECONDS), "The other native withdrawal did not reach the expected boundary."); }
+		catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new AssertionError("Warehouse competition interrupted.", interrupted); }
+	}
+
+	private static final class Contender implements AutoCloseable
+	{
+		final long profile;
+		final Player player;
+		private final PhantomExecutionAdmission execution;
+		private final Lease identity;
+		private final PhantomNativeWorkScope scope;
+		private final Player.OutboundSessionAttachment outbound;
+
+		Contender(Clan clan, int objectId, PhantomExecutionAdmission execution) throws Exception
+		{
+			this.execution = execution;
+			profile = objectId - 1;
+			player = fixturePlayer(objectId);
+			player.setXYZInvisible(-81512, 243424, -3712);
+			clan.getClanMember(objectId).setPlayer(player);
+			player.setClan(clan);
+			grantWarehouseAccess();
+			identity = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM);
+			check(identity != null, "The native contender identity was unavailable.");
+			final var constructor = PhantomNativeWorkScope.class.getDeclaredConstructor(Object.class, Player.class, Lease.class, long.class, PhantomExecutionAdmission.class, long.class);
+			constructor.setAccessible(true);
+			scope = constructor.newInstance(new Object(), player, identity, System.nanoTime(), execution, profile);
+			player.attachNativeWorkOwner(scope);
+			outbound = player.attachOutboundSession(new HeadlessPlayerOutboundSession(16, 128));
+			execution.publish(profile, 0, PhantomExecutionHandoff.initial(PhantomExecutionHandoff.solo(profile)));
+		}
+
+		void grantWarehouseAccess()
+		{
+			player.setClanPrivileges(new ClanPrivileges(ClanAccess.ACCESS_WAREHOUSE.getMask()));
+		}
+
+		TransferOutcome run(Supplier<TransferOutcome> action)
+		{
+			try (var permit = execution.tryAcquire(profile, PhantomExecutionHandoff.solo(profile)))
+			{
+				check(permit != null, "The contender lost its live execution permit.");
+				try (var captured = permit.enterScope())
+				{
+					final var ticket = scope.reserve(null, "ACTION", PlayerNativeWork.Semantics.CANCELLABLE);
+					check(ticket != null && ticket.tryStart(), "The contender did not start the native action.");
+					try (var active = PlayerNativeWork.enter(ticket)) { return action.get(); }
+					finally { ticket.complete(null); }
+				}
+			}
+		}
+
+		@Override public void close()
+		{
+			check(scope.outstanding() == 0, "Warehouse test leaked native work.");
+			player.stopAllTasks();
+			player.detachNativeWorkOwner(scope);
+			outbound.close();
+			identity.close();
+		}
 	}
 
 	private static void reject(ClanWarehouseTransfer.Move move, String reason) throws SQLException

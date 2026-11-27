@@ -173,7 +173,7 @@ public final class ClanFoundingDevelopment017Checks
 			verifyNativeShopPurchase();
 			verifyNativeReputationLevels();
 			verifyNativePledgeSkill();
-			ClanWarehouse021Checks.verify();
+			ClanWarehouse021Checks.verify(scratch);
 			verifyCleanupPrepareTimeout(21002182, 1, false, false);
 			verifyCleanupPrepareTimeout(21002184, 2, false, false);
 			verifyCleanupPrepareTimeout(21002186, 0, true, false);
