@@ -191,6 +191,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final AtomicBoolean queued = new AtomicBoolean(), finished = new AtomicBoolean();
 		volatile OperationResult result;
 		volatile boolean acceptedPollExpired;
+		volatile NativeTownReturn storedReturn;
 		int objectId; long epoch; boolean storeRequested, restoreExisting, resumedFromResurrection, baselinePending;
 		PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff;
 		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry, long acceptedDeadline, PhantomExecutionAdmission.Stamp execution, boolean acceptedTownReturn)
@@ -1598,9 +1599,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					if ((!recaptureCleanup && (!ownedProgressMatches(player, _intent.after()) || ((_nativeCapture != null) && (player.getVitalityPoints() != _nativeCapture.vitalityPoints())))) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { status = "RUNTIME_CHANGED_AFTER_FINALIZE"; throw new IllegalStateException("OWNED_STORE_RUNTIME_CHANGED_AFTER_FINALIZE"); }
 					if (!recaptureCleanup && "CLEANUP_STORE".equals(_kind) && completedState.state() == State.READY)
 					{
-						final long epoch = _intent.materializedAtNanos();
-						_nativeTownReturns.computeIfPresent(profileId, (id, returned) -> returned.matches(player.getObjectId(), epoch) && returned.storedAt() == 0
-							? new NativeTownReturn(returned.objectId(), epoch, returned.execution(), System.nanoTime()) : returned);
+						recordNativeTownReturnStore(profileId, player.getObjectId(), _intent.materializedAtNanos());
 					}
 				}
 				finally
@@ -1975,7 +1974,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (_recoveryControls.get(control.profileId) != control) { finishRecovery(control, OperationResult.inconsistent("recovery.control_replaced")); return; }
 		final var materialization = _materialization.get();
 		final var entry = materialization == null ? null : materialization.find(control.profileId).orElse(null);
-		final var returned = _nativeTownReturns.get(control.profileId);
+		final var returned = recoveryStoreReceipt(control);
 		final boolean storedReturn = control.acceptedTownReturn && !control.baselinePending
 			&& storedTownReturn(returned, entry, control.objectId, control.epoch, control.deadline);
 		if (storedReturn && (!control.storeRequested || entry != null || System.nanoTime() >= control.deadline))
@@ -1999,7 +1998,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				final var current = materialization == null ? null : materialization.find(control.profileId).orElse(null);
 				final boolean completed = storedReturn || (control.acceptedTownReturn && !control.baselinePending
-					&& storedTownReturn(_nativeTownReturns.get(control.profileId), current, control.objectId, control.epoch, control.deadline));
+					&& storedTownReturn(recoveryStoreReceipt(control), current, control.objectId, control.epoch, control.deadline));
 				if (!completed && control.acceptedTownReturn && sameRecoveryOwner(current, control.objectId, control.epoch)
 					&& !current.actionAdmissionOpen() && System.nanoTime() < control.deadline) { return; }
 				finishRecovery(control, completed ? OperationResult.success("death.recovered_at_town") : OperationResult.replan("recovery.control_execution_changed"));
@@ -2072,7 +2071,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (!recoveryStoreDeadline(result)) { return; }
 		// A known-success STORE may be followed by delayed release of the same native owner.
 		// Expiry never turns missing, late or foreign evidence into a verified STORE.
-		if (storedTownReturn(_nativeTownReturns.get(control.profileId), entry, control.objectId, control.epoch, control.deadline))
+		if (storedTownReturn(recoveryStoreReceipt(control), entry, control.objectId, control.epoch, control.deadline))
 		{
 			control.result = OperationResult.success("death.recovered_at_town");
 		}
@@ -2108,7 +2107,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final boolean settledForStop = _state == ServiceState.STOPPING && materialization != null && control.finished.get()
 				&& result.status() == OperationStatus.INCONSISTENT && control.acceptedTownReturn && control.storeRequested
 				&& !control.baselinePending && recoveryStoreDeadline(result)
-				&& releasedLateTownStore(_nativeTownReturns.get(control.profileId), entry == null, control.objectId, control.epoch, control.execution, control.deadline);
+				&& releasedLateTownStore(recoveryStoreReceipt(control), entry == null, control.objectId, control.epoch, control.execution, control.deadline);
 			if (!control.result.successful() && !settledForStop)
 			{
 				return "profile=" + control.profileId + ":object=" + control.objectId + ":epoch=" + control.epoch + ":" + result;
@@ -2271,7 +2270,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return finishRecoveryStore(control.profileId, control.goal, control.objectId, control.restoreExisting, control.resumedFromResurrection, stopping, control.handoff, control.epoch);
 		}
 		final var entry = materialization.find(control.profileId).orElse(null);
-		final var returned = _nativeTownReturns.get(control.profileId);
+		final var returned = recoveryStoreReceipt(control);
 		if (!storedTownReturn(returned, entry, control.objectId, control.epoch, control.deadline))
 		{
 			return OperationResult.inconsistent("recovery.accepted_store_unverified");
@@ -2329,6 +2328,31 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private static boolean sameRecoveryOwner(PhantomMaterializationService.MaterializationSnapshot entry, int objectId, long epoch)
 	{
 		return entry != null && entry.characterObjectId() == objectId && entry.materializedAtNanos() == epoch;
+	}
+
+	private void recordNativeTownReturnStore(long profileId, int objectId, long epoch)
+	{
+		_nativeTownReturns.computeIfPresent(profileId, (id, returned) ->
+		{
+			if (!returned.matches(objectId, epoch) || returned.storedAt() != 0) { return returned; }
+			final var stored = new NativeTownReturn(objectId, epoch, returned.execution(), System.nanoTime());
+			final var control = _recoveryControls.get(profileId);
+			// Keep the exact STORE with its control before the native owner releases its slot.
+			if (control != null && control.acceptedTownReturn && control.objectId == objectId && control.epoch == epoch
+				&& Objects.equals(control.execution, stored.execution()))
+			{
+				control.storedReturn = stored;
+			}
+			return stored;
+		});
+	}
+
+	private NativeTownReturn recoveryStoreReceipt(RecoveryControl control)
+	{
+		final var stored = control.storedReturn;
+		if (stored != null) { return stored; }
+		final var returned = _nativeTownReturns.get(control.profileId);
+		return returned != null && Objects.equals(control.execution, returned.execution()) ? returned : null;
 	}
 
 	private static boolean storedTownReturn(NativeTownReturn returned, PhantomMaterializationService.MaterializationSnapshot entry, int objectId, long epoch, long deadline)

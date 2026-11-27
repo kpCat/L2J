@@ -24,6 +24,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetition
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
@@ -45,6 +47,7 @@ public final class PhantomShutdown103Checks
 		{
 			if (args.length == 1 && args[0].equals("--stop121")) { recoveryFailureDrainsOtherActors(false); return; }
 			if (args.length == 1 && args[0].equals("--stop012")) { recoveryFailureDrainsOtherActors(true); return; }
+			if (args.length == 1 && args[0].equals("--superseded-store")) { supersededStore(); return; }
 			if (args.length == 1 && args[0].equals("--expired-accepted-poll018")) { expiredAcceptedPolls(); return; }
 			if (args.length == 1 && args[0].equals("--materialization-retry012")) { materializationDeadlineCanRecover(false); return; }
 			if (args.length == 1 && args[0].equals("--materialization-service-retry012")) { materializationDeadlineCanRecover(true); return; }
@@ -344,13 +347,18 @@ public final class PhantomShutdown103Checks
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private static void recordRecoveryDeadline(PhantomBackgroundService background, AtomicInteger operations, long deadline) throws Exception
+	{
+		recordRecoveryDeadline(background, operations, deadline, null);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void recordRecoveryDeadline(PhantomBackgroundService background, AtomicInteger operations, long deadline, PhantomExecutionAdmission.Stamp stamp) throws Exception
 	{
 		final var type = Class.forName(PhantomBackgroundService.class.getName() + "$RecoveryControl");
 		final var constructor = type.getDeclaredConstructors()[0];
 		constructor.setAccessible(true);
-		final var control = constructor.newInstance(29L, null, null, null, null, deadline, null, true);
+		final var control = constructor.newInstance(29L, null, null, null, null, deadline, stamp, true);
 		field(type, "objectId").setInt(control, 268486148);
 		field(type, "epoch").setLong(control, 7);
 		field(type, "storeRequested").setBoolean(control, true);
@@ -361,14 +369,51 @@ public final class PhantomShutdown103Checks
 		finish.invoke(background, control, PhantomBackgroundService.OperationResult.inconsistent("recovery.control_deadline:object=268486148:epoch=7"));
 	}
 
-	@SuppressWarnings("unchecked")
 	private static void publishStoreWitness(PhantomBackgroundService background, long epoch, long storedAt) throws Exception
+	{
+		publishStoreWitness(background, epoch, storedAt, null);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void publishStoreWitness(PhantomBackgroundService background, long epoch, long storedAt, PhantomExecutionAdmission.Stamp stamp) throws Exception
 	{
 		final var type = Class.forName(PhantomBackgroundService.class.getName() + "$NativeTownReturn");
 		final var constructor = type.getDeclaredConstructors()[0];
 		constructor.setAccessible(true);
-		final var witness = constructor.newInstance(268486148, epoch, null, storedAt);
+		final var witness = constructor.newInstance(268486148, epoch, stamp, storedAt);
 		((java.util.Map<Long, Object>) field(PhantomBackgroundService.class, "_nativeTownReturns").get(background)).put(29L, witness);
+	}
+
+	private static void supersededStore() throws Exception
+	{
+		final var fixture = fixture();
+		try
+		{
+			final var background = recoveryFixture(fixture).background();
+			final var operations = (AtomicInteger) field(PhantomBackgroundService.class, "_currentOperations").get(background);
+			final var owner = new PhantomDomainRef("execution.solo", "29");
+			final var stamp = new PhantomExecutionAdmission.Stamp(29, 1, owner, 10, PhantomExecutionAdmission.Purpose.NORMAL, 0);
+			final var next = new PhantomExecutionAdmission.Stamp(29, 2, owner, 11, PhantomExecutionAdmission.Purpose.NORMAL, 0);
+			final long deadline = System.nanoTime() - 1;
+			background.start();
+			recordRecoveryDeadline(background, operations, deadline, stamp);
+			publishStoreWitness(background, 7, deadline - 1, next);
+			if (background.firstRecoveryFailure().isEmpty()) { throw new AssertionError("Foreign execution stamp reconciled the original STORE"); }
+			publishStoreWitness(background, 7, 0, stamp);
+			final var finalizeReceipt = PhantomBackgroundService.class.getDeclaredMethod("recordNativeTownReturnStore", long.class, int.class, long.class);
+			finalizeReceipt.setAccessible(true);
+			finalizeReceipt.invoke(background, 29L, 268486148, 7L);
+			if (background.firstRecoveryFailure().isEmpty()) { throw new AssertionError("Late STORE was credited within the gameplay deadline"); }
+			publishStoreWitness(background, 8, deadline, next);
+			background.beginStop();
+			if (!background.firstRecoveryFailure().isEmpty()) { throw new AssertionError("Successor receipt displaced the original confirmed STORE and blocked STOP"); }
+		}
+		finally
+		{
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+			while (fixture.service().requestShutdown(deadline).state() == PhantomMaterializationService.ServiceState.STOPPING && System.nanoTime() < deadline) { Thread.sleep(1); }
+		}
+		System.out.println("STOP_SUPERSEDED_STORE_PASS foreignStampBlocked=true gameplayDeadlineKept=true exactStoreRetained=true DB0 World0");
 	}
 
 	private static Fixture fixture() throws Exception
