@@ -27,8 +27,12 @@ public final class PlayerNativeEvidence
 	public enum UnprovenReason { NONE, OWNER_FAILURE, INVALID_VALUE, INVALID_TARGET, TARGET_CAP, COUNTER_OVERFLOW, TIME_REGRESSION, INVALID_PHASE, PHASE_DEADLINE, COMBAT_ACCOUNTING }
 	public record Target(int objectId, int instanceId, long spawnGeneration) { }
 	public record TargetReceipts(long rewardSequence, Target rewardTarget, long killSequence, Target killTarget, long settledRewardSequence, Target settledTarget) { }
+	public record DamageReceipt(int actorObjectId, long epoch, Target target, long sequence, long observedNanos, double hp) { }
 	public record RestoredHpReceipt(long sequence, String casterName, int restoredHp, double hpAtReceipt) { }
 	private volatile RestoredHpReceipt _restoredHp;
+	private volatile DamageReceipt _lastDamage;
+
+	public DamageReceipt lastDamage() { return _lastDamage; }
 
 	/** Passive witness of the stock HP-restored packet, fenced by the recipient's native owner. */
 	public synchronized void recordRestoredHp(int recipientObjectId, long recipientEpoch, String casterName, int restoredHp, double hpAtReceipt)
@@ -608,6 +612,7 @@ public final class PlayerNativeEvidence
 		state._damaged = true;
 		completeCycle(target, state);
 		_damageSequence = add(_damageSequence, 1);
+		if (!_overflow) { _lastDamage = new DamageReceipt(_objectId, _epoch, target, _damageSequence, now, actualHpDelta); }
 		event(now, true);
 	}
 

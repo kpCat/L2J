@@ -76,6 +76,13 @@ public class AutoPlayTaskManager
 		default int targetSelectionLoad(Creature target) { return 0; }
 		default TargetDirective targetDirective(Player player) { return new TargetDirective(TargetDirective.Mode.STOCK, null); }
 		default boolean usesScopedOffense(Player player) { return false; }
+		default org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice chooseOrdinaryTactics(Player player, Monster target) { return null; }
+		default boolean ordinaryTacticsCurrent(Player player, Monster target) { return false; }
+		default boolean permitsOrdinaryAttack(Player player, Creature target) { return true; }
+		default void deferOrdinaryCast(Player player, Monster target, org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice choice) { }
+		default void ordinaryCastSubmitted(Player player, Monster target, org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice choice) { }
+		default void ordinaryCastRejected(Player player, Monster target) { }
+		default void ordinaryAttackSubmitted(Player player, Creature target) { }
 		default boolean permitsScopedOffenseSkill(Player player, Skill skill) { return false; }
 		default ScopedOffenseChoice chooseScopedOffense(Player player, Monster target, java.util.List<Skill> ready, Skill baseline) { return null; }
 		default boolean archivesSoloOffense(Player player) { return false; }
@@ -235,7 +242,9 @@ public class AutoPlayTaskManager
 										continue PLAY;
 									}
 									
+									if (phantomPolicy != null && !phantomPolicy.permitsOrdinaryAttack(player, creature)) { continue PLAY; }
 									player.getAI().setIntention(Intention.ATTACK, creature);
+									if (phantomPolicy != null) { phantomPolicy.ordinaryAttackSubmitted(player, creature); }
 								}
 							}
 							else if (creature.hasAI() && !creature.getAI().isAutoAttacking())
@@ -390,7 +399,9 @@ public class AutoPlayTaskManager
 						continue PLAY;
 					}
 					
+					if (phantomPolicy != null && !phantomPolicy.permitsOrdinaryAttack(player, creature)) { continue PLAY; }
 					player.getAI().setIntention(Intention.ATTACK, creature);
+					if (phantomPolicy != null) { phantomPolicy.ordinaryAttackSubmitted(player, creature); }
 				}
 				}
 				}

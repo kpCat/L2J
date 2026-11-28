@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
@@ -58,6 +59,89 @@ public final class PhantomSkillInventory
 		public Snapshot { abilities = List.copyOf(abilities); }
 	}
 	public record TheoreticalSkill(int classId, SkillRef skill, int minimumCharacterLevel, boolean autoGet, boolean learnedByNpc) { }
+
+	public enum Interpretation { DISCOVERED, ESTIMATED, EXECUTABLE, UNKNOWN }
+	public record Modifier(String stat, double value, boolean conditional) { }
+	public record Component(EffectScope scope, String handler, EffectType type, PhantomTacticalCombat.Kind kind,
+		boolean instant, int ticks, double tickMultiplier, boolean conditional, double drainRatio, List<Modifier> modifiers)
+	{
+		public Component { modifiers = List.copyOf(modifiers); }
+	}
+	public record Composition(SkillRef rank, String target, String affectScope, boolean passive, boolean toggle,
+		boolean transformation, boolean conditional, boolean hostile, int area, int reuseGroup, int reuseMillis,
+		String abnormal, int abnormalRank, int duration, int activationRate, int hp, int itemId, int items, int charges,
+		int souls, Interpretation interpretation, List<Component> components)
+	{
+		public Composition { components = List.copyOf(components); }
+	}
+	private record CachedComposition(Skill definition, Composition composition) { }
+	private static final int COMPOSITION_LIMIT = 8192;
+	private static final LinkedHashMap<Long, CachedComposition> COMPOSITIONS = new LinkedHashMap<>();
+
+	/** The exact acquired definition is the cache generation. Reload/gear/class changes are read from the caller's current skill book. */
+	public static Composition composition(Skill skill)
+	{
+		final long key = ((long) skill.getId() << 32) | Integer.toUnsignedLong(skill.getLevel());
+		synchronized (COMPOSITIONS)
+		{
+			final var cached = COMPOSITIONS.get(key);
+			if (cached != null && cached.definition() == skill) { return cached.composition(); }
+		}
+		final var components = new ArrayList<Component>();
+		for (EffectScope scope : EffectScope.values())
+		{
+			final var effects = skill.getEffects(scope);
+			if (effects == null) { continue; }
+			for (var effect : effects)
+			{
+				final var functions = effect.getFuncTemplates();
+				final List<Modifier> modifiers = functions == null ? List.of() : functions.stream()
+					.map(func -> new Modifier(func.getStat().name(), func.getValue(), func.getAttachCondition() != null || func.getApplyCondition() != null)).toList();
+				components.add(new Component(scope, effect.getClass().getSimpleName(), effect.getEffectType(),
+					kind(effect.getClass().getSimpleName(), effect.getEffectType(), modifiers, skill.hasNegativeEffect()),
+					effect.isInstant(), effect.getTicks(), effect.getTicksMultiplier(), effect.hasAttachCondition(), effect.getHpDrainRatio(), modifiers));
+			}
+		}
+		final var interpretation = components.isEmpty() || components.stream().anyMatch(effect -> effect.kind() == PhantomTacticalCombat.Kind.UNKNOWN)
+			? Interpretation.UNKNOWN : skill.isPassive() ? Interpretation.DISCOVERED : Interpretation.ESTIMATED;
+		final var composition = new Composition(new SkillRef(skill.getId(), skill.getLevel()), skill.getTargetType().name(),
+			skill.getAffectRange() > 0 || skill.isAOE() ? "AREA" : skill.getTargetType().name(),
+			skill.isPassive(), skill.isToggle(), skill.isTransformation(), skill.hasCastPreconditions(),
+			skill.hasNegativeEffect(), skill.getAffectRange(), skill.getReuseHashCode(), skill.getReuseDelay(), skill.getAbnormalType().name(),
+			skill.getAbnormalLevel(), skill.getAbnormalTime(), skill.getActivateRate(), skill.getHpConsume(), skill.getItemConsumeId(),
+			skill.getItemConsumeCount(), skill.getChargeConsumeCount(), skill.getMaxSoulConsumeCount(), interpretation, components);
+		synchronized (COMPOSITIONS)
+		{
+			COMPOSITIONS.put(key, new CachedComposition(skill, composition));
+			if (COMPOSITIONS.size() > COMPOSITION_LIMIT) { COMPOSITIONS.pollFirstEntry(); }
+		}
+		return composition;
+	}
+
+	private static PhantomTacticalCombat.Kind kind(String handler, EffectType type, List<Modifier> modifiers, boolean hostile)
+	{
+		return switch (type)
+		{
+			case PHYSICAL_ATTACK, PHYSICAL_ATTACK_HP_LINK -> PhantomTacticalCombat.Kind.PHYSICAL;
+			case MAGICAL_ATTACK, DEATH_LINK -> PhantomTacticalCombat.Kind.MAGIC;
+			case HP_DRAIN -> PhantomTacticalCombat.Kind.DRAIN;
+			case DMG_OVER_TIME, DMG_OVER_TIME_PERCENT -> PhantomTacticalCombat.Kind.PERIODIC;
+			case HEAL, REBALANCE_HP -> PhantomTacticalCombat.Kind.HEAL;
+			case STUN, PARALYZE, SLEEP, FEAR -> PhantomTacticalCombat.Kind.CONTROL;
+			case ROOT -> PhantomTacticalCombat.Kind.ROOT;
+			case MUTE -> PhantomTacticalCombat.Kind.SILENCE;
+			case DEBUFF -> PhantomTacticalCombat.Kind.DEBUFF;
+			case TELEPORT, TELEPORT_TO_TARGET -> PhantomTacticalCombat.Kind.MOVE;
+			default -> switch (handler)
+			{
+				case "FocusEnergy", "FocusMaxEnergy" -> PhantomTacticalCombat.Kind.CHARGE;
+				case "FocusSouls", "SoulEating" -> PhantomTacticalCombat.Kind.SOUL;
+				case "CancelTarget", "TargetCancel" -> PhantomTacticalCombat.Kind.INTERRUPT;
+				default -> modifiers.isEmpty() ? PhantomTacticalCombat.Kind.UNKNOWN
+					: hostile ? PhantomTacticalCombat.Kind.DEBUFF : PhantomTacticalCombat.Kind.DEFENSE;
+			};
+		};
+	}
 	/** Values are current native observations, not a resource simulator or permission to spend them. */
 	public record Resources(double mp, double mpCost, double hp, int hpCost, long items, int itemCost, int charges, int chargeCost, int souls, int soulCost)
 	{

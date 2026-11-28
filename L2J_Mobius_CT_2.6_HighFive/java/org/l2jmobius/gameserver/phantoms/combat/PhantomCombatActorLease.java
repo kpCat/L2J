@@ -39,6 +39,14 @@ import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.StockPvp
 public interface PhantomCombatActorLease extends AutoCloseable
 {
 	default boolean executionValid() { return true; }
+
+	record TacticalOffense(SelectedSkill skill, java.util.function.BooleanSupplier current, Runnable submitted) { }
+
+	/** Advisory exact-rank choice; a null skill in an admitted choice means native attack. */
+	default TacticalOffense tacticalOffense(int opponentId, int targetObjectId, boolean pvp, PhantomCombatMode mode, boolean canSpendMp, boolean normalAttack)
+	{
+		return null;
+	}
 	default org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Scope enterExecutionScope() { return null; }
 	int MAX_ACQUISITION_INVENTORY_ITEM_IDS = 128;
 	ActorSnapshot actorSnapshot();

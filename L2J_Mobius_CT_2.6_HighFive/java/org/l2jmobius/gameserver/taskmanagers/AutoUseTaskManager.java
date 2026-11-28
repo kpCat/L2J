@@ -255,6 +255,7 @@ public class AutoUseTaskManager
 				
 				if (AutoPlayConfig.ENABLE_AUTO_SKILL)
 				{
+					boolean preferNormalAttack = false;
 					BUFFS: for (Integer skillId : player.getAutoUseSettings().getAutoBuffs())
 					{
 						// Fixes start area issue.
@@ -361,6 +362,23 @@ public class AutoUseTaskManager
 						}
 						if (!archivedSolo && count > 0 && phantomPolicy.usesScopedOffense(player) && player.getTarget() instanceof Monster target
 							&& useScopedOffense(player, target, phantomPolicy)) { continue; }
+						if (!archivedSolo && player.getTarget() instanceof Monster target && phantomPolicy.ordinaryTacticsCurrent(player, target))
+						{
+							final var choice = phantomPolicy.chooseOrdinaryTactics(player, target);
+							if (!phantomPolicy.ordinaryTacticsCurrent(player, target) || choice != null && !choice.current(player, target)) { continue; }
+							if (choice != null)
+							{
+								if (choice.attack())
+								{
+									preferNormalAttack = true;
+								}
+								else
+								{
+									if (useOrdinaryTacticalSkill(player, target, phantomPolicy, choice)) { continue; }
+									phantomPolicy.ordinaryCastRejected(player, target);
+								}
+							}
+						}
 					}
 					final var settings = player.getAutoUseSettings();
 					if (archivedSolo && count > TacticalObservationV3.STOCK_SOLO_SKILL_LIMIT) { continue; }
@@ -417,6 +435,11 @@ public class AutoUseTaskManager
 						if (target == player)
 						{
 							break SKILLS;
+						}
+						if (preferNormalAttack && !PhantomNativeCombatCapability.ordinaryUtility(skill))
+						{
+							player.getAutoUseSettings().incrementSkillOrder();
+							continue SKILLS;
 						}
 						
 						// Check negative effect skill target.
@@ -554,6 +577,25 @@ public class AutoUseTaskManager
 			}
 			
 			return !playable.isSkillDisabled(skill) && skill.checkCondition(playable, target, false);
+		}
+
+		private boolean useOrdinaryTacticalSkill(Player player, Monster target, PhantomPolicy policy,
+			org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice choice)
+		{
+			final Skill skill = choice.skill();
+			final boolean self = skill.getTargetType() == org.l2jmobius.gameserver.model.skill.targets.TargetType.SELF;
+			final Creature receiver = self ? player : target;
+			if (AutoPlayConfig.DISABLED_AUTO_SKILLS.contains(skill.getId()) || !L2jCombatBackend.nativePveSkillReady(player, receiver, skill)
+				|| !skill.checkCondition(player, receiver, true) || !canUseMagic(player, receiver, skill)) { return false; }
+			if (!policy.ordinaryTacticsCurrent(player, target) || !choice.current(player, target)) { return true; }
+			if (player.isAttackingNow())
+			{
+				policy.deferOrdinaryCast(player, target, choice);
+				return true;
+			}
+			if (!player.useMagic(skill, false, true)) { return false; }
+			policy.ordinaryCastSubmitted(player, target, choice);
+			return true;
 		}
 
 		private boolean useScopedOffense(Player player, Monster target, PhantomPolicy policy)

@@ -950,6 +950,25 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public TacticalOffense tacticalOffense(int opponentId, int targetObjectId, boolean pvp, PhantomCombatMode mode, boolean canSpendMp, boolean normalAttack)
+		{
+			if (!executionValid() || _player.isInParty() || !(World.getInstance().findObject(targetObjectId) instanceof Creature target)
+				|| target.isRaid() || target.isAlikeDead()) { return null; }
+			final var choice = PhantomTacticalDecision.choose(_player, target, pvp, normalAttack && supportsNormalAttack(mode), skill ->
+			{
+				if (!canSpendMp) { return false; }
+				final var selected = new SelectedSkill(skill.getId(), skill.getLevel());
+				return pvp ? supportsPvpSkill(selected, mode) : target instanceof Monster && supportsSkill(selected, mode)
+					&& !skill.hasEffectType(EffectType.AGGRESSION);
+			});
+			if (choice == null) { return null; }
+			final SelectedSkill selected = choice.attack() ? null : new SelectedSkill(choice.skill().getId(), choice.skill().getLevel());
+			if (selected != null && !(pvp ? pvpSkillReady(opponentId, targetObjectId, selected, mode) : skillReady(targetObjectId, selected, mode))) { return null; }
+			return new TacticalOffense(selected, () -> executionValid() && !_player.isInParty() && choice.current(_player, target),
+				() -> PhantomTacticalDecision.submitted(pvp ? "combat.pvp" : "combat.pve", _profileId, _player, target, choice));
+		}
+
+		@Override
 		public List<SelectedSkill> rankOffensiveSkills(int targetObjectId, boolean pvp, List<SelectedSkill> candidates, Map<SelectedSkill, Integer> areaCounts)
 		{
 			if (candidates.size() < 2 || !executionValid() || !(World.getInstance().findObject(targetObjectId) instanceof Creature target)

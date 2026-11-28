@@ -2020,24 +2020,29 @@ public final class PhantomCombatService
 		if (cancelRevokedClanWar(session)) { return; }
 		final ActionOutcome spacing = session._actorLease.maintainPvpPosition(ownerObjectId, skills.stream().findFirst().orElse(null), session._request.mode());
 		if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
-		if (ready.isEmpty() && !session._loadout.normalAttackFallback()) { return; }
 		final var policy = pvpLearning(session._pvpRequest);
+		final var tactical = stockPvp || policy.ownedPvpEpisodes() ? null : session._actorLease.tacticalOffense(ownerObjectId,
+			tacticalTargetObjectId, true, mode, canSpendMp, session._loadout.normalAttackFallback());
+		if (ready.isEmpty() && tactical == null && !session._loadout.normalAttackFallback()) { return; }
 		final var learned = ready.size() >= 2 && policy.ownedPvpEpisodes()
 			? session._actorLease.preparePvpLearning(policy, session._pvpRequest, tacticalTargetObjectId, ready, session._generation, selection.stockPvp()) : null;
 		if (learned != null && (!ready.contains(learned.candidate().skill()) || !learned.candidate().exact().getAsBoolean())) { return; }
-		if (cancelRevokedClanWar(session)) { return; }
+		if (cancelRevokedClanWar(session) || tactical != null && !tactical.current().getAsBoolean()) { return; }
 		final var shot = session._actorLease.activateShot(session._request.mode());
 		_metrics.shot(shot);
 		if (shot != ShotOutcome.ACTIVATED) { finish(session, PhantomCombatResult.SUPPLY_REQUIRED); return; }
-		for (SelectedSkill selected : learned == null ? ready : List.of(learned.candidate().skill()))
+		final List<SelectedSkill> casts = learned != null ? List.of(learned.candidate().skill())
+			: tactical == null ? ready : tactical.skill() == null ? List.of() : List.of(tactical.skill());
+		for (SelectedSkill selected : casts)
 		{
-			if (cancelRevokedClanWar(session)) { return; }
+			if (cancelRevokedClanWar(session) || tactical != null && !tactical.current().getAsBoolean()) { return; }
 			final ActionOutcome outcome = session._actorLease.castPvp(ownerObjectId, tacticalTargetObjectId, selected, session._request.mode(), session._pvpRequest.forceUse(),
 				session._pvpRequest.authorityHash(), learned);
 			if (outcome == ActionOutcome.ISSUED)
 			{
 				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
 				_metrics.castIssued();
+				if (tactical != null) { tactical.submitted().run(); }
 				return;
 			}
 			if (outcome != ActionOutcome.ALREADY_OWNED)
@@ -2047,12 +2052,13 @@ public final class PhantomCombatService
 			if (outcome == ActionOutcome.ALREADY_OWNED) { return; }
 		}
 		if (learned != null || !session._loadout.normalAttackFallback()) { return; }
-		if (cancelRevokedClanWar(session)) { return; }
+		if (cancelRevokedClanWar(session) || tactical != null && !tactical.current().getAsBoolean()) { return; }
 		final ActionOutcome outcome = session._actorLease.attackPvp(ownerObjectId, tacticalTargetObjectId, session._pvpRequest.forceUse(), session._pvpRequest.authorityHash());
 		if (outcome == ActionOutcome.ISSUED)
 		{
 			session._ownedAction = session._ownedAction.withSelectedSkill(null);
 			_metrics.attackIssued();
+			if (tactical != null && tactical.skill() == null) { tactical.submitted().run(); }
 		}
 	}
 
@@ -2176,7 +2182,13 @@ public final class PhantomCombatService
 		SelectedSkill selected = null;
 		final List<SelectedSkill> ready = selection.map(PhantomCombatCapabilityResolver.SkillSelection::readySkills).orElseGet(List::of);
 		final int cursor = session._nextSkill;
-		if (!ready.isEmpty())
+		final var tactical = stockPve || group || _learning.active(session._request.learningScope()) ? null
+			: session._actorLease.tacticalOffense(targetId, targetId, false, mode, canSpendMp, session._loadout.normalAttackFallback());
+		if (tactical != null)
+		{
+			selected = tactical.skill();
+		}
+		else if (!ready.isEmpty())
 		{
 			selected = ready.get(stockPve ? Math.floorMod(cursor, ready.size()) : 0);
 			session._nextSkill++;
@@ -2251,12 +2263,14 @@ public final class PhantomCombatService
 		{
 			return;
 		}
+		if (tactical != null && (!tactical.current().getAsBoolean() || session._request.planOwnershipToken().isCancelled())) { return; }
 		if (session._request.useShotsIfAvailable())
 		{
 			final ShotOutcome shot = session._actorLease.activateShot(session._request.mode());
 			_metrics.shot(shot);
 		}
 		final ActionOutcome outcome;
+		if (tactical != null && (!tactical.current().getAsBoolean() || session._request.planOwnershipToken().isCancelled())) { return; }
 		if (selected != null)
 		{
 			outcome = attempt == null ? session._actorLease.cast(session._request.targetObjectId(), selected, session._request.mode())
@@ -2265,6 +2279,7 @@ public final class PhantomCombatService
 			{
 				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
 				_metrics.castIssued();
+				if (tactical != null) { tactical.submitted().run(); }
 				if (reordered) { _learning.castIssued(); }
 			}
 			else
@@ -2282,7 +2297,7 @@ public final class PhantomCombatService
 		}
 		else
 		{
-			issueNormalAttack(session);
+			issueNormalAttack(session, tactical == null ? null : tactical.submitted());
 		}
 	}
 
@@ -2302,11 +2317,17 @@ public final class PhantomCombatService
 
 	private void issueNormalAttack(PhantomCombatSession session)
 	{
+		issueNormalAttack(session, null);
+	}
+
+	private void issueNormalAttack(PhantomCombatSession session, Runnable submitted)
+	{
 		final ActionOutcome outcome = session._actorLease.attack(session._request.targetObjectId());
 		if (outcome == ActionOutcome.ISSUED)
 		{
 			session._ownedAction = session._ownedAction.withSelectedSkill(null);
 			_metrics.attackIssued();
+			if (submitted != null) { submitted.run(); }
 		}
 		else if (outcome == ActionOutcome.REJECTED) { finish(session, PhantomCombatResult.REJECTED); }
 	}

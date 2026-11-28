@@ -994,6 +994,97 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			return player == _player && org.l2jmobius.gameserver.phantoms.combat.PhantomNativePetRolePolicy.allowAttack(player, summon);
 		}
 
+		@Override public boolean ordinaryTacticsCurrent(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target)
+		{
+			final Session session = _sessions.get(_profileId);
+			final var owner = player.getNativeWorkOwner();
+			if (_soloOffense != null || !AutoPlayConfig.ENABLE_AUTO_SKILL || player != _player || session == null || session._policy != this || !session._current.get()
+				|| !session._commandGate.get() || session._yieldRequested || player.isInParty() || player.getTarget() != target
+				|| !player.isOnline() || !player.isAutoPlaying() || player.isSitting() || player.isMoving() || player.isAlikeDead()
+				|| player.isTeleporting() || player.hasPendingOwnedStore() || player.isCastingNow()
+				|| player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null
+				|| owner == null || owner.player() != player || !owner.isCurrent() || owner.sealed() || owner.epoch() != session._epoch
+				|| !_permitsOrdinary.test(_profileId) || target.isAlikeDead() || target.isInvul() || !target.isTargetable()
+				|| target.isQuestMonster() || target.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE)
+				|| !target.isAutoAttackable(player) || !permitsTarget(target))
+			{
+				return false;
+			}
+			final var engine = _decision.get();
+			final var goal = engine == null ? null : engine.find(_profileId).orElse(null);
+			return goal != null && goal.goalId() == _goalId && goal.goalRevision() == _revision && goal.goalStatus() == PhantomGoalStatus.ACTIVE;
+		}
+
+		@Override public org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice chooseOrdinaryTactics(
+			Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target)
+		{
+			if (!ordinaryTacticsCurrent(player, target)) { return null; }
+			final Session session = _sessions.get(_profileId);
+			if (session == null || session._policy != this) { return null; }
+			final long now = _clock.getAsLong();
+			if (now < session._tacticalRetryAfter) { return null; }
+			final var cached = session._tacticalTurn;
+			if (cached != null && cached.current(player, target, now)) { return cached.choice(); }
+			final var choice = org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.choose(player, target, false,
+				player.getAutoUseSettings().getAutoActions().contains(2), skill -> !AutoPlayConfig.DISABLED_AUTO_SKILLS.contains(skill.getId())
+					&& (org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.selfSkill(skill)
+						|| !org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.ordinaryUtility(skill)
+						&& org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend.supportsPveSkill(player, skill,
+							skill.isMagic() ? org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.RANGED_MAGIC : org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL)));
+			session._tacticalTurn = choice == null ? null : new TacticalTurn(choice, now + 400_000_000L,
+				player.getCurrentHp(), player.getCurrentMp(), target.getCurrentHp(), target.isCastingNow());
+			return choice;
+		}
+
+		@Override public boolean permitsOrdinaryAttack(Player player, Creature target)
+		{
+			if (!(target instanceof org.l2jmobius.gameserver.model.actor.instance.Monster monster) || !ordinaryTacticsCurrent(player, monster)) { return true; }
+			final var choice = chooseOrdinaryTactics(player, monster);
+			return ordinaryTacticsCurrent(player, monster) && (choice == null || choice.current(player, monster) && choice.attack());
+		}
+
+		@Override public void deferOrdinaryCast(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
+			org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice choice)
+		{
+			final Session session = _sessions.get(_profileId);
+			if (session != null && session._policy == this && ordinaryTacticsCurrent(player, target) && choice.current(player, target)
+				&& player.hasAI() && player.getAI().getIntention() == Intention.ATTACK && player.getAI().getAttackTarget() == target)
+			{
+				// The existing farm recovery boundary retires renewal and preserves any published hit.
+				pauseOffensiveRoots(session, player);
+			}
+		}
+
+		@Override public void ordinaryAttackSubmitted(Player player, Creature target)
+		{
+			final Session session = _sessions.get(_profileId);
+			if (session == null || session._policy != this || session._tacticalTurn == null) { return; }
+			final var turn = session._tacticalTurn;
+			session._tacticalTurn = null;
+			if (turn.choice().attack() && turn.current(player, target, _clock.getAsLong()))
+			{
+				org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.submitted("ordinary.attack", _profileId, player, target, turn.choice());
+			}
+		}
+
+		@Override public void ordinaryCastSubmitted(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target,
+			org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice choice)
+		{
+			final Session session = _sessions.get(_profileId);
+			if (session != null && session._policy == this) { session._tacticalTurn = null; }
+			org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.submitted("ordinary.cast", _profileId, player, target, choice);
+		}
+
+		@Override public void ordinaryCastRejected(Player player, org.l2jmobius.gameserver.model.actor.instance.Monster target)
+		{
+			final Session session = _sessions.get(_profileId);
+			if (session != null && session._policy == this)
+			{
+				session._tacticalTurn = null;
+				session._tacticalRetryAfter = _clock.getAsLong() + 700_000_000L;
+			}
+		}
+
 		@Override public boolean usesScopedOffense(Player player)
 		{
 			return _soloOffense != null && player == _player && !player.isInParty() && _soloOffense.active(_profileId, player);
@@ -1137,6 +1228,16 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		return new ContinuationSnapshot(java.util.Collections.unmodifiableMap(fields));
 	}
 
+	private record TacticalTurn(org.l2jmobius.gameserver.phantoms.combat.PhantomTacticalDecision.Choice choice,
+		long until, double hp, double mp, double targetHp, boolean targetCasting)
+	{
+		boolean current(Player player, Creature target, long now)
+		{
+			return now < until && choice.current(player, target) && hp == player.getCurrentHp() && mp == player.getCurrentMp()
+				&& targetHp == target.getCurrentHp() && targetCasting == target.isCastingNow();
+		}
+	}
+
 	private static final class Session
 	{
 		private final Player _player;
@@ -1146,6 +1247,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private final long _epoch;
 		private final AtomicBoolean _current = new AtomicBoolean(true);
 		private final AtomicBoolean _commandGate;
+		private TacticalTurn _tacticalTurn;
+		private long _tacticalRetryAfter;
 		private final PhantomEngagementController _engagement;
 		private final PhantomNativeShotControl _shots;
 		private final org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl _loot = new org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl();
