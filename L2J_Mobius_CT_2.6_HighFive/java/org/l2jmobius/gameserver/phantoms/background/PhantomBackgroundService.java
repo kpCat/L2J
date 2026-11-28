@@ -1914,6 +1914,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final var returned = _nativeTownReturns.get(profileId);
 			final boolean acceptedTownReturn = expectedEpoch > 0 && sameRecoveryOwner(entry, expectedObject, expectedEpoch)
 				&& returned != null && returned.matches(expectedObject, expectedEpoch);
+			final boolean storedSuccessor = expectedEpoch > 0 && storedTownReturn(returned, entry, expectedObject, expectedEpoch, acceptedDeadline);
+			final boolean canStartSuccessor = acceptedTownReturn && returned.storedAt() == 0 && !_recoveries.containsKey(profileId)
+				&& (acceptedDeadline == 0 || System.nanoTime() < acceptedDeadline)
+				&& (_state == ServiceState.RUNNING || acceptedForStop && _state == ServiceState.STOPPING);
+			if ((storedSuccessor || canStartSuccessor) && control != null && control.finished.get() && control.acceptedTownReturn
+				&& control.storeRequested && !control.baselinePending && control.result.status() == OperationStatus.INCONSISTENT
+				&& recoveryStoreDeadline(control.result)
+				&& exactLateStorePredecessor(recoveryStoreReceipt(control), returned, control.objectId, control.epoch, control.execution, control.deadline))
+			{
+				// Preserve the successor's accepted native return while retiring the positively stored predecessor.
+				if (_recoveryControls.remove(profileId, control)) { control = null; }
+			}
 			if (expectedEpoch > 0)
 			{
 				if (control != null && control.acceptedTownReturn)
@@ -1926,7 +1938,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					if (control.result.status() != OperationStatus.REPLAN) { return control.result; }
 					if (!storedTownReturn(returned, entry, expectedObject, expectedEpoch, acceptedDeadline)) { return control.result; }
 				}
-				if (storedTownReturn(returned, entry, expectedObject, expectedEpoch, acceptedDeadline) && _nativeTownReturns.remove(profileId, returned))
+				if (storedSuccessor && _nativeTownReturns.remove(profileId, returned))
 				{
 					return OperationResult.success("death.recovered_at_town");
 				}
@@ -2096,6 +2108,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		return ownerReleased && objectId > 0 && epoch > 0 && execution != null && deadline > 0 && receipt != null
 			&& receipt.matches(objectId, epoch) && execution.equals(receipt.execution()) && receipt.storedAt() >= deadline;
+	}
+
+	static boolean exactLateStorePredecessor(NativeTownReturn receipt, NativeTownReturn successor, int objectId, long epoch,
+		PhantomExecutionAdmission.Stamp execution, long deadline)
+	{
+		return successor != null && successor.objectId() == objectId && successor.epoch() > epoch
+			&& releasedLateTownStore(receipt, true, objectId, epoch, execution, deadline) && execution.equals(successor.execution());
 	}
 
 	public String firstRecoveryFailure()

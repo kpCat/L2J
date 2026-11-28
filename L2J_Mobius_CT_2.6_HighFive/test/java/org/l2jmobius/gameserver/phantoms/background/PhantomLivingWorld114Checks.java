@@ -21,6 +21,7 @@ public final class PhantomLivingWorld114Checks
 	public static void main(String[] args)
 	{
 		lateStopReceipt018();
+		lateStoreSuccessor022();
 		if ((args.length == 1) && args[0].equals("--late-stop-receipt018")) { return; }
 		ordinaryGoalReconciliation();
 		if ((args.length == 1) && args[0].equals("--ordinary-goal129")) { return; }
@@ -127,6 +128,26 @@ public final class PhantomLivingWorld114Checks
 		check(!PhantomBackgroundService.releasedLateTownStore(pending, true, 10, 20, expected, 30)
 			&& !PhantomBackgroundService.releasedLateTownStore(null, true, 10, 20, expected, 30), "An unconfirmed STORE bypassed STOP");
 		System.out.println("PASS STOP accounts for a completed late STORE only when the original owner, lifetime and execution agree");
+	}
+
+	private static void lateStoreSuccessor022()
+	{
+		final var owner = new PhantomDomainRef("execution.solo", "1");
+		final var expected = new PhantomExecutionAdmission.Stamp(1, 3, owner, 7, PhantomExecutionAdmission.Purpose.NORMAL, 0);
+		final var foreign = new PhantomExecutionAdmission.Stamp(1, 3, owner, 8, PhantomExecutionAdmission.Purpose.NORMAL, 0);
+		final var oldStore = new PhantomBackgroundService.NativeTownReturn(10, 20, expected, 40);
+		final var successor = new PhantomBackgroundService.NativeTownReturn(10, 50, expected, 0);
+		check(PhantomBackgroundService.exactLateStorePredecessor(oldStore, successor, 10, 20, expected, 30),
+			"An exact completed late STORE blocked an already accepted return of the successor lifetime.");
+		final var storedSuccessor = new PhantomBackgroundService.NativeTownReturn(10, 50, expected, 55);
+		check(PhantomBackgroundService.exactLateStorePredecessor(oldStore, storedSuccessor, 10, 20, expected, 30),
+			"An already stored successor identity could not reconcile its exact predecessor.");
+		check(!PhantomBackgroundService.exactLateStorePredecessor(null, successor, 10, 20, expected, 30)
+			&& !PhantomBackgroundService.exactLateStorePredecessor(oldStore, new PhantomBackgroundService.NativeTownReturn(10, 50, foreign, 0), 10, 20, expected, 30)
+			&& !PhantomBackgroundService.exactLateStorePredecessor(oldStore, new PhantomBackgroundService.NativeTownReturn(10, 20, expected, 0), 10, 20, expected, 30)
+			&& !PhantomBackgroundService.exactLateStorePredecessor(oldStore, new PhantomBackgroundService.NativeTownReturn(11, 50, expected, 0), 10, 20, expected, 30),
+			"An unproven STORE, wrong execution, same epoch or foreign object retired an accepted control.");
+		System.out.println("PASS successor reconciliation retires only a proven exact late predecessor STORE");
 	}
 
 	private static void ordinaryGoalReconciliation()
