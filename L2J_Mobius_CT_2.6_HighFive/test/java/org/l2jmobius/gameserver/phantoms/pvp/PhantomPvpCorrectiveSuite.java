@@ -5,6 +5,7 @@ package org.l2jmobius.gameserver.phantoms.pvp;
 
 import java.util.List;
 
+import org.l2jmobius.gameserver.model.clan.ClanWarService.WarIdentity;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge.MessageKind;
@@ -76,13 +77,37 @@ public final class PhantomPvpCorrectiveSuite implements PhantomTestSuite
 			final Candidate defense = candidate(Source.PARTY_DEFENSE, counterpart(100), HASH_A, now);
 			final Encounter active = PhantomPvpService.initial(defense).withStage(Stage.ENGAGE, "", "", 0, 0, 0, "test.engage");
 			final PhantomDomainRef hostile = new PhantomDomainRef("character.object", "100"), member = new PhantomDomainRef("profile", "2");
-			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, null, now), "Missing protected-member evidence retained a hostile Party lease.");
-			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(candidate(Source.PARTY_DEFENSE, counterpart(100), HASH_B, now), hostile, member), now), "Changed Party generation or manifest retained the previous defense lease.");
-			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now), hostile, member), now), "A new cause silently reused Party defense authority.");
-			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(defense, hostile, member), defense.expiresLogicalNanos()), "Expired defense evidence retained its action owner.");
-			PhantomAssertions.assertFalse(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(defense, hostile, member), now), "Current exact Party defense was cancelled.");
-			PhantomAssertions.assertFalse(PhantomPvpService.needsPartyDefenseCancellation(PhantomPvpService.initial(candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now)), null, now), "Party-specific cancellation changed independent actual-attack policy.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsExactAuthorityCancellation(active, null, now), "Missing protected-member evidence retained a hostile Party lease.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsExactAuthorityCancellation(active, snapshot(candidate(Source.PARTY_DEFENSE, counterpart(100), HASH_B, now), hostile, member), now), "Changed Party generation or manifest retained the previous defense lease.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsExactAuthorityCancellation(active, snapshot(candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now), hostile, member), now), "A new cause silently reused Party defense authority.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsExactAuthorityCancellation(active, snapshot(defense, hostile, member), defense.expiresLogicalNanos()), "Expired defense evidence retained its action owner.");
+			PhantomAssertions.assertFalse(PhantomPvpService.needsExactAuthorityCancellation(active, snapshot(defense, hostile, member), now), "Current exact Party defense was cancelled.");
+			PhantomAssertions.assertFalse(PhantomPvpService.needsExactAuthorityCancellation(PhantomPvpService.initial(candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now)), null, now), "Exact cancellation changed independent actual-attack policy.");
 		});
+		registry.add("022-clan-war-stops-after-exact-authority-loss", _ ->
+		{
+			final long now = 20 * SECOND;
+			final var outgoing = new WarIdentity(101, 1, 2, "First", "Second");
+			final var incoming = new WarIdentity(102, 2, 1, "Second", "First");
+			final String authority = PhantomPvpContext.clanWarEvidenceHash(outgoing, incoming);
+			final Candidate war = candidate(Source.CLAN_WAR, counterpart(100), authority, now);
+			final Encounter active = PhantomPvpService.initial(war).withStage(Stage.ENGAGE, "", "", 1, 0, 0, "test.engage");
+			final var hostile = new PhantomDomainRef("character.object", "100");
+			final Snapshot exact = snapshot(war, hostile, null);
+			final Candidate directAttack = candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_C, now);
+			PhantomAssertions.assertTrue(PhantomPvpService.needsExactAuthorityCancellation(active, null, now), "A ceased clan war retained its action owner.");
+			for (String replacement : List.of(
+				PhantomPvpContext.clanWarEvidenceHash(new WarIdentity(103, 1, 2, "First", "Second"), incoming),
+				PhantomPvpContext.clanWarEvidenceHash(outgoing, new WarIdentity(104, 2, 1, "Second", "First"))))
+			{
+				final Snapshot replacedWar = snapshot(candidate(Source.CLAN_WAR, counterpart(100), replacement, now), hostile, null);
+				PhantomAssertions.assertTrue(PhantomPvpService.needsExactAuthorityCancellation(active, replacedWar, now), "A replacement clan war inherited the revoked action owner.");
+			}
+			PhantomAssertions.assertFalse(PhantomPvpService.needsExactAuthorityCancellation(active, exact, now), "An unchanged current clan war lost its action owner.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsExactAuthorityCancellation(active, snapshot(directAttack, hostile, null), now), "A direct attack extended a revoked clan-war action owner.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksActivePairCooldown(active, directAttack, now), "Direct defense was treated as proactive clan war.");
+		});
+
 		registry.add("01-party-help-selects-only-exact-member-counterpart", _ ->
 		{
 			final long now = 20 * SECOND;

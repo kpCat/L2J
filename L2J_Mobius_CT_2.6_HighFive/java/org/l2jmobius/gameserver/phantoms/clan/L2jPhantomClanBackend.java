@@ -1030,6 +1030,29 @@ public final class L2jPhantomClanBackend implements Backend
 	}
 
 	@Override
+	public Optional<ClanWarService.DirectedWars> directedWars(int sourceClanId, int targetClanId, boolean durable)
+	{
+		return durable ? _wars.confirmDirectedWars(sourceClanId, targetClanId) : Optional.of(_wars.directedWars(sourceClanId, targetClanId));
+	}
+
+	@Override
+	public ClanWarService.Result applyAutonomousWar(AllianceActor source, AllianceActor target, ClanWarService.DirectedWars expected,
+		boolean peace, BooleanSupplier stillCurrent)
+	{
+		try (var pair = acquirePair(source.member(), target.member()))
+		{
+			if (pair == null || !sameAllianceLifetime(source, pair.player(source.member())) || !sameAllianceLifetime(target, pair.player(target.member())))
+			{
+				return warIneligible(ClanWarService.Reason.ACTOR_NOT_FOUND);
+			}
+			final Player own = pair.player(source.member());
+			final Player other = pair.player(target.member());
+			return _wars.applyManagedDiplomacy(own, other, source.membership().epoch(), target.membership().epoch(), expected, peace,
+				() -> stillCurrent.getAsBoolean() && ordinaryPlayer(own) && ordinaryPlayer(other) && !own.hasPendingOwnedStore() && !other.hasPendingOwnedStore());
+		}
+	}
+
+	@Override
 	public Optional<WarIdentity> currentWar(MemberRef first, MemberRef second)
 	{
 		try (AcquiredPair pair = acquirePair(first, second))
@@ -1095,6 +1118,17 @@ public final class L2jPhantomClanBackend implements Backend
 	@Override
 	public RelationshipEvidence relationship(long ownerProfileId, MemberRef subject, long nowEpochMinute)
 	{
+		return relationship(ownerProfileId, subject, nowEpochMinute, false);
+	}
+
+	@Override
+	public RelationshipEvidence warRelationship(long ownerProfileId, MemberRef subject, long nowEpochMinute)
+	{
+		return relationship(ownerProfileId, subject, nowEpochMinute, true);
+	}
+
+	private RelationshipEvidence relationship(long ownerProfileId, MemberRef subject, long nowEpochMinute, boolean autonomousWar)
+	{
 		if ((_social == null) || (_pvpPolicy == null) || (subject == null))
 		{
 			return new RelationshipEvidence(false, 0, 0, List.of(), "");
@@ -1115,7 +1149,15 @@ public final class L2jPhantomClanBackend implements Backend
 		final int hostility = relationship.reputation().getOrDefault("hostility", 0);
 		final int hostilityScore = anger + rivalry + hostility - Math.max(0, trust) - Math.max(0, friendship);
 		final int affinityScore = trust + respect + friendship - anger - rivalry - hostility;
-		final List<String> hostileEvents = snapshot.memories().stream().filter(memory -> HOSTILE_EVENTS.contains(memory.eventKey()) && (memory.expiryMinute() > nowEpochMinute)).map(memory -> memory.eventId() + ":" + memory.evidenceHash()).sorted().limit(8).toList();
+		// Only a recorded resource dispute can originate policy war. Incoming damage, deaths and old
+		// clan agreement events can result from our own fighting or a previous war.
+		final List<String> hostileEvents = snapshot.memories().stream()
+			.filter(memory -> autonomousWar ? "farming.conflict.escalated".equals(memory.eventKey()) : HOSTILE_EVENTS.contains(memory.eventKey()))
+			.filter(memory -> memory.expiryMinute() > nowEpochMinute).map(memory -> memory.eventId() + ":" + memory.evidenceHash()).sorted().limit(8).toList();
+		if (autonomousWar && snapshot.memories().stream().noneMatch(memory -> memory.expiryMinute() > nowEpochMinute))
+		{
+			return new RelationshipEvidence(false, 0, 0, List.of(), "");
+		}
 		final String authority = PhantomClanService.sha256("clan.relationship|" + _pvpPolicy.hash() + "|" + snapshot.authorityHash() + "|" + hostilityScore + "|" + affinityScore + "|" + hostileEvents);
 		return new RelationshipEvidence(true, hostilityScore, affinityScore, hostileEvents, authority);
 	}

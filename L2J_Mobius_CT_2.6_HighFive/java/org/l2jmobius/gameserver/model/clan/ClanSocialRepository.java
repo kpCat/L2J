@@ -31,6 +31,11 @@ interface ClanSocialPersistence
 	void changeAllianceCrest(int allianceId, long generation, List<Integer> memberClanIds, int crestId) throws SQLException, ClanSocialRepository.StaleStateException;
 	void clearClanAllianceCrest(int clanId) throws SQLException, ClanSocialRepository.StaleStateException;
 	List<ClanSocialRepository.WarRow> loadWars() throws SQLException;
+	default List<ClanSocialRepository.WarRow> loadWars(int firstClanId, int secondClanId) throws SQLException
+	{
+		return loadWars().stream().filter(row -> row.sourceClanId() == firstClanId && row.targetClanId() == secondClanId
+			|| row.sourceClanId() == secondClanId && row.targetClanId() == firstClanId).toList();
+	}
 	ClanSocialRepository.WarRow createWar(int sourceClanId, int targetClanId) throws SQLException, ClanSocialRepository.StaleStateException;
 	void deleteWar(ClanSocialRepository.WarRow war) throws SQLException, ClanSocialRepository.StaleStateException;
 	void deleteWars(Collection<ClanSocialRepository.WarRow> wars) throws SQLException, ClanSocialRepository.StaleStateException;
@@ -509,6 +514,28 @@ final class ClanSocialRepository implements ClanSocialPersistence
 			while (result.next())
 			{
 				wars.add(new WarRow(result.getLong("war_id"), result.getInt("clan1"), result.getInt("clan2")));
+			}
+		}
+		return List.copyOf(wars);
+	}
+
+	@Override
+	public List<WarRow> loadWars(int firstClanId, int secondClanId) throws SQLException
+	{
+		final List<WarRow> wars = new ArrayList<>(2);
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT war_id, clan1, clan2 FROM clan_wars WHERE (clan1=? AND clan2=?) OR (clan1=? AND clan2=?)"))
+		{
+			statement.setInt(1, firstClanId);
+			statement.setInt(2, secondClanId);
+			statement.setInt(3, secondClanId);
+			statement.setInt(4, firstClanId);
+			try (ResultSet result = statement.executeQuery())
+			{
+				while (result.next())
+				{
+					wars.add(new WarRow(result.getLong("war_id"), result.getInt("clan1"), result.getInt("clan2")));
+				}
 			}
 		}
 		return List.copyOf(wars);

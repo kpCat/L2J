@@ -1337,7 +1337,8 @@ public final class PhantomSystem
 								{
 									try (var clanScope = _executionAdmission.enterOwner(id -> _executionControl.permits(id) ? _executionControl.owner(id) : null))
 									{
-										_clanService.advanceAutonomous(item.profileId(), actor.characterObjectId(), () -> autonomousClanPeers(item.profileId()), ordinaryPreference.party(item.profileId()));
+										_clanService.advanceAutonomous(item.profileId(), actor.characterObjectId(), () -> autonomousClanPeers(item.profileId(), false),
+											() -> autonomousClanPeers(item.profileId(), true), ordinaryPreference.party(item.profileId()));
 									}
 								}
 							}
@@ -3890,9 +3891,11 @@ public final class PhantomSystem
 	private FarmYield preparePvpFarmYield(org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Encounter encounter, Runnable holdFarm)
 	{
 		final long id = encounter.profileId();
-		if (_partyCoordinator.blocksBackground(id)) { return FarmYield.READY; }
+		final boolean clanWar = encounter.source() == org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.CLAN_WAR;
+		if (_partyCoordinator.blocksBackground(id)) { return clanWar ? FarmYield.UNAVAILABLE : FarmYield.READY; }
 		final boolean actualAttack = encounter.source() == org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK;
 		if (!soloExecution(id) || _phantomStoreService.blocksDecision(id) || hasAcceptedNativeJourney(id, actualAttack)) { return FarmYield.UNAVAILABLE; }
+		if (clanWar && !PhantomAutonomousFarmParty.ordinaryIntent(id, _decisionEngine.currentGoal(id).orElse(null))) { return FarmYield.UNAVAILABLE; }
 		if (!(actualAttack ? permitsOrdinaryFarmContext(id) : _materializationRetention.permitsNewActions(id))) { return FarmYield.UNAVAILABLE; }
 		try (var observation = _materializationService.tryAcquireObservation(id).orElse(null))
 		{
@@ -4215,14 +4218,16 @@ public final class PhantomSystem
 			&& _populationEcology.find(id).filter(state -> state.disposition() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition.MANAGED).isPresent();
 	}
 
-	private java.util.List<Long> autonomousClanPeers(long profileId)
+	private java.util.List<Long> autonomousClanPeers(long profileId, boolean leaders)
 	{
 		final var entries = _materializationService.list();
 		if (entries.isEmpty()) { return java.util.List.of(); }
 		final int start = Math.floorMod(profileId + System.currentTimeMillis() / 60_000, entries.size());
 		return java.util.stream.IntStream.range(0, Math.min(32, entries.size())).mapToObj(offset -> entries.get((start + offset) % entries.size()))
 			.filter(entry -> entry.profileId() != profileId && entry.worldPresent() && entry.actionAdmissionOpen())
-			.map(entry -> entry.profileId()).filter(this::autonomousClanOrdinary).filter(_executionControl::permits).limit(8).toList();
+			.filter(entry -> !leaders || World.getInstance().findObject(entry.characterObjectId()) instanceof Player player
+				&& player.getClan() != null && player.isClanLeader())
+			.map(entry -> entry.profileId()).filter(this::autonomousClanOrdinary).filter(_executionControl::permits).toList();
 	}
 
 	private int ordinaryOccupiedPhysicalSlots()

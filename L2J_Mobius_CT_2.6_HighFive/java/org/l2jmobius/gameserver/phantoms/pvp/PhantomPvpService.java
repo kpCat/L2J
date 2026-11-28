@@ -66,11 +66,11 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		UNAVAILABLE
 	}
 
-	public record ServiceSnapshot(State state, int trackedProfiles, int readyProfiles, int activeOwnerships, int claims, boolean pulseOwned, long pulses, long processed, long encounters, long warnings, long helps, long engagements, long retreats, long cooldowns, long failures, long karmaRecoveryObserved, long karmaProactiveSuppressed, long karmaYieldPulses, long karmaUnsafe, long karmaXpDebtBlocked)
+	public record ServiceSnapshot(State state, int trackedProfiles, int readyProfiles, int activeOwnerships, int claims, boolean pulseOwned, long pulses, long processed, long encounters, long warnings, long helps, long engagements, long retreats, long cooldowns, long failures, long karmaRecoveryObserved, long karmaProactiveSuppressed, long karmaYieldPulses, long karmaUnsafe, long karmaXpDebtBlocked, long clanAidObservations)
 	{
 		public static ServiceSnapshot inactive()
 		{
-			return new ServiceSnapshot(State.STOPPED, 0, 0, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+			return new ServiceSnapshot(State.STOPPED, 0, 0, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 
@@ -223,7 +223,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 				final int targetObjectId = encounter.counterpart().currentObjectId();
 				final boolean supportYield = _combat.partyDefenseYieldedToSupport(profileId, targetObjectId, encounter.authorityHash());
 				final Snapshot current = supportYield ? null : _context.observeOwned(encounter, now).orElse(null);
-				if (!supportYield && needsPartyDefenseCancellation(encounter, current, now)
+				if (!supportYield && needsExactAuthorityCancellation(encounter, current, now)
 					&& !_combat.partyDefenseYieldedToSupport(profileId, targetObjectId, encounter.authorityHash()))
 				{
 					cancelOwned(encounter);
@@ -452,6 +452,12 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			return;
 		}
 		final Encounter encounter = stored.encounter();
+		final var war = observed.clanWarAuthority();
+		if (encounter.source() == Source.CLAN_WAR && (war == null || !war.current() || forceUse))
+		{
+			_ordinaryFarmHolds.remove(encounter.profileId());
+			return;
+		}
 		if (!prepareOrdinaryFarmYield(encounter)) { return; }
 		final int engagements = encounter.proactiveEngagements() + (encounter.source().proactive() && (encounter.stage() != Stage.ENGAGE) ? 1 : 0);
 		final Encounter engaging = encounter.withStage(Stage.ENGAGE, encounter.warningReceiptId(), encounter.helpReceiptId(), engagements, encounter.warningLogicalNanos(), 0, "pvp.combat.admitted");
@@ -460,7 +466,8 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		{
 			return;
 		}
-		final Ownership ownership = _ownerships.compute(updated.profileId(), (profileId, current) -> (current != null) && current.matches(updated.encounter().counterpart().currentObjectId(), updated.encounter().authorityHash()) ? current : new Ownership(updated.encounter().counterpart().currentObjectId(), updated.encounter().authorityHash()));
+		final Ownership ownership = _ownerships.compute(updated.profileId(), (_, current) -> (current != null) && current.matches(updated.encounter().counterpart().currentObjectId(), updated.encounter().authorityHash())
+			? current : new Ownership(updated.encounter().counterpart().currentObjectId(), updated.encounter().authorityHash(), war));
 		final long timeoutMillis = Math.multiplyExact(_policy.limits().combatTimeoutSeconds(), 1000L);
 		final PhantomPvpCombatRequest request = new PhantomPvpCombatRequest(updated.profileId(), observed.candidate().counterpart().currentObjectId(), observed.candidate().source(), updated.encounter().authorityHash(), observed.mode(), forceUse, true, _policy.limits().cpPotionThresholdPercent(), timeoutMillis, ownership._token);
 		final var result = _combat.startPvpSession(request);
@@ -491,6 +498,13 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		_combat.consumePvpTerminal(stored.profileId(), stored.encounter().counterpart().currentObjectId(), stored.encounter().authorityHash());
 		if (_combat.hasClaim(stored.profileId()))
 		{
+			return;
+		}
+		if (stored.encounter().source() == Source.CLAN_WAR)
+		{
+			// An optional war encounter cannot take a movement slot from recovery or supply.
+			_ordinaryFarmHolds.remove(stored.profileId());
+			save(stored, cooldown(stored.encounter(), now, reason));
 			return;
 		}
 		if (!prepareOrdinaryFarmYield(stored.encounter())) { return; }
@@ -632,11 +646,12 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 
 	private void cancelOwned(Encounter encounter)
 	{
-		final Ownership ownership = _ownerships.remove(encounter.profileId());
-		if ((ownership != null) && ownership._authorityHash.equals(encounter.authorityHash()))
+		_ownerships.computeIfPresent(encounter.profileId(), (_, ownership) ->
 		{
+			if (!ownership.matches(encounter.counterpart().currentObjectId(), encounter.authorityHash())) { return ownership; }
 			ownership._cancelled.set(true);
-		}
+			return null;
+		});
 		if (_combat.matchesPvpSession(encounter.profileId(), encounter.counterpart().currentObjectId(), encounter.authorityHash()))
 		{
 			_combat.cancel(encounter.profileId());
@@ -644,10 +659,11 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		_retreat.cancel(encounter.profileId(), encounter.authorityHash());
 	}
 
-	/** A Party defense lease cannot outlive the exact membership and aggression cause. */
-	static boolean needsPartyDefenseCancellation(Encounter encounter, Snapshot current, long now)
+	/** Party defense and clan war can retain only the exact authority with which they started. */
+	static boolean needsExactAuthorityCancellation(Encounter encounter, Snapshot current, long now)
 	{
-		return encounter.source() == Source.PARTY_DEFENSE && (current == null || !current.candidate().currentAt(now) || !sameAuthority(encounter, current.candidate()));
+		return (encounter.source() == Source.PARTY_DEFENSE || encounter.source() == Source.CLAN_WAR)
+			&& (current == null || !current.candidate().currentAt(now) || !sameAuthority(encounter, current.candidate()));
 	}
 
 	private static boolean sameAuthority(Encounter encounter, Candidate candidate)
@@ -803,7 +819,8 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 
 	private boolean prepareOrdinaryFarmYield(Encounter encounter)
 	{
-		if (_prepareOrdinaryFarmYield == null || encounter.source() == Source.PARTY_DEFENSE || encounter.source() == Source.CLAN_WAR) { return true; }
+		if (encounter.source() == Source.PARTY_DEFENSE) { return true; }
+		if (_prepareOrdinaryFarmYield == null) { return encounter.source() != Source.CLAN_WAR; }
 		final long profileId = encounter.profileId();
 		final FarmYield result = _prepareOrdinaryFarmYield.apply(encounter, () -> _ordinaryFarmHolds.add(profileId));
 		if (result == FarmYield.UNAVAILABLE) { _ordinaryFarmHolds.remove(profileId); }
@@ -812,7 +829,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 
 	public ServiceSnapshot snapshot()
 	{
-		return new ServiceSnapshot(_state, _membership.size(), _ready.size(), _ownerships.size(), _claims.get(), _pulseOwner.get(), _pulses.sum(), _processed.sum(), _encounters.sum(), _warnings.sum(), _helps.sum(), _engagements.sum(), _retreats.sum(), _cooldowns.sum(), _failures.sum(), _karmaRecoveryObserved.sum(), _karmaProactiveSuppressed.sum(), _karmaYieldPulses.sum(), _karmaUnsafe.sum(), _karmaXpDebtBlocked.sum());
+		return new ServiceSnapshot(_state, _membership.size(), _ready.size(), _ownerships.size(), _claims.get(), _pulseOwner.get(), _pulses.sum(), _processed.sum(), _encounters.sum(), _warnings.sum(), _helps.sum(), _engagements.sum(), _retreats.sum(), _cooldowns.sum(), _failures.sum(), _karmaRecoveryObserved.sum(), _karmaProactiveSuppressed.sum(), _karmaYieldPulses.sum(), _karmaUnsafe.sum(), _karmaXpDebtBlocked.sum(), _context.clanAidObservations());
 	}
 
 	private static final class Ownership
@@ -820,12 +837,13 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		private final int _targetObjectId;
 		private final String _authorityHash;
 		private final AtomicBoolean _cancelled = new AtomicBoolean();
-		private final PhantomCancellationToken _token = _cancelled::get;
+		private final PhantomCancellationToken _token;
 
-		private Ownership(int targetObjectId, String authorityHash)
+		private Ownership(int targetObjectId, String authorityHash, PhantomPvpContext.ClanWarAuthority war)
 		{
 			_targetObjectId = targetObjectId;
 			_authorityHash = authorityHash;
+			_token = war == null ? _cancelled::get : () -> _cancelled.get() || !war.current();
 		}
 
 		private boolean matches(int targetObjectId, String authorityHash)

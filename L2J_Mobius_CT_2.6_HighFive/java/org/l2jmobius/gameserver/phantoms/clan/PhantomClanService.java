@@ -494,6 +494,19 @@ public final class PhantomClanService
 			return Optional.empty();
 		}
 
+		default Optional<ClanWarService.DirectedWars> directedWars(int sourceClanId, int targetClanId, boolean durable) { return Optional.empty(); }
+
+		default ClanWarService.Result applyAutonomousWar(AllianceActor source, AllianceActor target, ClanWarService.DirectedWars expected,
+			boolean peace, BooleanSupplier stillCurrent)
+		{
+			return new ClanWarService.Result(ClanWarService.Status.INELIGIBLE, ClanWarService.Reason.ACTOR_NOT_FOUND, null);
+		}
+
+		default RelationshipEvidence warRelationship(long ownerProfileId, MemberRef subject, long nowEpochMinute)
+		{
+			return relationship(ownerProfileId, subject, nowEpochMinute);
+		}
+
 		default ClanWarService.Result declareWar(MemberRef actor, MemberRef target)
 		{
 			return new ClanWarService.Result(ClanWarService.Status.INELIGIBLE, ClanWarService.Reason.ACTOR_NOT_FOUND, null);
@@ -626,6 +639,14 @@ public final class PhantomClanService
 	{
 	}
 
+	private record WarSignal(AllianceActor source, AllianceActor target, DiplomacyAction action, long warId, List<String> evidence, long since, long lastSeen)
+	{
+	}
+
+	private record AutonomousPeace(AllianceActor source, AllianceActor target, ClanWarService.DirectedWars wars, String sourceEvidence, long revision, long expires)
+	{
+	}
+
 	private record MaterialAssistance(int clanId, int leaderId, int level, WarehouseDemand demand, long expiresAt)
 	{
 	}
@@ -640,6 +661,8 @@ public final class PhantomClanService
 	private final LinkedHashMap<Long, Long> _discoveryDue = new LinkedHashMap<>();
 	private final LinkedHashMap<Long, Long> _diplomacyDue = new LinkedHashMap<>();
 	private final LinkedHashMap<Long, DeparturePreference> _departurePreferences = new LinkedHashMap<>();
+	private final LinkedHashMap<ConsentKey, WarSignal> _warSignals = new LinkedHashMap<>();
+	private final LinkedHashMap<ConsentKey, AutonomousPeace> _autonomousPeace = new LinkedHashMap<>();
 	private final LinkedHashMap<String, Long> _autonomousOutcomes = new LinkedHashMap<>();
 	private final LinkedHashMap<Long, DevelopmentPlan> _development = new LinkedHashMap<>();
 	private final LinkedHashMap<Long, MaterialAssistance> _materialAssistance = new LinkedHashMap<>();
@@ -700,7 +723,7 @@ public final class PhantomClanService
 			return result(OperationStatus.STALE, "clan.goal.stale", null);
 		}
 		final PhantomGoal goal = stored.get().goal();
-		if (diplomacyWrite(goal.goalType()) && _persistence.load(profileId).map(StoredMetadata::metadata).map(OrganizationMetadata::diplomacy).filter(PhantomClanService::unsettledAutonomousAlliance).isPresent())
+		if (diplomacyWrite(goal.goalType()) && _persistence.load(profileId).map(StoredMetadata::metadata).map(OrganizationMetadata::diplomacy).filter(PhantomClanService::unsettledAutonomousDiplomacy).isPresent())
 		{
 			return result(OperationStatus.WAITING, "clan.alliance.autonomous_reconciling", null);
 		}
@@ -781,10 +804,16 @@ public final class PhantomClanService
 	/** One short turn for a materialized actor, under the caller's current execution grant. */
 	public void advanceAutonomous(long profileId, int objectId, Supplier<List<Long>> peers, int preference)
 	{
+		advanceAutonomous(profileId, objectId, peers, peers, preference);
+	}
+
+	public void advanceAutonomous(long profileId, int objectId, Supplier<List<Long>> peers, Supplier<List<Long>> leaders, int preference)
+	{
 		if (_state != State.RUNNING) { return; }
 		final long now = _clock.getAsLong();
 		final boolean invited = _autonomousEnabled && _backend.hasAutonomousInvitation(objectId);
-		final boolean expedited = invited || _autonomousEnabled && incomingAllianceOffer(profileId, objectId, now) != null;
+		final boolean expedited = invited || _autonomousEnabled && (incomingAllianceOffer(profileId, objectId, now) != null
+			|| incomingAutonomousPeace(profileId, objectId, now) != null);
 		synchronized (_autonomousMonitor)
 		{
 			if (_state != State.RUNNING || !expedited && _discoveryDue.getOrDefault(profileId, 0L) > now) { return; }
@@ -813,6 +842,11 @@ public final class PhantomClanService
 				settleAutonomousAlliance(actor.member(), current, now);
 				return;
 			}
+			if (prior != null && unsettledAutonomousWar(prior.diplomacy()))
+			{
+				settleAutonomousWar(profileId, current, now);
+				return;
+			}
 			if (_backend.nativeContributionReceipts() && contributionNeedsSettlement(profileId, root, prior, now))
 			{
 				settleExpiredContribution(actor.member(), prior);
@@ -829,7 +863,7 @@ public final class PhantomClanService
 				answerAutonomous(actor, preference, now);
 				return;
 			}
-			planAutonomous(actor, peers, preference, current, root, now);
+			planAutonomous(actor, peers, leaders, preference, current, root, now);
 		}
 		catch (RuntimeException failure)
 		{
@@ -1045,7 +1079,7 @@ public final class PhantomClanService
 		}
 	}
 
-	private void planAutonomous(AutonomousActor actor, Supplier<List<Long>> peers, int preference, StoredMetadata current, PhantomGoal root, long now)
+	private void planAutonomous(AutonomousActor actor, Supplier<List<Long>> peers, Supplier<List<Long>> leaders, int preference, StoredMetadata current, PhantomGoal root, long now)
 	{
 		final var development = updateDevelopment(actor, now);
 		final var member = actor.member();
@@ -1091,6 +1125,8 @@ public final class PhantomClanService
 			}
 			final var incoming = incomingAllianceOffer(member.profileId(), member.characterObjectId(), now);
 			if (incoming != null && acceptAutonomousAlliance(actor, current, incoming, preference, now)) { return; }
+			final var peace = incomingAutonomousPeace(member.profileId(), member.characterObjectId(), now);
+			if (peace != null && answerAutonomousPeace(actor, peace, now)) { return; }
 			final var visits = _autonomousVisits;
 			if (_state == State.RUNNING && visits != null && current != null && clan.level() >= 5 && !developmentReady(development)
 				&& (development == null || development.membersDue() == 0)
@@ -1106,12 +1142,18 @@ public final class PhantomClanService
 				}
 			}
 			if (!developmentReady(development)) { offerWarehouseVisit(actor, root, current, peers, preference, now); }
-			if (clan.memberCount() >= clan.maxMembers() && !diplomacyDue(member.profileId(), now)) { return; }
+			if (current != null && clan.level() >= 3 && current.metadata().diplomacy().cooldownUntilEpochMillis() <= now && diplomacyDue(member.profileId(), now))
+			{
+				deferDiplomacy(member.profileId(), now + _diplomacyMillis + Math.floorMod(member.profileId(), 301) * 1000);
+				final var counterparts = leaders.get().stream().filter(id -> id != member.profileId() && !_active.containsKey(id)).distinct().limit(32)
+					.map(_backend::autonomousActor).flatMap(Optional::stream).filter(PhantomClanService::isLeader).limit(8).toList();
+				if (planAutonomousWar(actor, counterparts, current, now)
+					|| planAutonomousAlliance(actor, counterparts, preference, current, root, now)) { return; }
+			}
+			if (clan.memberCount() >= clan.maxMembers()) { return; }
 		}
-		final var available = peers.get().stream().filter(id -> id != member.profileId() && !_active.containsKey(id)).limit(8)
+		final var available = peers.get().stream().filter(id -> id != member.profileId() && !_active.containsKey(id)).distinct().limit(32)
 			.map(_backend::autonomousActor).flatMap(Optional::stream).toList();
-		if (clan != null && planAutonomousAlliance(actor, available, preference, current, root, now)) { return; }
-		if (clan != null && clan.memberCount() >= clan.maxMembers()) { return; }
 		final var candidate = available.stream()
 			.filter(peer -> eligibleRecruit(actor, peer, now))
 			.findFirst().orElse(null);
@@ -1255,9 +1297,7 @@ public final class PhantomClanService
 	{
 		final long profileId = actor.member().profileId();
 		final var clan = actor.clan();
-		if (_state != State.RUNNING || current == null || current.metadata().diplomacy().cooldownUntilEpochMillis() > now
-			|| !diplomacyDue(profileId, now) || clan.allianceId() == 0 && clan.level() < 5) { return false; }
-		deferDiplomacy(profileId, now + _diplomacyMillis + Math.floorMod(profileId, 301) * 1000);
+		if (_state != State.RUNNING || clan.allianceId() == 0 && clan.level() < 5) { return false; }
 		final var own = _backend.allianceActor(actor.member()).orElse(null);
 		if (own == null || own.membership().epoch().clanId() != clan.clanId() || own.membership().epoch().allianceId() != clan.allianceId()) { return false; }
 		if (clan.allianceId() != 0 && clan.allianceId() != clan.clanId())
@@ -1273,6 +1313,8 @@ public final class PhantomClanService
 		}
 		final var candidate = available.stream().filter(PhantomClanService::isLeader).filter(peer -> peer.clan().clanId() != clan.clanId())
 			.filter(peer -> peer.clan().allianceId() == 0 || clan.allianceId() == 0 && peer.clan().allianceId() == peer.clan().clanId())
+			.filter(peer -> _backend.directedWars(clan.clanId(), peer.clan().clanId(), false)
+				.map(wars -> wars.direct() == null && wars.reverse() == null).orElse(true))
 			.map(peer -> Map.entry(peer, affinityForAlliance(actor, peer, preference, now))).filter(entry -> entry.getValue() > 0)
 			.max(Comparator.<Map.Entry<AutonomousActor, Integer>>comparingInt(Map.Entry::getValue).thenComparingInt(entry -> -entry.getKey().clan().clanId()))
 			.map(Map.Entry::getKey).orElse(null);
@@ -1292,6 +1334,199 @@ public final class PhantomClanService
 	private static boolean eligibleAllianceFounder(ClanSnapshot clan, ClanSnapshot peer)
 	{
 		return peer.allianceId() == 0 && (peer.level() < clan.level() || peer.level() == clan.level() && peer.clanId() >= clan.clanId());
+	}
+
+	private boolean planAutonomousWar(AutonomousActor actor, List<AutonomousActor> counterparts, StoredMetadata current, long now)
+	{
+		final var own = _backend.allianceActor(actor.member()).orElse(null);
+		if (own == null || own.membership().epoch().clanId() != actor.clan().clanId()) { return false; }
+		for (var peer : counterparts)
+		{
+			final var clan = actor.clan();
+			final var other = peer.clan();
+			if (other.clanId() == clan.clanId() || clan.allianceId() != 0 && clan.allianceId() == other.allianceId()) { continue; }
+			final var wars = _backend.directedWars(clan.clanId(), other.clanId(), false).orElse(null);
+			if (wars == null) { continue; }
+			final var relation = _backend.warRelationship(actor.member().profileId(), peer.member(), now / 60_000);
+			final boolean costly = other.memberCount() > 2L * clan.memberCount() || other.level() > clan.level() + 1 || clan.reputation() < 0;
+			final DiplomacyAction action;
+			if (wars.direct() == null && !costly && other.level() >= 3 && relation.hostileForWar())
+			{
+				action = DiplomacyAction.WAR_DECLARE;
+			}
+			else if (wars.direct() != null && relation.peacefulEnough())
+			{
+				action = costly ? DiplomacyAction.WAR_STOP : DiplomacyAction.WAR_PEACE;
+			}
+			else
+			{
+				synchronized (_autonomousMonitor) { _warSignals.remove(new ConsentKey(clan.clanId(), other.clanId())); }
+				continue;
+			}
+			final var target = _backend.allianceActor(peer.member()).orElse(null);
+			if (target == null || target.membership().epoch().clanId() != other.clanId()) { continue; }
+			final var key = new ConsentKey(clan.clanId(), other.clanId());
+			if (action == DiplomacyAction.WAR_PEACE)
+			{
+				synchronized (_autonomousMonitor)
+				{
+					if (_state != State.RUNNING) { return false; }
+					putBoundedOffer(_autonomousPeace, key, new AutonomousPeace(own, target, wars, relation.authorityHash(), nextAutonomousId(now), now + 180_000));
+				}
+				observeAutonomousOutcome("clan.autonomous.war.peace_offered");
+				return true;
+			}
+			final long warId = wars.direct() == null ? 0 : wars.direct().warId();
+			if (sustainedWarSignal(key, own, target, action, warId, relation, now) && _mutating.add(peer.member().profileId()))
+			{
+				try
+				{
+					if (availableForWar(peer.member().profileId(), now))
+					{
+						writeAutonomousWar(own, target, current, wars, action, relation.authorityHash(), nextAutonomousId(now), now + _discoveryMillis, now);
+						return true;
+					}
+				}
+				finally { _mutating.remove(peer.member().profileId()); }
+			}
+		}
+		return false;
+	}
+
+	private boolean sustainedWarSignal(ConsentKey key, AllianceActor source, AllianceActor target, DiplomacyAction action, long warId,
+		RelationshipEvidence relation, long now)
+	{
+		synchronized (_autonomousMonitor)
+		{
+			final var prior = _warSignals.remove(key);
+			final boolean continuous = prior != null && prior.source().equals(source) && prior.target().equals(target)
+				&& prior.action() == action && prior.warId() == warId && now - prior.lastSeen() <= 3 * _diplomacyMillis
+				&& (action != DiplomacyAction.WAR_DECLARE || relation.hostileEventIds().stream().anyMatch(prior.evidence()::contains));
+			final long since = continuous ? prior.since() : now;
+			putBoundedOffer(_warSignals, key, new WarSignal(source, target, action, warId, relation.hostileEventIds(), since, now));
+			return continuous && now - since >= _diplomacyMillis;
+		}
+	}
+
+	private AutonomousPeace incomingAutonomousPeace(long profileId, int objectId, long now)
+	{
+		synchronized (_autonomousMonitor)
+		{
+			return _autonomousPeace.values().stream().filter(offer -> offer.expires() > now
+				&& offer.target().member().profileId() == profileId && offer.target().member().characterObjectId() == objectId).findFirst().orElse(null);
+		}
+	}
+
+	private boolean answerAutonomousPeace(AutonomousActor actor, AutonomousPeace offer, long now)
+	{
+		final long sourceId = offer.source().member().profileId();
+		if (!_mutating.add(sourceId)) { return false; }
+		try
+		{
+			final var key = new ConsentKey(offer.source().membership().epoch().clanId(), offer.target().membership().epoch().clanId());
+			synchronized (_autonomousMonitor)
+			{
+				if (_state != State.RUNNING || _clock.getAsLong() >= offer.expires() || !_autonomousPeace.remove(key, offer)) { return false; }
+			}
+			final var source = _persistence.load(sourceId).orElse(null);
+			if (source == null || source.metadata().diplomacy().cooldownUntilEpochMillis() > now || !availableForWar(sourceId, now)
+				|| !_backend.allianceActor(actor.member()).filter(offer.target()::equals).isPresent()
+				|| !_backend.allianceActor(offer.source().member()).filter(offer.source()::equals).isPresent())
+			{
+				return false;
+			}
+			writeAutonomousWar(offer.source(), offer.target(), source, offer.wars(), DiplomacyAction.WAR_PEACE, offer.sourceEvidence(),
+				offer.revision(), offer.expires(), now);
+			return true;
+		}
+		finally { _mutating.remove(sourceId); }
+	}
+
+	private boolean availableForWar(long profileId, long now)
+	{
+		return !_active.containsKey(profileId) && !validCommon(profileId, _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null), now)
+			&& _persistence.load(profileId).filter(row -> row.metadata().diplomacy().phase() == DiplomacyPhase.PREPARED
+				|| row.metadata().contributionState() == ContributionState.PREPARED).isEmpty();
+	}
+
+	private void writeAutonomousWar(AllianceActor source, AllianceActor target, StoredMetadata current, ClanWarService.DirectedWars wars,
+		DiplomacyAction action, String offeredCause, long revision, long expires, long now)
+	{
+		final long profileId = source.member().profileId();
+		final var base = current.metadata();
+		final var own = source.membership().epoch();
+		final var other = target.membership().epoch();
+		if (_state != State.RUNNING || _clock.getAsLong() >= expires || own.clanId() != base.canonicalClanId()
+			|| source.member().characterObjectId() != base.canonicalLeaderObjectId()) { return; }
+		final var cause = _backend.warRelationship(profileId, target.member(), now / 60_000);
+		final boolean peace = action == DiplomacyAction.WAR_PEACE;
+		final var consent = peace ? _backend.warRelationship(target.member().profileId(), source.member(), now / 60_000) : null;
+		if (!offeredCause.equals(cause.authorityHash()) || !(action == DiplomacyAction.WAR_DECLARE ? cause.hostileForWar() : cause.peacefulEnough())
+			|| peace && !consent.peacefulEnough())
+		{
+			observeAutonomousOutcome("clan.autonomous.war.declined");
+			return;
+		}
+		final long warId = wars.direct() == null ? 0 : wars.direct().warId();
+		final var prepared = new DiplomacyState(action, DiplomacyPhase.PREPARED, revision, 0, other.clanId(), 0, 0, own.counter(),
+			warId, Math.addExact(base.diplomacy().decisionEpoch(), 1), expires, now / 60_000,
+			sha256("clan.autonomous.war|" + action + "|" + revision + "|" + source + "|" + target + "|" + wars + "|" + expires + "|"
+				+ cause.authorityHash() + "|" + (consent == null ? "" : consent.authorityHash())));
+		final var saved = _persistence.save(profileId, current.rowVersion(), withAutonomousDiplomacy(base, null, prepared, now));
+		final long observedMinute = _clock.getAsLong() / 60_000;
+		if (!_backend.warRelationship(profileId, target.member(), observedMinute).authorityHash().equals(cause.authorityHash())
+			|| peace && !_backend.warRelationship(target.member().profileId(), source.member(), observedMinute).authorityHash().equals(consent.authorityHash()))
+		{
+			_persistence.save(profileId, saved.rowVersion(), base);
+			return;
+		}
+		final var result = _backend.applyAutonomousWar(source, target, wars, peace, () -> _state == State.RUNNING && _clock.getAsLong() < expires);
+		final var receipt = result.identity();
+		if (receipt != null && (result.successful() || result.status() == ClanWarService.Status.PERSISTENCE_FAILURE)
+			&& receipt.sourceClanId() == own.clanId() && receipt.targetClanId() == other.clanId() && (warId == 0 || warId == receipt.warId()))
+		{
+			saveAutonomousWarReceipt(profileId, saved, receipt.warId(), result.successful(), now);
+		}
+		else if (result.status() == ClanWarService.Status.INELIGIBLE || result.status() == ClanWarService.Status.STALE)
+		{
+			_persistence.save(profileId, saved.rowVersion(), base);
+			observeAutonomousOutcome("clan.autonomous.war.rejected." + result.reason().name().toLowerCase(java.util.Locale.ROOT));
+		}
+		else
+		{
+			observeAutonomousOutcome("clan.autonomous.war.awaiting_confirmation");
+		}
+	}
+
+	private void settleAutonomousWar(long profileId, StoredMetadata stored, long now)
+	{
+		final var base = stored.metadata();
+		final var pending = base.diplomacy();
+		final var confirmed = _backend.directedWars(base.canonicalClanId(), pending.counterpartClanId(), true).orElse(null);
+		if (confirmed == null) { return; }
+		final long currentId = confirmed.direct() == null ? 0 : confirmed.direct().warId();
+		// Revision 1 means this operation received an exact native commit identity. A foreign row never supplies that identity.
+		if (pending.goalRevision() == 1 && (pending.action() == DiplomacyAction.WAR_DECLARE ? currentId == pending.warId() : currentId == 0))
+		{
+			saveAutonomousWarReceipt(profileId, stored, pending.warId(), true, now);
+		}
+		else if (pending.goalRevision() == 0 && pending.warId() != 0 && currentId == pending.warId())
+		{
+			_persistence.save(profileId, stored.rowVersion(), withAutonomousDiplomacy(base, null, DiplomacyState.empty(), now));
+			observeAutonomousOutcome("clan.autonomous.war.confirmed_no_effect");
+		}
+	}
+
+	private void saveAutonomousWarReceipt(long profileId, StoredMetadata stored, long warId, boolean confirmed, long now)
+	{
+		final var base = stored.metadata();
+		final var pending = base.diplomacy();
+		final var state = new DiplomacyState(pending.action(), confirmed ? DiplomacyPhase.COMPLETED : DiplomacyPhase.PREPARED, pending.goalId(), 1,
+			pending.counterpartClanId(), 0, 0, pending.membershipCounter(), warId, pending.decisionEpoch(), confirmed ? now + _diplomacyMillis : pending.cooldownUntilEpochMillis(),
+			pending.happenedEpochMinute(), pending.evidenceHash());
+		_persistence.save(profileId, stored.rowVersion(), withAutonomousDiplomacy(base, null, state, now));
+		observeAutonomousOutcome(confirmed ? "clan.autonomous.war." + pending.action().name().toLowerCase(java.util.Locale.ROOT) + ".completed"
+			: "clan.autonomous.war.awaiting_confirmation");
 	}
 
 	private boolean departureReady(long profileId, int clanId, int counterpartId, boolean alliance, RelationshipEvidence relationship, long now)
@@ -1412,6 +1647,17 @@ public final class PhantomClanService
 	{
 		return state.goalId() >= AUTONOMOUS_ID_BASE && state.phase() == DiplomacyPhase.PREPARED
 			&& (state.action() == DiplomacyAction.ALLIANCE_CREATE || state.action() == DiplomacyAction.ALLIANCE_JOIN || state.action() == DiplomacyAction.ALLIANCE_LEAVE);
+	}
+
+	private static boolean unsettledAutonomousWar(DiplomacyState state)
+	{
+		return state.goalId() >= AUTONOMOUS_ID_BASE && state.phase() == DiplomacyPhase.PREPARED
+			&& (state.action() == DiplomacyAction.WAR_DECLARE || state.action() == DiplomacyAction.WAR_STOP || state.action() == DiplomacyAction.WAR_PEACE);
+	}
+
+	private static boolean unsettledAutonomousDiplomacy(DiplomacyState state)
+	{
+		return unsettledAutonomousAlliance(state) || unsettledAutonomousWar(state);
 	}
 
 	private void writeAutonomousAlliance(AutonomousActor actor, StoredMetadata current, String goalType, int counterpart, AllianceIdentity affiliation,
@@ -1707,6 +1953,7 @@ public final class PhantomClanService
 			terminalize(operation, OperationStatus.CANCELLED, "clan.service.stopping", null);
 		}
 		synchronized (_joinOffers) { _joinOffers.clear(); }
+		synchronized (_autonomousMonitor) { _autonomousPeace.clear(); }
 		_peaceOffers.clear();
 	}
 
@@ -2871,9 +3118,9 @@ public final class PhantomClanService
 	private void persist(long profileId, OrganizationMetadata metadata)
 	{
 		final Optional<StoredMetadata> stored = _persistence.load(profileId);
-		if (stored.filter(row -> unsettledAutonomousAlliance(row.metadata().diplomacy()) && !row.metadata().diplomacy().equals(metadata.diplomacy())).isPresent())
+		if (stored.filter(row -> unsettledAutonomousDiplomacy(row.metadata().diplomacy()) && !row.metadata().diplomacy().equals(metadata.diplomacy())).isPresent())
 		{
-			throw new java.util.ConcurrentModificationException("Unconfirmed autonomous alliance mutation owns this component.");
+			throw new java.util.ConcurrentModificationException("Unconfirmed autonomous diplomacy mutation owns this component.");
 		}
 		_persistence.save(profileId, stored.map(StoredMetadata::rowVersion).orElse(-1L), metadata);
 	}

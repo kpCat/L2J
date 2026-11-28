@@ -87,6 +87,11 @@ public final class ClanWarService
 		}
 	}
 
+	/** The two native directions are independent incarnations. Empty directions mean observed absence. */
+	public record DirectedWars(WarIdentity direct, WarIdentity reverse)
+	{
+	}
+
 	record Actor(int objectId, int clanId, boolean warDeclarationAccess)
 	{
 	}
@@ -174,6 +179,111 @@ public final class ClanWarService
 			return Optional.empty();
 		}
 		return Optional.ofNullable(_wars.get(new WarPair(sourceClanId, targetClanId)));
+	}
+
+	public DirectedWars directedWars(int sourceClanId, int targetClanId)
+	{
+		return new DirectedWars(currentWar(sourceClanId, targetClanId).orElse(null), currentWar(targetClanId, sourceClanId).orElse(null));
+	}
+
+	/** Empty Optional is an unavailable or inconsistent readback, even when both directions look absent in memory. */
+	public Optional<DirectedWars> confirmDirectedWars(int sourceClanId, int targetClanId)
+	{
+		if (sourceClanId <= 0 || targetClanId <= 0 || sourceClanId == targetClanId) { return Optional.empty(); }
+		return _fence.execute(pairKeys(sourceClanId, targetClanId), () -> confirmDirectedWarsLocked(sourceClanId, targetClanId));
+	}
+
+	private Optional<DirectedWars> confirmDirectedWarsLocked(int sourceClanId, int targetClanId)
+	{
+		final var current = directedWars(sourceClanId, targetClanId);
+		try
+		{
+			final var durable = _persistence.loadWars(sourceClanId, targetClanId);
+			final int expected = (current.direct() == null ? 0 : 1) + (current.reverse() == null ? 0 : 1);
+			if (durable.size() != expected || current.direct() != null && !durable.contains(toRow(current.direct()))
+				|| current.reverse() != null && !durable.contains(toRow(current.reverse()))
+				|| _state.sourceAtWarWith(sourceClanId, targetClanId) != (current.direct() != null)
+				|| _state.sourceAtWarWith(targetClanId, sourceClanId) != (current.reverse() != null))
+			{
+				return Optional.empty();
+			}
+			return Optional.of(current);
+		}
+		catch (SQLException failure)
+		{
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * A managed leader's short, already prepared turn. Both lifetimes are held by the caller.
+	 * The native pair fence serializes manual writers, alliance/leadership changes and exact readback.
+	 */
+	public Result applyManagedDiplomacy(Player source, Player target, ClanAllianceService.MembershipEpoch sourceEpoch,
+		ClanAllianceService.MembershipEpoch targetEpoch, DirectedWars expected, boolean peace, java.util.function.BooleanSupplier stillCurrent)
+	{
+		final int sourceId = sourceEpoch.clanId();
+		final int targetId = targetEpoch.clanId();
+		if (sourceId == targetId) { return ineligible(Reason.SELF_TARGET); }
+		return _fence.execute(pairKeys(sourceId, targetId), () ->
+		{
+			if (_fence.isRetiring(sourceId) || _fence.isRetiring(targetId)) { return ineligible(Reason.CLAN_RETIRING); }
+			final Clan own = source.getClan();
+			final Clan other = target.getClan();
+			if (!managedLeaderCurrent(source, own, sourceEpoch) || !managedLeaderCurrent(target, other, targetEpoch)) { return stale(); }
+			if (!source.hasAccess(ClanAccess.WAR_DECLARATION) || peace && !target.hasAccess(ClanAccess.WAR_DECLARATION))
+			{
+				return ineligible(Reason.NOT_AUTHORIZED);
+			}
+			if (own.getDissolvingExpiryTime() > _clock.getAsLong() || other.getDissolvingExpiryTime() > _clock.getAsLong())
+			{
+				return ineligible(Reason.TARGET_DISSOLVING);
+			}
+			final var before = confirmDirectedWarsLocked(sourceId, targetId);
+			if (before.isEmpty()) { return ineligible(Reason.PERSISTENCE_ERROR); }
+			if (!before.get().equals(expected) || !stillCurrent.getAsBoolean()) { return stale(); }
+			if (!managedLeaderCurrent(source, own, sourceEpoch) || !managedLeaderCurrent(target, other, targetEpoch)
+				|| own.getDissolvingExpiryTime() > _clock.getAsLong() || other.getDissolvingExpiryTime() > _clock.getAsLong())
+			{
+				return stale();
+			}
+			final var direct = expected.direct();
+			final Result result;
+			if (direct == null)
+			{
+				if (peace) { return stale(); }
+				result = declareLocked(actor(source), other.getName(), targetId);
+			}
+			else
+			{
+				result = end(actor(source), targetId, direct.warId(), EndMode.STOP);
+			}
+			if (!result.successful())
+			{
+				if (result.status() == Status.PERSISTENCE_FAILURE && confirmDirectedWarsLocked(sourceId, targetId).filter(expected::equals).isPresent())
+				{
+					return new Result(Status.STALE, Reason.PERSISTENCE_ERROR, null);
+				}
+				return result;
+			}
+			final var after = new DirectedWars(direct == null ? result.identity() : null, expected.reverse());
+			return confirmDirectedWarsLocked(sourceId, targetId).filter(after::equals).isPresent()
+				? result : new Result(Status.PERSISTENCE_FAILURE, Reason.PERSISTENCE_ERROR, result.identity());
+		});
+	}
+
+	private static boolean managedLeaderCurrent(Player player, Clan clan, ClanAllianceService.MembershipEpoch epoch)
+	{
+		return clan != null && player.getClan() == clan && player.getClanId() == epoch.clanId() && clan.getId() == epoch.clanId()
+			&& ClanTable.getInstance().getClan(clan.getId()) == clan && clan.getLeaderId() == player.getObjectId()
+			&& clan.getClanMember(player.getObjectId()) != null
+			&& clan.getAllyId() == epoch.allianceId() && clan.getAllyGeneration() == epoch.generation()
+			&& clan.getAllyGenerationCounter() == epoch.counter();
+	}
+
+	private static long[] pairKeys(int sourceClanId, int targetClanId)
+	{
+		return new long[] { ClanSocialMutationFence.clanKey(sourceClanId), ClanSocialMutationFence.clanKey(targetClanId) };
 	}
 
 	public Result declare(Player player, String targetClanName)

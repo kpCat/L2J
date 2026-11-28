@@ -11,10 +11,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.clan.Clan;
+import org.l2jmobius.gameserver.model.clan.ClanMember;
+import org.l2jmobius.gameserver.model.clan.ClanWarService;
+import org.l2jmobius.gameserver.model.clan.ClanWarService.WarIdentity;
 import org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
@@ -49,8 +54,13 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectKind;
  */
 public final class PhantomPvpContext
 {
-	public record Snapshot(Candidate candidate, RiskSnapshot risk, PhantomCombatMode mode, SubjectRef socialSubject, PhantomDomainRef conversationCounterpart, PhantomDomainRef helpCounterpart, String sourceEvidenceHash)
+	public record Snapshot(Candidate candidate, RiskSnapshot risk, PhantomCombatMode mode, SubjectRef socialSubject, PhantomDomainRef conversationCounterpart, PhantomDomainRef helpCounterpart, String sourceEvidenceHash, ClanWarAuthority clanWarAuthority)
 	{
+		public Snapshot(Candidate candidate, RiskSnapshot risk, PhantomCombatMode mode, SubjectRef socialSubject, PhantomDomainRef conversationCounterpart, PhantomDomainRef helpCounterpart, String sourceEvidenceHash)
+		{
+			this(candidate, risk, mode, socialSubject, conversationCounterpart, helpCounterpart, sourceEvidenceHash, null);
+		}
+
 		public Snapshot
 		{
 			Objects.requireNonNull(candidate);
@@ -78,6 +88,7 @@ public final class PhantomPvpContext
 	private final PhantomFarmingService _farming;
 	private final PhantomPvpSocialBridge _social;
 	private final PhantomMaterializationService _materialization;
+	private final LongAdder _clanAidObservations = new LongAdder();
 
 	public PhantomPvpContext(PhantomPvpPolicy policy, PhantomCombatService combat, PhantomPartyCoordinator party, PhantomFarmingService farming, PhantomPvpSocialBridge social, PhantomMaterializationService materialization)
 	{
@@ -192,6 +203,10 @@ public final class PhantomPvpContext
 		{
 			return Optional.empty();
 		}
+		if (owned == null)
+		{
+			observeClanAid(profileId, observation);
+		}
 		final List<ObservedEvidence> candidates = new ArrayList<>();
 		for (PvpObservedTarget observed : observation.targets())
 		{
@@ -201,9 +216,15 @@ public final class PhantomPvpContext
 				final String attackAuthority = PhantomPvpModel.sha256("pvp.actual.attack", observation.actor().objectId(), targetObjectId, observation.actor().instanceId());
 				candidates.add(new ObservedEvidence(new SourceEvidence(Source.ACTUAL_ATTACK, targetObjectId, attackAuthority, expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null, null), observed));
 			}
-			if (observed.declaredClanWar())
+			if ((observed.declaredClanWar() || (owned != null && owned.source() == Source.CLAN_WAR))
+				&& observed.target().autoAttackable() && observed.target().reachable() && !observed.target().invulnerable())
 			{
-				candidates.add(new ObservedEvidence(new SourceEvidence(Source.CLAN_WAR, targetObjectId, PhantomPvpModel.sha256("pvp.native.clan-war", observation.actor().objectId(), targetObjectId, observation.actor().instanceId()), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null, null), observed));
+				final var war = clanWarAuthority(observation.actor().objectId(), targetObjectId);
+				if (war != null)
+				{
+					final String evidenceHash = clanWarEvidenceHash(war.outgoing(), war.incoming());
+					candidates.add(new ObservedEvidence(new SourceEvidence(Source.CLAN_WAR, targetObjectId, evidenceHash, expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null, null), observed, war));
+				}
 			}
 			final SourceEvidence supplied = exact.get(targetObjectId);
 			if (supplied != null)
@@ -230,8 +251,8 @@ public final class PhantomPvpContext
 			final Snapshot snapshot = snapshot(profileId, logicalNanos, observation, selected);
 			if ((snapshot != null) && snapshot.candidate().currentAt(logicalNanos) && snapshot.risk().legal() && admissible.test(snapshot.candidate()))
 			{
-				// A new direct attack is a separate cause. It cannot extend or displace an owned defense lease.
-				if (owned != null && owned.source() == Source.PARTY_DEFENSE && !owned.authorityHash().equals(snapshot.candidate().authorityHash()))
+				// Direct damage is a separate cause and cannot renew a Party or clan-war lease.
+				if (owned != null && (owned.source() == Source.PARTY_DEFENSE || owned.source() == Source.CLAN_WAR) && !owned.authorityHash().equals(snapshot.candidate().authorityHash()))
 				{
 					continue;
 				}
@@ -261,7 +282,116 @@ public final class PhantomPvpContext
 		final Candidate candidate = new Candidate(profileId, counterpart, selected._source.source(), authority, logicalNanos, expires, true, resolvable, visible);
 		final RiskSnapshot risk = risk(observation, selected._target);
 		final PhantomDomainRef conversation = counterpart.kind() == CounterpartKind.PHANTOM_PROFILE ? new PhantomDomainRef("profile", Long.toString(counterpart.identity())) : new PhantomDomainRef("character.object", Integer.toString(counterpart.currentObjectId()));
-		return new Snapshot(candidate, risk, observation.supportedModes().getFirst(), socialSubject, conversation, selected._source.helpCounterpart(), selected._source.authorityHash());
+		return new Snapshot(candidate, risk, observation.supportedModes().getFirst(), socialSubject, conversation, selected._source.helpCounterpart(), selected._source.authorityHash(), selected._war);
+	}
+
+	private static ClanWarAuthority clanWarAuthority(int actorObjectId, int targetObjectId)
+	{
+		final var world = World.getInstance();
+		final Player actor = world.getPlayer(actorObjectId);
+		final Player target = world.getPlayer(targetObjectId);
+		final Clan actorClan = actor == null ? null : actor.getClan();
+		final Clan targetClan = target == null ? null : target.getClan();
+		if (actorClan == null || targetClan == null || actorClan == targetClan)
+		{
+			return null;
+		}
+		final var wars = ClanWarService.getInstance();
+		final var outgoing = wars.currentWar(actorClan, targetClan).orElse(null);
+		final var incoming = wars.currentWar(targetClan, actorClan).orElse(null);
+		final ClanMember actorMember = actorClan.getClanMember(actorObjectId);
+		final ClanMember targetMember = targetClan.getClanMember(targetObjectId);
+		if (outgoing == null || incoming == null || actorMember == null || targetMember == null)
+		{
+			return null;
+		}
+		final var authority = new ClanWarAuthority(actor, target, actorClan, targetClan, actorMember, targetMember, outgoing, incoming);
+		return authority.current() ? authority : null;
+	}
+
+	record ClanWarAuthority(Player actor, Player target, Clan actorClan, Clan targetClan, ClanMember actorMember, ClanMember targetMember, WarIdentity outgoing, WarIdentity incoming)
+	{
+		boolean current()
+		{
+			final var world = World.getInstance();
+			final var wars = ClanWarService.getInstance();
+			return world.getPlayer(actor.getObjectId()) == actor && world.getPlayer(target.getObjectId()) == target
+				&& actor.getClan() == actorClan && target.getClan() == targetClan
+				&& actorClan.getClanMember(actor.getObjectId()) == actorMember && targetClan.getClanMember(target.getObjectId()) == targetMember
+				&& actorClan.getDissolvingExpiryTime() == 0 && targetClan.getDissolvingExpiryTime() == 0
+				&& !sameAlliance(actorClan, targetClan) && actor.getParty() == null
+				&& !actor.isInStoreMode() && !actor.hasPendingOwnedStore() && !actor.isAcademyMember() && !target.isAcademyMember()
+				&& actor.getWantsPeace() == 0 && target.getWantsPeace() == 0
+				&& actorClan.isAtWarWith(targetClan) && targetClan.isAtWarWith(actorClan)
+				&& wars.currentWar(actorClan, targetClan).filter(outgoing::equals).isPresent()
+				&& wars.currentWar(targetClan, actorClan).filter(incoming::equals).isPresent();
+		}
+	}
+
+	static String clanWarEvidenceHash(WarIdentity outgoing, WarIdentity incoming)
+	{
+		return PhantomPvpModel.sha256("pvp.native.clan-war", outgoing.sourceClanId(), outgoing.targetClanId(), outgoing.warId(), incoming.warId());
+	}
+
+	/** Observe exact local evidence from the existing target budget. Only native Party can dispatch protection. */
+	private void observeClanAid(long profileId, PvpObservation observation)
+	{
+		if (observation.targets().isEmpty() || observation.targets().stream().anyMatch(PvpObservedTarget::actualAttacker) || _party.blocksBackground(profileId))
+		{
+			return;
+		}
+		final var world = World.getInstance();
+		final Player actor = world.getPlayer(observation.actor().objectId());
+		final Clan actorClan = actor == null ? null : actor.getClan();
+		if (actorClan == null || actor.getParty() != null || actor.isInStoreMode() || actor.hasPendingOwnedStore()
+			|| actorClan.getDissolvingExpiryTime() != 0 || actorClan.getClanMember(actor.getObjectId()) == null)
+		{
+			return;
+		}
+		for (PvpObservedTarget observed : observation.targets())
+		{
+			final var facts = observed.target();
+			if (!observed.canonicalContextAllowed() || !facts.autoAttackable() || !facts.reachable() || facts.invulnerable())
+			{
+				continue;
+			}
+			final Player attacker = world.getPlayer(facts.objectId());
+			if (attacker == null || !(attacker.getTarget() instanceof Player victim) || victim == actor || world.getPlayer(victim.getObjectId()) != victim
+				|| !victim.isSpawned() || victim.isAlikeDead() || victim.isInvisible() || victim.getInstanceId() != actor.getInstanceId()
+				|| actor.getWorldRegion() == null || victim.getWorldRegion() == null || !actor.getWorldRegion().isSurroundingRegion(victim.getWorldRegion())
+				|| !PhantomNativeTravelActions.targetsForCombat(attacker, victim)
+				|| victim.recentPlayerAttackNanos(attacker.getObjectId()) == 0)
+			{
+				continue;
+			}
+			final Clan victimClan = victim.getClan();
+			final Clan attackerClan = attacker.getClan();
+			if (victimClan == null || (victimClan != actorClan && !sameAlliance(actorClan, victimClan))
+				|| victimClan.getDissolvingExpiryTime() != 0 || victimClan.getClanMember(victim.getObjectId()) == null
+				|| (attackerClan != null && (attackerClan == actorClan || sameAlliance(actorClan, attackerClan))))
+			{
+				continue;
+			}
+			final RiskSnapshot risk = risk(observation, observed);
+			if (risk.legal() && risk.actorHpPercent() > _policy.limits().retreatHpPercent()
+				&& risk.actorEffectivePoolPercent() > _policy.limits().retreatEffectivePoolPercent()
+				&& risk.relativeStrengthBasisPoints() >= _policy.limits().engageMinimumStrengthBasisPoints())
+			{
+				_clanAidObservations.increment();
+				return;
+			}
+		}
+	}
+
+	long clanAidObservations()
+	{
+		return _clanAidObservations.sum();
+	}
+
+	private static boolean sameAlliance(Clan left, Clan right)
+	{
+		final int allianceId = left.getAllyId();
+		return allianceId > 0 && allianceId == right.getAllyId();
 	}
 
 	private RiskSnapshot risk(PvpObservation observation, PvpObservedTarget observed)
@@ -369,7 +499,11 @@ public final class PhantomPvpContext
 		return Math.max(minimum, Math.min(maximum, value));
 	}
 
-	private record ObservedEvidence(SourceEvidence _source, PvpObservedTarget _target)
+	private record ObservedEvidence(SourceEvidence _source, PvpObservedTarget _target, ClanWarAuthority _war)
 	{
+		private ObservedEvidence(SourceEvidence source, PvpObservedTarget target)
+		{
+			this(source, target, null);
+		}
 	}
 }

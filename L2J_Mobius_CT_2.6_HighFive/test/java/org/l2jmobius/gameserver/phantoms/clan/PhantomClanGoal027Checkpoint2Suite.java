@@ -81,6 +81,9 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		registry.add("09-revoked-source-consent-cannot-join", this::revokedJoinConsent);
 		registry.add("10-autonomous-alliance-keeps-independent-consent-and-farm", this::autonomousAllianceLifecycle);
 		registry.add("11-autonomous-unknown-join-reconciles-without-replay", this::autonomousJoinRecovery);
+		registry.add("12-autonomous-war-and-independent-peace", this::autonomousWarAndPeace);
+		registry.add("13-autonomous-stop-preserves-reverse-war", this::autonomousStopDirection);
+		registry.add("14-autonomous-unknown-war-does-not-adopt-manual-row", this::autonomousUnknownWar);
 		registry.add("03-exact-leave-proof-dissolve", this::leaveAndDissolve);
 		registry.add("04-war-declare-restart-evidence", this::warDeclare);
 		registry.add("05-exact-stop-bilateral-peace-war-id", this::stopAndPeace);
@@ -290,6 +293,80 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		real.backend.addRealClan(303, 33, "RealOnly");
 		real.goals.put(1, goal(1, 143, PhantomClanService.WAR_DECLARE_GOAL, ref("clan.id", "33"), List.of(ref("character.object", "303")), null, 0));
 		PhantomAssertions.assertEquals(OperationStatus.UNSUPPORTED, real.service().advance(1, 143, 0).status(), "REAL-only clan reached autonomous war path.");
+	}
+
+	private void autonomousWarAndPeace(PhantomTestContext context)
+	{
+		final Fixture fixture = plainPair();
+		final var farm = goal(1, 750, "farm.ordinary", null, List.of(), null, 0);
+		fixture.goals.put(1, farm);
+		final var service = fixture.service();
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		PhantomAssertions.assertEquals(0, fixture.backend.declareCalls, "Neutral discovery declared war.");
+		fixture.backend.hostilityScore = 1000;
+		fixture.backend.hostileEvidence = true;
+		final List<Long> leaderSearch = List.of(31L, 32L, 33L, 34L, 35L, 36L, 37L, 38L, 2L);
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(1, 101, List::of, () -> leaderSearch, 2);
+		PhantomAssertions.assertEquals(0, fixture.backend.declareCalls, "A single observation declared war.");
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(1, 101, List::of, () -> leaderSearch, 2);
+		PhantomAssertions.assertEquals(1, fixture.backend.declareCalls, "Sustained hostile evidence did not reach the directed native writer.");
+		final long warId = fixture.backend.war.warId();
+		fixture.backend.hostilityScore = 0;
+		fixture.backend.hostileEvidence = false;
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		PhantomAssertions.assertEquals(warId, fixture.backend.war.warId(), "The proposal itself ended a war.");
+		fixture.backend.targetPeaceRejected = true;
+		service.advanceAutonomous(2, 202, List::of, 2);
+		PhantomAssertions.assertEquals(0, fixture.backend.peaceCalls, "A hostile recipient was treated as consenting.");
+		fixture.backend.targetPeaceRejected = false;
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		fixture.service().advanceAutonomous(2, 202, List::of, 2);
+		PhantomAssertions.assertEquals(0, fixture.backend.peaceCalls, "Restart restored a volatile offer.");
+		service.advanceAutonomous(2, 202, () -> List.of(1L), 2);
+		PhantomAssertions.assertEquals(1, fixture.backend.peaceCalls, "Independent recipient did not accept the exact war.");
+		PhantomAssertions.assertEquals(warId, fixture.backend.lastPeaceWarId, "Peace stopped the wrong war.");
+		PhantomAssertions.assertEquals(farm, fixture.goals.load(1).orElseThrow().goal(), "Diplomacy replaced the ordinary goal.");
+	}
+
+	private void autonomousStopDirection(PhantomTestContext context)
+	{
+		final Fixture fixture = plainPair();
+		fixture.backend.clans.get(22).members = 12;
+		fixture.backend.startWar(22, 11);
+		fixture.backend.secondWar = fixture.backend.war;
+		fixture.backend.startWar(11, 22);
+		final long directId = fixture.backend.war.warId();
+		final var service = fixture.service();
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		PhantomAssertions.assertEquals(directId, fixture.backend.lastStoppedWarId, "Autonomous STOP did not carry its own exact war ID.");
+		PhantomAssertions.assertEquals(null, fixture.backend.war, "Direct war remained after STOP.");
+		PhantomAssertions.assertEquals(22, fixture.backend.secondWar.sourceClanId(), "Selective STOP removed the reverse war.");
+	}
+
+	private void autonomousUnknownWar(PhantomTestContext context)
+	{
+		final Fixture fixture = plainPair();
+		fixture.backend.hostilityScore = 1000;
+		fixture.backend.hostileEvidence = true;
+		fixture.backend.loseWarAck = true;
+		final var service = fixture.service();
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		fixture.now += 1_800_000;
+		service.advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		PhantomAssertions.assertEquals(1, fixture.backend.declareCalls, "Fixture did not enter the native writer.");
+		fixture.backend.startWar(11, 22);
+		fixture.now += 1_800_000;
+		fixture.service().advanceAutonomous(1, 101, () -> List.of(2L), 2);
+		final var pending = fixture.persistence.load(1).orElseThrow().metadata().diplomacy();
+		PhantomAssertions.assertEquals(DiplomacyPhase.PREPARED, pending.phase(), "Unrelated current war supplied a false completion receipt.");
+		PhantomAssertions.assertEquals(0L, pending.warId(), "An unrelated war ID was attached to an uncertain declaration.");
+		PhantomAssertions.assertEquals(1, fixture.backend.declareCalls, "Reconciliation repeated the uncertain native declaration.");
 	}
 
 	private void stopAndPeace(PhantomTestContext context)
@@ -610,6 +687,9 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		private long allianceGeneration;
 		private long warSequence;
 		private WarIdentity war;
+		private WarIdentity secondWar;
+		private boolean loseWarAck;
+		private boolean targetPeaceRejected;
 		private ClanAllianceService.Status nextAllianceFailure;
 		private int hostilityScore;
 		private boolean hostileEvidence;
@@ -891,6 +971,32 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		}
 
 		@Override
+		public Optional<ClanWarService.DirectedWars> directedWars(int sourceClanId, int targetClanId, boolean durable)
+		{
+			return Optional.of(new ClanWarService.DirectedWars(directedWar(sourceClanId, targetClanId), directedWar(targetClanId, sourceClanId)));
+		}
+
+		private WarIdentity directedWar(int sourceClanId, int targetClanId)
+		{
+			return java.util.stream.Stream.of(war, secondWar).filter(java.util.Objects::nonNull)
+				.filter(value -> value.sourceClanId() == sourceClanId && value.targetClanId() == targetClanId).findFirst().orElse(null);
+		}
+
+		@Override
+		public ClanWarService.Result applyAutonomousWar(PhantomClanService.AllianceActor source, PhantomClanService.AllianceActor target,
+			ClanWarService.DirectedWars expected, boolean peace, java.util.function.BooleanSupplier stillCurrent)
+		{
+			if (!stillCurrent.getAsBoolean() || !directedWars(clan(source.member()).id, clan(target.member()).id, true).orElseThrow().equals(expected))
+			{
+				return new ClanWarService.Result(ClanWarService.Status.STALE, ClanWarService.Reason.STALE_IDENTITY, null);
+			}
+			if (peace) { return acceptPeace(source.member(), target.member(), expected.direct()); }
+			if (expected.direct() != null) { return stopWar(source.member(), target.member(), expected.direct().warId()); }
+			final var declared = declareWar(source.member(), target.member());
+			return loseWarAck ? new ClanWarService.Result(ClanWarService.Status.PERSISTENCE_FAILURE, ClanWarService.Reason.PERSISTENCE_ERROR, null) : declared;
+		}
+
+		@Override
 		public Optional<WarIdentity> currentWar(MemberRef first, MemberRef second)
 		{
 			if (war == null)
@@ -941,8 +1047,9 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		@Override
 		public RelationshipEvidence relationship(long ownerProfileId, MemberRef subject, long nowEpochMinute)
 		{
+			final int score = ownerProfileId == 2 && targetPeaceRejected ? 900 : hostilityScore;
 			final List<String> evidence = hostileEvidence ? List.of(PhantomClanService.sha256("hostile-event")) : List.of();
-			return new RelationshipEvidence(true, hostilityScore, -hostilityScore, evidence, PhantomClanService.sha256("relationship|" + ownerProfileId + "|" + subject.profileId() + "|" + hostilityScore));
+			return new RelationshipEvidence(true, score, -score, evidence, PhantomClanService.sha256("relationship|" + ownerProfileId + "|" + subject.profileId() + "|" + score));
 		}
 
 		@Override
@@ -1000,6 +1107,7 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 		private String allianceName;
 		private long membershipCounter;
 		private int penaltyType;
+		private int members = 5;
 
 		private ClanData(int id, String name, int leaderObjectId, boolean managed)
 		{
@@ -1011,7 +1119,7 @@ public final class PhantomClanGoal027Checkpoint2Suite implements PhantomTestSuit
 
 		private ClanSnapshot snapshot(int memberObjectId)
 		{
-			return new ClanSnapshot(id, name, leaderObjectId, 5, 5, 40, alliance == null ? 0 : alliance.leaderClanId(), 0, PhantomClanService.sha256(id + "|" + name + "|" + leaderObjectId + "|" + memberObjectId + "|" + membershipCounter));
+			return new ClanSnapshot(id, name, leaderObjectId, 5, members, 40, alliance == null ? 0 : alliance.leaderClanId(), 0, PhantomClanService.sha256(id + "|" + name + "|" + leaderObjectId + "|" + memberObjectId + "|" + membershipCounter));
 		}
 	}
 }

@@ -1958,6 +1958,7 @@ public final class PhantomCombatService
 
 	private void processPvp(PhantomCombatSession session, ActorSnapshot actor, boolean stockPvp)
 	{
+		if (cancelRevokedClanWar(session)) { return; }
 		final PvpTargetSnapshot target = session._actorLease.pvpTargetSnapshot(session._request.targetObjectId());
 		if (target != null && target.dead())
 		{
@@ -1978,6 +1979,7 @@ public final class PhantomCombatService
 		}
 		if ((actor.maximumCp() > 0) && (percent(actor.currentCp(), actor.maximumCp()) <= session._pvpRequest.cpPotionThresholdPercent()))
 		{
+			if (cancelRevokedClanWar(session)) { return; }
 			session._actorLease.cpPotions().stream().filter(PhantomCombatBackend.CpPotionSnapshot::ready).findFirst().ifPresent(potion -> session._actorLease.useCpPotion(potion.itemObjectId(), potion.itemId()));
 		}
 		session._phase = PhantomCombatPhase.FIGHTING;
@@ -2015,6 +2017,7 @@ public final class PhantomCombatService
 			return;
 		}
 		if (!session._actorLease.hasPvpShotReserve(session._request.mode(), 2)) { finish(session, PhantomCombatResult.SUPPLY_REQUIRED); return; }
+		if (cancelRevokedClanWar(session)) { return; }
 		final ActionOutcome spacing = session._actorLease.maintainPvpPosition(ownerObjectId, skills.stream().findFirst().orElse(null), session._request.mode());
 		if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
 		if (ready.isEmpty() && !session._loadout.normalAttackFallback()) { return; }
@@ -2022,11 +2025,13 @@ public final class PhantomCombatService
 		final var learned = ready.size() >= 2 && policy.ownedPvpEpisodes()
 			? session._actorLease.preparePvpLearning(policy, session._pvpRequest, tacticalTargetObjectId, ready, session._generation, selection.stockPvp()) : null;
 		if (learned != null && (!ready.contains(learned.candidate().skill()) || !learned.candidate().exact().getAsBoolean())) { return; }
+		if (cancelRevokedClanWar(session)) { return; }
 		final var shot = session._actorLease.activateShot(session._request.mode());
 		_metrics.shot(shot);
 		if (shot != ShotOutcome.ACTIVATED) { finish(session, PhantomCombatResult.SUPPLY_REQUIRED); return; }
 		for (SelectedSkill selected : learned == null ? ready : List.of(learned.candidate().skill()))
 		{
+			if (cancelRevokedClanWar(session)) { return; }
 			final ActionOutcome outcome = session._actorLease.castPvp(ownerObjectId, tacticalTargetObjectId, selected, session._request.mode(), session._pvpRequest.forceUse(),
 				session._pvpRequest.authorityHash(), learned);
 			if (outcome == ActionOutcome.ISSUED)
@@ -2042,12 +2047,23 @@ public final class PhantomCombatService
 			if (outcome == ActionOutcome.ALREADY_OWNED) { return; }
 		}
 		if (learned != null || !session._loadout.normalAttackFallback()) { return; }
+		if (cancelRevokedClanWar(session)) { return; }
 		final ActionOutcome outcome = session._actorLease.attackPvp(ownerObjectId, tacticalTargetObjectId, session._pvpRequest.forceUse(), session._pvpRequest.authorityHash());
 		if (outcome == ActionOutcome.ISSUED)
 		{
 			session._ownedAction = session._ownedAction.withSelectedSkill(null);
 			_metrics.attackIssued();
 		}
+	}
+
+	private boolean cancelRevokedClanWar(PhantomCombatSession session)
+	{
+		if (session._pvpRequest.source() != Source.CLAN_WAR || !session._request.planOwnershipToken().isCancelled())
+		{
+			return false;
+		}
+		finish(session, PhantomCombatResult.CANCELLED);
+		return true;
 	}
 
 	private boolean yieldToPartySupport(PhantomCombatSession session, ActorSnapshot actor)

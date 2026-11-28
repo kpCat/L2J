@@ -1281,7 +1281,7 @@ public class Clan
 						setCharPenaltyExpiryTime(0);
 					}
 					
-					setDissolvingExpiryTime(clanData.getLong("dissolving_expiry_time"));
+					_dissolvingExpiryTime = clanData.getLong("dissolving_expiry_time");
 					
 					setCrestId(clanData.getInt("crest_id"));
 					setCrestLargeId(clanData.getInt("crest_large_id"));
@@ -2620,7 +2620,11 @@ public class Clan
 	
 	public void setDissolvingExpiryTime(long time)
 	{
-		_dissolvingExpiryTime = time;
+		ClanSocialMutationFence.getInstance().execute(new long[] { ClanSocialMutationFence.clanKey(_clanId) }, () ->
+		{
+			_dissolvingExpiryTime = time;
+			return null;
+		});
 	}
 	
 	private volatile boolean _firstLevelPaymentPending;
